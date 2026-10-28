@@ -6,9 +6,9 @@
 **OpenSpec change:** <!-- or "none, small fix" with the no-spec label -->
 **Area:** <!-- frontend, api, engine or cross-cutting -->
 
-## Parity With the Perl
+## Parity With the Reference
 
-<!-- Does this change engine output? If it differs from the Perl, link the row in docs/parity/divergences.md and name its approver. Otherwise write "Not affected". -->
+<!-- Does this change engine output? If it differs from the service's reference (the legacy Perl, or the pinned EBI treegrafter), link the row in docs/parity/divergences.md and name its approver. Otherwise write "Not affected". -->
 
 ## New Dependencies
 

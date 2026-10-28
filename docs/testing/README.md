@@ -13,9 +13,9 @@ How we test, and how to run each suite. Someone new should be able to run every 
 | ---- | ---- | ----- |
 | Unit and component | `frontend/` | Vitest and React Testing Library |
 | End-to-end | `frontend/` | Playwright, in three modes: against mocks, a real API, or an already-running site. See [frontend.md](frontend.md) |
-| API | `api/` | Request validation, the job lifecycle, the legacy XML endpoint |
-| Engine | `engine/` | Unit tests per pipeline step |
-| Parity | `engine/` | Python vs the Perl golden files. See [../parity/](../parity/README.md) |
+| API | `api/` | Request validation, the job lifecycle, the legacy compatibility endpoints |
+| Engine | `engine/` | Unit tests per service and per pipeline step, and for `core/` |
+| Parity | `engine/` | Python vs each service's golden files (the legacy Perl, or the pinned EBI `treegrafter`). See [../parity/](../parity/README.md) |
 
 ## What CI Runs
 

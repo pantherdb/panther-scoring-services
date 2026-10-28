@@ -2,21 +2,22 @@ schema: spec-driven
 
 # Constraints for OpenSpec artifacts. The full project guide is CLAUDE.md.
 context: |
-  Scope is PANTHER cSNP impact scoring (PANTHER-PSEP) only. No HMM scoring, TreeGrafter or other PANTHER tools.
-  Three areas, one owner each: frontend/ (React + TypeScript), api/ (FastAPI), engine/ (Python scoring engine).
+  Scope is four PANTHER services, in priority order: hmmscore and refmap, then csnp (PANTHER-PSEP), then treegrafter. No other PANTHER tools.
+  Three areas, one owner each, each covering all four services: frontend/ (React + TypeScript), api/ (FastAPI), engine/ (Python package: shared core/ plus csnp, hmmscore, refmap, treegrafter submodules).
   engine/ is a library with a CLI that api/ imports. There is no HTTP between them.
   The OpenAPI schema is the frontend/api contract; frontend types are generated from it.
-  Milestone M1 is a faithful port of the legacy Perl, accepted by matching golden files from the Perl pipeline.
-  Any difference from the Perl needs a row in docs/parity/divergences.md with a named approver.
-  BLAST+ only. HMMER and RAxML belong to milestone M2 and need science-owner sign-off.
+  Milestone M1 for each service is parity with its reference, accepted by matching golden files: the legacy Perl for hmmscore, refmap and csnp; the pinned EBI treegrafter (adopted, not ported) for treegrafter.
+  Any difference from a service's reference needs a row in docs/parity/divergences.md with a named approver.
+  Each service keeps its own toolchain: csnp BLAST+, hmmscore HMMER3, treegrafter HMMER3 and EPA-ng, refmap none. Adding a tool or changing a method needs science-owner sign-off; HMMER or grafting for csnp is milestone M2.
+  csnp runs on frozen PANTHER 9 data; its legacy behaviour spec and parity review in ../panther-workspace/legacy/cSNP_analysis define its reference and quirk IDs; the other services share the current PANTHER release.
   The legacy code at ../panther-workspace is read-only reference. Where it is unclear, write "needs team verification" instead of guessing.
   The frontend stack is Accepted (docs/design/frontend-stack.md; conventions in frontend/CLAUDE.md).
-  The API and engine stacks in docs/design/tech-stack.md are Proposed, and its open questions are unresolved, including the 180/380 vs 200/450 Mya thresholds.
+  The API and engine stacks in docs/design/tech-stack.md are Proposed, and its open questions are unresolved, including the csnp 180/380 vs 200/450 Mya thresholds.
 
 rules:
   proposal:
     - State the Area - frontend, api, engine or cross-cutting
-    - Say whether the change affects parity with the Perl output, and name any divergences it needs
+    - Say whether the change affects parity with its service's reference output, and name any divergences it needs
     - List anything that needs team verification as an open question instead of assuming an answer
   design:
     - Link the docs/design/ decisions the change relies on; don't restate or override them

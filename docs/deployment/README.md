@@ -12,7 +12,7 @@ How the service gets deployed, and a record of each deployment.
 ## What a Deployment Record Includes
 
 - Environment, date, and who deployed.
-- Versions: image tags, PANTHER library version, BLAST+ version.
+- Versions: image tags, PANTHER data versions (the current release, and the frozen cSNP data), BLAST+, HMMER3 and EPA-ng versions, and the pinned `treegrafter` commit.
 - What changed since the last deployment.
 - Any manual steps, and anything that went wrong.
 - How to roll back.

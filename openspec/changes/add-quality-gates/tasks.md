@@ -8,13 +8,13 @@
 ## 2. Pull Request Template and CODEOWNERS
 
 - [x] 2.1 Add `.github/pull_request_template.md` (OpenSpec change link, Area, parity impact and divergence row, new dependencies, how it was tested, "all affected area owners approved" box, "I have read and can explain every line" box); verify it passes `markdownlint-cli2` (GitHub reads the template from `main`, so it's seen on a pull request only after merge: 6.3)
-- [ ] 2.2 Add `.github/CODEOWNERS` with the interim layout from design.md (all three logins on every path, owner first); verify `gh api repos/pantherdb/panther-scoring-services/codeowners/errors?ref=chore/add-quality-gates` returns no errors once the branch is pushed (GitHub requests reviewers from `main`'s copy, so that's checked after merge: 6.3)
+- [x] 2.2 Add `.github/CODEOWNERS` with the interim layout from design.md (all three logins on every path, owner first); verify `gh api repos/pantherdb/panther-scoring-services/codeowners/errors?ref=chore/add-quality-gates` returns no errors once the branch is pushed (GitHub requests reviewers from `main`'s copy, so that's checked after merge: 6.3)
 
 ## 3. CI Workflow
 
 - [ ] 3.1 Add `.github/workflows/ci.yml` with the `changes`, `frontend`, `repo`, `dependency-review` and `ci-passed` jobs from design.md. Every action pinned to a commit SHA with its version in a comment, Node from `.nvmrc`, npm and Playwright caches, and a Playwright report uploaded on failure. Mark the `api/` and `engine/` slots with comments; verify `ci-passed` runs and passes on the draft pull request
-- [ ] 3.2 Add `.markdownlint-cli2.jsonc` (`MD013` and `MD033` off; ignore `.claude/`, `.agents/`, `node_modules/`, `frontend/dist/`, `frontend/playwright-report/`, `frontend/test-results/`) and fix what it reports in existing Markdown; verify `npx markdownlint-cli2` passes locally and in the `repo` job
-- [ ] 3.3 Wire gitleaks into the `repo` job (release binary pinned by version and SHA-256, scanning the pull request's commits); verify it passes on this branch in CI. Locally it already passes on this branch's commits, and exits 1 on a throwaway repo with a made-up AWS key
+- [x] 3.2 Add `.markdownlint-cli2.jsonc` (`MD013` and `MD033` off; ignore `.claude/`, `.agents/`, `node_modules/`, `frontend/dist/`, `frontend/playwright-report/`, `frontend/test-results/`) and fix what it reports in existing Markdown; verify `npx markdownlint-cli2` passes locally and in the `repo` job
+- [x] 3.3 Wire gitleaks into the `repo` job (release binary pinned by version and SHA-256, scanning the pull request's commits); verify it passes on this branch in CI. Locally it already passes on this branch's commits, and exits 1 on a throwaway repo with a made-up AWS key
 - [ ] 3.4 Prove the summary check: push a docs-only commit and check that `frontend` is skipped and `ci-passed` still passes. Push a commit that breaks a frontend lint rule and check that `ci-passed` fails, then revert it
 - [x] 3.5 Add `.github/dependabot.yml` (`github-actions` only, weekly); verify it parses as YAML (Dependabot reads it from `main` only, so it's checked after merge: 6.3)
 
@@ -62,6 +62,9 @@ Until the first two branches merge, the draft pull request also shows their comm
 - **The gitleaks container image (2026-10-28).** Dropped before trying it in CI. In a container, git rejects a checkout owned by another user unless extra config is passed in. The checksummed release binary avoids that.
 
 ### Lessons learned
+
+- **Dependency review needs the dependency graph (3.1, 2026-10-28).** It was off for this repo, and the API couldn't switch it on. It had to be done by hand in Settings → Advanced Security.
+- **The first licence list was too narrow (3.1).** It rejected MIT-0, BSD-2-Clause-Views and PSF-2.0, all permissive, used by `@csstools/*`, `uri-js` and `argparse`. When dependency review rejects a licence, check whether it's permissive before adding it to the list.
 
 - **Claude Code path rules (1.2, 2026-10-28).**
   - `Write(...)` path rules never match; `Edit(...)` rules cover the Write tool as well.

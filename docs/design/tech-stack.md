@@ -1,13 +1,13 @@
 # Tech Stack Proposal
 
-**Status:** Proposed, 2026-10-27; revised 2026-10-28 for four services. Not final until the [open questions](#open-questions) are answered and the [reviewers](#review) sign off. The frontend part was split out and accepted on 2026-10-28: see [frontend-stack.md](frontend-stack.md). The API's tooling (uv, Python version, lint, types, tests, error format) was split out on 2026-10-28 into [api-stack.md](api-stack.md); the API's architecture stays here.
+**Status:** Proposed, 2026-10-27; revised 2026-10-28 for four services. Not final until the [open questions](#open-questions) are answered and the [reviewers](#review) sign off. The frontend part was split out and accepted on 2026-10-28: see [frontend-stack.md](frontend-stack.md). The API's tooling (uv, Python version, lint, types, tests, error format) was split out and accepted on 2026-10-28: see [api-stack.md](api-stack.md); the API's architecture stays here.
 
 ## Summary
 
 | Part | Folder | Proposed | Verdict |
 | ---- | ------ | -------- | ------- |
 | Frontend | `frontend/` | React 19 + Vite + TypeScript, Mantine + Tailwind, RTK Query | Accepted, in [frontend-stack.md](frontend-stack.md) |
-| API | `api/` | FastAPI (Python), one app for all four services | Agree, built around jobs. Tooling in [api-stack.md](api-stack.md) |
+| API | `api/` | FastAPI (Python), one app for all four services | Agree, built around jobs. Tooling accepted in [api-stack.md](api-stack.md) |
 | Engine | `engine/` | One Python package: shared `core/` plus one submodule per service | Agree, as a library with parity tests |
 | Runtime tools | — | BLAST+, HMMER3, EPA-ng | Per service: see [Runtime Tools and Milestones](#runtime-tools-and-milestones) |
 

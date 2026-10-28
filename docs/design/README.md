@@ -23,4 +23,4 @@ The proposal, design and tasks for one change go in `openspec/changes/<change>/`
 | --- | ------ |
 | [tech-stack.md](tech-stack.md) | Proposed, 2026-10-27; revised 2026-10-28 for four services (scope, API, engine, runtime tools, shared concerns) |
 | [frontend-stack.md](frontend-stack.md) | Accepted, 2026-10-28 |
-| [api-stack.md](api-stack.md) | Proposed, 2026-10-28 |
+| [api-stack.md](api-stack.md) | Accepted, 2026-10-28 |

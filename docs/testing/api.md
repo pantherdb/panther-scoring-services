@@ -56,6 +56,7 @@ uv run python -m panther_api.openapi
 Tests live in `tests/` and call the app through FastAPI's `TestClient`, so no server needs to be running and no test data is needed.
 
 - **The `client` fixture** in `tests/conftest.py` gives a client for a fresh app.
+- **`TestClient` is built on `httpx2`, not `httpx`** (Starlette 1.x). Type a test's responses as `httpx2.Response`; `httpx.Response` fails the type check. `fastapi[standard]` installs both.
 - **To test with a throwaway route**, build the app with `create_app(router)` from `panther_api.main`: the router is included under `/api/v1`, like the app's own.
 
 Run one file, or one test by name:

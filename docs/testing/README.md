@@ -27,7 +27,7 @@ How we test, and how to run each suite. Someone new should be able to run every 
 | `api` | `api/` changed | From `api/`: `uv sync --locked`, `uv run ruff check`, `uv run ruff format --check`, `uv run basedpyright`, `uv run pytest` (including the check that `api/openapi.json` is current). See [api.md](api.md) |
 | `openspec-change` | Pull requests | Fails if code in `frontend/`, `api/` or `engine/` changed but `openspec/changes/` didn't, unless the pull request has the `no-spec` label |
 | `repo` | Always | From the root: `npx markdownlint-cli2`, `npx openspec validate --all`, and a gitleaks scan of the new commits |
-| `dependency-review` | Pull requests | New dependencies with a moderate or worse advisory, or a licence outside the allowed list |
+| `dependency-review` | Pull requests | New dependencies with a moderate or worse advisory, or a licence outside the allowed list. Reads `frontend/package-lock.json` and `api/uv.lock`. When GitHub's scanner misreads a package's licence, exempt that package by purl in `allow-dependencies-licenses`, with a comment saying why; never widen `allow-licenses` for one package |
 
 There is no `engine/` job yet. The engine developer adds it once the folder has code, with the parity suite in it. The comments in `ci.yml` say where.
 

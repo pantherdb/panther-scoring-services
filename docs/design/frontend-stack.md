@@ -60,6 +60,8 @@ Mantine useForm (draft) --submit--> RTK Query mutation --> store (job, results)
 
 The **frontend ↔ api contract** (the job endpoints, request and result shapes, polling) is shared with the API developer and is still Proposed in [tech-stack.md](tech-stack.md). Until it's agreed, the frontend builds against a mocked API.
 
+**ESLint 10.** The stack names ESLint 9, and npm now warns that ESLint 9 is end-of-life. The other newer majors (TypeScript 7, Vite 8, React Router 8) aren't adopted either: the scaffold pins the newest release of each major named above. Moving to any of them is a change to this doc, made through a proposal.
+
 ## Review
 
 | Reviewer | Covers | Status |

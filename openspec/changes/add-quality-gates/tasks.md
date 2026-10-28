@@ -15,7 +15,7 @@
 - [x] 3.1 Add `.github/workflows/ci.yml` with the `changes`, `frontend`, `repo`, `dependency-review` and `ci-passed` jobs from design.md. Every action pinned to a commit SHA with its version in a comment, Node from `.nvmrc`, npm and Playwright caches, and a Playwright report uploaded on failure. Mark the `api/` and `engine/` slots with comments; verify `ci-passed` runs and passes on the draft pull request
 - [x] 3.2 Add `.markdownlint-cli2.jsonc` (`MD013` and `MD033` off; ignore `.claude/`, `.agents/`, `node_modules/`, `frontend/dist/`, `frontend/playwright-report/`, `frontend/test-results/`) and fix what it reports in existing Markdown; verify `npx markdownlint-cli2` passes locally and in the `repo` job
 - [x] 3.3 Wire gitleaks into the `repo` job (release binary pinned by version and SHA-256, scanning the pull request's commits); verify it passes on this branch in CI. Locally it already passes on this branch's commits, and exits 1 on a throwaway repo with a made-up AWS key
-- [ ] 3.4 Prove the summary check: push a docs-only commit and check that `frontend` is skipped and `ci-passed` still passes. Push a commit that breaks a frontend lint rule and check that `ci-passed` fails, then revert it. For `openspec-change`'s failing case, open a throwaway pull request that changes only `frontend/` without the label, check that it fails, add `no-spec`, check that it passes, then close it
+- [x] 3.4 Prove the summary check: push a docs-only commit and check that `frontend` is skipped and `ci-passed` still passes. Push a commit that breaks a frontend lint rule and check that `ci-passed` fails, then revert it. For `openspec-change`'s failing case, open a throwaway pull request that changes only `frontend/` without the label, check that it fails, add `no-spec`, check that it passes, then close it
 - [x] 3.5 Add `.github/dependabot.yml` (`github-actions` only, weekly); verify it parses as YAML (Dependabot reads it from `main` only, so it's checked after merge: 6.3)
 - [x] 3.6 Add the `openspec-change` job (code changed without `openspec/changes/` fails unless the pull request has the `no-spec` label; re-runs on `labeled`/`unlabeled`) and create the `no-spec` label; document it under Small Fixes in `CONTRIBUTING.md`, in the pull request template and in `docs/testing/README.md`. Verify it passes on this pull request, which touches `openspec/changes/`. Its failing case is tested in 3.4
 
@@ -31,7 +31,7 @@
 
 ## 6. Turn It On (after this change is on `main`)
 
-- [ ] 6.1 Confirm `ci-passed` has reported on a `main` commit, then turn on secret scanning and push protection (Settings → Code security); verify `gh api repos/pantherdb/panther-scoring-services --jq .security_and_analysis` shows both enabled
+- [x] 6.1 Confirm `ci-passed` has reported on a `main` commit, then turn on secret scanning and push protection (Settings → Code security); verify `gh api repos/pantherdb/panther-scoring-services --jq .security_and_analysis` shows both enabled
 - [ ] 6.2 Apply the ruleset with `gh api --method POST .../rulesets --input .github/rulesets/main.json`; verify `git push origin main` with a test commit is rejected, and that a test pull request shows "Merging is blocked" until `ci-passed` passes and one approval is given
 - [ ] 6.3 Check what GitHub reads only from `main`: a new pull request opens with the template filled in, requests the other two developers as code owners, and Dependabot's page (Insights → Dependency graph → Dependabot) lists the config without errors
 
@@ -44,14 +44,12 @@
 
 ### Next action
 
-Push `chore/add-quality-gates` and open a draft pull request against `main`, so CI runs. Then check 2.2, 3.1 to 3.3 on it, and do 3.4. Everything that can be checked locally passes:
+Ruleset 26046081 is active on `main`. `gh api .../rules/branches/main` lists all four rules. Two checks remain, both for the frontend developer:
 
-- the frontend checks (`format:check`, `lint`, `type-check`, `test`)
-- `npx markdownlint-cli2` (22 files)
-- `openspec validate`
-- gitleaks on this branch's commits
+- **6.2:** push a test commit straight to `main` and confirm `GH013` rejects it. The shared Claude deny rules block the assistant from trying. The "Merging is blocked" part is checked on the close-out pull request, the first under the ruleset.
+- **6.3:** Dependabot's page lists the config without errors. The template and the code-owner review requests are already confirmed: test pull requests #3 and #4 requested `mugitty` and `dustine32`, and GitHub's community profile lists the template.
 
-Until the first two branches merge, the draft pull request also shows their commits.
+Then archive.
 
 ### Blockers
 
@@ -63,6 +61,14 @@ Until the first two branches merge, the draft pull request also shows their comm
 - **The gitleaks container image (2026-10-28).** Dropped before trying it in CI. In a container, git rejects a checkout owned by another user unless extra config is passed in. The checksummed release binary avoids that.
 
 ### Lessons learned
+
+- **3.4 needed throwaway pull requests from `main`, not commits on the change's own pull request (2026-10-28).** A pull request that contains the whole frontend always runs the frontend job, so a docs-only commit on it proves nothing. Results:
+  - docs-only: `frontend` skipped, `ci-passed` passed
+  - broken lint with no proposal: `frontend` and `openspec-change` failed
+  - `no-spec` added: `openspec-change` passed, `frontend` still failed
+  - reverted: everything passed
+- **`openspec archive` writes a new main spec that fails Markdown lint (2026-10-28).** It puts no blank line after `## Purpose` (MD022). That happened when `scaffold-frontend` created `openspec/specs/scoring-ui/spec.md`. After archiving a change that creates a capability, run `npx markdownlint-cli2 --fix`, or CI's `repo` job fails.
+- **Secret scanning could be switched on through the API, but the dependency graph couldn't (6.1).** The `security_and_analysis` PATCH turned on `secret_scanning` and `secret_scanning_push_protection`. The same PATCH silently ignored `dependency_graph`.
 
 - **Dependency review needs the dependency graph (3.1, 2026-10-28).** It was off for this repo, and the API couldn't switch it on. It had to be done by hand in Settings → Advanced Security.
 - **The first licence list was too narrow (3.1).** It rejected MIT-0, BSD-2-Clause-Views and PSF-2.0, all permissive, used by `@csstools/*`, `uri-js` and `argparse`. When dependency review rejects a licence, check whether it's permissive before adding it to the list.

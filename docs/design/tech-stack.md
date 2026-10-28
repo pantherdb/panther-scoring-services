@@ -72,17 +72,41 @@ snpScore.cgi ─► run_blastp.pl ─► parse_blastp.pl ─► PANTHER_PSEP1.01
 
 - **Size:** under 1,000 lines of Perl.
 - **Runtime:** one external tool, NCBI BLAST+.
-- **Data:**
-  - the PANTHER BLAST database
+- **Output:** the age, a message (`probably benign` / `possibly damaging` / `probably damaging`) and `pDel`, a probability of a deleterious effect.
+- **Data:** frozen PANTHER 9 files:
+  - the PANTHER9 BLAST database
   - the per-family PAML library (`.paml`, `.orig.tree`, `.rst`)
   - `species_pthr8_time.nhx`
 
 Not part of the service:
 
-- `controller.pl` and `BlastpExisit.pl` are alternative CLI entry points.
-- `HUMAN` is sample BLAST output. "HUMAN" is only the default value of the `species` form field.
+- `controller.pl` and `BlastpExisit.pl` are alternative CLI entry points. `controller.pl` can't run BLAST at all.
+- `HUMAN` is the sample's step-1 BLAST output. "HUMAN" is only the default value of the `species` form field.
 
-Sources: `legacy/cSNP_analysis/` and `docs/phase1/developer-guide/csnp-analysis.md`.
+**The reference is described in detail.** `legacy/cSNP_analysis/` is a git repository; its `main` at `cebb5ab` is the parity reference.
+
+- **[Legacy behaviour spec](#csnp-reference-documents):** the data contracts, the algorithm as implemented, a quirk catalog with IDs (`SCORE-2`, `CGI-5`, …), pinned checksums and golden outputs.
+- **Parity review:** what the spec means for the port. It found that the legacy output is not a safe ground truth. Several defects silently change scores, so matching the goldens byte for byte would reproduce them:
+
+| ID | Defect | Effect |
+| -- | ------ | ------ |
+| `SCORE-2` | The trace-back starts from the *last* `.paml` header match, and internal-node labels collide with leaf labels | Wrong start node for 17.4% of leaves; 17.1% of human BLAST DB entries |
+| `SCORE-7`, `SCORE-8` | State leaks between SNPs (no `use strict`, globals never reset) | CLI batch results depend on input order; the CGI (one protein per request) is unaffected |
+| `CGI-2`, `CGI-3` | Neither CGI copy parses what the website sends (`+`-joined substitutions) | `main`'s copy scores nothing; the site's copy drops any token containing `2` or `B` |
+| `CGI-5`, `CGI-6` | `species` goes unquoted into a shell; concurrent requests share a temp file and query id | Command injection; one user can get another's results |
+| `MAP-4` | The residue at the alignment start, and one after a query-side gap, are never mapped | Every `M1x` comes back "Invalid substitution" |
+| `SCORE-5`, `SCORE-6` | Thresholds 180/380 vs 200/450 in the docs; pDel tests `age < bound` vs the PI's inclusive bounds | Different messages and pDel values, depending on which is right |
+| `DATA-3` | The species file lacks Perissodactyla, Artiodactyla and Sauria | 40,506 speciation nodes aged as duplications |
+
+#### `csnp` reference documents
+
+Paths are relative to `panther-workspace/legacy/cSNP_analysis/`:
+
+- `.specs/2026-10-28-legacy-behavior-spec.md`: what `main` does, confirmed by running it.
+- `docs/2026-10-28-parity-review.md`: the defects, their measured impact, and the keep-or-fix decisions.
+- `CLAUDE.md`: how to run the scripts safely.
+
+These correct `docs/phase1/developer-guide/csnp-analysis.md` in several places. Where they disagree, trust them.
 
 ### `treegrafter`: TreeGrafter
 
@@ -157,11 +181,10 @@ Conditions:
    - Wrap it in our adapter. The adapter catches `SystemExit` and checks EPA-ng's result itself.
    - Run its `prepare` step as part of data provisioning for each PAINT release, not per request.
 6. **Fix legacy bugs on purpose, and record each one as a divergence.** For cSNP:
-   - Drop the `tr/%2B/ /` line. In the site's copy of `snpScore.cgi`, it turns every `2` into a space.
-   - Read the species tree path from config instead of a relative path.
-   - Give each job its own temp directory and delete it afterwards.
-   - Move the RST parsing, which assumes fixed line numbers (11 and 14), into one module with its own tests.
-7. **Settle the cSNP thresholds before porting it.** `PANTHER_PSEP1.01.pl` classifies at **180 / 380 Mya**, but the website help page says **200 / 450 Mya**. One of them is wrong.
+   - **Never replicate** the command injection (`CGI-5`) or the shared temp file and query id (`CGI-6`). Neither changes a correct single request's output, so neither needs a divergence row.
+   - **Decide keep or fix** for each defect that changes results: `SCORE-2`, `SCORE-7`/`SCORE-8`, `SCORE-6`, `MAP-4` and `CGI-2`/`CGI-3`. Each fix is a proposed row in [divergences.md](../parity/divergences.md) until the science owner approves it, and it needs updated goldens.
+   - **Plumbing to fix freely,** with no output change: read the species tree path from config instead of a relative path; give each job its own temp directory and delete it afterwards; move the `.rst` parsing (fixed 0-based lines 11 and 14, `SCORE-9`) into one module with its own tests.
+7. **Settle the cSNP thresholds and pDel bounds before porting it** (`SCORE-5`, `SCORE-6`). `PANTHER_PSEP1.01.pl` classifies at **180 / 380 Mya**, as does the 2016 README. The website help page and the PI's 2021 ticket say **200 / 450 Mya**. pDel uses exclusive bounds where the PI's table has inclusive ones.
 
 ## Runtime Tools and Milestones
 
@@ -197,7 +220,7 @@ The other three services have no M2 defined.
   | Root | Contents | Used by |
   | ---- | -------- | ------- |
   | `/data/panther/<version>/` | The current PANTHER release (19 today): HMM library, family MSAs and trees, PAINT annotations, per-organism classification files, and treegrafter's `prepare` output | `hmmscore`, `refmap`, `treegrafter` |
-  | `/data/csnp/<version>/` | Frozen precomputed data from PANTHER 9 or 10: BLAST database, PAML library, species tree | `csnp` |
+  | `/data/csnp/<version>/` | Frozen precomputed data from PANTHER 9: BLAST database, PAML library, species tree (checksums pinned in the legacy behaviour spec §7.1) | `csnp` |
 
   - **cSNP's BLAST database must stay matched to its PAML library.** It can't use the current release's sequences, or the family and node IDs won't line up.
   - **Refreshing the cSNP data is a later, lower-priority milestone.**
@@ -226,10 +249,16 @@ Each needs team verification.
 
 ### `csnp`
 
-- **Thresholds:** which is correct, 180 / 380 Mya (code) or 200 / 450 Mya (help page)?
-- **Production CGI:** which `snpScore.cgi` copy runs in production?
-- **Species:** which species must the species filter support?
-- **Species tree version:** `species_pthr8_time.nhx` is named for PANTHER 8, but the cSNP data is PANTHER 9 or 10.
+The legacy behaviour spec's §8 lists these in full.
+
+- **Thresholds and pDel:** which is correct, 180 / 380 Mya (code, 2016 README) or 200 / 450 Mya (help page, PI's 2021 ticket)? Should pDel use the table's inclusive bounds?
+- **The PSEP definition:** is reporting the first *failing* ancestor's age, rather than the last preserved one's, what the paper intends (`SCORE-3`)?
+- **Keep or fix:** for each defect in the parity review's "Decisions needed" table.
+- **Production CGI:** which `snpScore.cgi` copy runs in production? The site's copy matches the unmerged `origin/dustine32-patch-1`. Can the CGI's host and port be reached from outside the website (`CGI-5`)?
+- **Library build:** which PAML_RST build does production use? Is it the pinned `../panther_build/PAML_RST.tar.gz` (files dated 2015, ids consistent with the PANTHER9 BLAST DB), whose origin is unrecorded?
+- **BLAST+ version:** which one does production run?
+- **Species:** which species must the species filter support? Should the species file gain Perissodactyla, Artiodactyla and Sauria (`DATA-3`)?
+- **Split families:** should the 410 families that exist only as split parts (`PTHRnnnnn_N`) be reachable (`DATA-1`)?
 - **Refreshing the data:** does `panther_build` still produce the per-family PAML files (`.paml`, `.orig.tree`, `.rst`)?
 
 ### `hmmscore`

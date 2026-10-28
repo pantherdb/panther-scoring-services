@@ -11,7 +11,7 @@
 | 2 | `csnp` | Coding-SNP impact scoring, the PANTHER-PSEP method | `cSNP_analysis/` (Perl, via `snpScore.cgi`) |
 | 3 | `treegrafter` | Places a sequence in a PANTHER family tree; infers subfamily and GO terms | `TreeGrafter/` (Perl 1.01). We **adopt** EBI's Python [`treegrafter`](https://github.com/ebi-pf-team/treegrafter) instead of porting it |
 
-PANTHER-PSEP (Tang & Thomas 2016, PMID 27193693) estimates how long a substituted position has been preserved in evolution, in millions of years, and classifies it:
+PANTHER-PSEP (Tang & Thomas 2016, PMID 27193693) estimates how long a substituted position has been preserved in evolution, in millions of years. It classifies the age, and reports a probability of a deleterious effect (`pDel`) from a step table. As coded (the help page and the PI's table disagree, see Gotchas):
 
 | Prediction          | Preservation age |
 | ------------------- | ---------------- |
@@ -38,6 +38,7 @@ The frontend stack is **Accepted** (`docs/design/frontend-stack.md`). The API an
 - **The engine is a library, not a web service.** `engine/` is a Python package with a CLI, and `api/` imports it. Don't add HTTP between them.
 - **Shared code goes in `core/`.** Data paths, external tool runners, FASTA parsing and per-job work directories are written once and used by every service.
 - **Score through jobs.** `POST /api/v1/jobs` starts a job; `GET /api/v1/jobs/{id}` polls it. The exceptions are the synchronous compatibility endpoints that keep `panther-site-java` working. Whether `refmap` lookups also go through jobs is an open question.
+- **Never pass request data through a shell.** Run external tools with argument lists, and validate inputs such as species codes against a known list. The legacy cSNP CGI has a command injection this way (`CGI-5`).
 - **The OpenAPI schema is the contract between frontend and api.** Generate the frontend's TypeScript types from it; don't write them by hand.
 - **Prove parity with each service's reference.** That's the legacy Perl for `csnp`, `hmmscore` and `refmap`, and the pinned EBI version for `treegrafter`. Output must match golden files produced by the reference. Record every deliberate difference in the docs.
 - **Each service keeps its own toolchain.** `csnp` uses BLAST+, `hmmscore` HMMER3, `treegrafter` HMMER3 and EPA-ng, and `refmap` nothing. Don't add a tool to a service, or change its scientific method, without the science owner's sign-off. For `csnp`, HMMER or tree grafting is milestone M2. The table is in `docs/design/tech-stack.md`.
@@ -96,7 +97,7 @@ Paths below are relative to `../panther-workspace`.
 | ------- | --------------- | ---------- | ----------- |
 | `hmmscore` | `docs/phase1/developer-guide/panther-scoring.md` | `docs/phase1/user-guide/sequence-search.md` | `legacy/pantherScoring/` (has `CLAUDE.md`) |
 | `refmap` | `docs/phase1/developer-guide/refproteome-mapper.md` | `docs/phase1/user-guide/gene-list-analysis.md` ("Generic Mapping / Reference Proteome Datasets") | `legacy/RefProteomeMapper/` (has `CLAUDE.md`) |
-| `csnp` | `docs/phase1/developer-guide/csnp-analysis.md` | `docs/phase1/user-guide/genetic-variant-analysis.md` ("Coding SNP Impact Scoring (PANTHER-PSEP)") | `legacy/cSNP_analysis/` (has `README.txt`) |
+| `csnp` | `legacy/cSNP_analysis/.specs/2026-10-28-legacy-behavior-spec.md` and `docs/2026-10-28-parity-review.md` first; then `docs/phase1/developer-guide/csnp-analysis.md`, which they correct in places | `docs/phase1/user-guide/genetic-variant-analysis.md` ("Coding SNP Impact Scoring (PANTHER-PSEP)") | `legacy/cSNP_analysis/` (has `CLAUDE.md`, `README.txt`) |
 | `treegrafter` | `docs/phase1/developer-guide/treegrafter.md` | `docs/phase1/user-guide/sequence-search.md` ("Tree Grafting Results") | `legacy/TreeGrafter/`: reference only, since we adopt EBI's version. Read EBI's [`treegrafter`](https://github.com/ebi-pf-team/treegrafter) for the code we use |
 
 ### `hmmscore`: `legacy/pantherScoring/`
@@ -122,6 +123,12 @@ Data it needs: one tab-delimited classification file per organism (`panther_clas
 
 ### `csnp`: `legacy/cSNP_analysis/`
 
+It's a git repository of its own.
+
+- **Parity reference:** `main` at `cebb5ab`.
+- **Behaviour spec:** `.specs/2026-10-28-legacy-behavior-spec.md` records what `main` does. Its quirk IDs (`SCORE-2`, `CGI-5`, …) are what this repo uses to refer to legacy behaviour. Its §7 pins the input checksums and gives the golden outputs.
+- **Parity review:** `docs/2026-10-28-parity-review.md` lists the defects and the keep-or-fix decisions still open.
+
 The service is `snpScore.cgi` and what it runs:
 
 | File | Role |
@@ -133,9 +140,16 @@ The service is `snpScore.cgi` and what it runs:
 | `species_pthr8_time.nhx` | Species tree with divergence times (Mya), read by step 3 |
 | `config.example.yaml` | CGI config: `blast_bin_directory`, `blast_database`, `paml_data_directory`, `tmp_directory` |
 
-Not part of the service: `controller.pl` and `BlastpExisit.pl` (alternative CLI entry points), and `HUMAN` (sample BLAST output).
+Not part of the service:
 
-Data it needs: a PANTHER BLAST database and the per-family PAML library (`.paml`, `.orig.tree`, `.rst`). Both are frozen precomputed data from PANTHER 9 or 10, and must stay matched to each other.
+- `controller.pl` and `BlastpExisit.pl`: alternative CLI entry points. `controller.pl` can't run BLAST at all (`RUN-2`).
+- `HUMAN`: the sample's step-1 BLAST output, used as a golden fixture.
+- `csnp_analysis.pl` (untracked): a dead older variant.
+
+Data it needs: a PANTHER BLAST database and the per-family PAML library (`.paml`, `.orig.tree`, `.rst`). Both are frozen precomputed data from PANTHER 9, and must stay matched to each other.
+
+- **Pinned copies:** the PANTHER9 BLAST DB and `../panther_build/PAML_RST.tar.gz` (files dated 2015). Their ids agree, and spec §7.1 pins their checksums.
+- **Production:** whether production uses the same library build needs team verification.
 
 ### `treegrafter`: `legacy/TreeGrafter/`
 
@@ -182,18 +196,26 @@ Don't read or reuse these:
 
 ## Gotchas in the Legacy Code
 
-- **Two copies of `snpScore.cgi` that differ.** `legacy/panther-site-java/scoring/snpScore.cgi` adds the line `$value =~ tr/%2B/ /;`. Perl's `tr` maps characters, not strings, so this turns every `%`, `2` and `B` in each form value into a space. For example, `A12P` arrives as `A1 P`. Which copy runs in production needs team verification.
+- **Two copies of `snpScore.cgi`, and neither reads the website's input correctly.**
+  - **The site's copy:** `legacy/panther-site-java/scoring/snpScore.cgi` matches the unmerged branch `origin/dustine32-patch-1` in `cSNP_analysis`. It adds `$value =~ tr/%2B/ /;`. Perl's `tr` maps characters, not strings, so this turns every `%`, `2` and `B` in each form value into a space: `G129R` becomes `G1 9R` and is dropped (`CGI-3`).
+  - **`main`'s copy:** it splits only on tab, spaces and LF, so it scores nothing when the website sends `+`-joined substitutions (`CGI-2`).
+  - **Production:** which copy runs there needs team verification.
+- **Command injection and a temp-file race in the cSNP CGI.** `species` goes unquoted into shell commands (`CGI-5`). Concurrent requests share `./<SPECIES>` and the query id `P0001`, so they can read each other's BLAST hits (`CGI-6`). Never replicate either.
+- **Wrong start node for about 17% of genes (`SCORE-2`).** `PANTHER_PSEP1.01.pl` takes the *last* `.paml` header match. Internal-node labels collide with leaf labels, so the trace-back often starts from an unrelated node. Matching the goldens byte for byte reproduces this; it's a keep-or-fix decision.
+- **Batch results depend on input order (`SCORE-7`, `SCORE-8`).** There's no `use strict`, the state is package globals that are never reset, and `getYear` keeps the first family's `$i`. The CGI scores one protein per request, so it's unaffected; CLI batches spanning families are not.
+- **Some residues are never mapped (`MAP-4`).** The residue at the alignment start (every `M1x`) and the one right after a query-side gap come back "Invalid substitution".
 - **Two copies of the HMM scoring CGIs that differ too.** `scoreAlignXml.cgi` and `alignOnTheFly.cgi` exist in `legacy/pantherScoring/` and in `legacy/panther-site-java/scoring/`, and differ by 55 and 109 lines even ignoring whitespace. Which copies run in production needs team verification.
 - **`treeGrafter.cgi` is missing.** The site calls `tree_grafter_url` (`/treegrafting19/treeGrafter.cgi`), but its source isn't in `panther-workspace`. Needs team verification.
-- **Two PANTHER versions.** The site's URLs for `hmmscore`, `refmap` and `treegrafter` use PANTHER 19. `csnp` runs on frozen data from PANTHER 9 or 10, and its species tree file is named for PANTHER 8 (`species_pthr8_time.nhx`). Needs team verification.
+- **Two PANTHER versions.** The site's URLs for `hmmscore`, `refmap` and `treegrafter` use PANTHER 19. `csnp` runs on frozen PANTHER 9 data. Its species tree (`species_pthr8_time.nhx`) is older still and lacks Perissodactyla, Artiodactyla and Sauria, so 40,506 speciation nodes are aged as duplications (`DATA-3`).
 - **`README_snp` describes the old method.** `legacy/panther-site-java/scoring/README_snp` and `grabSnpScoringFiles.pl` are for the 2007 subPSEC/HMM tool (`snp_analysis.pl`, `pantherScore.pl`), not PSEP. Don't use them as a spec for `csnp`.
 - **Wrong file name in the site's CLAUDE.md.** `legacy/panther-site-java/CLAUDE.md` lists `scoring/csnp_score.pl`, which doesn't exist.
-- **The `HUMAN` file is sample BLAST output, not a species config.** Its content is BLAST hits, and `snpScore.cgi` never reads it. "HUMAN" is only the default `species` form value. Resolved 2026-10-28.
-- **`legacy/cSNP_analysis/` has no `CLAUDE.md`.** Earlier versions of this file pointed to one.
+- **The `HUMAN` file is sample BLAST output, not a species config.** It's the release sample's species-filtered step-1 output, and the fixture for the goldens. `snpScore.cgi` never reads it. "HUMAN" is only the default `species` form value (`DATA-5`).
+- **Run the legacy cSNP scripts only in a scratch copy.** `parse_blastp.pl -s HUMAN` writes `./HUMAN`, overwriting the tracked file, and sorts its BLAST input in place. Spec §7.2 has the commands.
 - **Relative path.** `PANTHER_PSEP1.01.pl` opens `species_pthr8_time.nhx` by relative path, so it only works when run from the `cSNP_analysis/` directory.
-- **Fixed line numbers.** RST parsing assumes line 11 is the root and line 14 is the tree.
-- **The thresholds disagree.** `PANTHER_PSEP1.01.pl` classifies at 180 / 380 Mya, but the help page (`tips_csnpScores_content.jsp`) says 200 / 450 Mya. Which is correct needs team verification before porting.
+- **Fixed line numbers.** `.rst` parsing reads 0-based lines 11 (the branch list) and 14 (the tree), that is, the 12th and 15th lines (`SCORE-9`).
+- **The thresholds and the pDel bounds disagree with the docs.** `PANTHER_PSEP1.01.pl` classifies at 180 / 380 Mya. The help page (`tips_csnpScores_content.jsp`) and the PI's 2021 ticket say 200 / 450 (`SCORE-5`). pDel tests `age < bound`, but the PI's table has inclusive bounds, so for example age 91 gets 0.19 instead of 0.17 (`SCORE-6`). Which is correct needs team verification before porting.
+- **The 2016 release's `sample.out` doesn't reproduce** against the current library (`DATA-4`). Use the goldens in spec §7.
 - **Hardcoded paths and versions elsewhere.** `alignOnTheFly.cgi` writes to `/usr/tmp/`. `treeGrafter.pl` hardcodes PANTHER 12 directory names. `genericMapping.cgi` reads `panther_classification/` relative to its working directory.
-- Each service's developer guide lists more under "Issues and Observations".
+- Each service's developer guide lists more under "Issues and Observations". For `csnp`, the full quirk catalog is §6 of the legacy behaviour spec.
 
 When something isn't clear from the legacy code, say "needs team verification" rather than guessing.

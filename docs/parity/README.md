@@ -18,7 +18,9 @@ Parity is the acceptance test for **milestone M1** of each service. It does not 
 1. **Choose a fixed set of inputs for each service.** Cover normal cases and edge cases. For example, for `csnp`:
    - a position outside the protein
    - a wrong wild-type amino acid
-   - a substitution with a `2` in its position (the `tr/%2B/ /` bug)
+   - a start-loss variant such as `M1V` (`MAP-4`)
+   - a batch that spans two families, in both orders (`SCORE-7`)
+   - website-shaped requests with `+`-joined substitutions and positions containing `2` (`CGI-2`, `CGI-3`)
 2. **Make the golden files.** Run the inputs through the service's reference and save the outputs as reference answers.
 3. **Compare.** Run the same inputs through the Python engine. Every mismatch is either a porting bug, or a deliberate change that has been approved.
 4. **Log every deliberate change** in `divergences.md`.
@@ -33,12 +35,23 @@ Parity is the acceptance test for **milestone M1** of each service. It does not 
 
 The golden files themselves are test fixtures, so they live with the engine's tests in `engine/`. This folder explains them.
 
+### Where to start for `csnp`
+
+The legacy repository already has the reference material. Paths are relative to `panther-workspace/legacy/cSNP_analysis/`:
+
+- `.specs/2026-10-28-legacy-behavior-spec.md`:
+  - §6: the quirk catalog. Each quirk has a parity call: **Match**, **Decide** or **N/A**.
+  - §7: pinned checksums for the PAML library, BLAST DB, species file and sample; commands to regenerate the outputs; and the expected outputs for the 35-SNP sample, the order-dependence run, the edge cases and the CGI.
+- `docs/2026-10-28-parity-review.md`: the defects and the keep-or-fix decisions, which are logged here as proposed divergences.
+
+**Matching those goldens byte for byte reproduces known defects.** Until a proposed row is approved, the Python matches the legacy output, defects included. `golden-setup.md` and `inputs.md` for `csnp` should start from spec §7 rather than redo it.
+
 ## Divergence Log Format
 
 ```markdown
 | # | Service | What differs | Reference output | Python output | Why | Approved by | Date |
 | - | ------- | ------------ | ---------------- | ------------- | --- | ----------- | ---- |
-| 2 | `csnp` | Form values containing "2" | `A12P` read as `A1 P` | `A12P` | Bug: `tr/%2B/ /` in the site's snpScore.cgi | | |
+| n | `csnp` | Form values containing "2" | `A12P` read as `A1 P` | `A12P` | Bug: `tr/%2B/ /` in the site's snpScore.cgi | | |
 ```
 
 A row without an approver is a proposal, not a divergence. Until someone signs it off, the Python must match the reference.

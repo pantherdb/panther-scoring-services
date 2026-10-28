@@ -85,7 +85,7 @@ The app builds with the React Compiler, and `react-hooks` 7 fails the lint on wh
 
 ## cSNP-Specific Rules
 
-- **Never hard-code the thresholds or the prediction labels.** Which thresholds are right (180/380 vs 200/450 Mya) is still an open question; show what the API returns.
+- **Never hard-code the thresholds, the prediction labels or the pDel values.** Which thresholds and pDel bounds are right (180/380 vs 200/450 Mya, exclusive vs inclusive) is still an open question; show what the API returns.
 - **A job's results have their own URL** (`/jobs/:id`), so a reload or a shared link shows the same results.
 - **Show the versions the API reports** (PANTHER library, BLAST+, engine) with the results, so a score can be traced to the data behind it.
 - **No build details on screen.** No ports, environment variables or commands in anything a user reads, error pages included. Log them with `console.warn` behind `import.meta.env.DEV`.

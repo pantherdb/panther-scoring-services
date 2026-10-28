@@ -42,6 +42,7 @@ Tests live in `tests/`, mirroring `src/`. Vitest collects only `tests/**/*.test.
 
 - **No test data is needed.** API calls are answered by the MSW handlers in `src/mocks/handlers.ts`. A call with no handler fails the test.
 - **To change a response in one test**, use `server.use(...)` from `tests/mocks/server.ts`. It's reset after each test.
+- **MSW 3 renamed `onUnhandledRequest` to `onUnhandledFrame`.** The behaviour is the same, but examples written for MSW 2 won't type-check. `tests/setup.ts` uses `onUnhandledFrame: 'error'`.
 - **To render a page**, use `renderRoute(path)` from `tests/utils/render.tsx`. It wraps the page in the same store, theme and routes as the app.
 
 Run one file, or one test by name:

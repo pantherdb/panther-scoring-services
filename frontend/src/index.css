@@ -1,0 +1,44 @@
+/* Mantine sits between Tailwind's base reset and its utilities, so the reset can't
+   override Mantine's components and utilities can still adjust them. */
+@layer theme, base, mantine, components, utilities;
+
+@import '@mantine/core/styles.layer.css';
+@import 'tailwindcss';
+
+/* Every colour is defined here, once. src/app/theme.ts reads these as CSS variables.
+   `static` emits every token, including the ones only Mantine uses. */
+@theme static {
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* Only colours named by their job. Tailwind's hue palette (blue-700, ...) is removed. */
+  --color-*: initial;
+  --color-white: #fff;
+  --color-black: #000;
+
+  --color-primary-50: oklch(97% 0.014 254.604);
+  --color-primary-100: oklch(93.2% 0.032 255.585);
+  --color-primary-200: oklch(88.2% 0.059 254.128);
+  --color-primary-300: oklch(80.9% 0.105 251.813);
+  --color-primary-400: oklch(70.7% 0.165 254.624);
+  --color-primary-500: oklch(62.3% 0.214 259.815);
+  --color-primary-600: oklch(54.6% 0.245 262.881);
+  --color-primary-700: oklch(48.8% 0.243 264.376);
+  --color-primary-800: oklch(42.4% 0.199 265.638);
+  --color-primary-900: oklch(37.9% 0.146 265.522);
+  --color-primary-950: oklch(28.2% 0.091 267.935);
+
+  --color-danger: oklch(57.7% 0.245 27.325);
+
+  --color-canvas: oklch(98.5% 0.002 247.839);
+  --color-surface: #fff;
+  --color-hairline: oklch(92.8% 0.006 264.531);
+  --color-ink: oklch(21% 0.034 264.665);
+  --color-ink-muted: oklch(44.6% 0.03 256.802);
+}
+
+@layer base {
+  body {
+    @apply bg-canvas font-sans text-ink;
+  }
+}

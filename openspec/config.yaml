@@ -1,0 +1,34 @@
+schema: spec-driven
+
+# Constraints for OpenSpec artifacts. The full project guide is CLAUDE.md.
+context: |
+  Scope is PANTHER cSNP impact scoring (PANTHER-PSEP) only. No HMM scoring, TreeGrafter or other PANTHER tools.
+  Three areas, one owner each: frontend/ (React + TypeScript), api/ (FastAPI), engine/ (Python scoring engine).
+  engine/ is a library with a CLI that api/ imports. There is no HTTP between them.
+  The OpenAPI schema is the frontend/api contract; frontend types are generated from it.
+  Milestone M1 is a faithful port of the legacy Perl, accepted by matching golden files from the Perl pipeline.
+  Any difference from the Perl needs a row in docs/parity/divergences.md with a named approver.
+  BLAST+ only. HMMER and RAxML belong to milestone M2 and need science-owner sign-off.
+  The legacy code at ../panther-workspace is read-only reference. Where it is unclear, write "needs team verification" instead of guessing.
+  The frontend stack is Accepted (docs/design/frontend-stack.md; conventions in frontend/CLAUDE.md).
+  The API and engine stacks in docs/design/tech-stack.md are Proposed, and its open questions are unresolved, including the 180/380 vs 200/450 Mya thresholds.
+
+rules:
+  proposal:
+    - State the Area - frontend, api, engine or cross-cutting
+    - Say whether the change affects parity with the Perl output, and name any divergences it needs
+    - List anything that needs team verification as an open question instead of assuming an answer
+  design:
+    - Link the docs/design/ decisions the change relies on; don't restate or override them
+  tasks:
+    - Include the tests that prove the change, such as parity tests for engine changes and OpenAPI type regeneration for contract changes
+    - "End with a Notes section containing these headings: Next action, Blockers, Failed approaches (what was tried, why it failed, date), Lessons learned"
+
+operations:
+  apply:
+    guidance:
+      - Update the Notes section of tasks.md after each failed attempt and before ending a session, so the next session can resume from Next action
+      - Record why an approach failed, not just that it did, so it isn't tried again
+  archive:
+    guidance:
+      - Review Lessons learned first. Propose moving any lesson that applies beyond this change into CLAUDE.md or docs/, and let the user decide

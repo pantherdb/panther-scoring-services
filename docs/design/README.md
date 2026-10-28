@@ -8,7 +8,7 @@ Architecture and tech decisions: what we chose, why, what we rejected, and what 
 - Contracts between the parts: frontend ↔ api, api ↔ engine.
 - Decisions about the scientific method, such as the thresholds or adding HMMER or RAxML (milestone M2).
 
-Implementation steps for one task go in `.plans/`, not here.
+The proposal, design and tasks for one change go in `openspec/changes/<change>/`, not here. A change's `design.md` links to the decisions here that it relies on.
 
 ## How to Write One
 
@@ -21,4 +21,5 @@ Implementation steps for one task go in `.plans/`, not here.
 
 | Doc | Status |
 | --- | ------ |
-| [tech-stack.md](tech-stack.md) | Proposed, 2026-10-27 |
+| [tech-stack.md](tech-stack.md) | Proposed, 2026-10-27 (API, engine, shared concerns) |
+| [frontend-stack.md](frontend-stack.md) | Accepted, 2026-10-28 |

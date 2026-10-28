@@ -1,3 +1,14 @@
 # Personal Claude Code settings. Shared settings live in .claude/settings.json.
 .claude/settings.local.json
 CLAUDE.local.md
+
+# Node
+node_modules/
+
+# Build and test output
+dist/
+test-results/
+playwright-report/
+
+# Personal env overrides (e.g. API_PROXY_TARGET). The committed .env.<mode> files hold only mode flags.
+*.local

@@ -2,17 +2,19 @@
 
 PANTHER's coding-SNP (cSNP) impact scoring, rebuilt. It scores amino-acid substitutions with the PANTHER-PSEP method, replacing the legacy Perl CGI behind pantherdb.org's "Genetic Variant Impact" tool.
 
-The tech stack is **proposed**, not final. See [docs/design/tech-stack.md](docs/design/tech-stack.md).
+The frontend stack is **accepted** ([docs/design/frontend-stack.md](docs/design/frontend-stack.md)). The API and engine stacks are **proposed**, not final ([docs/design/tech-stack.md](docs/design/tech-stack.md)).
+
+New to the repo? Start with [CONTRIBUTING.md](CONTRIBUTING.md): setup, the OpenSpec workflow and review rules.
 
 ## Folders
 
 | Folder | What it is | Owner |
 | ------ | ---------- | ----- |
-| `frontend/` | Web UI: React 19, TypeScript, Vite, Tailwind v4 | Frontend developer |
+| `frontend/` | Web UI: React 19, TypeScript, Vite, Mantine, Tailwind v4. Conventions in [frontend/CLAUDE.md](frontend/CLAUDE.md) | Frontend developer |
 | `api/` | FastAPI service: scoring jobs, plus the legacy XML compatibility endpoint | API developer |
-| `backend/` | Scoring engine: Python port of the Perl pipeline, built as a library with a CLI that `api/` imports | Engine developer |
+| `engine/` | Scoring engine: Python port of the Perl pipeline, built as a library with a CLI that `api/` imports | Engine developer |
 | `docs/` | Design decisions, parity, testing, manual QA, code reviews, deployment. Start at [docs/README.md](docs/README.md) | Everyone |
-| `.plans/` | Task plans for ongoing work. See [.plans/template.md](.plans/template.md) | Everyone |
+| `openspec/` | Specs and change proposals (OpenSpec). The workflow is in [CLAUDE.md](CLAUDE.md#development-workflow) | Everyone |
 
 The code folders are empty for now.
 

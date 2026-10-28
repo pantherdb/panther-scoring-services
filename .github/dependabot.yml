@@ -1,0 +1,8 @@
+# Keeps the commit SHAs that pin GitHub Actions current. npm packages are left out:
+# the stack's versions change only through a proposal.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

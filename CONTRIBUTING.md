@@ -4,7 +4,7 @@ How the three of us work on this repo. The short version for Claude is in [CLAUD
 
 ## Setup
 
-1. **Clone `panther-workspace` next to this repo.** The legacy cSNP code and its docs are read from `../panther-workspace`. It is read-only reference: never change files there.
+1. **Clone `panther-workspace` next to this repo.** The legacy code for the four services and its docs are read from `../panther-workspace`. It is read-only reference: never change files there.
 2. **Install OpenSpec globally**, at the version pinned in `package.json`:
 
    ```sh
@@ -16,7 +16,7 @@ How the three of us work on this repo. The short version for Claude is in [CLAUD
 
 ## Workflow
 
-Every non-trivial change goes through OpenSpec. We don't follow the five-phase PANTHER SDLC strictly: it was written for all of PANTHER, and this project is cSNP scoring only.
+Every non-trivial change goes through OpenSpec. We don't follow the five-phase PANTHER SDLC strictly: it was written for all of PANTHER, and this project covers four scoring services.
 
 | Step | Command | What happens |
 | ---- | ------- | ------------ |
@@ -109,7 +109,7 @@ Specs are organized by capability, not by developer. This is the starting layout
 | ---- | ----- |
 | A change's proposal, design and tasks | `openspec/changes/<change-name>/` |
 | What the system does now | `openspec/specs/` |
-| Project-wide decisions that need named sign-off (tech stack, thresholds, HMMER/RAxML) | `docs/design/`, with a Review table |
+| Project-wide decisions that need named sign-off (tech stack, scope, thresholds, a service's scientific method) | `docs/design/`, with a Review table |
 | Parity setup and approved differences from the Perl | `docs/parity/`; the golden files live in `engine/` tests |
 | Test strategy, manual QA, code reviews, deployment | The matching folder in `docs/`. Read its README first |
 

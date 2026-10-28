@@ -5,7 +5,7 @@ Each folder has a README explaining what belongs in it and how to name files. Re
 | Folder | What goes there |
 | ------ | --------------- |
 | [design/](design/README.md) | Architecture and tech decisions, each with a status and a review table |
-| [parity/](parity/README.md) | Proof that the Python engine gives the same answers as the Perl, and the log of deliberate differences |
+| [parity/](parity/README.md) | Proof that the Python engine gives the same answers as each service's reference, and the log of deliberate differences |
 | [testing/](testing/README.md) | Test strategy and how to run each test suite |
 | [manual-qa/](manual-qa/README.md) | Step-by-step UI checklists for testers, no coding needed |
 | [code-review/](code-review/README.md) | Dated code review notes |

@@ -6,7 +6,7 @@ Architecture and tech decisions: what we chose, why, what we rejected, and what 
 
 - Tech stack and architecture choices.
 - Contracts between the parts: frontend ↔ api, api ↔ engine.
-- Decisions about the scientific method, such as the thresholds or adding HMMER or RAxML (milestone M2).
+- Decisions about a service's scientific method, such as the cSNP thresholds or using HMMER or tree grafting for cSNP (milestone M2).
 
 The proposal, design and tasks for one change go in `openspec/changes/<change>/`, not here. A change's `design.md` links to the decisions here that it relies on.
 
@@ -21,5 +21,5 @@ The proposal, design and tasks for one change go in `openspec/changes/<change>/`
 
 | Doc | Status |
 | --- | ------ |
-| [tech-stack.md](tech-stack.md) | Proposed, 2026-10-27 (API, engine, shared concerns) |
+| [tech-stack.md](tech-stack.md) | Proposed, 2026-10-27; revised 2026-10-28 for four services (scope, API, engine, runtime tools, shared concerns) |
 | [frontend-stack.md](frontend-stack.md) | Accepted, 2026-10-28 |

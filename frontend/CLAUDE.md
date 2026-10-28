@@ -1,6 +1,6 @@
 # frontend/
 
-The web UI for cSNP scoring: a form, a job status and a results table. The stack and why it was chosen are in [docs/design/frontend-stack.md](../docs/design/frontend-stack.md); this file is how we use it. The project-wide rules in [../CLAUDE.md](../CLAUDE.md) still apply.
+The web UI for PANTHER's scoring services (`hmmscore`, `refmap`, `csnp`, `treegrafter`): for each, a form, a job status and a results table. The stack and why it was chosen are in [docs/design/frontend-stack.md](../docs/design/frontend-stack.md); this file is how we use it. The project-wide rules in [../CLAUDE.md](../CLAUDE.md) still apply.
 
 ## Before Claiming Anything Works
 

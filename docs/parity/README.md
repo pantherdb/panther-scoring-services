@@ -1,18 +1,25 @@
 # Parity
 
-**Parity** means the new Python engine gives the same answers as the legacy Perl for the same input.
+**Parity** means the new Python engine gives the same answers as each service's reference for the same input.
 
-This port is a rewrite, not a redesign. The Perl (`PANTHER_PSEP1.01.pl` and the scripts around it) is what pantherdb.org runs today, and it's the method the PANTHER-PSEP paper describes. If the Python returns a different family, preservation age or prediction for the same variant, users get different results without being told. Parity is how we show the port didn't change the science.
+| Service | Reference |
+| ------- | --------- |
+| `hmmscore` | Legacy Perl `pantherScore.pl` |
+| `refmap` | Legacy Perl `map_panther.pl` |
+| `csnp` | Legacy Perl `snpScore.cgi` pipeline (`PANTHER_PSEP1.01.pl` and the scripts around it), on the frozen cSNP data |
+| `treegrafter` | EBI's Python `treegrafter` at the commit we pin. We adopt it rather than port the legacy Perl 1.01; leaving the Perl is [divergence 1](divergences.md) |
 
-Parity is the acceptance test for **milestone M1** (the faithful port). It does not apply to **M2** (adding HMMER or RAxML). M2 is meant to change answers, so it's validated against known pathogenic and benign variants instead.
+Each port is a rewrite, not a redesign. The Perl is what pantherdb.org runs today. If the Python returns a different family, score, mapping or prediction for the same input, users get different results without being told. Parity is how we show the port didn't change the science.
+
+Parity is the acceptance test for **milestone M1** of each service. It does not apply to **cSNP's M2** (HMMER or tree grafting for PSEP). M2 is meant to change answers, so it's validated against known pathogenic and benign variants instead.
 
 ## How It Works
 
-1. **Choose a fixed set of inputs:** protein sequences plus substitutions. Cover normal cases and edge cases, such as:
+1. **Choose a fixed set of inputs for each service.** Cover normal cases and edge cases. For example, for `csnp`:
    - a position outside the protein
    - a wrong wild-type amino acid
    - a substitution with a `2` in its position (the `tr/%2B/ /` bug)
-2. **Make the golden files.** Run the inputs through the Perl pipeline and save the outputs as reference answers.
+2. **Make the golden files.** Run the inputs through the service's reference and save the outputs as reference answers.
 3. **Compare.** Run the same inputs through the Python engine. Every mismatch is either a porting bug, or a deliberate change that has been approved.
 4. **Log every deliberate change** in `divergences.md`.
 
@@ -20,8 +27,8 @@ Parity is the acceptance test for **milestone M1** (the faithful port). It does 
 
 | File | Contents |
 | ---- | -------- |
-| `golden-setup.md` | How to run the Perl and regenerate the golden files: the container, Perl and BLAST+ versions, and the PANTHER library version |
-| `inputs.md` | Each test input, and why it's in the set |
+| `golden-setup.md` | How to run each reference and regenerate the golden files: the container, the Perl and tool versions (BLAST+, HMMER3, EPA-ng), the pinned `treegrafter` commit, and the PANTHER data versions |
+| `inputs.md` | Each test input, by service, and why it's in the set |
 | `divergences.md` | The divergence log (format below) |
 
 The golden files themselves are test fixtures, so they live with the engine's tests in `engine/`. This folder explains them.
@@ -29,9 +36,9 @@ The golden files themselves are test fixtures, so they live with the engine's te
 ## Divergence Log Format
 
 ```markdown
-| # | What differs | Perl output | Python output | Why | Approved by | Date |
-| - | ------------ | ----------- | ------------- | --- | ----------- | ---- |
-| 1 | Form values containing "2" | `A12P` read as `A1 P` | `A12P` | Bug: `tr/%2B/ /` in the site's snpScore.cgi | | |
+| # | Service | What differs | Reference output | Python output | Why | Approved by | Date |
+| - | ------- | ------------ | ---------------- | ------------- | --- | ----------- | ---- |
+| 2 | `csnp` | Form values containing "2" | `A12P` read as `A1 P` | `A12P` | Bug: `tr/%2B/ /` in the site's snpScore.cgi | | |
 ```
 
-A row without an approver is a proposal, not a divergence. Until someone signs it off, the Python must match the Perl.
+A row without an approver is a proposal, not a divergence. Until someone signs it off, the Python must match the reference.

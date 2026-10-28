@@ -1,6 +1,6 @@
 # API Stack
 
-**Status:** Proposed, 2026-10-28. Split out of [tech-stack.md](tech-stack.md), which stays Proposed for the API's architecture (jobs, compatibility endpoints, versions in responses) and for the engine.
+**Status:** Accepted, 2026-10-28. Split out of [tech-stack.md](tech-stack.md), which stays Proposed for the API's architecture (jobs, compatibility endpoints, versions in responses) and for the engine.
 
 ## Decision
 
@@ -60,6 +60,6 @@ These stay in [tech-stack.md](tech-stack.md), or come with their own change:
 
 | Reviewer | Covers | Status |
 | -------- | ------ | ------ |
-| API developer | The whole doc | Pending |
-| Frontend developer | Error responses and the OpenAPI contract | Pending |
+| API developer | The whole doc | Accepted, 2026-10-28 |
+| Frontend developer | Error responses and the OpenAPI contract | Accepted, 2026-10-28 ([#8](https://github.com/pantherdb/panther-scoring-services/pull/8) approval) |
 | Engine developer | Project Layout: Python 3.13 and how the engine joins | Pending |

@@ -12,3 +12,5 @@ Each folder has a README explaining what belongs in it and how to name files. Re
 | [deployment/](deployment/README.md) | Deployment records and runbooks |
 
 Proposals, designs and task lists for a single change don't go here. They go in `openspec/changes/` (see the Development Workflow in [CLAUDE.md](../CLAUDE.md#development-workflow)).
+
+<!-- CI test: docs-only change. This pull request is closed without merging. -->

@@ -12,7 +12,7 @@ How we test, and how to run each suite. Someone new should be able to run every 
 | Kind | Area | Notes |
 | ---- | ---- | ----- |
 | Unit and component | `frontend/` | Vitest and React Testing Library |
-| End-to-end | `frontend/` | Playwright, against a running API |
+| End-to-end | `frontend/` | Playwright, in three modes: against mocks, a real API, or an already-running site. See [frontend.md](frontend.md) |
 | API | `api/` | Request validation, the job lifecycle, the legacy XML endpoint |
 | Engine | `engine/` | Unit tests per pipeline step |
 | Parity | `engine/` | Python vs the Perl golden files. See [../parity/](../parity/README.md) |

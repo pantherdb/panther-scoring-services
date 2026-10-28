@@ -69,7 +69,7 @@ The app builds with the React Compiler, and `react-hooks` 7 fails the lint on wh
 
 - **Use the scale and the tokens.** Tailwind's steps and the tokens in the `@theme` block are the vocabulary: `text-sm`, not `text-[13px]`. If you need a value twice, add a token.
 - **Name colours by their job, not their hue.** `text-primary-700` or `text-danger`, not `text-blue-700`. Every colour is defined once, in `@theme`.
-- **Colour Mantine through the theme** (`src/app/theme.ts`), not through stylesheet overrides or `!important`.
+- **Colour Mantine through the theme** (`src/app/theme.ts`), not through stylesheet overrides or `!important`. The theme reads the `@theme` colours as CSS variables (`var(--color-primary-600)`). `@theme static` makes Tailwind emit every token, even ones no class uses. Mantine can't compute contrast for `var()` colours, so don't rely on `autoContrast`.
 - **No inline `style={{}}`** except for values computed at runtime.
 
 ## State and Data

@@ -1,0 +1,46 @@
+[project]
+name = "panther-api"
+version = "0.1.0"
+description = "HTTP API for the PANTHER scoring services: hmmscore, refmap, csnp and treegrafter."
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi[standard-no-fastapi-cloud-cli]==0.162.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv]
+# Everyone uses a uv that writes the same uv.lock format. CI pins this version.
+required-version = ">=0.13.6"
+
+[dependency-groups]
+dev = [
+    "basedpyright==1.40.2",
+    "pytest==9.2.0",
+    "ruff==0.17.3",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+# S (from bandit) flags subprocess with shell=True: never pass request data through a shell.
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "RUF", "S", "FAST"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.basedpyright]
+typeCheckingMode = "strict"
+include = ["src", "tests"]
+pythonVersion = "3.13"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+
+[tool.fastapi]
+entrypoint = "panther_api.main:app"

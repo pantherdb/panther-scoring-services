@@ -79,7 +79,12 @@ Every problem has `type: "about:blank"` and `title` set to the HTTP reason phras
 **The schema.** `Problem` is a Pydantic model; `ValidationProblem` extends it with `errors`. They reach the schema in two ways:
 
 - **The `/api/v1` router** declares `default` and `500` responses with `Problem`, so every route under it documents its errors.
-- **The 422 response.** FastAPI adds its own `HTTPValidationError` schema for 422 to every route with parameters or a body, and offers no option to replace it. `create_app()` overrides `app.openapi()` to point each 422 response at `ValidationProblem` and remove `HTTPValidationError` and `ValidationError` from the components. The health route has no parameters, so this only shows once the first route with input arrives. The test-only route in `test_problems.py` checks it now.
+- **The 422 response.** FastAPI adds its own `HTTPValidationError` 422 to every route with parameters or a body, unless the route already declares a `422`, `4XX` or `default` response. The router's `default` response therefore stops it. The app is a `FastAPI` subclass whose `openapi()` post-processes the generated schema (`document_problems` in `problems.py`):
+  - it adds a 422 with `ValidationProblem` to every operation that has parameters or a request body;
+  - it moves every error response's body from `application/json` to `application/problem+json`, since FastAPI lists a response `model` under `application/json`;
+  - it adds `ValidationProblem` and `FieldError` to the components.
+
+  The health route has no parameters, so its 422 only shows once the first route with input arrives. A test-only route in `test_openapi.py` checks it now. *(Updated during apply, 2026-10-28: the plan was to rewrite FastAPI's `HTTPValidationError` 422s and delete their components. Declaring `default` means they're never generated.)*
 - *Alternative:* a custom `APIRoute` class that changes how FastAPI documents 422. Rejected: it reaches into FastAPI internals that change between releases. Post-processing the generated schema uses only its output.
 
 ### The committed schema and its check
@@ -120,9 +125,9 @@ Dependabot already updates the `setup-uv` SHA (it covers GitHub Actions). Python
 
 ## Risks / Trade-offs
 
-- **[Dependency review may not read `uv.lock`]** → Check on the pull request whether the `dependency-review` job lists the Python packages. If it doesn't, record it in the Notes and raise a follow-up. One option is the `uv` dependency submission action, which reports the lock to GitHub's dependency graph. The licence allow-list may also need Python licences such as `MIT AND Python-2.0`; add only what the job actually reports.
+- **[Dependency review may not read `uv.lock`]** → Check on the pull request whether the `dependency-review` job lists the Python packages. *(Resolved on #11, 2026-10-28: it does read `uv.lock`.)* The licence allow-list may also need Python licences such as `MIT AND Python-2.0`; add only what the job actually reports. *(On #11, GitHub's scanner misread two packages' licences. They are exempted by name with `allow-dependencies-licenses` in `ci.yml`, rather than widening `allow-licenses`.)*
 - **[Starlette's error middleware re-raises after the 500 handler]** → This is expected: the handler's response is still sent, and the server logs the exception. Tests for the 500 case use `TestClient(app, raise_server_exceptions=False)`, or the test would see the exception instead of the response.
-- **[The 422 schema override depends on how FastAPI names its components]** → The override looks the names up rather than assuming them, and `test_openapi.py` asserts that no `HTTPValidationError` remains. A FastAPI upgrade that renames them fails that test instead of silently changing the contract.
+- **[The schema relies on FastAPI skipping its own 422 when `default` is declared]** → `test_openapi.py` asserts that no `HTTPValidationError` or `ValidationError` appears anywhere in the schema. A FastAPI upgrade that changes the rule fails that test instead of silently changing the contract.
 - **[The `fastapi` CLI can't find the app]** → Fall back to `uv run uvicorn panther_api.main:app --reload --port 8000`, and record which command works in the Notes and `docs/testing/api.md`.
 - **[A strict type checker on FastAPI code produces noise]** → Fix it in our code first. Use a targeted `# pyright: ignore[rule]` with a reason only for library typing gaps, and list each one in the Notes.
 - **[A developer's uv is older than `required-version`]** → uv refuses to run and says why. `docs/testing/api.md` tells them to run `uv self update`.

@@ -98,6 +98,7 @@ Specs are organized by capability, not by developer. This is the starting layout
 | Capability | Covers |
 | ---------- | ------ |
 | `scoring-input` | Validating sequence, substitutions and species. Shared by the UI and the API |
+| `api-service` | Behaviour every API endpoint shares: the `/api/v1` prefix, the health check, problem-details errors and the published OpenAPI schema |
 | `scoring-jobs` | The API job lifecycle: `POST /api/v1/jobs`, `GET /api/v1/jobs/{id}` |
 | `scoring-ui` | The form, job status, results table, CSV export and help content |
 | `psep-engine` | Pipeline behaviour, thresholds, and parity with the Perl |

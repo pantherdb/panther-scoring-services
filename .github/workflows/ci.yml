@@ -33,6 +33,7 @@ jobs:
       pull-requests: read
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
+      api: ${{ steps.filter.outputs.api }}
       code: ${{ steps.filter.outputs.code }}
       openspec-change: ${{ steps.filter.outputs.openspec-change }}
     steps:
@@ -45,7 +46,10 @@ jobs:
               - 'frontend/**'
               - '.nvmrc'
               - '.github/workflows/ci.yml'
-            # api: added by the API developer once api/ has code
+            # Once api/ depends on engine/, add 'engine/**' here too.
+            api:
+              - 'api/**'
+              - '.github/workflows/ci.yml'
             # engine: added by the engine developer once engine/ has code
             code:
               - 'frontend/**'
@@ -127,7 +131,31 @@ jobs:
             frontend/test-results/
           retention-days: 14
 
-  # api:    added by the API developer once api/ has code
+  api:
+    name: api
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Installs uv; `uv sync` then installs the Python in api/.python-version.
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          # Keep in step with required-version in api/pyproject.toml.
+          version: 0.13.6
+          enable-cache: true
+          cache-dependency-glob: api/uv.lock
+      # --locked fails if uv.lock is out of date with pyproject.toml.
+      - run: uv sync --locked
+      - run: uv run ruff check
+      - run: uv run ruff format --check
+      - run: uv run basedpyright
+      # Includes the check that api/openapi.json matches the app.
+      - run: uv run pytest
+
   # engine: added by the engine developer once engine/ has code
 
   repo:
@@ -186,10 +214,17 @@ jobs:
           allow-licenses: >-
             MIT, MIT-0, ISC, Apache-2.0, BSD-2-Clause, BSD-2-Clause-Views, BSD-3-Clause,
             0BSD, BlueOak-1.0.0, CC0-1.0, CC-BY-4.0, Unlicense, Python-2.0, PSF-2.0, MPL-2.0
+          # Packages whose licence GitHub's scanner misreads. They skip only the licence check;
+          # advisories still apply. Remove an entry once GitHub reports the licence correctly.
+          # - protobuf: BSD-3-Clause; also tagged LicenseRef-scancode-protobuf, the note that
+          #   code generated from your .proto files is yours.
+          # - typing-extensions: PSF-2.0 per its metadata; tagged GPL-1.0-or-later because the
+          #   PSF licence's history section mentions the GPL.
+          allow-dependencies-licenses: pkg:pypi/protobuf, pkg:pypi/typing-extensions
 
   ci-passed:
     name: ci-passed
-    needs: [changes, openspec-change, frontend, repo, dependency-review]
+    needs: [changes, openspec-change, frontend, api, repo, dependency-review]
     if: always()
     runs-on: ubuntu-latest
     steps:

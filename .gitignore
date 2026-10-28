@@ -5,6 +5,12 @@ CLAUDE.local.md
 # Node
 node_modules/
 
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
 # Build and test output
 dist/
 test-results/

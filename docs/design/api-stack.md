@@ -53,8 +53,11 @@ These stay in [tech-stack.md](tech-stack.md), or come with their own change:
 ## Needs Team Verification
 
 - **Does EBI's `treegrafter`,** and what it depends on, run on Python 3.13?
-- **Does GitHub's dependency review read `uv.lock`?** If not, the `dependency-review` job checks nothing for Python, and the dependencies need to reach GitHub's dependency graph another way.
-- **Which `pyproject.toml` section do both the basedpyright CLI and its VS Code extension read?**
+
+Answered while scaffolding (`scaffold-api`, #11, 2026-10-28):
+
+- **Does GitHub's dependency review read `uv.lock`?** Yes. It reported packages from `api/uv.lock` by name, although GitHub's supported-ecosystems page doesn't list uv. Its licence scanner misread two packages, which are exempted by name in `ci.yml` (see [docs/testing/README.md](../testing/README.md#what-ci-runs)).
+- **Which `pyproject.toml` section do both the basedpyright CLI and its VS Code extension read?** `[tool.basedpyright]`. The CLI and the extension (with Pylance off) report the same errors.
 
 ## Review
 

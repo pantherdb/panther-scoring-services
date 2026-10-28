@@ -49,6 +49,24 @@ See proposal.md for why. The current state that shapes the approach:
   - It checks development dependencies as well as runtime ones; by default it checks only runtime.
   - Licences are limited to a list of permissive ones in `ci.yml`.
 
+### Code changes need an OpenSpec change, or the `no-spec` label
+
+The `openspec-change` job runs on pull requests.
+
+- **How it decides:** it uses two more `paths-filter` outputs: `code` (`frontend/**`, `api/**`, `engine/**`) and `openspec-change` (`openspec/changes/**`).
+- **When it fails:** when code changed and `openspec/changes/` didn't, unless the pull request has the `no-spec` label.
+- **Re-running:** the workflow also triggers on `labeled` and `unlabeled`, so adding the label re-runs CI.
+- **Why a label rather than text in the description:** it's a deliberate act, and anyone can filter the pull request list by it.
+
+It checks only that a change exists. It can't check that the proposal was reviewed first, or that the code matches it; reviewers do that.
+
+**Alternatives rejected:**
+
+- **A warning instead of a failure.** Warnings get ignored, and this is the gate against unplanned AI-written code.
+- **A line-count threshold.** It's arbitrary, and a 20-line change to scoring logic still needs a proposal.
+
+Revisit after a month: if `no-spec` is used on most pull requests, the rule isn't working.
+
 ### Pin actions to commit SHAs, and keep them current with Dependabot
 
 - Every `uses:` names a full commit SHA, with the version in a comment. A tag can be moved to different code; a SHA can't.

@@ -3,7 +3,7 @@
 
 <!-- One or two sentences. Link the OpenSpec change: openspec/changes/<change-name>/ -->
 
-**OpenSpec change:**
+**OpenSpec change:** <!-- or "none, small fix" with the no-spec label -->
 **Area:** <!-- frontend, api, engine or cross-cutting -->
 
 ## Parity With the Perl

@@ -12,6 +12,8 @@ name: CI
 on:
   pull_request:
     branches: [main]
+    # labeled/unlabeled re-run CI when the `no-spec` label is added or removed.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
     branches: [main]
 
@@ -31,6 +33,8 @@ jobs:
       pull-requests: read
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
+      code: ${{ steps.filter.outputs.code }}
+      openspec-change: ${{ steps.filter.outputs.openspec-change }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
@@ -43,6 +47,37 @@ jobs:
               - '.github/workflows/ci.yml'
             # api: added by the API developer once api/ has code
             # engine: added by the engine developer once engine/ has code
+            code:
+              - 'frontend/**'
+              - 'api/**'
+              - 'engine/**'
+            openspec-change:
+              - 'openspec/changes/**'
+
+  # A pull request that changes code must also touch an OpenSpec change, unless it has
+  # the `no-spec` label (typos, small fixes). See "Small Fixes" in CONTRIBUTING.md.
+  openspec-change:
+    name: openspec-change
+    needs: changes
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the pull request has an OpenSpec change or the no-spec label
+        env:
+          CODE: ${{ needs.changes.outputs.code }}
+          SPEC: ${{ needs.changes.outputs.openspec-change }}
+          NO_SPEC: ${{ contains(github.event.pull_request.labels.*.name, 'no-spec') }}
+        run: |
+          if [ "$CODE" != "true" ]; then
+            echo "No code in frontend/, api/ or engine/ changed."
+          elif [ "$SPEC" = "true" ]; then
+            echo "Code changed, and so did openspec/changes/."
+          elif [ "$NO_SPEC" = "true" ]; then
+            echo "Code changed without an OpenSpec change; allowed by the no-spec label."
+          else
+            echo "::error::This pull request changes code in frontend/, api/ or engine/ but not openspec/changes/. Propose the change with /opsx:propose, or add the no-spec label if it's a small fix."
+            exit 1
+          fi
 
   frontend:
     name: frontend
@@ -154,7 +189,7 @@ jobs:
 
   ci-passed:
     name: ci-passed
-    needs: [changes, frontend, repo, dependency-review]
+    needs: [changes, openspec-change, frontend, repo, dependency-review]
     if: always()
     runs-on: ubuntu-latest
     steps:

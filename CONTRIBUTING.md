@@ -28,6 +28,15 @@ Every non-trivial change goes through OpenSpec. We don't follow the five-phase P
 
 The assistant drafts; we review, correct and own every artifact. Read the proposal and design before you approve them.
 
+### Small Fixes
+
+A typo, a broken link, a one-line bug fix or a dependency bump doesn't need a proposal. Add the **`no-spec`** label to the pull request instead.
+
+- **The check:** CI's `openspec-change` check fails a pull request that changes code in `frontend/`, `api/` or `engine/` without touching `openspec/changes/`, unless it has that label.
+- **Adding the label re-runs CI.**
+- **When in doubt, propose.** If the fix changes behaviour someone would notice, or touches more than one area, it isn't small.
+- **Use is visible.** Anyone can filter the pull request list by `no-spec`, and we look at how often it's used.
+
 ### What a Spec Delta Looks Like
 
 Each requirement uses SHALL or MUST and has at least one scenario:
@@ -119,7 +128,7 @@ Pull requests and CI are what actually stop mistakes. Everything else here is ag
 | ---- | ------------ |
 | `main` ruleset (`.github/rulesets/main.json`) | No direct pushes, force-pushes or deletion of `main`. Every merge needs a pull request, one approval from a code owner, resolved review threads and a passing `ci-passed`. Approvals are dismissed when new commits are pushed. It applies to admins too |
 | `CODEOWNERS` (`.github/CODEOWNERS`) | Who GitHub asks to review, and whose approval counts |
-| CI (`.github/workflows/ci.yml`) | What each job runs is in [docs/testing/README.md](docs/testing/README.md#what-ci-runs) |
+| CI (`.github/workflows/ci.yml`) | What each job runs is in [docs/testing/README.md](docs/testing/README.md#what-ci-runs). Code changes need an OpenSpec change or the `no-spec` label ([Small Fixes](#small-fixes)) |
 | Secret scanning with push protection | GitHub rejects a push that contains a known secret format |
 | `.claude/settings.json` | Stops the assistant editing `panther-workspace`, force-pushing or pushing to `main`. A guardrail, not security |
 

@@ -12,11 +12,12 @@
 
 ## 3. CI Workflow
 
-- [ ] 3.1 Add `.github/workflows/ci.yml` with the `changes`, `frontend`, `repo`, `dependency-review` and `ci-passed` jobs from design.md. Every action pinned to a commit SHA with its version in a comment, Node from `.nvmrc`, npm and Playwright caches, and a Playwright report uploaded on failure. Mark the `api/` and `engine/` slots with comments; verify `ci-passed` runs and passes on the draft pull request
+- [x] 3.1 Add `.github/workflows/ci.yml` with the `changes`, `frontend`, `repo`, `dependency-review` and `ci-passed` jobs from design.md. Every action pinned to a commit SHA with its version in a comment, Node from `.nvmrc`, npm and Playwright caches, and a Playwright report uploaded on failure. Mark the `api/` and `engine/` slots with comments; verify `ci-passed` runs and passes on the draft pull request
 - [x] 3.2 Add `.markdownlint-cli2.jsonc` (`MD013` and `MD033` off; ignore `.claude/`, `.agents/`, `node_modules/`, `frontend/dist/`, `frontend/playwright-report/`, `frontend/test-results/`) and fix what it reports in existing Markdown; verify `npx markdownlint-cli2` passes locally and in the `repo` job
 - [x] 3.3 Wire gitleaks into the `repo` job (release binary pinned by version and SHA-256, scanning the pull request's commits); verify it passes on this branch in CI. Locally it already passes on this branch's commits, and exits 1 on a throwaway repo with a made-up AWS key
-- [ ] 3.4 Prove the summary check: push a docs-only commit and check that `frontend` is skipped and `ci-passed` still passes. Push a commit that breaks a frontend lint rule and check that `ci-passed` fails, then revert it
+- [ ] 3.4 Prove the summary check: push a docs-only commit and check that `frontend` is skipped and `ci-passed` still passes. Push a commit that breaks a frontend lint rule and check that `ci-passed` fails, then revert it. For `openspec-change`'s failing case, open a throwaway pull request that changes only `frontend/` without the label, check that it fails, add `no-spec`, check that it passes, then close it
 - [x] 3.5 Add `.github/dependabot.yml` (`github-actions` only, weekly); verify it parses as YAML (Dependabot reads it from `main` only, so it's checked after merge: 6.3)
+- [ ] 3.6 Add the `openspec-change` job (code changed without `openspec/changes/` fails unless the pull request has the `no-spec` label; re-runs on `labeled`/`unlabeled`) and create the `no-spec` label; document it under Small Fixes in `CONTRIBUTING.md`, in the pull request template and in `docs/testing/README.md`. Verify it passes on this pull request, which touches `openspec/changes/`. Its failing case is tested in 3.4
 
 ## 4. Documentation
 

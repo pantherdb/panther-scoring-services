@@ -1,0 +1,13 @@
+# Who GitHub asks to review, and whose approval counts as the code-owner review.
+# The last matching line wins.
+#
+# For now all three developers are listed on every path, with the area's owner first.
+# Once each area has a backup reviewer, the area lines narrow to the owner and the backup,
+# and docs/parity/divergences.md gets its own line with the science owner.
+# See openspec/changes/add-quality-gates/design.md.
+
+*             @tmushayahama @mugitty @dustine32
+
+/frontend/    @tmushayahama @mugitty @dustine32
+/api/         @mugitty @tmushayahama @dustine32
+/engine/      @dustine32 @tmushayahama @mugitty

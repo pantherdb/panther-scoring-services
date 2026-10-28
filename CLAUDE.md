@@ -16,11 +16,11 @@
 
 Three developers, one per folder. There is no code yet. `frontend/` has its conventions in `frontend/CLAUDE.md`; `api/` and `engine/` hold only a `.gitkeep`.
 
-| Folder     | Owner                 | Stack |
-| ---------- | --------------------- | ----- |
-| `frontend/` | Frontend developer   | **Accepted:** React 19, TypeScript, Vite, Mantine, Tailwind v4, RTK Query. Conventions in `frontend/CLAUDE.md` |
-| `api/`     | API developer         | Proposed: FastAPI (Python) |
-| `engine/` | Engine developer      | Proposed: Python port of the Perl scoring pipeline |
+| Folder | Owner | Stack |
+| ------ | ----- | ----- |
+| `frontend/` | Frontend developer | **Accepted:** React 19, TypeScript, Vite, Mantine, Tailwind v4, RTK Query. Conventions in `frontend/CLAUDE.md` |
+| `api/` | API developer | Proposed: FastAPI (Python) |
+| `engine/` | Engine developer | Proposed: Python port of the Perl scoring pipeline |
 
 The frontend stack is **Accepted** (`docs/design/frontend-stack.md`). The API and engine stacks are **Proposed**, not final: the reasoning, critique and open questions are in `docs/design/tech-stack.md`. Read both before making structural decisions.
 
@@ -47,7 +47,7 @@ Rules:
 - **OpenSpec is the only place for plans.** Don't create `.plans/`, TODO files or other task trackers.
 - **Claude drafts, the team decides.** Every artifact is reviewed and owned by a person before the next step.
 - **OpenSpec doesn't approve science.** A change can propose a difference from the Perl, but it ships only with an approved row in `docs/parity/divergences.md`.
-- **Pull requests and CI are the enforceable gates.** Instructions here and in `openspec/config.yaml` are guidance, not enforcement.
+- **Pull requests and CI are the enforceable gates.** The `main` ruleset requires a pull request, a code owner's approval and a passing `ci-passed` check (`.github/workflows/ci.yml`). Instructions here and in `openspec/config.yaml` are guidance, not enforcement.
 
 ## Docs
 

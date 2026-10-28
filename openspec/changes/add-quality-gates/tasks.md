@@ -17,7 +17,7 @@
 - [x] 3.3 Wire gitleaks into the `repo` job (release binary pinned by version and SHA-256, scanning the pull request's commits); verify it passes on this branch in CI. Locally it already passes on this branch's commits, and exits 1 on a throwaway repo with a made-up AWS key
 - [ ] 3.4 Prove the summary check: push a docs-only commit and check that `frontend` is skipped and `ci-passed` still passes. Push a commit that breaks a frontend lint rule and check that `ci-passed` fails, then revert it. For `openspec-change`'s failing case, open a throwaway pull request that changes only `frontend/` without the label, check that it fails, add `no-spec`, check that it passes, then close it
 - [x] 3.5 Add `.github/dependabot.yml` (`github-actions` only, weekly); verify it parses as YAML (Dependabot reads it from `main` only, so it's checked after merge: 6.3)
-- [ ] 3.6 Add the `openspec-change` job (code changed without `openspec/changes/` fails unless the pull request has the `no-spec` label; re-runs on `labeled`/`unlabeled`) and create the `no-spec` label; document it under Small Fixes in `CONTRIBUTING.md`, in the pull request template and in `docs/testing/README.md`. Verify it passes on this pull request, which touches `openspec/changes/`. Its failing case is tested in 3.4
+- [x] 3.6 Add the `openspec-change` job (code changed without `openspec/changes/` fails unless the pull request has the `no-spec` label; re-runs on `labeled`/`unlabeled`) and create the `no-spec` label; document it under Small Fixes in `CONTRIBUTING.md`, in the pull request template and in `docs/testing/README.md`. Verify it passes on this pull request, which touches `openspec/changes/`. Its failing case is tested in 3.4
 
 ## 4. Documentation
 

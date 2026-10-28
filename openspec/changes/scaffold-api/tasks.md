@@ -52,9 +52,9 @@
 
 ### Next action
 
-All tasks are done (2026-10-28). The code is on `feat/scaffold-api-apply`, uncommitted. The API developer chose to finish without a pull request, so 7.1 and 7.2 were verified locally (tasks reworded 2026-10-28), and the checks on GitHub moved to Workflow follow-up.
+All tasks are done (2026-10-28). 7.1 and 7.2 were first verified locally (tasks reworded 2026-10-28, when the API developer chose to finish before opening a pull request). The implementation is now in #11.
 
-Next: review the diff, then commit when the API developer decides. Merging to `main` still needs a pull request; on it, confirm the `api` job and `dependency-review` (Workflow follow-up), and repeat 8.1 from a real clone. 8.1 ran on a copy of exactly the files git would commit (`git ls-files -co --exclude-standard`), because nothing was committed.
+On #11's first run, the `api` job passed on GitHub, but `dependency-review` failed on two licences (see Lessons learned, 7.2). Fixed by exempting the two packages by name. Next: confirm `ci-passed` is green on #11 and get the reviews. After it merges, archive.
 
 ### Blockers
 
@@ -79,7 +79,10 @@ None.
 - **`git check-attr` prints `true`, not `set`,** for an attribute written `=true` (5.2).
 - **8.2 needs the frontend's dependencies:** `npm ci` in `frontend/` first.
 - **CI checked locally (7.1).** actionlint 1.7.12 (`uvx --from actionlint-py actionlint`) reports no errors in `ci.yml`. The `api` job's five steps, run in order from a copy of only the files git would commit, all pass. `setup-uv` is v10.3.3, pinned to `68559e99cc807c1eb7e9238fd43a15bba460eec2`. GitHub itself has not run the job yet: see Workflow follow-up.
-- **The dependency graph doesn't read `uv.lock` (7.2).** GitHub's [supported ecosystems](https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/dependency-graph-supported-package-ecosystems) list `requirements.txt`, `pipfile.lock`, `pipfile` and `setup.py` for pip, and `poetry.lock` and `pyproject.toml` for Poetry. There's no uv entry, and a search found no announcement of support. So `dependency-review` checks little or nothing for Python. It may read `api/pyproject.toml`'s direct dependencies, but not the locked transitive ones.
-  - **Follow-up, not decided:** get the locked dependencies into the graph. Options include a dependency submission workflow (the third-party [rmuir/uv-dependency-submission](https://github.com/rmuir/uv-dependency-submission), which calls itself very new) or a committed `uv export` as `requirements.txt`. Needs the API developer's decision; no issue opened.
-- **Every licence in `uv.lock` is already allowed (7.2).** All 62 locked packages, including the 2 for other platforms (`colorama`, `httpx2-jsfetch`, checked on PyPI), are MIT, BSD-2-Clause, BSD-3-Clause, ISC, Apache-2.0, MPL-2.0 (`certifi`), Unlicense (`email-validator`) or PSF-2.0 (`typing-extensions`), or a dual licence of those (`packaging`, `uvloop`). The packages with only a "BSD License" classifier (`colorama`, `httpx`, `jinja2`) are BSD-3-Clause. No change to `allow-licenses`.
+- **The dependency graph does read `uv.lock` (7.2, corrected 2026-10-28).** GitHub's [supported ecosystems](https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/dependency-graph-supported-package-ecosystems) page lists no uv entry, and the local check concluded from that that `dependency-review` couldn't see Python packages. That was wrong: on #11 it reported packages from `api/uv.lock` by name. The docs page is behind; trust the job's output over it. No dependency submission is needed.
+- **Package metadata and GitHub's licence scanner can disagree (7.2).** Locally, all 62 locked packages had allowed licences in their own metadata. On #11, GitHub's scanner rejected two:
+  - `protobuf` as `BSD-3-Clause AND LicenseRef-scancode-protobuf`. The extra reference is protobuf's note that code generated from your `.proto` files is yours.
+  - `typing-extensions` as `Python-2.0 AND GPL-1.0-or-later AND …`. The PSF licence's history section mentions the GPL, but the package is PSF-2.0.
+
+  Both are exempted by name with `allow-dependencies-licenses` in `ci.yml`, with a comment on each, rather than adding `GPL-1.0-or-later` to `allow-licenses` for every package. Advisories still apply to them. The API developer approved this. A local licence check can't stand in for the job: check the job's output.
 - **`fastapi[standard-no-fastapi-cloud-cli]` pulls in OpenTelemetry (7.2).** It installs `opentelemetry-sdk` and the OTLP HTTP exporter, which bring in `protobuf`, `googleapis-common-protos` and `requests`. FastAPI exports nothing unless `FASTAPI_OTEL_AUTO_CONFIGURE=true` and an `OTEL_EXPORTER_OTLP_*` endpoint are set (`fastapi/telemetry/_runtime.py`). If telemetry is ever turned on, its `logs` setting records exception messages and stack traces, so whatever collector it sends to sees what our 500 handler keeps out of responses. Dropping these packages would mean not using the `standard` extra, which is a change to `api-stack.md`.

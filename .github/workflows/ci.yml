@@ -214,6 +214,13 @@ jobs:
           allow-licenses: >-
             MIT, MIT-0, ISC, Apache-2.0, BSD-2-Clause, BSD-2-Clause-Views, BSD-3-Clause,
             0BSD, BlueOak-1.0.0, CC0-1.0, CC-BY-4.0, Unlicense, Python-2.0, PSF-2.0, MPL-2.0
+          # Packages whose licence GitHub's scanner misreads. They skip only the licence check;
+          # advisories still apply. Remove an entry once GitHub reports the licence correctly.
+          # - protobuf: BSD-3-Clause; also tagged LicenseRef-scancode-protobuf, the note that
+          #   code generated from your .proto files is yours.
+          # - typing-extensions: PSF-2.0 per its metadata; tagged GPL-1.0-or-later because the
+          #   PSF licence's history section mentions the GPL.
+          allow-dependencies-licenses: pkg:pypi/protobuf, pkg:pypi/typing-extensions
 
   ci-passed:
     name: ci-passed

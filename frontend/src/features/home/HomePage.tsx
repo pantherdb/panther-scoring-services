@@ -1,6 +1,3 @@
-// CI test: an unused variable, which ESLint rejects.
-const unusedForCiTest = 1
-
 export function HomePage() {
   return (
     <section className="flex flex-col gap-2">

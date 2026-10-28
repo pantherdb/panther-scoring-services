@@ -11,4 +11,4 @@ Each folder has a README explaining what belongs in it and how to name files. Re
 | [code-review/](code-review/README.md) | Dated code review notes |
 | [deployment/](deployment/README.md) | Deployment records and runbooks |
 
-Task plans for work in progress don't go here. They go in `.plans/` (see [.plans/template.md](../.plans/template.md)).
+Proposals, designs and task lists for a single change don't go here. They go in `openspec/changes/` (see the Development Workflow in [CLAUDE.md](../CLAUDE.md#development-workflow)).

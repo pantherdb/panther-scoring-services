@@ -1,0 +1,8 @@
+{
+  "name": "panther-scoring-services",
+  "private": true,
+  "description": "Repo-level tooling. The frontend has its own package.json in frontend/.",
+  "devDependencies": {
+    "@fission-ai/openspec": "1.15.0"
+  }
+}

@@ -1,6 +1,6 @@
 # Manual QA
 
-Step-by-step checklists that a person (not necessarily a developer) follows in the browser to confirm the scoring UI works. The format follows noctua VPE's `docs/manual-qa/`.
+Step-by-step checklists that a person (not necessarily a developer) follows in the browser to confirm the scoring UI works.
 
 ## What Goes Here
 

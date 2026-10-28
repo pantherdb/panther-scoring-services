@@ -24,7 +24,7 @@ Parity is the acceptance test for **milestone M1** (the faithful port). It does 
 | `inputs.md` | Each test input, and why it's in the set |
 | `divergences.md` | The divergence log (format below) |
 
-The golden files themselves are test fixtures, so they live with the engine's tests in `backend/`. This folder explains them.
+The golden files themselves are test fixtures, so they live with the engine's tests in `engine/`. This folder explains them.
 
 ## Divergence Log Format
 

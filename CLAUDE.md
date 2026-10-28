@@ -14,28 +14,40 @@
 
 ## Layout and Team
 
-Three developers, one per folder. All three folders are empty for now (`.gitkeep` only).
+Three developers, one per folder. There is no code yet. `frontend/` has its conventions in `frontend/CLAUDE.md`; `api/` and `engine/` hold only a `.gitkeep`.
 
-| Folder     | Owner                 | Stack (proposed) |
-| ---------- | --------------------- | ---------------- |
-| `frontend/` | Frontend developer   | React 19, TypeScript, Vite, Tailwind v4: the same toolchain as `C:\work\go\noctua-visual-pathway-editor` |
-| `api/`     | API developer         | FastAPI (Python) |
-| `backend/` | Engine developer      | Python port of the Perl scoring pipeline |
+| Folder     | Owner                 | Stack |
+| ---------- | --------------------- | ----- |
+| `frontend/` | Frontend developer   | **Accepted:** React 19, TypeScript, Vite, Mantine, Tailwind v4, RTK Query. Conventions in `frontend/CLAUDE.md` |
+| `api/`     | API developer         | Proposed: FastAPI (Python) |
+| `engine/` | Engine developer      | Proposed: Python port of the Perl scoring pipeline |
 
-The stack is **Proposed**, not final. The reasoning, critique and open questions are in `docs/design/tech-stack.md`. Read it before making structural decisions.
+The frontend stack is **Accepted** (`docs/design/frontend-stack.md`). The API and engine stacks are **Proposed**, not final: the reasoning, critique and open questions are in `docs/design/tech-stack.md`. Read both before making structural decisions.
 
 ### Working Rules
 
-- **The engine is a library, not a web service.** `backend/` is a Python package with a CLI, and `api/` imports it. Don't add HTTP between them.
+- **The engine is a library, not a web service.** `engine/` is a Python package with a CLI, and `api/` imports it. Don't add HTTP between them.
 - **Score through jobs.** `POST /api/v1/jobs` starts a job; `GET /api/v1/jobs/{id}` polls it. The only exception is the synchronous legacy-XML compatibility endpoint, which keeps `panther-site-java` working.
 - **The OpenAPI schema is the contract between frontend and api.** Generate the frontend's TypeScript types from it; don't write them by hand.
 - **Prove parity with the Perl.** Python output must match golden files produced by the legacy pipeline. Record every deliberate difference in the docs.
 - **Only BLAST+ for now.** The legacy cSNP code uses BLAST+ only. Don't add HMMER or RAxML until the team approves a change to the scientific method (milestone M2 in the design doc).
-- **Copy noctua's toolchain, not its app.** Leave out the graph-editor dependencies (`jointjs`, `reactflow`, `dagre`, Apollo/GraphQL, `socket.io`).
+- **Keep the frontend to its stack.** No other UI kit or CSS-in-JS, and none of the graph-editor dependencies (`jointjs`, `reactflow`, `dagre`, Apollo/GraphQL, `socket.io`).
 
-## Task Management
+## Development Workflow
 
-Create and maintain plan files in `.plans/<category>/<task-name>.md` for non-trivial work. See [.plans/template.md](.plans/template.md) for the full template, recovery-checkpoint convention, and category folders (`bugfix`, `feature`, `refactor`, `config`, `docs`, `testing`, `misc`). Set the plan's **Area** (`frontend`, `api`, `backend` or `cross-cutting`) so each developer can find their own plans.
+We don't follow the five-phase PANTHER SDLC strictly: it was written for all of PANTHER, and this project covers cSNP scoring only. OpenSpec is the process: plan every non-trivial change in `openspec/`. The CLI is pinned in `package.json`; run it with `npx openspec`. Project constraints for OpenSpec artifacts live in `openspec/config.yaml`. The full guide for people, with conventions and the spec layout, is [CONTRIBUTING.md](CONTRIBUTING.md).
+
+1. **Propose.** `/opsx:propose <change-name>` creates `openspec/changes/<change-name>/` with `proposal.md`, `design.md`, `tasks.md` and spec deltas. The proposal states its **Area** (`frontend`, `api`, `engine` or `cross-cutting`).
+2. **Review.** Open a PR with the change's artifacts. The owner of every affected area approves it before any code is written.
+3. **Apply.** `/opsx:apply` works through `tasks.md`. Tick tasks as they're done, and keep the **Notes** section at the end of `tasks.md` current (next action, blockers, failed approaches, lessons learned): that is how work resumes after a lost session.
+4. **Archive.** `/opsx:archive` merges the spec deltas into `openspec/specs/` and moves the change to `openspec/changes/archive/`. Before archiving, move any lesson that applies beyond this change into `CLAUDE.md` or `docs/`.
+
+Rules:
+
+- **OpenSpec is the only place for plans.** Don't create `.plans/`, TODO files or other task trackers.
+- **Claude drafts, the team decides.** Every artifact is reviewed and owned by a person before the next step.
+- **OpenSpec doesn't approve science.** A change can propose a difference from the Perl, but it ships only with an approved row in `docs/parity/divergences.md`.
+- **Pull requests and CI are the enforceable gates.** Instructions here and in `openspec/config.yaml` are guidance, not enforcement.
 
 ## Docs
 
@@ -44,16 +56,16 @@ Each `docs/` folder has a `README.md` with its rules: what belongs there, how to
 | Folder | What goes there |
 | ------ | --------------- |
 | `docs/design/` | Architecture and tech decisions. Each has a status (Proposed / Accepted / Superseded) and a Review table. Never delete a doc: supersede it |
-| `docs/parity/` | Proof that Python matches the Perl: golden-file setup, test inputs, and `divergences.md`. The golden files themselves live in `backend/` tests |
+| `docs/parity/` | Proof that Python matches the Perl: golden-file setup, test inputs, and `divergences.md`. The golden files themselves live in `engine/` tests |
 | `docs/testing/` | Test strategy and how to run each suite |
-| `docs/manual-qa/` | Manual UI checklists for testers (`NN-<area>.md`, test cases labelled `TC n.m`), like noctua's |
+| `docs/manual-qa/` | Manual UI checklists for testers (`NN-<area>.md`, test cases labelled `TC n.m`) |
 | `docs/code-review/` | Review notes worth keeping, `YYYY-MM-DD-<topic>.md` |
 | `docs/deployment/` | `runbook-<topic>.md` (kept current) and `YYYY-MM-DD-<environment>.md` records. Never put secrets here |
 
 Rules Claude should follow:
 
 - **Parity is the M1 acceptance test.** When porting Perl, the Python must match the golden files. A difference is allowed only when `docs/parity/divergences.md` has a row for it with an approver. Without an approver, it's a proposal; flag it, don't ship it.
-- **Plans and docs are different.** Work in progress goes in `.plans/`; lasting decisions and reference material go in `docs/`.
+- **Changes and docs are different.** A change's proposal, design and tasks go in `openspec/changes/`. Lasting decisions that need named sign-off (tech stack, thresholds, M2) and reference material go in `docs/`; a change's `design.md` links to them rather than repeating them.
 - **Empty folders keep a `.gitkeep`** so git tracks them. Delete it once the folder has a real file.
 
 ## External Context: `panther-workspace` (cSNP only)
@@ -61,6 +73,10 @@ Rules Claude should follow:
 The legacy code and Phase 1 docs live in `panther-workspace`, a sibling of this repo. Look for it in the parent directory, at `../panther-workspace` (relative to this repo's root). Don't assume an absolute path: each developer's checkout location differs. If `../panther-workspace` isn't there, ask the developer where it is rather than searching the disk.
 
 Use it **only** for cSNP material, and treat it as **read-only**: never edit, create or delete files there.
+
+- Don't assume the legacy docs are complete or scientifically verified. Check claims against the code.
+- Record findings in this repo (`openspec/` or `docs/`), not there.
+- Port the Perl; don't copy legacy source into this repo without a team decision.
 
 Paths below are relative to `../panther-workspace`.
 

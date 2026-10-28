@@ -1,14 +1,14 @@
 # Tech Stack Proposal
 
-**Status:** Proposed, 2026-10-27. Not final until the [open questions](#open-questions) are answered and the [reviewers](#review) sign off.
+**Status:** Proposed, 2026-10-27. Not final until the [open questions](#open-questions) are answered and the [reviewers](#review) sign off. The frontend part was split out and accepted on 2026-10-28: see [frontend-stack.md](frontend-stack.md).
 
 ## Summary
 
 | Part | Folder | Proposed | Verdict |
 | ---- | ------ | -------- | ------- |
-| Frontend | `frontend/` | React + Tailwind, same toolchain as `noctua-visual-pathway-editor` | Agree |
+| Frontend | `frontend/` | React 19 + Vite + TypeScript, Mantine + Tailwind, RTK Query | Accepted, in [frontend-stack.md](frontend-stack.md) |
 | API | `api/` | FastAPI (Python) | Agree, built around jobs |
-| Scoring engine | `backend/` | Rewrite the Perl into Python | Agree, as a library with parity tests |
+| Scoring engine | `engine/` | Rewrite the Perl into Python | Agree, as a library with parity tests |
 | Runtime tools | — | HMMER, RAxML | Not yet: the legacy cSNP code uses neither |
 
 ## What We're Replacing
@@ -27,16 +27,9 @@ The website (`panther-site-java`) calls it with an HTTP POST (`sequence`, `subst
 
 Sources: `panther-workspace/legacy/cSNP_analysis/` and `panther-workspace/docs/phase1/developer-guide/csnp-analysis.md`.
 
-## Frontend (`frontend/`): Agree
+## Frontend (`frontend/`): Accepted
 
-React + Tailwind is a good fit, and reusing the stack the frontend developer already ships in `noctua-visual-pathway-editor` keeps the team's projects consistent.
-
-Recommendations:
-
-1. **Copy the toolchain, not the app.** Take Vite, React 19, TypeScript, Tailwind v4, Mantine, the ESLint/Prettier config, Vitest and Playwright. Leave out the graph-editor dependencies (`jointjs`, `reactflow`, `dagre`, Apollo/GraphQL, `socket.io`).
-2. **Keep state light.** This UI is a form, a job status and a results table. RTK Query is enough, and its polling covers job status. A Redux store with feature slices probably isn't needed.
-3. **Generate API types.** Generate TypeScript types from FastAPI's OpenAPI schema (for example with `openapi-typescript`) in CI. Then a change to the API can't silently break the frontend.
-4. **Match the legacy features:** species selector, example input, results table, CSV export (`csnpScoreResExport.jsp`) and help text (`tips_csnpScores_content.jsp`).
+Decided on 2026-10-28 and moved to its own doc: [frontend-stack.md](frontend-stack.md). The frontend ↔ api contract is still open here, under [Shared Concerns](#shared-concerns).
 
 ## API (`api/`): Agree, Built Around Jobs
 
@@ -50,14 +43,14 @@ Recommendations:
 2. **Add a compatibility endpoint for the old site.** It accepts the same form POST and returns the same XML that `CsnpScoreXMLParser` reads. `panther-site-java` can then switch over by changing `psep_scoring_host`, `scoring_port` and `snpScore_cgi` in its config, with no Java changes. Keep it synchronous, because the old site waits for the response. Retire it once `frontend/` replaces the JSP page.
 3. **Report versions in every response:** PANTHER library version, BLAST+ version and engine version. Then a score can always be traced back to the data that produced it.
 
-## Scoring Engine (`backend/`): Agree, With Conditions
+## Scoring Engine (`engine/`): Agree, With Conditions
 
 Porting under 1,000 lines of Perl to Python is a sensible size of job, and it removes the last Perl from this service.
 
 Conditions:
 
-1. **Build a library, not a second web service.** Make it a Python package with a CLI, and have the FastAPI app import it. The boundary between `api/` and `backend/` is then a typed function call rather than HTTP, which saves a network hop, a deployment and a second contract.
-   - Consider renaming `backend/` (for example to `psep/`). FastAPI is also backend, so "api" vs "backend" will cause confusion about who owns what.
+1. **Build a library, not a second web service.** Make it a Python package with a CLI, and have the FastAPI app import it. The boundary between `api/` and `engine/` is then a typed function call rather than HTTP, which saves a network hop, a deployment and a second contract.
+   - Renamed from `backend/` to `engine/` on 2026-10-28. FastAPI is also backend code, so "api" vs "backend" would have caused confusion about who owns what. Name the Python package inside it distinctly, for example `psep`; the engine developer decides.
 2. **Write parity tests before porting.**
    - Run the Perl pipeline in a container (Perl + BLAST+ + the same data) on a fixed set of inputs, and save the outputs as golden files.
    - The Python output must match them, except for divergences we've deliberately chosen and written down.
@@ -103,7 +96,7 @@ Don't add either tool to the images until M2 is approved. If RAxML is adopted, a
 
 ## Process Note
 
-The `panther-workspace` SDLC puts tech-stack decisions in Phase 4, after requirements. This service is small and well bounded, so choosing the stack now is low risk. Even so, treat this doc as **Proposed** until the open questions are answered.
+This project doesn't follow the `panther-workspace` SDLC strictly, which would put tech-stack decisions after requirements. This service is small and well bounded, so choosing the stack now is low risk. Even so, treat this doc as **Proposed** until the open questions are answered.
 
 ## Open Questions
 
@@ -119,7 +112,7 @@ The `panther-workspace` SDLC puts tech-stack decisions in Phase 4, after require
 
 | Reviewer | Covers | Status |
 | -------- | ------ | ------ |
-| Frontend developer | Frontend section; frontend ↔ api contract | Pending |
+| Frontend developer | Frontend ↔ api contract (the frontend stack is accepted in [frontend-stack.md](frontend-stack.md)) | Pending |
 | API developer | API section; both contracts | Pending |
 | Engine developer | Scoring engine section; M1 scope | Pending |
 | Science owner | Thresholds; HMMER and RAxML (M2) | Pending |

@@ -1,0 +1,6 @@
+dist
+playwright-report
+test-results
+package-lock.json
+public/mockServiceWorker.js
+CLAUDE.md

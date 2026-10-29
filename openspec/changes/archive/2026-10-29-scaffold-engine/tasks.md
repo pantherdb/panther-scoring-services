@@ -46,7 +46,7 @@
 ## 9. Final Check
 
 - [x] 9.1 From a clean clone of the branch, in `engine/`: `uv sync --locked && uv run ruff check && uv run ruff format --check && uv run basedpyright && uv run pytest` passes, with the `tools` tests skipped; and from the root, `docker compose run --rm engine` passes with none skipped
-- [ ] 9.2 A Windows developer, with the repo cloned inside WSL2, runs `docker compose run --rm engine` and `docker compose run --rm engine panther-engine tools`; verify both pass, and record who ran it, the date and the Docker Desktop version in the Notes. If no one can run it before merge, record that under Blockers and keep the proposal's open question
+- [x] 9.2 A Windows developer, with the repo cloned inside WSL2, runs `docker compose run --rm engine` and `docker compose run --rm engine panther-engine tools`; verify both pass, and record who ran it, the date and the Docker Desktop version in the Notes. If no one can run it before merge, record that under Blockers and keep the proposal's open question
 - [x] 9.3 From the repo root, `npx markdownlint-cli2` and `npx openspec validate --all --no-interactive` pass
 
 ## Workflow follow-up
@@ -63,17 +63,15 @@
 
 ### Next action
 
-All tasks except 9.2 are done (2026-10-29). The implementation is in #14, where every CI job passed, including both `engine-image` legs. The pull request checks in the Workflow follow-up are done (see Lessons learned, "On #14").
-
-Next:
-
-1. A Windows developer runs 9.2 (see Blockers).
-2. Reviews on #14. The engine developer approves. The API developer reviews the root `Dockerfile` and `compose.yaml`, since #13 merged without reviews.
-3. After #14 merges, archive with `/opsx:archive`.
+All tasks are done (2026-10-29). The implementation merged in #14, approved by tmushayahama, after every CI job passed, including both `engine-image` legs. Next: archive with `/opsx:archive`.
 
 ### Blockers
 
-- **9.2, Windows (WSL2):** not run yet. No Windows machine was available while applying. Until a Windows developer runs it, the proposal's third open question stays open.
+None.
+
+### Windows check (9.2)
+
+Tremayne ran `docker compose run --rm engine` and `docker compose run --rm engine panther-engine tools` on 2026-10-29, from a clone inside WSL2, after #14 merged. Both passed. The Docker Desktop version wasn't recorded. This answers the proposal's third open question.
 
 ### Failed approaches
 

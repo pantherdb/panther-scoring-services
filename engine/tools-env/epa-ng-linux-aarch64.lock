@@ -1,0 +1,17 @@
+# EPA-ng 0.3.8 (Bioconda, build _7) and its dependencies, for linux-aarch64.
+# An explicit conda lock: exact package URLs, each with its sha256. The epang stage of the
+# root Dockerfile installs it with `micromamba create -p /opt/tools/conda -f <this file>`.
+#
+# Generated on 2026-10-29 in the Dockerfile's micromamba image, for this architecture, from
+# the JSON of this solve (each package's url and sha256, in the order listed):
+#   micromamba create -y --dry-run --json -p /tmp/env -c conda-forge -c bioconda \
+#     --override-channels --strict-channel-priority 'epa-ng=0.3.8=*_7'
+# Changing it changes a pinned tool: see docs/design/tech-stack.md.
+@EXPLICIT
+https://conda.anaconda.org/conda-forge/linux-aarch64/libzlib-1.3.2-hdc9db2a_3.conda#sha256:76efa6cc9d7e6f5ee3bbca0939f64054af2bdfb3c3632531f8e633cf6c2ea41e
+https://conda.anaconda.org/conda-forge/linux-aarch64/libgomp-16.2.0-h8acb6b2_7.conda#sha256:4406fd67c5beeb99b9372f9bf07aa3e40ca141e337eceebac3ff64aa72799494
+https://conda.anaconda.org/conda-forge/linux-aarch64/zlib-1.3.2-hdc9db2a_3.conda#sha256:3f3c296477cf26474660942f4d8ec104a8eee2cb1abc7c5bfec9ac1102c66451
+https://conda.anaconda.org/conda-forge/linux-aarch64/_openmp_mutex-4.5-20_gnu.conda#sha256:a2527b1d81792a0ccd2c05850960df119c2b6d8f5fdec97f2db7d25dc23b1068
+https://conda.anaconda.org/conda-forge/linux-aarch64/libgcc-16.2.0-h205dda4_7.conda#sha256:eae7a3449d5a3b5351c5427137c076cc3fc826645c7bfc42dc10772b783826f1
+https://conda.anaconda.org/conda-forge/linux-aarch64/libstdcxx-16.2.0-hef695bb_7.conda#sha256:b241a3acfa9cdb1359112864a1241225533c92642de3000d52ae65ef5d3a9786
+https://conda.anaconda.org/bioconda/linux-aarch64/epa-ng-0.3.8-h1e84f2d_7.conda#sha256:b52abf89ea8758cfe91cd42573fc1872b578f7e1cdbd585cc9e1edd91bc7b0d2

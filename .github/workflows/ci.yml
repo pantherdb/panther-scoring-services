@@ -34,6 +34,7 @@ jobs:
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
       api: ${{ steps.filter.outputs.api }}
+      engine: ${{ steps.filter.outputs.engine }}
       code: ${{ steps.filter.outputs.code }}
       openspec-change: ${{ steps.filter.outputs.openspec-change }}
     steps:
@@ -50,7 +51,13 @@ jobs:
             api:
               - 'api/**'
               - '.github/workflows/ci.yml'
-            # engine: added by the engine developer once engine/ has code
+            # The image files too: the engine-image job builds them.
+            engine:
+              - 'engine/**'
+              - 'Dockerfile'
+              - '.dockerignore'
+              - 'compose.yaml'
+              - '.github/workflows/ci.yml'
             code:
               - 'frontend/**'
               - 'api/**'
@@ -156,7 +163,64 @@ jobs:
       # Includes the check that api/openapi.json matches the app.
       - run: uv run pytest
 
-  # engine: added by the engine developer once engine/ has code
+  engine:
+    name: engine
+    needs: changes
+    if: needs.changes.outputs.engine == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Installs uv; `uv sync` then installs the Python in engine/.python-version.
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          # Keep in step with required-version in engine/pyproject.toml and UV_IMAGE in the Dockerfile.
+          version: 0.13.6
+          enable-cache: true
+          cache-dependency-glob: engine/uv.lock
+      # --locked fails if uv.lock is out of date with pyproject.toml.
+      - run: uv sync --locked
+      - run: uv run ruff check
+      - run: uv run ruff format --check
+      - run: uv run basedpyright
+      # The tests marked `tools` skip here; engine-image runs them with the tools.
+      - run: uv run pytest
+
+  # Builds the engine image natively on each architecture, then runs the tool report and the full
+  # test suite in it. The image sets PANTHER_REQUIRE_TOOLS=1, so a missing tool fails, not skips.
+  # If ubuntu-24.04-arm isn't available to the repository, drop it from the matrix and check arm64
+  # on an Apple Silicon machine before merging.
+  engine-image:
+    name: engine-image
+    needs: changes
+    if: needs.changes.outputs.engine == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: engine
+          tags: panther-engine:ci
+          load: true
+          # One cache per architecture, so neither evicts the other's tool stages.
+          cache-from: type=gha,scope=engine-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=engine-${{ matrix.arch }}
+      - name: Tool report
+        run: docker run --rm panther-engine:ci panther-engine tools
+      - name: Tests, with the tools required
+        run: docker run --rm panther-engine:ci uv run --no-sync pytest
 
   repo:
     name: repo
@@ -224,7 +288,7 @@ jobs:
 
   ci-passed:
     name: ci-passed
-    needs: [changes, openspec-change, frontend, api, repo, dependency-review]
+    needs: [changes, openspec-change, frontend, api, engine, engine-image, repo, dependency-review]
     if: always()
     runs-on: ubuntu-latest
     steps:

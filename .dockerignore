@@ -1,0 +1,9 @@
+# An allowlist: only what the image needs is sent to the build. The API's change adds api/.
+*
+!engine/
+
+# Local environments and caches inside engine/.
+engine/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache

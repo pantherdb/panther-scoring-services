@@ -63,13 +63,13 @@
 
 ### Next action
 
-All tasks except 9.2 are done (2026-10-29), on the branch `feat/scaffold-engine-apply`. Nothing is committed yet. The artifacts merged in #13.
+All tasks except 9.2 are done (2026-10-29). The implementation is in #14, where every CI job passed, including both `engine-image` legs. The pull request checks in the Workflow follow-up are done (see Lessons learned, "On #14").
 
 Next:
 
 1. A Windows developer runs 9.2 (see Blockers).
-2. The engine developer commits and opens the implementation's pull request. The API developer reviews the root `Dockerfile` and `compose.yaml` on it, since #13 merged without reviews.
-3. On the pull request, check the Workflow follow-up items: both `engine-image` legs, `ubuntu-24.04-arm`, and `dependency-review` on `engine/uv.lock`.
+2. Reviews on #14. The engine developer approves. The API developer reviews the root `Dockerfile` and `compose.yaml`, since #13 merged without reviews.
+3. After #14 merges, archive with `/opsx:archive`.
 
 ### Blockers
 
@@ -104,6 +104,9 @@ Next:
   - `docker/setup-buildx-action` v4.4.1: `f87e5991a6d7451dcb8d9637bfbc97413f497069`;
   - `docker/build-push-action` v7.4.0: `c3c9e263c25d99ce0380d002d59b67737d91b0dc`.
 
-  GitHub hasn't run either job yet. See the Workflow follow-up.
+  GitHub ran both on #14: see "On #14" below.
 - **9.1 was run from a copy, not a clone.** The working tree isn't committed, so the copy holds the files git would commit (`git ls-files -co --exclude-standard`), without `.venv` or caches. Rerun 9.1 from a real clone once committed if you want it literally.
-- **`docs/testing/README.md` now says `dependency-review` reads `engine/uv.lock`.** It reads `api/uv.lock` (#11), so it should read this one too. Confirm on the pull request.
+- **On #14 (2026-10-29), every job passed under `ci-passed`.**
+  - **`ubuntu-24.04-arm` is available to this repository.** That answers the proposal's first open question, so the matrix keeps both legs. `engine-image` took 2m25s on amd64 and 2m6s on arm64, on the first run, with an empty GitHub Actions cache.
+  - **`dependency-review` reads `engine/uv.lock`.** Its log has a `File: engine/uv.lock` section listing the 8 locked packages: `basedpyright`, `ruff`, `pytest`, `iniconfig`, `nodejs-wheel-binaries`, `packaging`, `pluggy` and `pygments`. It found no vulnerable packages and no denied licences, and needed no new exemptions. `docs/testing/README.md` already says it reads the file.
+  - **Check the log, not just the result.** A passing dependency review looks the same when it never saw a lock file. Look for the `File:` section naming the lock.

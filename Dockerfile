@@ -1,5 +1,5 @@
-# The engine image: Python, uv and the external tools at pinned versions, for linux/amd64 and
-# linux/arm64. Stages: blast, hmmer, epang -> tools -> engine.
+# The engine and API images: Python, uv and the external tools at pinned versions, for linux/amd64
+# and linux/arm64. Stages: blast, hmmer, epang -> tools -> engine, api.
 #
 # Every base image is pinned by digest and every download by version and sha256. Changing a pin
 # is a pull request that changes this file; Dependabot doesn't update them. The versions are
@@ -114,3 +114,26 @@ COPY --chown=panther:panther engine/pyproject.toml engine/uv.lock engine/.python
 RUN uv sync --locked --no-cache --no-install-project
 COPY --chown=panther:panther engine/ ./
 RUN uv sync --locked --no-cache
+
+# The API: api/ and the engine installed into /opt/venv as regular packages, without the dev group,
+# serving on port 8000. The image runs what it was built from; nothing mounted over /work changes
+# it. compose.yaml's `api` service runs it for the frontend to call.
+FROM tools AS api
+USER root
+RUN mkdir -p /opt/venv /work/api /work/engine \
+    && chown panther:panther /opt/venv /work/api /work/engine
+USER panther
+WORKDIR /work/api
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
+    PATH="/opt/venv/bin:${PATH}"
+# The dependencies first, so a change to the source alone doesn't reinstall them. uv reads the
+# engine's pyproject.toml to check the lock, but installs nothing from the engine yet.
+COPY --chown=panther:panther api/pyproject.toml api/uv.lock api/.python-version ./
+COPY --chown=panther:panther engine/pyproject.toml /work/engine/
+RUN uv sync --locked --no-dev --no-cache --no-install-project --no-install-package panther-engine
+COPY --chown=panther:panther engine/src/ /work/engine/src/
+COPY --chown=panther:panther api/ ./
+RUN uv sync --locked --no-dev --no-cache --no-editable
+EXPOSE 8000
+# fastapi run finds the app through [tool.fastapi] in api/pyproject.toml, and listens on 0.0.0.0.
+CMD ["fastapi", "run", "--port", "8000"]

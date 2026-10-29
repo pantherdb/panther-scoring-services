@@ -47,9 +47,13 @@ jobs:
               - 'frontend/**'
               - '.nvmrc'
               - '.github/workflows/ci.yml'
-            # Once api/ depends on engine/, add 'engine/**' here too.
+            # The engine too, since the API imports it, and the image files: api-image builds them.
             api:
               - 'api/**'
+              - 'engine/**'
+              - 'Dockerfile'
+              - '.dockerignore'
+              - 'compose.yaml'
               - '.github/workflows/ci.yml'
             # The image files too: the engine-image job builds them.
             engine:
@@ -222,6 +226,51 @@ jobs:
       - name: Tests, with the tools required
         run: docker run --rm panther-engine:ci uv run --no-sync pytest
 
+  # Builds the API image natively on each architecture, starts it, and checks that the API reports
+  # a version for every tool. engine-image checks the exact pinned versions on the same tools stage.
+  api-image:
+    name: api-image
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: api
+          tags: panther-api:ci
+          load: true
+          # The tool stages come from engine-image's cache. Only the layers in the API image go
+          # in this job's own scope.
+          cache-from: |
+            type=gha,scope=engine-${{ matrix.arch }}
+            type=gha,scope=api-${{ matrix.arch }}
+          cache-to: type=gha,mode=min,scope=api-${{ matrix.arch }}
+      - name: Start the API
+        run: docker run -d --name api -p 8000:8000 panther-api:ci
+      # Docker's port proxy accepts connections before the app listens, and the first requests get
+      # an empty reply rather than a refused connection, so retry on every error.
+      - name: Wait for the health check
+        run: curl -fsS --retry 30 --retry-all-errors --retry-delay 1 http://localhost:8000/api/v1/health
+      - name: Every tool reports a version
+        run: |
+          curl -fsS http://localhost:8000/api/v1/versions | tee versions.json
+          echo
+          jq -e '(.tools | length == 4) and all(.tools[]; .version != null)' versions.json
+      - name: API logs
+        if: failure()
+        run: docker logs api
+
   repo:
     name: repo
     runs-on: ubuntu-latest
@@ -288,7 +337,7 @@ jobs:
 
   ci-passed:
     name: ci-passed
-    needs: [changes, openspec-change, frontend, api, engine, engine-image, repo, dependency-review]
+    needs: [changes, openspec-change, frontend, api, api-image, engine, engine-image, repo, dependency-review]
     if: always()
     runs-on: ubuntu-latest
     steps:

@@ -24,7 +24,8 @@ How we test, and how to run each suite. Someone new should be able to run every 
 | Job | When | What it runs |
 | --- | ---- | ------------ |
 | `frontend` | `frontend/` changed | From `frontend/`: `npm ci`, `npm run format:check`, `npm run lint`, `npm run type-check`, `npm test`, `npm run build`, then `npm run test:e2e` (mock mode, Chromium only) |
-| `api` | `api/` changed | From `api/`: `uv sync --locked`, `uv run ruff check`, `uv run ruff format --check`, `uv run basedpyright`, `uv run pytest` (including the check that `api/openapi.json` is current). See [api.md](api.md) |
+| `api` | `api/`, `engine/`, the `Dockerfile`, `.dockerignore` or `compose.yaml` changed | From `api/`: `uv sync --locked`, `uv run ruff check`, `uv run ruff format --check`, `uv run basedpyright`, `uv run pytest` (including the check that `api/openapi.json` is current). See [api.md](api.md) |
+| `api-image` | As for `api` | On `ubuntu-latest` (amd64) and `ubuntu-24.04-arm` (arm64): builds the `api` target of the root `Dockerfile`, starts it, waits for `/api/v1/health`, and checks with `jq` that `/api/v1/versions` lists the four tools, each with a version |
 | `engine` | `engine/`, the `Dockerfile`, `.dockerignore` or `compose.yaml` changed | From `engine/`: `uv sync --locked`, `uv run ruff check`, `uv run ruff format --check`, `uv run basedpyright`, `uv run pytest`. The tests marked `tools` skip. See [engine.md](engine.md) |
 | `engine-image` | As for `engine` | On `ubuntu-latest` (amd64) and `ubuntu-24.04-arm` (arm64): builds the `engine` target of the root `Dockerfile`, then runs `panther-engine tools` and `uv run --no-sync pytest` in the image, where a missing tool fails its tests (`PANTHER_REQUIRE_TOOLS=1`) |
 | `openspec-change` | Pull requests | Fails if code in `frontend/`, `api/` or `engine/` changed but `openspec/changes/` didn't, unless the pull request has the `no-spec` label |

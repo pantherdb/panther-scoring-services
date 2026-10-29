@@ -23,7 +23,7 @@ PANTHER-PSEP (Tang & Thomas 2016, PMID 27193693) estimates how long a substitute
 
 ## Layout and Team
 
-Three developers, one per folder. Each folder covers all four services. There is no code yet. `frontend/` has its conventions in `frontend/CLAUDE.md`; `api/` and `engine/` hold only a `.gitkeep`.
+Three developers, one per folder. Each folder covers all four services. `frontend/` has its conventions in `frontend/CLAUDE.md`. `api/` is the FastAPI app (`panther_api`), and imports the engine as a path dependency. `engine/` is the `panther_engine` package with its CLI. The root `Dockerfile` builds the pinned tools, then an `engine` stage for the engine's checks and an `api` stage that serves the API; `compose.yaml` runs both. How to run each is in `docs/testing/`.
 
 | Folder | Owner | Stack |
 | ------ | ----- | ----- |

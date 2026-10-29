@@ -712,6 +712,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi", extra = ["standard-no-fastapi-cloud-cli"] },
+    { name = "panther-engine" },
 ]
 
 [package.dev-dependencies]
@@ -722,7 +723,24 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "fastapi", extras = ["standard-no-fastapi-cloud-cli"], specifier = "==0.162.0" }]
+requires-dist = [
+    { name = "fastapi", extras = ["standard-no-fastapi-cloud-cli"], specifier = "==0.162.0" },
+    { name = "panther-engine", editable = "../engine" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "basedpyright", specifier = "==1.40.2" },
+    { name = "pytest", specifier = "==9.2.0" },
+    { name = "ruff", specifier = "==0.17.3" },
+]
+
+[[package]]
+name = "panther-engine"
+version = "0.1.0"
+source = { editable = "../engine" }
+
+[package.metadata]
 
 [package.metadata.requires-dev]
 dev = [

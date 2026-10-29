@@ -46,6 +46,48 @@
           }
         }
       }
+    },
+    "/api/v1/versions": {
+      "get": {
+        "tags": [
+          "versions"
+        ],
+        "summary": "API, engine and tool versions",
+        "description": "The versions read when the app started. A missing tool has a null version. Runs no tool.",
+        "operationId": "versions_api_v1_versions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Versions"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as problem details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -92,6 +134,59 @@
         ],
         "title": "Problem",
         "description": "An RFC 9457 problem details body."
+      },
+      "ToolVersion": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "version"
+        ],
+        "title": "ToolVersion",
+        "description": "An external tool and the version it reports: null if it's missing or can't be read."
+      },
+      "Versions": {
+        "properties": {
+          "api": {
+            "type": "string",
+            "title": "Api"
+          },
+          "engine": {
+            "type": "string",
+            "title": "Engine"
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/ToolVersion"
+            },
+            "type": "array",
+            "title": "Tools"
+          }
+        },
+        "type": "object",
+        "required": [
+          "api",
+          "engine",
+          "tools"
+        ],
+        "title": "Versions",
+        "description": "The API, engine and tool versions. Never includes where a tool was found."
       },
       "FieldError": {
         "description": "One field that failed validation. The submitted value is never included.",

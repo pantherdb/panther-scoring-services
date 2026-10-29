@@ -21,6 +21,6 @@ The proposal, design and tasks for one change go in `openspec/changes/<change>/`
 
 | Doc | Status |
 | --- | ------ |
-| [tech-stack.md](tech-stack.md) | Proposed, 2026-10-27; revised 2026-10-28 for four services (scope, API, engine, runtime tools, shared concerns) |
+| [tech-stack.md](tech-stack.md) | Proposed, 2026-10-27; revised 2026-10-28 for four services (scope, API, engine, runtime tools, shared concerns); revised 2026-10-29 (tool versions pinned in the container image, worker processes, site moves to the JSON API, parity oracle image, environments and cSNP data sample) |
 | [frontend-stack.md](frontend-stack.md) | Accepted, 2026-10-28 |
 | [api-stack.md](api-stack.md) | Accepted, 2026-10-28 |

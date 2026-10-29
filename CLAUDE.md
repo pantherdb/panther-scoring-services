@@ -37,7 +37,7 @@ The frontend stack is **Accepted** (`docs/design/frontend-stack.md`). The API an
 
 - **The engine is a library, not a web service.** `engine/` is a Python package with a CLI, and `api/` imports it. Don't add HTTP between them.
 - **Shared code goes in `core/`.** Data paths, external tool runners, FASTA parsing and per-job work directories are written once and used by every service.
-- **Score through jobs.** `POST /api/v1/jobs` starts a job; `GET /api/v1/jobs/{id}` polls it. The exceptions are the synchronous compatibility endpoints that keep `panther-site-java` working. Whether `refmap` lookups also go through jobs is an open question.
+- **Score through jobs.** `POST /api/v1/jobs` starts a job; `GET /api/v1/jobs/{id}` polls it. `panther-site-java` moves to this JSON API too; there are no compatibility endpoints imitating the legacy URLs (`docs/design/tech-stack.md`, API recommendation 2). Whether `refmap` lookups also go through jobs is an open question.
 - **Never pass request data through a shell.** Run external tools with argument lists, and validate inputs such as species codes against a known list. The legacy cSNP CGI has a command injection this way (`CGI-5`).
 - **The OpenAPI schema is the contract between frontend and api.** Generate the frontend's TypeScript types from it; don't write them by hand.
 - **Prove parity with each service's reference.** That's the legacy Perl for `csnp`, `hmmscore` and `refmap`, and the pinned EBI version for `treegrafter`. Output must match golden files produced by the reference. Record every deliberate difference in the docs.
@@ -149,7 +149,7 @@ Not part of the service:
 Data it needs: a PANTHER BLAST database and the per-family PAML library (`.paml`, `.orig.tree`, `.rst`). Both are frozen precomputed data from PANTHER 9, and must stay matched to each other.
 
 - **Pinned copies:** the PANTHER9 BLAST DB and `../panther_build/PAML_RST.tar.gz` (files dated 2015). Their ids agree, and spec §7.1 pins their checksums.
-- **Production:** whether production uses the same library build needs team verification.
+- **Production:** the legacy production server is gone, so which library build it ran can't be checked. The port uses the pinned copies.
 
 ### `treegrafter`: `legacy/TreeGrafter/`
 
@@ -199,7 +199,7 @@ Don't read or reuse these:
 - **Two copies of `snpScore.cgi`, and neither reads the website's input correctly.**
   - **The site's copy:** `legacy/panther-site-java/scoring/snpScore.cgi` matches the unmerged branch `origin/dustine32-patch-1` in `cSNP_analysis`. It adds `$value =~ tr/%2B/ /;`. Perl's `tr` maps characters, not strings, so this turns every `%`, `2` and `B` in each form value into a space: `G129R` becomes `G1 9R` and is dropped (`CGI-3`).
   - **`main`'s copy:** it splits only on tab, spaces and LF, so it scores nothing when the website sends `+`-joined substitutions (`CGI-2`).
-  - **Production:** which copy runs there needs team verification.
+  - **Production:** the legacy production server is gone, so which copy ran there can't be checked. It doesn't matter for the port: the site moves to the JSON API, so neither copy is imitated.
 - **Command injection and a temp-file race in the cSNP CGI.** `species` goes unquoted into shell commands (`CGI-5`). Concurrent requests share `./<SPECIES>` and the query id `P0001`, so they can read each other's BLAST hits (`CGI-6`). Never replicate either.
 - **Wrong start node for about 17% of genes (`SCORE-2`).** `PANTHER_PSEP1.01.pl` takes the *last* `.paml` header match. Internal-node labels collide with leaf labels, so the trace-back often starts from an unrelated node. Matching the goldens byte for byte reproduces this; it's a keep-or-fix decision.
 - **Batch results depend on input order (`SCORE-7`, `SCORE-8`).** There's no `use strict`, the state is package globals that are never reset, and `getYear` keeps the first family's `$i`. The CGI scores one protein per request, so it's unaffected; CLI batches spanning families are not.

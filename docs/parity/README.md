@@ -20,7 +20,6 @@ Parity is the acceptance test for **milestone M1** of each service. It does not 
    - a wrong wild-type amino acid
    - a start-loss variant such as `M1V` (`MAP-4`)
    - a batch that spans two families, in both orders (`SCORE-7`)
-   - website-shaped requests with `+`-joined substitutions and positions containing `2` (`CGI-2`, `CGI-3`)
 2. **Make the golden files.** Run the inputs through the service's reference and save the outputs as reference answers.
 3. **Compare.** Run the same inputs through the Python engine. Every mismatch is either a porting bug, or a deliberate change that has been approved.
 4. **Log every deliberate change** in `divergences.md`.
@@ -34,6 +33,8 @@ Parity is the acceptance test for **milestone M1** of each service. It does not 
 | `divergences.md` | The divergence log (format below) |
 
 The golden files themselves are test fixtures, so they live with the engine's tests in `engine/`. This folder explains them.
+
+**Store the golden files and the parity inputs byte for byte.** Give their folder a `-text` rule in `.gitattributes`; the comment there says where. The repo's default turns CRLF into LF when a file is committed, on every OS. Some `csnp` cases carry a carriage return on purpose: `e10`'s input line ends in CRLF, and `MAP-5` keeps the trailing `\r` in the output substitution.
 
 ### Where to start for `csnp`
 

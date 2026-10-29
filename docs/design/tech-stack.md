@@ -163,11 +163,12 @@ Porting the Perl to Python removes the last Perl from these services. The cSNP a
 Conditions:
 
 1. **Build a library, not a second web service.** Make it a Python package with a CLI, and have the FastAPI app import it. The boundary between `api/` and `engine/` is then a typed function call rather than HTTP, which saves a network hop, a deployment and a second contract.
-   - Renamed from `backend/` to `engine/` on 2026-10-28. FastAPI is also backend code, so "api" vs "backend" would have caused confusion about who owns what. The engine developer names the Python package inside it.
+   - Renamed from `backend/` to `engine/` on 2026-10-28. FastAPI is also backend code, so "api" vs "backend" would have caused confusion about who owns what.
+   - The Python package is `panther_engine` (distribution `panther-engine`, command `panther-engine`), in a `src/` layout. Named by the engine developer on 2026-10-29 (`scaffold-engine`).
 2. **One package, shared `core/`, one submodule per service:**
 
    ```text
-   engine/<package>/
+   engine/src/panther_engine/
      core/          versioned data paths, external tool runners (blastp, hmmscan/hmmsearch,
                     epa-ng), FASTA parsing, one work directory per job
      csnp/          BLAST+ -> family -> PAML trace-back -> age -> prediction

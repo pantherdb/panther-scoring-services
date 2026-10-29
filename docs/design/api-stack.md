@@ -65,4 +65,4 @@ Answered while scaffolding (`scaffold-api`, #11, 2026-10-28):
 | -------- | ------ | ------ |
 | API developer | The whole doc | Accepted, 2026-10-28 |
 | Frontend developer | Error responses and the OpenAPI contract | Accepted, 2026-10-28 ([#8](https://github.com/pantherdb/panther-scoring-services/pull/8) approval) |
-| Engine developer | Project Layout: Python 3.13 and how the engine joins | Pending |
+| Engine developer | Project Layout: Python 3.13 and how the engine joins | Accepted, 2026-10-29 (the engine reuses this doc's tooling: `scaffold-engine`) |

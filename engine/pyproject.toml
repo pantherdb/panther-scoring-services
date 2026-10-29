@@ -1,0 +1,49 @@
+[project]
+name = "panther-engine"
+version = "0.1.0"
+description = "Scoring engine for the PANTHER services: hmmscore, refmap, csnp and treegrafter."
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+panther-engine = "panther_engine.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv]
+# Everyone uses a uv that writes the same uv.lock format. CI and the image pin this version.
+required-version = ">=0.13.6"
+
+[dependency-groups]
+# The same versions as api/pyproject.toml.
+dev = [
+    "basedpyright==1.40.2",
+    "pytest==9.2.0",
+    "ruff==0.17.3",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+# S (from bandit) flags subprocess calls: only core/process.py starts one, and never through a shell.
+# The same rules as api/, without FAST, which only checks FastAPI code.
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "RUF", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.basedpyright]
+typeCheckingMode = "strict"
+include = ["src", "tests"]
+pythonVersion = "3.13"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers -p pytester"
+markers = [
+    "tools(*names): runs the named external tools; skipped if one is missing, failed if PANTHER_REQUIRE_TOOLS=1",
+]

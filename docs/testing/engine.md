@@ -26,7 +26,7 @@ docker compose run --rm engine panther-engine tools                 # the CLI: e
 
 ### Windows
 
-Clone the repository inside WSL2, for example under `~/` in the Ubuntu distribution, not under `C:\` or `/mnt/c/`. Run the commands from a WSL2 shell, with Docker Desktop's WSL2 integration turned on for that distribution. A clone on the Windows file system is mounted slowly, and doesn't keep Linux file permissions.
+Clone the repository inside WSL2, for example under `~/` in the Ubuntu distribution, not under `C:\` or `/mnt/c/`. Run the commands from a WSL2 shell, with Docker Desktop's WSL2 integration turned on for that distribution. A clone on the Windows file system is mounted slowly, and doesn't keep Linux file permissions. Both `docker compose run --rm engine` and `docker compose run --rm engine panther-engine tools` were checked this way on 2026-10-29.
 
 ## Natively
 
@@ -63,7 +63,7 @@ def test_blastp_finds_the_family() -> None: ...
 
 ## Running External Tools
 
-Every external tool is started through `run_tool()` in `src/panther_engine/core/process.py`: an absolute program path, a list of arguments and no shell. Ruff's `S603` reports any other `subprocess` call in the engine.
+Every external tool is started through `run_tool()` in `src/panther_engine/core/process.py`: an absolute program path, a list of arguments and no shell. Ruff's `S603` reports any other `subprocess` call in the engine whose arguments include a variable. It doesn't report a call made only of string literals, such as `subprocess.run(["/bin/echo", "x"])`, so don't take a clean lint as proof that no such call exists.
 
 In tests, the `make_tool` fixture (`tests/conftest.py`) writes a fake tool: a small shell script in a temporary folder. `tests/test_process.py` and `tests/test_tools.py` show how to use it.
 

@@ -13,9 +13,9 @@ How we test, and how to run each suite. Someone new should be able to run every 
 | ---- | ---- | ----- |
 | Unit and component | `frontend/` | Vitest and React Testing Library |
 | End-to-end | `frontend/` | Playwright, in three modes: against mocks, a real API, or an already-running site. See [frontend.md](frontend.md) |
-| API | `api/` | pytest with FastAPI's `TestClient`: request validation, error responses, the OpenAPI schema; later the job lifecycle and the legacy compatibility endpoints. See [api.md](api.md) |
+| API | `api/` | pytest with FastAPI's `TestClient`: request validation, error responses, the OpenAPI schema; later the job lifecycle. See [api.md](api.md) |
 | Engine | `engine/` | Unit tests per service and per pipeline step, and for `core/` |
-| Parity | `engine/` | Python vs each service's golden files (the legacy Perl, or the pinned EBI `treegrafter`). See [../parity/](../parity/README.md) |
+| Parity | `engine/` | Python vs each service's golden files (the legacy Perl, or the pinned EBI `treegrafter`). In CI, on every pull request, with the sample of the cSNP data. On staging, by hand: the full-library Perl-vs-Python comparison for `csnp`, for M1 acceptance and before releases that change its file parsing or trace-back. After every deploy: a data checksum check and a smoke test with the golden requests. See [../parity/](../parity/README.md) and [Environments](../design/tech-stack.md#shared-concerns) |
 
 ## What CI Runs
 

@@ -16,7 +16,7 @@ New to the repo? Start with [CONTRIBUTING.md](CONTRIBUTING.md): setup, the OpenS
 | Folder | What it is | Owner |
 | ------ | ---------- | ----- |
 | `frontend/` | Web UI: React 19, TypeScript, Vite, Mantine, Tailwind v4. Conventions in [frontend/CLAUDE.md](frontend/CLAUDE.md) | Frontend developer |
-| `api/` | FastAPI service for all four services: scoring jobs, plus compatibility endpoints for the legacy website | API developer |
+| `api/` | FastAPI service for all four services: scoring jobs, called by `frontend/` and by the legacy website (`panther-site-java`) | API developer |
 | `engine/` | Engine: one Python package with a shared `core/` and a submodule per service, built as a library with a CLI that `api/` imports | Engine developer |
 | `docs/` | Design decisions, parity, testing, manual QA, code reviews, deployment. Start at [docs/README.md](docs/README.md) | Everyone |
 | `openspec/` | Specs and change proposals (OpenSpec). The workflow is in [CLAUDE.md](CLAUDE.md#development-workflow) | Everyone |

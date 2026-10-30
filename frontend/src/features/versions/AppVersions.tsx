@@ -1,5 +1,6 @@
+import { VersionList } from '@/components/VersionList'
+
 import { useGetVersionsQuery } from './versionsApi'
-import { VersionList } from './VersionList'
 
 // The versions the service runs now, so a result can be traced to what produced it.
 export function AppVersions() {

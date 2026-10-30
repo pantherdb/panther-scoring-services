@@ -58,6 +58,9 @@ Tests live in `tests/`, mirroring `src/`. Vitest collects only `tests/**/*.test.
 
 - **No test data is needed.** API calls are answered by the MSW handlers in `src/mocks/handlers.ts`. A call with no handler fails the test.
 - **To change a response in one test**, use `server.use(...)` from `tests/mocks/server.ts`. It's reset after each test.
+- **Mocked jobs move forward one status per poll.** `POST /api/v1/jobs` creates a `queued` `tools` job; each `GET /api/v1/jobs/{id}` then answers `queued`, `running`, then `succeeded`. An id the mock didn't create gets a 404. Create one without the UI with `createJob()` from `src/mocks/jobs.ts`. `tests/setup.ts` forgets every mocked job after each test.
+- **To show a job in another state,** such as `failed`, a 404 or a 500, override `GET /api/v1/jobs/:id` with `server.use(...)`. `src/mocks/data/jobs.ts` builds a job body in any status.
+- **The job page polls once a second,** with real timers. A test that waits for a status change raises its `findBy*` or `waitFor` timeout to a few seconds (see `tests/features/jobs/JobPage.test.tsx`).
 - **MSW 3 renamed `onUnhandledRequest` to `onUnhandledFrame`.** The behaviour is the same, but examples written for MSW 2 won't type-check. `tests/setup.ts` uses `onUnhandledFrame: 'error'`.
 - **To render a page**, use `renderRoute(path)` from `tests/utils/render.tsx`. It wraps the page in the same store, theme and routes as the app.
 
@@ -128,4 +131,4 @@ Tag a spec with `test('...', { tag: '@api' }, async ({ page }) => { ... })`.
 
 ## Mocking in the Dev Server
 
-`npm run dev` starts MSW and logs `[MSW] Mocking enabled.` in the browser console. To develop against a real API instead, run `npm run dev:api`. Which modes mock is set in the `.env.*` files in `frontend/` (`VITE_API_MOCKING=on` or `off`).
+`npm run dev` starts MSW and logs `[MSW] Mocking enabled.` in the browser console. Mocked jobs live in the page, so reloading a job's page in mock mode shows "Job not found"; against a real API, the job is still there. To develop against a real API instead, run `npm run dev:api`. Which modes mock is set in the `.env.*` files in `frontend/` (`VITE_API_MOCKING=on` or `off`).

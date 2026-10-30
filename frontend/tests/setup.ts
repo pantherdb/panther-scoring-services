@@ -3,6 +3,8 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll } from 'vitest'
 
+import { resetJobs } from '@/mocks/jobs'
+
 import { server } from './mocks/server'
 
 // jsdom has no matchMedia. Report reduced motion so Mantine transitions take no
@@ -36,5 +38,6 @@ beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 afterEach(() => {
   cleanup()
   server.resetHandlers()
+  resetJobs()
 })
 afterAll(() => server.close())

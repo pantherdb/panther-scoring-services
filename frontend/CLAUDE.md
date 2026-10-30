@@ -77,6 +77,7 @@ The app builds with the React Compiler, and `react-hooks` 7 fails the lint on wh
 - **Every API call goes through RTK Query** in `src/app/api/`. No `fetch` or `axios` in components.
 - **Types come from the OpenAPI schema.** Run `npm run api:types` after the API changes; a renamed field then fails `tsc` instead of failing in the browser. Never hand-write a type the schema already has.
 - **One module converts between the API's shapes and the app's.** If the API speaks snake_case, only that module renames fields. It's `src/app/api/wire.ts`.
+- **Ask `isApiMocked()` (`src/app/mocking.ts`) whether the API is mocked;** don't read `VITE_API_MOCKING` anywhere else. It starts MSW and shows the mock data banner, and tests switch it with `vi.stubEnv`. Vite copies `public/` into every build, so `vite.config.ts` drops MSW's worker script from builds without mocking.
 - **Poll job status with RTK Query's `pollingInterval`**, and stop when the job finishes or fails.
 - **Show "loading" when there's no data, not from `isLoading`.** While a request is retried after an error, RTK Query reports `isError` and `isLoading` both false, so a page that keys on them shows nothing.
 - **Read the store only through the typed hooks** in `src/app/hooks.ts` (`useAppSelector`, `useAppDispatch`). The lint refuses the plain `react-redux` hooks.

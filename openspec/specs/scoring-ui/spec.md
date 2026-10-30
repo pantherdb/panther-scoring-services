@@ -202,19 +202,24 @@ The UI SHALL offer a cSNP scoring form at `/csnp`, linked from the home page. It
 - **WHEN** the user chooses to use an example on `/csnp`
 - **THEN** the sequence box holds the legacy example's APOE sequence, the substitutions box holds `L46P`, `C130R`, `R163C` and `R176C`, and the species is `HUMAN`
 
-### Requirement: cSNP substitutions split on whitespace
+### Requirement: cSNP substitutions split on whitespace and commas
 
-The UI SHALL split the substitutions box into the request's list of tokens at every run of whitespace, spaces, tabs and new lines alike, in the order typed, dropping empty tokens. It MUST NOT split at any other character, as the legacy website didn't.
+The UI SHALL split the substitutions box into the request's list of tokens at every run of whitespace and commas, spaces, tabs, new lines and commas alike and in any mix, in the order typed, dropping empty tokens. It MUST NOT split at any other character.
 
 #### Scenario: Spaces, tabs and new lines
 
 - **WHEN** the substitutions box holds `" L46P  C130R\tR163C\r\nR176C\n"`
 - **THEN** the request's `substitutions` is `["L46P", "C130R", "R163C", "R176C"]`
 
+#### Scenario: Commas
+
+- **WHEN** the substitutions box holds `"L46P,C130R"`, or `"L46P, C130R,,R163C\n"`
+- **THEN** the request's `substitutions` is `["L46P", "C130R"]`, or `["L46P", "C130R", "R163C"]`
+
 #### Scenario: Other separators are part of a token
 
-- **WHEN** the substitutions box holds `"L46P,C130R"`
-- **THEN** the request's `substitutions` is `["L46P,C130R"]`
+- **WHEN** the substitutions box holds `"L46P;C130R"`
+- **THEN** the request's `substitutions` is `["L46P;C130R"]`
 
 ### Requirement: cSNP form checks the input before sending
 
@@ -344,3 +349,46 @@ When a `csnp` job has succeeded, the job page SHALL show its PANTHER family, or 
 
 - **WHEN** the user opens the page of a succeeded `csnp` job whose family is `null`
 - **THEN** the page says there is no PANTHER family, and still shows the scores
+
+### Requirement: Mock data is marked on every page
+
+When the UI runs on mocked API answers instead of the scoring service, every page SHALL show, in the app shell, a banner saying that the data is mock data and that nothing on the page comes from the scoring service. The banner MUST stay in view while the page scrolls, MUST be a named region that assistive technologies list with the page's landmarks, and MUST fit mobile widths with no horizontal scrolling of the page.
+
+#### Scenario: Home page on mocks
+
+- **WHEN** the UI runs on mocked answers and the user opens `/`
+- **THEN** the page shows a region named as mock data, whose text says the data is mock data and doesn't come from the scoring service
+
+#### Scenario: Form, job and not-found pages on mocks
+
+- **WHEN** the UI runs on mocked answers and the user opens `/csnp`, a job's page at `/jobs/{id}`, or a URL that matches no route
+- **THEN** each page shows the mock data region
+
+#### Scenario: Scrolled to the end of a page
+
+- **WHEN** the UI runs on mocked answers and the user scrolls to the end of a job's page
+- **THEN** the mock data region is still in view
+
+#### Scenario: Mobile width
+
+- **WHEN** the UI runs on mocked answers and the user opens `/` on a mobile-width viewport
+- **THEN** the mock data region is visible and the page does not scroll horizontally
+
+#### Scenario: Not a build detail
+
+- **WHEN** the page shows the mock data region
+- **THEN** its text contains no port numbers, environment variable names, shell commands or file paths
+
+### Requirement: No mock data with the real API
+
+When the UI calls the scoring service, it MUST NOT show the mock data banner on any page. A production build MUST contain neither the banner's text nor the code that mocks the API.
+
+#### Scenario: Against the real API
+
+- **WHEN** the UI calls the scoring service and the user opens `/`, `/csnp` or a URL that matches no route
+- **THEN** no page shows the mock data region
+
+#### Scenario: The production build
+
+- **WHEN** the production build is made
+- **THEN** none of its files contains the banner's text or the API mocking library

@@ -1,0 +1,42 @@
+no-family,M7H,Not scored: No PANTHER family for input sequence
+unmapped,M5W,Not scored: Invalid substitution
+g1-start,M13I,PTHR24073_7_3,1237,probably damaging,0.85
+g1-end,T189A,PTHR24073_7_3,324,possibly damaging,0.50
+g1-past-end,T187H,Not scored: Invalid substitution
+g1-wrong-wt,N83C,Not scored: Invalid substitution
+g1-p126,G129C,PTHR24073_7_3,750,probably damaging,0.74
+g1-p83,G86Y,PTHR24073_7_3,1629,probably damaging,0.89
+g1-p10,G26S,PTHR24073_7_3,1630,probably damaging,0.89
+g1-p184,M200P,PTHR24073_7_3,2,probably benign,0.02
+g2-start,M1V,PTHR24073_7_3,1237,probably damaging,0.85
+g2-end,T187N,PTHR24073_7_3,324,possibly damaging,0.50
+g2-past-end,T187N,Not scored: Invalid substitution
+g2-wrong-wt,I31T,Not scored: Invalid substitution
+g2-p6,I8T,PTHR24073_7_3,324,possibly damaging,0.50
+g2-p26,S30A,PTHR24073_7_3,324,possibly damaging,0.50
+g2-p145,L149A,PTHR24073_7_3,750,probably damaging,0.74
+g2-p156,E167I,PTHR24073_7_3,324,possibly damaging,0.50
+g3-start,F13P,PTHR24073_7_3,1630,probably damaging,0.89
+g3-end,V154N,PTHR24073_7_3,1630,probably damaging,0.89
+g3-past-end,V156W,Not scored: Invalid substitution
+g3-wrong-wt,H16P,Not scored: Invalid substitution
+g3-p54,C74T,PTHR24073_7_3,1630,probably damaging,0.89
+g3-p73,A85M,PTHR24073_7_3,1630,probably damaging,0.89
+g3-p76,G96M,PTHR24073_7_3,1630,probably damaging,0.89
+g3-p118,T134W,PTHR24073_7_3,1630,probably damaging,0.89
+g4-start,M2Q,PTHR24073_7_3,1237,probably damaging,0.85
+g4-end,M200P,PTHR24073_7_3,1237,probably damaging,0.85
+g4-past-end,M186W,Not scored: Invalid substitution
+g4-wrong-wt,N169L,Not scored: Invalid substitution
+g4-p33,L52K,PTHR24073_7_3,1237,probably damaging,0.85
+g4-p113,S116R,PTHR24073_7_3,1237,probably damaging,0.85
+g4-p155,A155V,PTHR24073_7_3,1237,probably damaging,0.85
+g4-p157,R174H,PTHR24073_7_3,1368,probably damaging,0.86
+g5-start,M1R,PTHR24073_7_3,1237,probably damaging,0.85
+g5-end,T180V,PTHR24073_7_3,455,probably damaging,0.57
+g5-past-end,T182V,Not scored: Invalid substitution
+g5-wrong-wt,H81A,Not scored: Invalid substitution
+g5-p3,K5G,PTHR24073_7_3,1237,probably damaging,0.85
+g5-p30,I33K,PTHR24073_7_3,750,probably damaging,0.74
+g5-p70,K79S,PTHR24073_7_3,1,probably benign,0.02
+g5-p84,I92V,PTHR24073_7_3,361,possibly damaging,0.50

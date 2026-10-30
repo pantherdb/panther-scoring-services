@@ -1,0 +1,42 @@
+no-family,M9N,Not scored: No PANTHER family for input sequence
+unmapped,M8S,Not scored: Invalid substitution
+g1-start,M21R,PTHR15126,750,probably damaging,0.74
+g1-end,R555W,PTHR15126,455,probably damaging,0.57
+g1-past-end,R559W,PTHR15126,455,probably damaging,0.57
+g1-wrong-wt,N362A,Not scored: Invalid substitution
+g1-p327,S329R,PTHR15126,176,probably benign,0.27
+g1-p511,S526M,PTHR15126,1,probably benign,0.02
+g1-p160,I173M,PTHR15126,176,probably benign,0.27
+g1-p243,G247V,PTHR15126,324,possibly damaging,0.50
+g2-start,M14S,PTHR15126,750,probably damaging,0.74
+g2-end,R545H,PTHR15126,455,probably damaging,0.57
+g2-past-end,R550P,PTHR15126,455,probably damaging,0.57
+g2-wrong-wt,W158Y,Not scored: Invalid substitution
+g2-p266,L270V,PTHR15126,1,probably benign,0.02
+g2-p52,I64A,PTHR15126,1036,probably damaging,0.85
+g2-p409,P412F,PTHR15126,750,probably damaging,0.74
+g2-p485,K488I,PTHR15126,455,probably damaging,0.57
+g3-start,H10K,PTHR15126,750,probably damaging,0.74
+g3-end,E323D,PTHR15126,750,probably damaging,0.74
+g3-past-end,E321P,Not scored: Invalid substitution
+g3-wrong-wt,K40D,Not scored: Invalid substitution
+g3-p58,K59L,PTHR15126,750,probably damaging,0.74
+g3-p62,I72W,PTHR15126,750,probably damaging,0.74
+g3-p85,N99W,PTHR15126,750,probably damaging,0.74
+g3-p243,P252R,PTHR15126,750,probably damaging,0.74
+g4-start,M20H,PTHR15126,1,probably benign,0.02
+g4-end,R596W,PTHR15126,455,probably damaging,0.57
+g4-past-end,R603P,PTHR15126,455,probably damaging,0.57
+g4-wrong-wt,G551V,Not scored: Invalid substitution
+g4-p69,Q71D,PTHR15126,455,probably damaging,0.57
+g4-p100,F120D,PTHR15126,1036,probably damaging,0.85
+g4-p156,I165L,PTHR15126,750,probably damaging,0.74
+g4-p315,G318D,PTHR15126,1,probably benign,0.02
+g5-start,M11I,PTHR15126,750,probably damaging,0.74
+g5-end,N570Y,PTHR15126,455,probably damaging,0.57
+g5-past-end,N555C,PTHR15126,455,probably damaging,0.57
+g5-wrong-wt,S158P,Not scored: Invalid substitution
+g5-p109,F120Q,PTHR15126,455,probably damaging,0.57
+g5-p303,H315R,PTHR15126,455,probably damaging,0.57
+g5-p479,G483T,PTHR15126,455,probably damaging,0.57
+g5-p532,Y550F,PTHR15126,455,probably damaging,0.57

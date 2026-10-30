@@ -262,3 +262,28 @@ class GeneLookup:
             return find_an(self.lines, gene)
         a, b, c = gene.split("|")
         return next((an for third, an in self.groups.get((a, b), []) if third.startswith(c)), None)
+
+
+# Perl's own conversions, for both scripts
+
+
+NUMBER = re.compile(r"\s*([+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)")
+
+
+def lines_of(text: str) -> list[str]:
+    """`text` split as Perl's `<FILE>` reads it: after each line feed only, so a carriage return
+    stays in its line. The last line may have no line feed."""
+    parts = text.split("\n")
+    return [part + "\n" for part in parts[:-1]] + ([parts[-1]] if parts[-1] else [])
+
+
+def numify(text: str | None) -> float:
+    """A string as a Perl number: its leading decimal number, after any white space, or 0. An
+    undefined value is 0 too."""
+    match = NUMBER.match(text or "")
+    return float(match[1]) if match else 0.0
+
+
+def number_text(value: float) -> str:
+    """A number as Perl prints it: whole numbers without a decimal point."""
+    return str(int(value)) if value.is_integer() else f"{value:.15g}"

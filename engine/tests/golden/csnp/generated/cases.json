@@ -1,0 +1,40 @@
+{
+  "seed": "port-csnp",
+  "genes": 5,
+  "positions": 8,
+  "step2": [
+    {
+      "name": "listed",
+      "species": "HUMAN"
+    },
+    {
+      "name": "species",
+      "species": "RAT"
+    },
+    {
+      "name": "unfiltered",
+      "species": "NA"
+    },
+    {
+      "name": "random",
+      "species": "HUMAN"
+    }
+  ],
+  "step3": [
+    "PTHR10183_6",
+    "PTHR10366",
+    "PTHR11695",
+    "PTHR11711",
+    "PTHR11941_9",
+    "PTHR15126",
+    "PTHR16675_3",
+    "PTHR17358",
+    "PTHR17486",
+    "PTHR19241",
+    "PTHR21493",
+    "PTHR23125_2",
+    "PTHR24073_10_1",
+    "PTHR24073_7_3",
+    "PTHR31369_2"
+  ]
+}

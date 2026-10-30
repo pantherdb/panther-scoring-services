@@ -1,0 +1,42 @@
+no-family,M15V,Not scored: No PANTHER family for input sequence
+unmapped,M9D,Not scored: Invalid substitution
+g1-start,M18H,PTHR17486,176,probably benign,0.27
+g1-end,L67G,PTHR17486,176,probably benign,0.27
+g1-past-end,L71Q,PTHR17486,176,probably benign,0.27
+g1-wrong-wt,N45K,Not scored: Invalid substitution
+g1-p8,K22D,PTHR17486,176,probably benign,0.27
+g1-p38,V49G,PTHR17486,2,probably benign,0.02
+g1-p29,S37G,PTHR17486,176,probably benign,0.27
+g1-p35,K50I,PTHR17486,176,probably benign,0.27
+g2-start,M8W,PTHR17486,176,probably benign,0.27
+g2-end,L65V,PTHR17486,176,probably benign,0.27
+g2-past-end,L58Y,PTHR17486,176,probably benign,0.27
+g2-wrong-wt,C33K,Not scored: Invalid substitution
+g2-p7,L12Q,PTHR17486,176,probably benign,0.27
+g2-p14,R20F,PTHR17486,176,probably benign,0.27
+g2-p32,K37P,PTHR17486,176,probably benign,0.27
+g2-p53,S71E,PTHR17486,176,probably benign,0.27
+g3-start,M12T,PTHR17486,176,probably benign,0.27
+g3-end,L66W,PTHR17486,176,probably benign,0.27
+g3-past-end,L64W,PTHR17486,176,probably benign,0.27
+g3-wrong-wt,R55W,Not scored: Invalid substitution
+g3-p13,R19S,PTHR17486,176,probably benign,0.27
+g3-p30,K30Y,PTHR17486,176,probably benign,0.27
+g3-p34,R43Y,PTHR17486,176,probably benign,0.27
+g3-p44,C58Y,PTHR17486,25,probably benign,0.13
+g4-start,M3K,PTHR17486,176,probably benign,0.27
+g4-end,E62S,PTHR17486,1,probably benign,0.02
+g4-past-end,E66Q,Not scored: Invalid substitution
+g4-wrong-wt,V53M,Not scored: Invalid substitution
+g4-p16,K34A,PTHR17486,176,probably benign,0.27
+g4-p29,S44L,PTHR17486,176,probably benign,0.27
+g4-p30,K49T,PTHR17486,176,probably benign,0.27
+g4-p35,K48N,PTHR17486,176,probably benign,0.27
+g5-start,M7D,PTHR17486,176,probably benign,0.27
+g5-end,L58T,PTHR17486,176,probably benign,0.27
+g5-past-end,L75Y,PTHR17486,176,probably benign,0.27
+g5-wrong-wt,T55G,Not scored: Invalid substitution
+g5-p11,G18L,PTHR17486,176,probably benign,0.27
+g5-p15,G17H,PTHR17486,176,probably benign,0.27
+g5-p18,R25Q,PTHR17486,176,probably benign,0.27
+g5-p50,N59Q,PTHR17486,176,probably benign,0.27

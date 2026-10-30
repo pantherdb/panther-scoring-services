@@ -1,0 +1,42 @@
+no-family,M20Y,Not scored: No PANTHER family for input sequence
+unmapped,M11S,Not scored: Invalid substitution
+g1-start,M19Y,PTHR11941_9,4200,probably damaging,0.95
+g1-end,L276C,PTHR11941_9,1,probably benign,0.02
+g1-past-end,L268W,PTHR11941_9,1,probably benign,0.02
+g1-wrong-wt,M48K,Not scored: Invalid substitution
+g1-p154,A162Y,PTHR11941_9,4200,probably damaging,0.95
+g1-p207,T216L,PTHR11941_9,1,probably benign,0.02
+g1-p66,V79E,PTHR11941_9,1,probably benign,0.02
+g1-p138,K155P,PTHR11941_9,1,probably benign,0.02
+g2-start,M9D,PTHR11941_9,4200,probably damaging,0.95
+g2-end,V329N,PTHR11941_9,1,probably benign,0.02
+g2-past-end,V318L,PTHR11941_9,1,probably benign,0.02
+g2-wrong-wt,Q305H,Not scored: Invalid substitution
+g2-p152,T165V,PTHR11941_9,1,probably benign,0.02
+g2-p159,D163G,PTHR11941_9,4200,probably damaging,0.95
+g2-p163,A175W,PTHR11941_9,1,probably benign,0.02
+g2-p289,H297K,PTHR11941_9,1,probably benign,0.02
+g3-start,M19T,PTHR11941_9,4200,probably damaging,0.95
+g3-end,E345D,PTHR11941_9,4180,probably damaging,0.95
+g3-past-end,E347R,PTHR11941_9,4180,probably damaging,0.95
+g3-wrong-wt,P89G,Not scored: Invalid substitution
+g3-p54,P69Q,PTHR11941_9,4180,probably damaging,0.95
+g3-p116,K129L,PTHR11941_9,4180,probably damaging,0.95
+g3-p214,G226H,PTHR11941_9,4200,probably damaging,0.95
+g3-p243,V252N,PTHR11941_9,4180,probably damaging,0.95
+g4-start,M17A,PTHR11941_9,4200,probably damaging,0.95
+g4-end,M324S,PTHR11941_9,1,probably benign,0.02
+g4-past-end,M314K,PTHR11941_9,1,probably benign,0.02
+g4-wrong-wt,L102C,Not scored: Invalid substitution
+g4-p11,Y19F,PTHR11941_9,1,probably benign,0.02
+g4-p91,K108Y,PTHR11941_9,1,probably benign,0.02
+g4-p137,D150F,PTHR11941_9,4200,probably damaging,0.95
+g4-p156,G156Y,PTHR11941_9,4200,probably damaging,0.95
+g5-start,M10G,PTHR11941_9,4200,probably damaging,0.95
+g5-end,P326H,PTHR11941_9,4200,probably damaging,0.95
+g5-past-end,P320A,Not scored: Invalid substitution
+g5-wrong-wt,T100I,Not scored: Invalid substitution
+g5-p67,E73A,PTHR11941_9,4180,probably damaging,0.95
+g5-p71,T74W,PTHR11941_9,4180,probably damaging,0.95
+g5-p247,T257F,PTHR11941_9,4180,probably damaging,0.95
+g5-p250,A269N,PTHR11941_9,4180,probably damaging,0.95

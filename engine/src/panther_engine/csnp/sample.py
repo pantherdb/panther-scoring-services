@@ -1,12 +1,15 @@
-"""The cSNP data sample: chosen families of the PAML_RST library, the species tree and the PSEP
-copyright statement, as one tarball attached to a GitHub release of this repository.
+"""The cSNP data sample: chosen families of the PAML_RST library, the PANTHER9 BLAST database, the
+species tree and the PSEP copyright statement, as one tarball attached to a GitHub release of this
+repository.
 
 `sample.json`, shipped with the package, pins the release: its tag, the tarball's URL and sha256,
-the source archive's checksum and each file's sha256. The files unpack under the data folder at
-`csnp/9/`, laid out as the full library is (`csnp/9/PAML_RST/PTHR10366.paml` and so on).
+the source archives' checksums and each file's sha256. The files unpack under the data folder at
+`csnp/9/`, laid out as the full data is (`csnp/9/PAML_RST/PTHR10366.paml`,
+`csnp/9/blast/blast.psq` and so on).
 
-- **build** makes the tarball from `PAML_RST.tar.gz`, byte for byte the same each time, and writes
-  the manifest. It refuses an archive whose sha256 isn't the pinned one.
+- **build** makes the tarball from `PAML_RST.tar.gz` and `PANTHER9.blast.tar.gz`, byte for byte the
+  same each time, and writes the manifest. It refuses an archive whose sha256 isn't the pinned
+  one. The BLAST archive's `blast.fasta` stays out: `blastp` doesn't read it.
 - **fetch** downloads the tarball, or takes a local copy, checks it, unpacks it safely and checks
   every file. It does nothing when the folder already matches. A failure leaves the folder as it
   was.
@@ -45,12 +48,16 @@ VERSION = "9"
 FOLDER = f"{SERVICE}/{VERSION}"
 LIBRARY = "PAML_RST"
 SPECIES = "species_pthr8_time.nhx"
+BLAST = "blast"
+# The database files in PANTHER9.blast.tar.gz, at the same paths under csnp/9/.
+BLAST_FILES = ("blast/blast.phr", "blast/blast.pin", "blast/blast.psq")
 COPYRIGHT = "PSEP-COPYRIGHT.txt"
 MANIFEST = Path(__file__).with_name("sample.json")
 RELEASES = "https://github.com/pantherdb/panther-scoring-services/releases/download"
 # Legacy behaviour spec §7.1
 PINNED_ARCHIVE = "6791f43325afdae3a1872c7655d103f9cdd98d5dbf6695a1187bb30985a869c5"
 PINNED_SPECIES = "23b035c293337966bd766628dd721c0a264230a49e4763188c607e301623d1e9"
+PINNED_BLAST = "2cf4428c97b99c4bce3705a80dc7f55c17779e54a0bcae9ddb7d75a67b40dcc9"
 DOWNLOAD_TIMEOUT = 60.0
 
 
@@ -91,15 +98,17 @@ def build(
     species: Path,
     readme: Path,
     families: Iterable[str],
+    blast: Path,
     tag: str,
     out: Path,
     manifest: Path,
     archive_sha256: str = PINNED_ARCHIVE,
     species_sha256: str = PINNED_SPECIES,
+    blast_sha256: str = PINNED_BLAST,
 ) -> dict[str, object]:
     """Build the sample tarball at `out` and its manifest at `manifest`. Returns the manifest.
 
-    Nothing is written unless the archive's and the species tree's checksums match.
+    Nothing is written unless the two archives' and the species tree's checksums match.
     """
     wanted = sorted(set(families))
     for family in wanted:
@@ -112,6 +121,11 @@ def build(
 
     out.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=out.parent, prefix=".csnp-sample-") as work:
+        database = Path(work) / BLAST
+        database.mkdir()
+        digest = extract_blast(blast, database)
+        if digest != blast_sha256:
+            raise SampleError(f"{blast}'s sha256 is {digest}, not the pinned {blast_sha256}")
         library = Path(work) / "library"
         library.mkdir()
         digest = extract_families(archive, set(wanted), library)
@@ -126,6 +140,7 @@ def build(
         (Path(work) / COPYRIGHT).write_bytes(statement)
 
         files = {f"{FOLDER}/{LIBRARY}/{path.name}": path for path in library.iterdir()}
+        files.update({f"{FOLDER}/{name}": Path(work) / name for name in BLAST_FILES})
         files[f"{FOLDER}/{SPECIES}"] = species
         files[f"{FOLDER}/{COPYRIGHT}"] = Path(work) / COPYRIGHT
         digests = {name: sha256_file(source) for name, source in sorted(files.items())}
@@ -142,6 +157,7 @@ def build(
             "bytes": out.stat().st_size,
         },
         "source": {"name": archive.name, "sha256": archive_sha256},
+        "blast": {"name": blast.name, "sha256": blast_sha256},
         "species": {"name": SPECIES, "sha256": species_sha256},
         "families": wanted,
         "files": digests,
@@ -178,6 +194,31 @@ def extract_families(archive: Path, families: set[str], folder: Path) -> str:
             reader.drain()
         except (tarfile.TarError, EOFError, OSError) as error:
             raise SampleError(f"can't read {archive}: {error}") from error
+    return reader.digest.hexdigest()
+
+
+def extract_blast(archive: Path, folder: Path) -> str:
+    """Copy the BLAST database's files from the archive into `folder`, reading the whole archive
+    as a stream. Returns its sha256."""
+    found: set[str] = set()
+    with archive.open("rb") as raw:
+        reader = HashingReader(raw)
+        try:
+            with open_stream(reader) as tar:
+                for member in tar:
+                    if member.isfile() and member.name in BLAST_FILES:
+                        stream = tar.extractfile(member)
+                        if stream is None:
+                            raise SampleError(f"can't read {member.name}")
+                        with (folder / PurePosixPath(member.name).name).open("wb") as target:
+                            shutil.copyfileobj(stream, target, CHUNK)
+                        found.add(member.name)
+            reader.drain()
+        except (tarfile.TarError, EOFError, OSError) as error:
+            raise SampleError(f"can't read {archive}: {error}") from error
+    missing = [name for name in BLAST_FILES if name not in found]
+    if missing:
+        raise SampleError(f"not in {archive}: {', '.join(missing)}")
     return reader.digest.hexdigest()
 
 

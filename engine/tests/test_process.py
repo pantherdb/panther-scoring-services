@@ -68,3 +68,27 @@ def test_one_string_as_the_arguments_is_refused(make_tool: Callable[[str, str], 
 
     with pytest.raises(TypeError, match="sequence of arguments"):
         run_tool(tool, "-version", timeout=10)
+
+
+def test_input_reaches_the_tool_on_stdin_unchanged(
+    make_tool: Callable[[str, str], Path], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tool = make_tool("record-stdin", 'cat > "$(dirname "$0")/stdin.txt"')
+    text = ">P0001\n" + "\n".join(SHELL_METACHARACTERS) + "\nlast line, no newline"
+    monkeypatch.chdir(tmp_path)
+
+    result = run_tool(tool, [], timeout=10, input=text)
+
+    assert result.returncode == 0
+    assert (tool.parent / "stdin.txt").read_text(encoding="utf-8") == text
+    assert not (tmp_path / "marker").exists()
+
+
+def test_the_tool_runs_in_cwd(make_tool: Callable[[str, str], Path], tmp_path: Path) -> None:
+    tool = make_tool("where", "pwd -P")
+    folder = tmp_path / "work"
+    folder.mkdir()
+
+    result = run_tool(tool, [], timeout=10, cwd=folder)
+
+    assert result.stdout == f"{folder.resolve()}\n"

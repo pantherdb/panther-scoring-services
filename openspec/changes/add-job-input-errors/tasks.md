@@ -4,7 +4,7 @@ Test-first: for each task, write its tests, run them and see them fail for the r
 
 ## 1. Engine: the Input Error (engine developer)
 
-- [ ] 1.1 Add `engine/src/panther_engine/core/errors.py` with `InputError(Exception)`, raised with one message. Its docstring states the contract:
+- [x] 1.1 Add `engine/src/panther_engine/core/errors.py` with `InputError(Exception)`, raised with one message. Its docstring states the contract:
   - written for the person who submitted the input;
   - no file paths, tool output or internal identifiers;
   - only for problems with the input as a whole, since single-item problems belong in the result;
@@ -15,7 +15,7 @@ Test-first: for each task, write its tests, run them and see them fail for the r
   - "A subclass with its own constructor": a subclass whose `__init__` takes other arguments (for example `(family, species)`) arrives through a real `spawn` worker with its type, message and attributes, while another job running in the same pool succeeds.
 
   Also verify that `docker compose run --rm engine` passes.
-- [ ] 1.2 Tell service authors how to use it, in the engine's docs (the engine README or `docs/testing/engine.md`, the engine developer's choice): when to raise it, the message rules, and that single-item problems go in the result. Verify `npx markdownlint-cli2` passes.
+- [x] 1.2 Tell service authors how to use it, in the engine's docs (the engine README or `docs/testing/engine.md`, the engine developer's choice): when to raise it, the message rules, and that single-item problems go in the result. Verify `npx markdownlint-cli2` passes.
 
 ## 2. API: Input Errors in Failed Jobs
 

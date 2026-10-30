@@ -5,7 +5,7 @@ import pytest
 from csnp_fixtures import edited, lines
 
 from panther_engine.csnp.library import LibraryFormatError
-from panther_engine.csnp.paml import read_header, read_paml, read_site
+from panther_engine.csnp.paml import iter_sites, read_header, read_paml, read_site, read_sites
 
 PAML = "PTHR00001.paml"
 
@@ -30,6 +30,43 @@ def test_one_site_gives_each_column_its_residue_and_probability() -> None:
 def test_a_site_past_the_last_is_an_error() -> None:
     with pytest.raises(LibraryFormatError, match="no site 3"):
         read_site(lines(PAML), PAML, 3)
+
+
+def test_several_sites_in_one_pass_equal_each_site_read_alone() -> None:
+    header, sites = read_sites(lines(PAML), PAML, [2, 1, 2])
+
+    assert header == read_header(lines(PAML), PAML)
+    assert sites == {1: read_site(lines(PAML), PAML, 1), 2: read_site(lines(PAML), PAML, 2)}
+
+
+def test_a_site_past_the_last_is_absent_from_several_sites() -> None:
+    _, sites = read_sites(lines(PAML), PAML, [5, 1])
+
+    assert list(sites) == [1]
+
+
+def test_several_sites_stop_after_the_last_one_needed() -> None:
+    broken = edited(PAML, "Site 2,A,-,G,A,A", "Site 2,broken")
+
+    _, sites = read_sites(broken, PAML, [1])
+
+    assert list(sites) == [1]
+    with pytest.raises(LibraryFormatError, match="Site 2"):
+        read_sites(broken, PAML, [1, 2])
+
+
+def test_each_site_in_turn_equals_each_site_read_alone() -> None:
+    header, sites = iter_sites(lines(PAML), PAML)
+
+    assert header.root == 4
+    assert list(sites) == [read_site(lines(PAML), PAML, site) for site in (1, 2)]
+
+
+def test_no_sites_reads_the_header_only() -> None:
+    header, sites = read_sites(lines(PAML), PAML, [])
+
+    assert header.root == 4
+    assert sites == {}
 
 
 def test_the_whole_file_is_checked() -> None:

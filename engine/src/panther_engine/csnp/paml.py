@@ -89,21 +89,64 @@ def read_site(lines: Iterable[str], name: str, site: int) -> Site:
         if current < site:
             _check_label(number, line, current, name, probability=is_probability == 1)
             continue
-        residues = _residues(number, line, current, header.columns, name)
-        probability_number, probability_line = _next_row(rows, number, current, name)
-        probabilities = _probabilities(
-            probability_number, probability_line, current, header.columns, name
-        )
-        _pair_unreconstructed(probability_number, residues, probabilities, name)
-        return Site(
-            site,
-            tuple(None if cell == UNRECONSTRUCTED_RESIDUE else cell for cell in residues),
-            tuple(
-                math.nan if cell == UNRECONSTRUCTED_PROBABILITY else float(cell)
-                for cell in probabilities
-            ),
-        )
+        return _site(rows, number, line, current, header.columns, name)
     raise LibraryFormatError(name, None, f"no site {site}")
+
+
+def _site(
+    rows: Iterator[tuple[int, str]], number: int, line: str, site: int, columns: int, name: str
+) -> Site:
+    """Site `site` from its residue row, `line`, and the probability row after it."""
+    residues = _residues(number, line, site, columns, name)
+    probability_number, probability_line = _next_row(rows, number, site, name)
+    probabilities = _probabilities(probability_number, probability_line, site, columns, name)
+    _pair_unreconstructed(probability_number, residues, probabilities, name)
+    return Site(
+        site,
+        tuple(None if cell == UNRECONSTRUCTED_RESIDUE else cell for cell in residues),
+        tuple(
+            math.nan if cell == UNRECONSTRUCTED_PROBABILITY else float(cell)
+            for cell in probabilities
+        ),
+    )
+
+
+def read_sites(
+    lines: Iterable[str], name: str, sites: Iterable[int]
+) -> tuple[PamlHeader, dict[int, Site]]:
+    """The header, and each of `sites` the file has, in one pass that stops after the last one
+    needed. A site past the file's last is absent from the result, not an error. Rows of other
+    sites are checked only by their label, as `read_site` checks them."""
+    wanted = set(sites)
+    if any(site < 1 for site in wanted):
+        raise ValueError(f"sites are numbered from 1, not {min(wanted)}")
+    rows = numbered(lines, name)
+    header = _header(rows, name)
+    found: dict[int, Site] = {}
+    last = max(wanted, default=0)
+    for number, line in rows:
+        current, is_probability = divmod(number - 2, 2)
+        if current > last:
+            break
+        if current not in wanted:
+            _check_label(number, line, current, name, probability=is_probability == 1)
+            continue
+        found[current] = _site(rows, number, line, current, header.columns, name)
+        if current == last:
+            break
+    return header, {site: found[site] for site in sorted(found)}
+
+
+def iter_sites(lines: Iterable[str], name: str) -> tuple[PamlHeader, Iterator[Site]]:
+    """The header, and each site in turn, read as it's needed: the file is never held."""
+    rows = numbered(lines, name)
+    header = _header(rows, name)
+
+    def sites() -> Iterator[Site]:
+        for site, (number, line) in enumerate(rows, 1):
+            yield _site(rows, number, line, site, header.columns, name)
+
+    return header, sites()
 
 
 def read_paml(lines: Iterable[str], name: str) -> PamlSummary:

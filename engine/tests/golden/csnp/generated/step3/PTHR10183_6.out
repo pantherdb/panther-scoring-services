@@ -1,0 +1,42 @@
+no-family,M4C,Not scored: No PANTHER family for input sequence
+unmapped,M11W,Not scored: Invalid substitution
+g1-start,M7H,PTHR10183_6,1628,probably damaging,0.89
+g1-end,F157N,PTHR10183_6,1,probably benign,0.02
+g1-past-end,F148M,Not scored: Invalid substitution
+g1-wrong-wt,P116S,Not scored: Invalid substitution
+g1-p60,F77K,PTHR10183_6,1628,probably damaging,0.89
+g1-p34,R42V,PTHR10183_6,1,probably benign,0.02
+g1-p80,G81D,PTHR10183_6,1,probably benign,0.02
+g1-p81,I101D,PTHR10183_6,1,probably benign,0.02
+g2-start,M17A,PTHR10183_6,1628,probably damaging,0.89
+g2-end,L135Y,PTHR10183_6,205,possibly damaging,0.50
+g2-past-end,L148H,PTHR10183_6,205,possibly damaging,0.50
+g2-wrong-wt,W85P,Not scored: Invalid substitution
+g2-p7,K18V,PTHR10183_6,205,possibly damaging,0.50
+g2-p34,L53T,PTHR10183_6,205,possibly damaging,0.50
+g2-p45,W65P,PTHR10183_6,1628,probably damaging,0.89
+g2-p68,I69F,PTHR10183_6,1628,probably damaging,0.89
+g3-start,M19G,PTHR10183_6,1628,probably damaging,0.89
+g3-end,L131I,PTHR10183_6,1,probably benign,0.02
+g3-past-end,L148V,PTHR10183_6,1,probably benign,0.02
+g3-wrong-wt,T70Y,Not scored: Invalid substitution
+g3-p9,S24I,PTHR10183_6,1,probably benign,0.02
+g3-p33,R51D,PTHR10183_6,1,probably benign,0.02
+g3-p116,T116M,PTHR10183_6,1,probably benign,0.02
+g3-p118,E136T,PTHR10183_6,1,probably benign,0.02
+g4-start,M14G,PTHR10183_6,728,probably damaging,0.74
+g4-end,K162C,PTHR10183_6,728,probably damaging,0.74
+g4-past-end,K164Y,Not scored: Invalid substitution
+g4-wrong-wt,H138R,Not scored: Invalid substitution
+g4-p5,T23E,PTHR10183_6,728,probably damaging,0.74
+g4-p37,R56E,PTHR10183_6,728,probably damaging,0.74
+g4-p140,E141D,PTHR10183_6,728,probably damaging,0.74
+g4-p155,Y157V,PTHR10183_6,728,probably damaging,0.74
+g5-start,M13I,PTHR10183_6,910,probably damaging,0.85
+g5-end,V129L,PTHR10183_6,910,probably damaging,0.85
+g5-past-end,V142I,PTHR10183_6,910,probably damaging,0.85
+g5-wrong-wt,A77F,Not scored: Invalid substitution
+g5-p17,Q29N,PTHR10183_6,910,probably damaging,0.85
+g5-p94,N100E,PTHR10183_6,910,probably damaging,0.85
+g5-p103,P109T,PTHR10183_6,910,probably damaging,0.85
+g5-p121,K123T,PTHR10183_6,910,probably damaging,0.85

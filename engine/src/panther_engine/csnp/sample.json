@@ -1,14 +1,18 @@
 {
-  "tag": "csnp-sample-1",
+  "tag": "csnp-sample-2",
   "asset": {
-    "name": "csnp-sample-1.tar.gz",
-    "url": "https://github.com/pantherdb/panther-scoring-services/releases/download/csnp-sample-1/csnp-sample-1.tar.gz",
-    "sha256": "6b8fb633a9dafe255345aa58ca3e2e5ecaa2231de38c11a8aa043179b98c10d0",
-    "bytes": 26000104
+    "name": "csnp-sample-2.tar.gz",
+    "url": "https://github.com/pantherdb/panther-scoring-services/releases/download/csnp-sample-2/csnp-sample-2.tar.gz",
+    "sha256": "87506a6406a5c1e7a6d528e1683a6ebb6f631496ab0bf5b7ae0a435e0215b7c3",
+    "bytes": 156610658
   },
   "source": {
     "name": "PAML_RST.tar.gz",
     "sha256": "6791f43325afdae3a1872c7655d103f9cdd98d5dbf6695a1187bb30985a869c5"
+  },
+  "blast": {
+    "name": "PANTHER9.blast.tar.gz",
+    "sha256": "2cf4428c97b99c4bce3705a80dc7f55c17779e54a0bcae9ddb7d75a67b40dcc9"
   },
   "species": {
     "name": "species_pthr8_time.nhx",
@@ -78,6 +82,9 @@
     "csnp/9/PAML_RST/PTHR31369_2.paml": "b4d71add0f564f764d983d9ae4bfc30fe8f523dbdb96801e4d7a37d1a1af4641",
     "csnp/9/PAML_RST/PTHR31369_2.rst": "aff5ef22d636e13a9a8e286adc5098d6267e2d01f678542f81f8c784fb73dfb5",
     "csnp/9/PSEP-COPYRIGHT.txt": "038fb8df847ea3759e86623483d920804dab52626f002fe5af24d3213784c6bb",
+    "csnp/9/blast/blast.phr": "784acf3416009dfebf18a3be81a4b244d302b537405ede9291fdadeb468b918b",
+    "csnp/9/blast/blast.pin": "964d2e3179f4462a22bdbb268333693e31f3a27bfe3916db3eca819b600384fd",
+    "csnp/9/blast/blast.psq": "69642a8f0c7ed8479afa1da8a8f4d7ec2c7902e17cf469e929ff7a3c0fc085bc",
     "csnp/9/species_pthr8_time.nhx": "23b035c293337966bd766628dd721c0a264230a49e4763188c607e301623d1e9"
   }
 }

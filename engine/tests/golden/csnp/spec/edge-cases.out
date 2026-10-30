@@ -1,0 +1,10 @@
+e1,M1V,Not scored: Invalid substitution
+e2,G2V,PTHR10366,910,probably damaging,0.85
+e3,E10A,Not scored: Invalid substitution
+e4,A10*,PTHR10366,220,possibly damaging,0.50
+e5,A10E,PTHR10366,220,possibly damaging,0.50
+e6,A10E,Not scored: No PANTHER family for input sequence
+e7,a10E,Not scored: Invalid substitution
+e8,Q372R,PTHR10366,97,probably benign,0.19
+e9,X373R,Not scored: Invalid substitution
+e10,A10E,PTHR10366,220,possibly damaging,0.50

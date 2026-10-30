@@ -35,6 +35,22 @@ npm run test:e2e
 | `npm run test:e2e` | Playwright in mock mode |
 | `npm run test:e2e:api` | Playwright in api mode |
 | `npm run test:e2e:site` | Playwright in site mode |
+| `npm run api:types` | Generates `src/app/api/schema.d.ts` from `../api/openapi.json` (see [API Types](#api-types)) |
+| `npm run api:types:check` | Fails if `src/app/api/schema.d.ts` isn't what `api:types` would generate. Changes no file |
+
+## API Types
+
+The API's types are generated from the committed schema, `api/openapi.json`, with `openapi-typescript`. The API doesn't need to be running.
+
+```sh
+npm run api:types          # regenerate src/app/api/schema.d.ts
+npm run api:types:check    # check it's current, as CI does
+```
+
+- **Run `api:types` whenever `api/openapi.json` changes,** including in the API's own pull request, and commit `schema.d.ts` with it. CI's `frontend` job runs on any change to `api/openapi.json`, and `api:types:check` fails it until the types are regenerated.
+- **A renamed or removed field then fails `npm run type-check`** where the frontend uses it, instead of failing in the browser.
+- **Never edit `schema.d.ts` by hand.** Name a schema type with an alias, such as `type Versions = components['schemas']['Versions']`.
+- **Prettier and ESLint skip it.** The check compares the generator's exact output, so reformatting it would fail the check.
 
 ## Unit and Component Tests (Vitest)
 

@@ -13,7 +13,7 @@ How we test, and how to run each suite. Someone new should be able to run every 
 | ---- | ---- | ----- |
 | Unit and component | `frontend/` | Vitest and React Testing Library |
 | End-to-end | `frontend/` | Playwright, in three modes: against mocks, a real API, or an already-running site. See [frontend.md](frontend.md) |
-| API | `api/` | pytest with FastAPI's `TestClient`: request validation, error responses, the OpenAPI schema; later the job lifecycle. See [api.md](api.md) |
+| API | `api/` | pytest with FastAPI's `TestClient`: request validation, error responses, the OpenAPI schema, and the job lifecycle through a real worker pool (with stand-in work, never the real tools). See [api.md](api.md) |
 | Engine | `engine/` | Unit tests per service and per pipeline step, and for `core/`, with pytest. Tests marked `tools` run the pinned external tools, in the engine image. See [engine.md](engine.md) |
 | Parity | `engine/` | Python vs each service's golden files (the legacy Perl, or the pinned EBI `treegrafter`). In CI, on every pull request, with the sample of the cSNP data. On staging, by hand: the full-library Perl-vs-Python comparison for `csnp`, for M1 acceptance and before releases that change its file parsing or trace-back. After every deploy: a data checksum check and a smoke test with the golden requests. See [../parity/](../parity/README.md) and [Environments](../design/tech-stack.md#shared-concerns) |
 
@@ -23,8 +23,9 @@ How we test, and how to run each suite. Someone new should be able to run every 
 
 | Job | When | What it runs |
 | --- | ---- | ------------ |
-| `frontend` | `frontend/` changed | From `frontend/`: `npm ci`, `npm run format:check`, `npm run lint`, `npm run type-check`, `npm test`, `npm run build`, then `npm run test:e2e` (mock mode, Chromium only) |
-| `api` | `api/` changed | From `api/`: `uv sync --locked`, `uv run ruff check`, `uv run ruff format --check`, `uv run basedpyright`, `uv run pytest` (including the check that `api/openapi.json` is current). See [api.md](api.md) |
+| `frontend` | `frontend/` or `api/openapi.json` changed | From `frontend/`: `npm ci`, `npm run api:types:check` (that `src/app/api/schema.d.ts` matches `api/openapi.json`), `npm run format:check`, `npm run lint`, `npm run type-check`, `npm test`, `npm run build`, then `npm run test:e2e` (mock mode, Chromium only) |
+| `api` | `api/`, `engine/`, the `Dockerfile`, `.dockerignore` or `compose.yaml` changed | From `api/`: `uv sync --locked`, `uv run ruff check`, `uv run ruff format --check`, `uv run basedpyright`, `uv run pytest` (including the check that `api/openapi.json` is current). See [api.md](api.md) |
+| `api-image` | As for `api` | On `ubuntu-latest` (amd64) and `ubuntu-24.04-arm` (arm64): builds the `api` target of the root `Dockerfile`, starts it, waits for `/api/v1/health`, and checks with `jq` that `/api/v1/versions` lists the four tools, each with a version |
 | `engine` | `engine/`, the `Dockerfile`, `.dockerignore` or `compose.yaml` changed | From `engine/`: `uv sync --locked`, `uv run ruff check`, `uv run ruff format --check`, `uv run basedpyright`, `uv run pytest`. The tests marked `tools` skip. See [engine.md](engine.md) |
 | `engine-image` | As for `engine` | On `ubuntu-latest` (amd64) and `ubuntu-24.04-arm` (arm64): builds the `engine` target of the root `Dockerfile`, then runs `panther-engine tools` and `uv run --no-sync pytest` in the image, where a missing tool fails its tests (`PANTHER_REQUIRE_TOOLS=1`) |
 | `openspec-change` | Pull requests | Fails if code in `frontend/`, `api/` or `engine/` changed but `openspec/changes/` didn't, unless the pull request has the `no-spec` label |

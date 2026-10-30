@@ -118,11 +118,23 @@ async def _http_error(_request: Request, exc: StarletteHTTPException) -> JSONRes
     return _respond(problem, exc.headers)
 
 
+def _message(error: Mapping[str, Any]) -> str:
+    """Pydantic's message, except where it quotes the submitted value."""
+    # A tagged union's message quotes the tag it was given, such as an unknown `service`.
+    if error["type"] == "union_tag_invalid":
+        ctx = error.get("ctx", {})
+        return (
+            f"Input tag found using {ctx.get('discriminator')} does not match any of the "
+            f"expected tags: {ctx.get('expected_tags')}"
+        )
+    return str(error["msg"])
+
+
 async def _validation_error(_request: Request, exc: RequestValidationError) -> JSONResponse:
     # Pydantic's errors also carry `input`, `ctx` and `url`; only these three are returned,
     # so a submitted value is never echoed back.
     errors = [
-        FieldError(loc=list(error["loc"]), msg=str(error["msg"]), type=str(error["type"]))
+        FieldError(loc=list(error["loc"]), msg=_message(error), type=str(error["type"]))
         for error in exc.errors()
     ]
     status = HTTPStatus.UNPROCESSABLE_CONTENT

@@ -21,6 +21,16 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 })
 
+// The app calls a relative /api/v1, as it must in the browser. A browser's Request resolves a
+// relative URL against the page; Node's, which jsdom leaves in place, throws "Invalid URL".
+// Resolve it against jsdom's location, as the browser would.
+const NodeRequest = globalThis.Request
+globalThis.Request = class extends NodeRequest {
+  constructor(input: RequestInfo | URL, init?: RequestInit) {
+    super(typeof input === 'string' ? new URL(input, window.location.href) : input, init)
+  }
+}
+
 // An API call without a handler fails the test instead of reaching the network.
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 afterEach(() => {

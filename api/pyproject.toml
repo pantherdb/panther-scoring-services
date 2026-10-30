@@ -5,6 +5,8 @@ description = "HTTP API for the PANTHER scoring services: hmmscore, refmap, csnp
 requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard-no-fastapi-cloud-cli]==0.162.0",
+    "panther-engine",
+    "pydantic-settings==2.16.2",
 ]
 
 [build-system]
@@ -14,6 +16,11 @@ build-backend = "uv_build"
 [tool.uv]
 # Everyone uses a uv that writes the same uv.lock format. CI pins this version.
 required-version = ">=0.13.6"
+
+[tool.uv.sources]
+# The engine from this repository (docs/design/api-stack.md, "How the engine joins"). The image
+# installs it non-editable.
+panther-engine = { path = "../engine", editable = true }
 
 [dependency-groups]
 dev = [

@@ -85,3 +85,54 @@ def test_docs_page_loads_the_schema(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
     assert "/api/v1/openapi.json" in response.text
+
+
+# The jobs contract.
+
+SCHEMAS = "#/components/schemas/"
+
+
+def test_job_request_is_a_union_tagged_by_service(client: TestClient) -> None:
+    operation = served_schema(client)["paths"]["/api/v1/jobs"]["post"]
+    body = operation["requestBody"]["content"]["application/json"]["schema"]
+
+    assert body["oneOf"] == [{"$ref": f"{SCHEMAS}ToolsJobRequest"}]
+    assert body["discriminator"] == {
+        "propertyName": "service",
+        "mapping": {"tools": f"{SCHEMAS}ToolsJobRequest"},
+    }
+
+
+def test_submitting_documents_202_with_location(client: TestClient) -> None:
+    responses = served_schema(client)["paths"]["/api/v1/jobs"]["post"]["responses"]
+
+    assert "200" not in responses
+    assert "Location" in responses["202"]["headers"]
+    job = responses["202"]["content"]["application/json"]["schema"]
+    assert job["discriminator"]["mapping"] == {"tools": f"{SCHEMAS}ToolsJob"}
+    assert list(responses["422"]["content"]) == [PROBLEM]
+
+
+def test_polling_documents_the_job_and_problems(client: TestClient) -> None:
+    responses = served_schema(client)["paths"]["/api/v1/jobs/{job_id}"]["get"]["responses"]
+
+    job = responses["200"]["content"]["application/json"]["schema"]
+    assert job["oneOf"] == [{"$ref": f"{SCHEMAS}ToolsJob"}]
+    assert responses["default"]["content"][PROBLEM]["schema"] == {"$ref": f"{SCHEMAS}Problem"}
+
+
+def test_job_status_is_a_named_enum(client: TestClient) -> None:
+    status = served_schema(client)["components"]["schemas"]["JobStatus"]
+
+    assert status["enum"] == ["queued", "running", "succeeded", "failed"]
+
+
+def test_job_result_and_error_are_required_and_nullable(client: TestClient) -> None:
+    job = served_schema(client)["components"]["schemas"]["ToolsJob"]
+
+    for field, model in (("result", "ToolsResult"), ("error", "Problem")):
+        assert field in job["required"]
+        assert job["properties"][field]["anyOf"] == [
+            {"$ref": f"{SCHEMAS}{model}"},
+            {"type": "null"},
+        ]

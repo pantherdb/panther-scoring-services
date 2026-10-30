@@ -38,8 +38,85 @@ uv run ruff check && uv run ruff format --check && uv run basedpyright && uv run
 With the dev server running:
 
 - `http://localhost:8000/api/v1/health` returns `{"status":"ok"}`.
+- `http://localhost:8000/api/v1/versions` returns the API, engine and tool versions. Run natively, every tool's `version` is `null`, because the external tools are only in the image.
 - `http://localhost:8000/api/v1/docs` is the interactive documentation.
 - `http://localhost:8000/api/v1/openapi.json` is the schema.
+- `POST http://localhost:8000/api/v1/jobs` starts a job, and `GET http://localhost:8000/api/v1/jobs/{id}` polls it. See [Try the Jobs by Hand](#try-the-jobs-by-hand).
+
+## Settings
+
+The API reads its settings from environment variables when it starts. An invalid value stops it from starting, with an error naming the variable.
+
+| Variable | Default | Valid | What it sets |
+| -------- | ------- | ----- | ------------ |
+| `PANTHER_API_JOB_WORKERS` | `2` | an integer ≥ 1 | Worker processes that run jobs. Jobs beyond that wait as `queued` |
+| `PANTHER_API_JOB_EXPIRY_SECONDS` | `86400` (24 hours) | an integer ≥ 1 | How long a finished job is kept. After that, polling it gets a 404 |
+
+Set one for the native dev server with, for example, `PANTHER_API_JOB_WORKERS=1 uv run fastapi dev --port 8000`, and for the image with `docker run -e PANTHER_API_JOB_WORKERS=1 …`. The compose `api` service sets none, so it uses the defaults. Jobs are kept in memory, and are lost when the API restarts.
+
+## Running the API in the Image
+
+The root `Dockerfile`'s `api` stage serves the API with the engine and the pinned external tools, as it will be deployed. Run it from the repository root, not `api/`:
+
+```sh
+docker compose up --build api          # build the image and serve on localhost:8000; Ctrl+C stops it
+docker compose down                    # remove the container
+```
+
+- **It's for the frontend to call,** through its dev proxy, with the real tools: `/api/v1/versions` then reports each tool's pinned version. It has no source mount and no reload, so rerun with `--build` after changing `api/` or `engine/`. Develop the API itself with the native dev server above.
+- **Both use port 8000.** Run one at a time.
+- **Name the service.** A bare `docker compose up` also runs the `engine` service's checks.
+
+## Try the Jobs by Hand
+
+Until the first scoring service is ported, the only job is `tools`: a worker process runs the engine's tool report and returns each tool's version. It checks that the API, the worker pool, the engine and the tools work together. Start the API in the image, so the tools are there, from the repository root:
+
+```sh
+docker compose up --build api
+```
+
+**From the docs page:** open `http://localhost:8000/api/v1/docs`.
+
+1. Open **POST /api/v1/jobs**, choose **Try it out**, set the body to `{"service": "tools", "input": {}}`, and choose **Execute**. The response is `202`, with a `location` header and the job, `queued` or `running`. Copy its `id`.
+2. Open **GET /api/v1/jobs/{job_id}**, choose **Try it out**, paste the `id`, and choose **Execute**. Repeat until `status` is `succeeded`, a second or two after the first job, which starts a worker.
+
+**With curl,** in a second terminal (a POSIX shell; on Windows, the WSL2 shell):
+
+```sh
+curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' -d '{"service": "tools", "input": {}}'
+curl -s localhost:8000/api/v1/jobs/<id>      # the id from the job, or the path from its location header
+```
+
+A finished job looks like this:
+
+```json
+{
+  "id": "c56f34dc-cf36-429d-83d9-dcac03e46957",
+  "service": "tools",
+  "status": "succeeded",
+  "created_at": "2026-10-30T00:32:00.020522Z",
+  "started_at": "2026-10-30T00:32:00.021159Z",
+  "finished_at": "2026-10-30T00:32:01.540021Z",
+  "result": {
+    "tools": [
+      { "name": "blastp", "version": "2.17.0" },
+      { "name": "hmmscan", "version": "3.4" },
+      { "name": "hmmsearch", "version": "3.4" },
+      { "name": "epa-ng", "version": "0.3.8" }
+    ]
+  },
+  "error": null,
+  "versions": { "api": "0.1.0", "engine": "0.1.0", "tools": ["… as GET /api/v1/versions …"] }
+}
+```
+
+What else to try:
+
+- **The worker processes:** `docker compose top api` lists the API's process and, once a job has run, a worker started by `multiprocessing` (`spawn`).
+- **Errors:** an unknown `service`, or an `input` with a field it doesn't take, gets a `422` problem listing the field. `GET /api/v1/jobs/not-a-real-id` gets a `404` problem.
+- **Natively:** the same steps work against `uv run fastapi dev --port 8000` in `api/`, but every tool's `version` is `null`, because the tools are only in the image.
+
+`docker compose down` stops the API, and its jobs with it.
 
 ## The OpenAPI Schema
 
@@ -58,6 +135,7 @@ Tests live in `tests/` and call the app through FastAPI's `TestClient`, so no se
 - **The `client` fixture** in `tests/conftest.py` gives a client for a fresh app.
 - **`TestClient` is built on `httpx2`, not `httpx`** (Starlette 1.x). Type a test's responses as `httpx2.Response`; `httpx.Response` fails the type check. `fastapi[standard]` installs both.
 - **To test with a throwaway route**, build the app with `create_app(router)` from `panther_api.main`: the router is included under `/api/v1`, like the app's own.
+- **No test runs the external tools.** The app reads the tool versions once when it starts, through the engine's `report_tools()`. The autouse `fake_tools` fixture in `tests/conftest.py` replaces it with a report of all four tools at made-up paths, so tests give the same results with or without the tools installed. To test another report, patch `panther_api.versions.report_tools` again in the test, then build the app with `TestClient(create_app())`: the `client` fixture's app has already read the fake. The `api-image` CI job checks the real tools.
 
 Run one file, or one test by name:
 

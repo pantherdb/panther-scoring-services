@@ -1,0 +1,48 @@
+"""The job as the API returns it. Workers never import this module.
+
+A scoring service joins by adding its own job model, with its `service` and `result`, to `Job`.
+"""
+
+from datetime import datetime
+from enum import StrEnum
+from typing import Annotated, Literal
+from uuid import UUID
+
+from pydantic import BaseModel, Field, TypeAdapter
+
+from panther_api.jobs.tools import ToolsResult
+from panther_api.problems import Problem
+from panther_api.versions import Versions
+
+
+class JobStatus(StrEnum):
+    """Where a job is. It only moves forward: queued, running, then succeeded or failed."""
+
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+
+
+class ToolsJob(BaseModel):
+    """A `tools` job. Times are UTC, and null until reached.
+
+    `result` is null unless the job succeeded, and `error` is null unless it failed. `versions`
+    are the API, engine and tool versions the job ran with.
+    """
+
+    id: UUID
+    service: Literal["tools"]
+    status: JobStatus
+    created_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
+    result: ToolsResult | None
+    error: Problem | None
+    versions: Versions
+
+
+# Tagged by `service`, like the request, so the frontend narrows the result the same way.
+Job = Annotated[ToolsJob, Field(discriminator="service")]
+
+JOB_ADAPTER: TypeAdapter[Job] = TypeAdapter(Job)

@@ -66,7 +66,7 @@ The API's tests already run real `spawn` workers with module-level helpers (`api
 - **[A service raises `InputError` with an unsafe message]** → The contract is in the docstring and the spec. Each service's tests check its own messages. The API can't tell a safe message from an unsafe one, so review is the guard.
 - **[A bug is reported as an input error]** → Only explicit `raise InputError(...)` in the engine counts. Nothing converts other exceptions into it.
 - **[A subclass doesn't pickle]** → `concurrent.futures` would then raise a pickling error in place of the subclass, and the job fails with the generic `500`. The safe direction. The docstring tells subclass authors to keep `args` reconstructible.
-- **[Group 2 waits on group 1]** → Group 1 is one small module and its tests. The engine developer can push it to this branch, or merge it first in its own pull request.
+- **[Group 2 waits on group 1]** → Group 1 is one small module and its tests. The engine developer adds it with the first port, `csnp` (decided 2026-10-29); group 2 follows in the API change that adds the `csnp` job.
 
 ## Migration Plan
 

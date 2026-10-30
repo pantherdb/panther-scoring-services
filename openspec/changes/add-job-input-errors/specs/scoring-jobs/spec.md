@@ -19,8 +19,8 @@ When a job's work reports that its input can't be processed, by raising the engi
 
 #### Scenario: Unprocessable input
 
-- **WHEN** a job's work raises an input error with the message "No PANTHER family matches this sequence."
-- **THEN** the job ends with status `failed`, a `null` `result`, and an `error` with status 422 and the `detail` "No PANTHER family matches this sequence."
+- **WHEN** a job's work raises an input error with the message "The input can't be scored."
+- **THEN** the job ends with status `failed`, a `null` `result`, and an `error` with status 422 and the `detail` "The input can't be scored."
 
 #### Scenario: Other jobs keep running
 

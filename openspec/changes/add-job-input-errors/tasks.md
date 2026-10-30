@@ -15,7 +15,7 @@ Test-first: for each task, write its tests, run them and see them fail for the r
 
 ## 2. API: Input Errors in Failed Jobs
 
-- [ ] 2.1 Once 1.1 is on the branch, write these tests in `api/tests/test_jobs.py`, with a module-level helper in `tests/job_helpers.py` that raises `InputError("No PANTHER family matches this sequence.")` in a real worker:
+- [ ] 2.1 Once 1.1 is on the branch, write these tests in `api/tests/test_jobs.py`, with a module-level helper in `tests/job_helpers.py` that raises `InputError("The input can't be scored.")` in a real worker:
   - the spec's "Unprocessable input" (the job is `failed`, `result` null, the `error` has status 422 and exactly that `detail`, and the body has no traceback);
   - "Other jobs keep running";
   - the existing "The work raises" test still passes unchanged.
@@ -37,7 +37,7 @@ Test-first: for each task, write its tests, run them and see them fail for the r
 ## Workflow follow-up
 
 - Open a pull request with these artifacts. The engine developer approves the contract and owns group 1. The API developer approves group 2.
-- The engine developer pushes group 1 to the same branch, or merges it first in its own pull request. Group 2 starts after that.
+- The engine developer adds group 1 with the first port, `csnp` (decided 2026-10-29). Group 2 starts after that, with the API change that adds the `csnp` job.
 - After the implementation merges, archive with `/opsx:archive`.
 - **Each service port** lists, in its own proposal, which legacy conditions become `InputError` and which are single-item results.
 
@@ -45,11 +45,11 @@ Test-first: for each task, write its tests, run them and see them fail for the r
 
 ### Next action
 
-Open the pull request with the artifacts for the engine developer's review (Workflow follow-up). Then group 1 (engine developer), then group 2.
+The artifacts are in #17, for the engine developer's review. Group 1 arrives with the `csnp` port (engine developer); then group 2.
 
 ### Blockers
 
-- Group 2 needs `InputError` from group 1.
+- Group 2 needs `InputError` from group 1, which comes with the `csnp` port.
 
 ### Failed approaches
 
@@ -57,4 +57,4 @@ None yet.
 
 ### Lessons learned
 
-None yet.
+- **The engine developer's answers (2026-10-29).** `InputError` keeps its proposed name and module, and arrives with the `csnp` port. In `csnp`, "no family hit" and "invalid substitution" are per-substitution results, not input errors, so the example message in the spec and tasks was changed from a no-family message to a neutral one. A broken data file stays a generic failure.

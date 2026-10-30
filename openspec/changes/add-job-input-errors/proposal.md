@@ -4,7 +4,7 @@
 
 ## Why
 
-Today any error in a job's work ends the job with "The job hit an unexpected error and could not complete." That's right for bugs, but not when the user's input is the problem: an organism the data doesn't cover, or a sequence that matches no PANTHER family. The user then can't tell what to fix. Every service port will hit this, so settle one way to report input problems before the first port, rather than once per service.
+Today any error in a job's work ends the job with "The job hit an unexpected error and could not complete." That's right for bugs, but not when the user's input is the problem and only the engine can tell, so the API couldn't reject it when the job was submitted. The user then can't tell what to fix. Every service port will hit this, so settle one way to report input problems before the first port, rather than once per service.
 
 ## What Changes
 
@@ -30,12 +30,17 @@ None.
 - **API:** `api/src/panther_api/jobs/runner.py`, `api/tests/`, and `docs/testing/api.md`. `api/openapi.json` doesn't change.
 - **Frontend:** nothing to change. A failed job's `detail` is already what the job page shows.
 - **Parity with each service's reference:** not affected by this change. Each port decides which legacy conditions are input errors, and its golden files show whether the legacy service reported them as errors. Needs team verification per service.
-- **Order:** the API side imports `InputError`, so task group 1 lands before group 2.
+- **Order:** the API side imports `InputError`, so task group 1 lands before group 2. The engine developer adds `InputError` with the first port, `csnp` (2026-10-29), so group 2 waits for it.
 
 ## Open Questions
 
 Each needs team verification.
 
-- **The name and place:** `panther_engine.core.errors.InputError` is the working name. The engine developer confirms or renames it.
 - **A code beside the message?** Should `InputError` also carry a short machine-readable code (for example `unknown_organism`), or the input field it's about, so the frontend can highlight the field? Not needed for the first port; it can be added without breaking anything.
-- **Which legacy conditions are input errors,** service by service: for example, `csnp`'s "no BLAST hit" and `refmap`'s unknown organism. Each port's proposal lists them.
+- **Which legacy conditions are input errors,** for `refmap`, `hmmscore` and `treegrafter`. Each port's proposal lists them.
+
+Answered by the engine developer on 2026-10-29:
+
+- **The name and place:** `panther_engine.core.errors.InputError`, as proposed. It arrives with the first port, `csnp`.
+- **`csnp` has no input errors among its legacy conditions.** "No family hit" and "invalid substitution" are per-substitution results, as in the legacy service ("Not scored: No PANTHER family for input sequence", "Not scored: Invalid substitution"), and parity keeps them that way. An unknown species is rejected before the job starts: the engine exports the species codes it accepts, and the API validates against them.
+- **A broken data file isn't the user's fault,** so it stays a generic failure.

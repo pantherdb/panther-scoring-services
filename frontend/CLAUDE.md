@@ -104,6 +104,7 @@ The app builds with the React Compiler, and `react-hooks` 7 fails the lint on wh
 - **Test what the user sees and does.** Query by role and label, interact with `user-event`, assert on visible output. No snapshots of every `div`, no asserting on class names.
 - **Test reducers and selectors directly**, without rendering.
 - **Mock at the API boundary**, not deep inside components.
+- **Keep a success test beside every test of a failure state.** A test that expects an error message also passes when every request fails for some other reason. One did, before `tests/setup.ts` made relative URLs work under Vitest.
 - **Tests run with reduced motion.** `tests/setup.ts` reports reduced motion to every `matchMedia` query, so Mantine transitions take no time and can't fire after a test has finished.
 - **In tests, import `RouterProvider` from `react-router`, not `react-router/dom`.** Under Vitest, `react-router/dom` loads React Router's CommonJS build, which doesn't share context with the ESM build that `Outlet` and `Link` use. The layout renders, but `<Outlet />` stays empty, with no error. `tests/utils/render.tsx` already does this; `src/main.tsx` keeps `react-router/dom`, which is right in the browser.
 

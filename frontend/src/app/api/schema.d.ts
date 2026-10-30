@@ -87,6 +87,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/csnp/species": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The species cSNP scores against
+         * @description Every species a `csnp` job's `species` may name, with its name, in the engine's order.
+         *
+         *     Needs no data folder. The response may be cached for an hour.
+         */
+        get: operations["csnp_species_api_v1_csnp_species_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -163,6 +185,17 @@ export interface components {
             family: string | null;
             /** Scores */
             scores: components["schemas"]["SubstitutionScore"][];
+        };
+        /**
+         * CsnpSpecies
+         * @description A species cSNP scores against: its PANTHER species code, such as `HUMAN`, and its
+         *     scientific name, such as `Homo sapiens`. The code is what a `csnp` request's `species` names.
+         */
+        CsnpSpecies: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
         };
         /**
          * DataVersion
@@ -502,6 +535,46 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Unexpected error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Error, as problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    csnp_species_api_v1_csnp_species_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every species, in the engine's order. */
+            200: {
+                headers: {
+                    /** @description `public, max-age=3600` */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CsnpSpecies"][];
                 };
             };
             /** @description Unexpected error */

@@ -16,6 +16,8 @@ export type JobService = WireJob['service']
 export type ToolsResult = Schemas['ToolsResult']
 export type CsnpInput = Schemas['CsnpInput']
 export type CsnpResult = Schemas['CsnpResult']
+/** A species cSNP scores against, as GET /csnp/species lists it. Nothing in it needs renaming. */
+export type CsnpSpecies = Schemas['CsnpSpecies']
 export type Problem = Schemas['Problem']
 export type ValidationProblem = Schemas['ValidationProblem']
 export type Versions = Schemas['Versions']

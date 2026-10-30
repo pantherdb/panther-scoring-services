@@ -25,7 +25,9 @@ export function renderRoute(path: string, { routes = appRoutes }: Options = {}) 
   const user = userEvent.setup()
   const result = render(
     <Provider store={store}>
-      <MantineProvider theme={theme}>
+      {/* env="test": no transitions or portals, and a Select's dropdown isn't hidden for
+          having no layout, which jsdom never has. */}
+      <MantineProvider theme={theme} env="test">
         <RouterProvider router={router} />
       </MantineProvider>
     </Provider>

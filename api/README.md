@@ -29,6 +29,7 @@ Everything is under `/api/v1`. The current, complete list is the schema in [`ope
 | `GET /api/v1/versions` | The API, engine, external tool and data versions, read once at startup |
 | `POST /api/v1/jobs` | Starts a job (`{"service": ..., "input": {...}}`). Returns `202`, the job, and its path in `Location` |
 | `GET /api/v1/jobs/{job_id}` | The job: `queued`, `running`, `succeeded` with its `result`, or `failed` with an `error` |
+| `GET /api/v1/csnp/species` | The 85 species a `csnp` job's `species` may name, each `{"code", "name"}`, such as `{"code": "HUMAN", "name": "Homo sapiens"}`, in the engine's order. Read from the engine, so it needs no data; cacheable for an hour |
 | `/api/v1/docs`, `/api/v1/openapi.json` | The interactive docs and the schema |
 
 Every error is an RFC 9457 problem-details body (`application/problem+json`).
@@ -53,7 +54,8 @@ src/panther_api/
                  what the workers run. A scoring service joins by adding its request,
                  result and case there
   openapi.py     writes openapi.json: uv run python -m panther_api.openapi
-  routers/       one module per area; each is one include_router line in create_app()
+  routers/       one module per area; each is one include_router line in create_app(). csnp.py
+                 holds cSNP's species list
 tests/           pytest with FastAPI's TestClient; conftest.py fakes the engine's tool report,
                  and job_helpers.py the work that runs in the workers. test_csnp_scoring.py
                  runs real csnp jobs where blastp and the data sample are there (markers.py)

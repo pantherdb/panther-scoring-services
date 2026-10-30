@@ -170,12 +170,16 @@
 
 ### Next action
 
-Every task is done. Next, the engine developer:
+None: the change is merged (#21, `234d650`) and archived (2026-10-29).
 
-1. Reviews the diff, then commits and opens the pull request for the proposal and the implementation together (Workflow follow-up). Run 9.1 used a copy of the files git would commit, not a clone: nothing was committed.
-2. Updates the **Run** line of `docs/parity/csnp-library-survey.md` with the merge commit.
-3. Confirms on the pull request what Workflow follow-up lists: the `api` jobs pass, the engine jobs fetch the sample (a miss, then a hit on a re-run), and no data test skips.
-4. Archives with `/opsx:archive` after the merge.
+- The **Run** line of `docs/parity/csnp-library-survey.md` names the merge commit.
+- #21's CI confirmed the Workflow follow-up (run 40997521102, its only attempt):
+  - the `api` and `api-image` jobs passed;
+  - the `engine` job missed the cache, fetched and checked the sample, and saved the cache. Its 220 tests passed, with only the `tools` test skipped, as expected natively;
+  - both `engine-image` legs hit that cache, and passed 221 tests with none skipped.
+
+  The cache hit came from the same run, not from a re-run, which wasn't needed.
+- Next for cSNP: `port-csnp`, not yet proposed. It ports the three steps behind `score()`, the interface agreed on #19, with the parity harness and the Perl reference image.
 
 ### Decisions during apply
 

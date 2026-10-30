@@ -2,7 +2,7 @@
 
 The survey of the cSNP PAML_RST library: one pass over all 8,607 families with the engine's strict readers, beside the legacy scorer's own readings, and against the PANTHER9 BLAST database. It is how the [cSNP data sample](../testing/engine.md#the-csnp-data-sample) was chosen, and it tells the port which of the Perl's readings it must reproduce.
 
-- **Run:** 2026-10-29, with the engine at `9fcada0` plus the uncommitted work of `add-csnp-survey-and-sample`. Update this line with that change's merge commit.
+- **Run:** 2026-10-29, with the engine code of `add-csnp-survey-and-sample`, merged in #21 as `234d650`.
 - **Run time:** 395 s and 277 MB of memory on an Apple Silicon Mac. The archive is read as a stream and never unpacked.
 - **Quirk IDs** (`SCORE-2`, `DATA-1`, …) refer to the legacy behaviour spec, `panther-workspace/legacy/cSNP_analysis/.specs/2026-10-28-legacy-behavior-spec.md`. "The review" is that repository's `docs/2026-10-28-parity-review.md`.
 

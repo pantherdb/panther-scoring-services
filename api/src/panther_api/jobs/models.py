@@ -10,6 +10,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, TypeAdapter
 
+from panther_api.jobs.csnp import CsnpResult
 from panther_api.jobs.tools import ToolsResult
 from panther_api.problems import Problem
 from panther_api.versions import Versions
@@ -42,7 +43,24 @@ class ToolsJob(BaseModel):
     versions: Versions
 
 
+class CsnpJob(BaseModel):
+    """A `csnp` job, with the same fields as every job. `result` is its PANTHER-PSEP scores.
+
+    Until the engine's cSNP scoring is wired in, no `csnp` job is created: the request gets a 501.
+    """
+
+    id: UUID
+    service: Literal["csnp"]
+    status: JobStatus
+    created_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
+    result: CsnpResult | None
+    error: Problem | None
+    versions: Versions
+
+
 # Tagged by `service`, like the request, so the frontend narrows the result the same way.
-Job = Annotated[ToolsJob, Field(discriminator="service")]
+Job = Annotated[ToolsJob | CsnpJob, Field(discriminator="service")]
 
 JOB_ADAPTER: TypeAdapter[Job] = TypeAdapter(Job)

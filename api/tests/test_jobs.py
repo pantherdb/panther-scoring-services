@@ -22,9 +22,10 @@ from job_helpers import (
 from panther_engine.core.tools import ToolReport
 from pydantic import ValidationError
 
+from panther_api.jobs.csnp import CsnpInput
 from panther_api.jobs.runner import WORKER_STOPPED_DETAIL, JobRunner
 from panther_api.jobs.tools import ToolsInput, run_tools
-from panther_api.jobs.work import ToolsJobRequest, run_job
+from panther_api.jobs.work import CsnpJobRequest, ToolsJobRequest, run_job
 from panther_api.main import create_app
 
 # The directory in conftest's fake report paths. No job may contain it.
@@ -356,3 +357,102 @@ def test_an_invalid_setting_stops_the_app(monkeypatch: pytest.MonkeyPatch) -> No
 
     with pytest.raises(ValidationError), TestClient(create_app()):
         pass
+
+
+# The csnp job: validated at submit, then 501 until the engine's scoring is wired in.
+
+CSNP_INPUT: dict[str, object] = {
+    "sequence": "MKVLWAALLV",
+    "substitutions": ["L4P"],
+    "species": "HUMAN",
+}
+CSNP_LOC = ["body", "csnp", "input"]
+
+
+def csnp_job(**changes: object) -> dict[str, object]:
+    return {"service": "csnp", "input": {**CSNP_INPUT, **changes}}
+
+
+def assert_rejected(client: TestClient, body: object, locs: list[list[str | int]]) -> None:
+    """A 422 validation problem at exactly `locs`, without `xyzzy`, and no job stored."""
+    response = client.post("/api/v1/jobs", json=body)
+
+    assert response.status_code == 422
+    assert response.headers["content-type"] == PROBLEM
+    assert sorted(str(error["loc"]) for error in response.json()["errors"]) == sorted(
+        str(loc) for loc in locs
+    )
+    assert "xyzzy" not in response.text.lower()
+    assert len(runner(client).store) == 0
+
+
+def test_an_invalid_species_is_a_422_without_the_value(client: TestClient) -> None:
+    assert_rejected(client, csnp_job(species="xyzzy;id"), [[*CSNP_LOC, "species"]])
+
+
+@pytest.mark.parametrize(
+    ("changes", "loc"),
+    [
+        ({"sequence": ">xyzzy\nMKV\n>xyzzy\nMKV"}, ["sequence"]),
+        ({"sequence": "MKV xyzzyÄ"}, ["sequence"]),
+        ({"substitutions": ["L4P", "xyzzy xyzzy"]}, ["substitutions", 1]),
+        ({"substitutions": "xyzzy"}, ["substitutions"]),
+        ({"species": "XYZZY1"}, ["species"]),
+    ],
+    ids=[
+        "two sequences",
+        "not ascii",
+        "token with a space",
+        "substitutions not a list",
+        "species too long",
+    ],
+)
+def test_each_invalid_csnp_field_is_a_422_without_the_value(
+    client: TestClient, changes: dict[str, object], loc: list[str | int]
+) -> None:
+    assert_rejected(client, csnp_job(**changes), [[*CSNP_LOC, *loc]])
+
+
+def test_every_invalid_csnp_field_is_listed(client: TestClient) -> None:
+    body: dict[str, object] = {"service": "csnp", "input": {"sequence": "", "substitutions": []}}
+
+    assert_rejected(
+        client,
+        body,
+        [[*CSNP_LOC, "sequence"], [*CSNP_LOC, "substitutions"], [*CSNP_LOC, "species"]],
+    )
+
+
+def test_a_field_the_csnp_input_doesnt_take_is_a_422(client: TestClient) -> None:
+    assert_rejected(client, csnp_job(organism="XYZZY"), [[*CSNP_LOC, "organism"]])
+
+
+def test_a_valid_csnp_request_is_a_501_and_creates_no_job(client: TestClient) -> None:
+    response = client.post("/api/v1/jobs", json=csnp_job())
+
+    assert response.status_code == 501
+    assert response.headers["content-type"] == PROBLEM
+    assert "location" not in response.headers
+    assert response.json() == {
+        "type": "about:blank",
+        "title": "Not Implemented",
+        "status": 501,
+        "detail": "cSNP scoring isn't available yet.",
+    }
+    assert len(runner(client).store) == 0
+
+
+def test_tools_jobs_still_run_after_a_501(client: TestClient) -> None:
+    assert client.post("/api/v1/jobs", json=csnp_job()).status_code == 501
+
+    job = poll(client, submit(client)["id"])[-1]
+
+    assert job["status"] == "succeeded"
+    assert len(runner(client).store) == 1
+
+
+def test_run_job_refuses_a_csnp_request() -> None:
+    request = CsnpJobRequest(service="csnp", input=CsnpInput.model_validate(CSNP_INPUT))
+
+    with pytest.raises(NotImplementedError):
+        run_job(request)

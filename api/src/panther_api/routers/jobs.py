@@ -11,13 +11,14 @@ from fastapi import APIRouter, Body, HTTPException, Request, Response, status
 from panther_api.jobs.models import JOB_ADAPTER, Job
 from panther_api.jobs.runner import JobRunner
 from panther_api.jobs.store import JobRecord
-from panther_api.jobs.work import JobRequest
+from panther_api.jobs.work import CSNP_UNAVAILABLE, CsnpJobRequest, JobRequest
+from panther_api.problems import Problem
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 JOB_NOT_FOUND = "There is no job with this id. A finished job expires after a time."
 
-_LOCATION: dict[int | str, dict[str, Any]] = {
+_CREATE_RESPONSES: dict[int | str, dict[str, Any]] = {
     status.HTTP_202_ACCEPTED: {
         "description": "The job was accepted. Poll it at `Location`.",
         "headers": {
@@ -26,7 +27,13 @@ _LOCATION: dict[int | str, dict[str, Any]] = {
                 "schema": {"type": "string"},
             }
         },
-    }
+    },
+    # Removed when the engine's cSNP scoring is wired in.
+    status.HTTP_501_NOT_IMPLEMENTED: {
+        "model": Problem,
+        "description": "The service can't run jobs yet: `csnp`, until its scoring is ported. "
+        "The request was valid, and no job was created.",
+    },
 }
 
 
@@ -50,11 +57,19 @@ def _job(record: JobRecord) -> Job:
     )
 
 
-@router.post("", status_code=status.HTTP_202_ACCEPTED, summary="Start a job", responses=_LOCATION)
+@router.post(
+    "", status_code=status.HTTP_202_ACCEPTED, summary="Start a job", responses=_CREATE_RESPONSES
+)
 async def create_job(
     job_request: Annotated[JobRequest, Body()], request: Request, response: Response
 ) -> Job:
-    """Start a job for `service` with its `input`. The job runs after this request returns."""
+    """Start a job for `service` with its `input`. The job runs after this request returns.
+
+    A valid `csnp` request gets a 501 until cSNP scoring is available; its input is still
+    validated first.
+    """
+    if isinstance(job_request, CsnpJobRequest):
+        raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, detail=CSNP_UNAVAILABLE)
     record = _runner(request).submit(job_request)
     response.headers["Location"] = request.app.url_path_for("get_job", job_id=str(record.id))
     return _job(record)

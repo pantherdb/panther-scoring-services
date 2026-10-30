@@ -95,7 +95,7 @@
           "jobs"
         ],
         "summary": "Start a job",
-        "description": "Start a job for `service` with its `input`. The job runs after this request returns.",
+        "description": "Start a job for `service` with its `input`. The job runs after this request returns.\n\nA valid `csnp` request gets a 501 until cSNP scoring is available; its input is still\nvalidated first.",
         "operationId": "create_job_api_v1_jobs_post",
         "requestBody": {
           "content": {
@@ -104,13 +104,17 @@
                 "oneOf": [
                   {
                     "$ref": "#/components/schemas/ToolsJobRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CsnpJobRequest"
                   }
                 ],
                 "title": "Job Request",
                 "discriminator": {
                   "propertyName": "service",
                   "mapping": {
-                    "tools": "#/components/schemas/ToolsJobRequest"
+                    "tools": "#/components/schemas/ToolsJobRequest",
+                    "csnp": "#/components/schemas/CsnpJobRequest"
                   }
                 }
               }
@@ -135,13 +139,17 @@
                   "oneOf": [
                     {
                       "$ref": "#/components/schemas/ToolsJob"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CsnpJob"
                     }
                   ],
                   "title": "Response Create Job Api V1 Jobs Post",
                   "discriminator": {
                     "propertyName": "service",
                     "mapping": {
-                      "tools": "#/components/schemas/ToolsJob"
+                      "tools": "#/components/schemas/ToolsJob",
+                      "csnp": "#/components/schemas/CsnpJob"
                     }
                   }
                 }
@@ -160,6 +168,16 @@
           },
           "500": {
             "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "The service can't run jobs yet: `csnp`, until its scoring is ported. The request was valid, and no job was created.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -209,12 +227,16 @@
                   "oneOf": [
                     {
                       "$ref": "#/components/schemas/ToolsJob"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CsnpJob"
                     }
                   ],
                   "discriminator": {
                     "propertyName": "service",
                     "mapping": {
-                      "tools": "#/components/schemas/ToolsJob"
+                      "tools": "#/components/schemas/ToolsJob",
+                      "csnp": "#/components/schemas/CsnpJob"
                     }
                   },
                   "title": "Response Get Job Api V1 Jobs  Job Id  Get"
@@ -258,6 +280,170 @@
   },
   "components": {
     "schemas": {
+      "CsnpInput": {
+        "properties": {
+          "sequence": {
+            "type": "string",
+            "maxLength": 1000000,
+            "title": "Sequence"
+          },
+          "substitutions": {
+            "items": {
+              "type": "string",
+              "maxLength": 32,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Substitutions"
+          },
+          "species": {
+            "type": "string",
+            "title": "Species"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sequence",
+          "substitutions",
+          "species"
+        ],
+        "title": "CsnpInput",
+        "description": "One protein, the substitutions to score in it, and its species.\n\n`sequence` is the protein, as plain residues or FASTA with one header line. Whitespace and\nthe header are removed and letters upper-cased before scoring. `substitutions` are tokens such\nas `L46P`, positions counted from 1 in this sequence; each is upper-cased and must be a\nresidue letter, a position and a residue letter. One that can't be mapped onto the sequence,\nsuch as a wrong wild-type residue, is reported in the result, not rejected. `species` is a\nPANTHER species code such as `HUMAN`."
+      },
+      "CsnpJob": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "service": {
+            "type": "string",
+            "const": "csnp",
+            "title": "Service"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CsnpResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Problem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "versions": {
+            "$ref": "#/components/schemas/Versions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "service",
+          "status",
+          "created_at",
+          "started_at",
+          "finished_at",
+          "result",
+          "error",
+          "versions"
+        ],
+        "title": "CsnpJob",
+        "description": "A `csnp` job, with the same fields as every job. `result` is its PANTHER-PSEP scores.\n\nUntil the engine's cSNP scoring is wired in, no `csnp` job is created: the request gets a 501."
+      },
+      "CsnpJobRequest": {
+        "properties": {
+          "service": {
+            "type": "string",
+            "const": "csnp",
+            "title": "Service"
+          },
+          "input": {
+            "$ref": "#/components/schemas/CsnpInput"
+          }
+        },
+        "type": "object",
+        "required": [
+          "service",
+          "input"
+        ],
+        "title": "CsnpJobRequest",
+        "description": "Start a `csnp` job: score substitutions in one protein with PANTHER-PSEP.\n\nUntil the engine's cSNP scoring is wired in, a valid request gets a 501, and no job."
+      },
+      "CsnpResult": {
+        "properties": {
+          "family": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family"
+          },
+          "scores": {
+            "items": {
+              "$ref": "#/components/schemas/SubstitutionScore"
+            },
+            "type": "array",
+            "title": "Scores"
+          }
+        },
+        "type": "object",
+        "required": [
+          "family",
+          "scores"
+        ],
+        "title": "CsnpResult",
+        "description": "The PANTHER family the protein was placed in, null with no family hit, and the scores."
+      },
       "Health": {
         "properties": {
           "status": {
@@ -311,6 +497,49 @@
         ],
         "title": "Problem",
         "description": "An RFC 9457 problem details body."
+      },
+      "SubstitutionScore": {
+        "properties": {
+          "substitution": {
+            "type": "string",
+            "title": "Substitution"
+          },
+          "age": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "pdel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pdel"
+          }
+        },
+        "type": "object",
+        "required": [
+          "substitution",
+          "age",
+          "message",
+          "pdel"
+        ],
+        "title": "SubstitutionScore",
+        "description": "One substitution's score, as the legacy service reported it.\n\n`age` is how long the position has been preserved, in millions of years, and `pdel` the\nprobability of a deleterious effect as the legacy two-decimal string, such as \"0.50\". Either\nmay be null, as when the substitution wasn't scored. `message` is the legacy text: the\nprediction, or why it wasn't scored."
       },
       "ToolVersion": {
         "properties": {

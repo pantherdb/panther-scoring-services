@@ -35,6 +35,8 @@ Every error is an RFC 9457 problem-details body (`application/problem+json`).
 
 Jobs run in a pool of worker processes and are kept in memory, so a restart loses them. Until the first scoring service is ported, the only job is the built-in `tools` job, which reports the external tools' versions from a worker. To try it, see "Try the Jobs by Hand" in [docs/testing/api.md](../docs/testing/api.md). The settings (`PANTHER_API_*`) are listed there too.
 
+The `csnp` job (`{"sequence", "substitutions", "species"}`) has its contract and its input validation, but until the engine's cSNP scoring is ported, a valid request gets `501` and no job is created.
+
 ## Layout
 
 ```text

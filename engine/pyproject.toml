@@ -46,4 +46,5 @@ testpaths = ["tests"]
 addopts = "-ra --strict-markers -p pytester"
 markers = [
     "tools(*names): runs the named external tools; skipped if one is missing, failed if PANTHER_REQUIRE_TOOLS=1",
+    "data(*services): reads the named services' data sample from PANTHER_DATA_DIR (or .data/); skipped if missing, failed if PANTHER_REQUIRE_DATA=1",
 ]

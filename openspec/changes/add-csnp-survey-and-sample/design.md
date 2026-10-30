@@ -69,6 +69,14 @@ The readers reject anything that isn't the documented shape. A separate module, 
 | Species ages | `:S=(([a-zA-Z]\|-)+):A=([0-9]+)\]` | Each bracketed attribute set that has `S` and `A` |
 | Line ends | `chomp` removes only `\n`, so a `\r` stays in the last field | A carriage return is a format error |
 
+Three variants are part of the strict shape (engine developer, 2026-10-29). None is in spec §3.5, and the Perl reads each without harm. The first two are in `PTHR10366`, a golden family:
+
+- **Unreconstructed cells:** a NUL byte as the residue with `-nan`, after a space, as the probability, always as a pair. They read as no residue and NaN. The Perl's `> 0.99` is false for NaN, so its walk stops there, as the port's will. Either half on its own is a format error.
+- **Internal columns without an AN:** a label `Node<k>` followed by a space and no AN, from the root up. They read as AN None. Leaf columns must have their AN.
+- **One unmatched parenthesis:** the tree lines of 135 split parts end with one `)` too many, just before the `;`. It reads as absent. The Perl reads trees with patterns that never see it. Any other imbalance is a format error.
+
+The survey counts the families with each.
+
 A zero count means the strict reader is safe for parity. A non-zero count, as `SCORE-2` is known to be, leaves the port two options: use the legacy reading from `legacy.py` to match the goldens, or log a divergence.
 
 **Rejected:**
@@ -116,7 +124,7 @@ The manifest is package data, so `fetch` and `verify` need no path argument. It 
 
 This was the engine developer's decision, on 2026-10-29.
 
-- **The release:** tag `csnp-sample-<n>`, starting at 1, with the asset `csnp-sample-<n>.tar.gz`. It is created with `gh release create --latest=false`, and its notes link the survey doc.
+- **The release:** tag `csnp-sample-<n>`, starting at 1, with the asset `csnp-sample-<n>.tar.gz`. It is a pre-release, so it is never the repository's Latest release, and its notes link the survey doc. (Planned as `gh release create --latest=false`, but GitHub made the repository's only release Latest anyway; `csnp-sample-1` was changed to a pre-release on 2026-10-29, with the engine developer's approval.)
 - **A new sample is a new tag and a new manifest.** Old releases stay, so old commits can still fetch theirs. An asset is never replaced in place: the manifest pins its sha256, so every fetch would fail.
 - **The download URL** is `https://github.com/pantherdb/panther-scoring-services/releases/download/<tag>/<asset>`. The repository is public, so it needs no token.
 - **The manifest, `csnp/sample.json`,** holds:

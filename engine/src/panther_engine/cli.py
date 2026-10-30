@@ -5,6 +5,7 @@ from collections.abc import Sequence
 
 from panther_engine import __version__
 from panther_engine.core.tools import report_tools
+from panther_engine.csnp import cli as csnp_cli
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -19,6 +20,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="list the external tools with each one's version and path",
         description="List the external tools with each one's version and path. "
         "Exits with status 1 if any tool is missing or its version can't be read.",
+    )
+    csnp_cli.configure(
+        commands.add_parser(
+            "csnp",
+            help="the cSNP data: survey the PAML library, build, fetch and verify the sample",
+            description="The cSNP service's data: the PAML_RST library survey, and the data "
+            "sample that developers and CI test against.",
+        )
     )
     return parser
 
@@ -42,5 +51,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     match args.command:
         case "tools":
             return tools()
+        case "csnp":
+            return csnp_cli.run(args)
         case _:
             raise AssertionError(f"unhandled command: {args.command}")

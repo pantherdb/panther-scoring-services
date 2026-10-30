@@ -11,6 +11,11 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
+# The developer's data folder (PANTHER_DATA_DIR): fetched data, never committed. The committed
+# .gitkeep makes the folder exist before compose mounts it.
+/.data/*
+!/.data/.gitkeep
+
 # Build and test output
 dist/
 test-results/

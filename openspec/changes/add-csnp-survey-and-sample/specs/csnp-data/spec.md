@@ -25,9 +25,19 @@ The engine SHALL read a family's `.paml` file into each column's node number, AN
 - **WHEN** the engine reads a `.paml` file in which no column is its own parent, as in the truncated `PTHR21493.paml`
 - **THEN** it raises a format error naming the file, and returns no data
 
+#### Scenario: Unreconstructed cell
+
+- **WHEN** a column's residue in the `Site s` row is a NUL byte and its probability in the `Probability of site s` row is `-nan` after a space, as at 15 sites of `PTHR10366`
+- **THEN** the engine returns no residue and a probability of NaN for that column, and a NUL residue or a `-nan` probability on its own is a format error
+
+#### Scenario: Internal column without an AN
+
+- **WHEN** a column from the root up is labelled `Node<k>` and a space, with no AN, as 812 columns of `PTHR10366` are
+- **THEN** the engine returns no AN for that column, and a leaf column without an AN is a format error
+
 ### Requirement: Reading a family's `.rst` file
 
-The engine SHALL read, from a family's `.rst` file, the branch list on its 12th line as (parent, child) pairs, the node numbers in their order of appearance in the tree on its 15th line, and each AN's aligned sequence from the list of extant and reconstructed sequences. It MUST read those two lines by position, as the legacy scorer does (`SCORE-9`), and check their shape.
+The engine SHALL read, from a family's `.rst` file, the branch list on its 12th line as (parent, child) pairs, the node numbers in their order of appearance in the tree on its 15th line, and each AN's aligned sequence from the list of extant and reconstructed sequences. The list runs to a line containing `Overall`, or to the end of the file, as it does in the library's files. It MUST read those two lines by position, as the legacy scorer does (`SCORE-9`), and check their shape.
 
 #### Scenario: Branch list and tree
 
@@ -62,6 +72,11 @@ The engine SHALL read, from a family's `.orig.tree` file, the AN numbers in thei
 
 - **WHEN** an internal node's NHX attributes have no `Ev`
 - **THEN** the engine reports that node's event as absent, without substituting a value
+
+#### Scenario: One unmatched parenthesis
+
+- **WHEN** the tree line ends with one `)` more than it opens, just before its `;`, as in 135 split parts such as `PTHR23125_2`
+- **THEN** the engine reads the tree as if that `)` weren't there, and reports that it was there, and any other imbalance is a format error
 
 #### Scenario: Gene lines
 
@@ -117,7 +132,7 @@ The engine's command line SHALL survey a gzipped tar archive of the PAML_RST lib
 
 ### Requirement: Survey of files and parsing
 
-The survey SHALL report each family that lacks one of its three files, each split part (`PTHRnnnnn_N`) whose base family has no files, and each file the strict reader rejects, with the reader's error.
+The survey SHALL report each family that lacks one of its three files, each split part (`PTHRnnnnn_N`) whose base family has no files, and each file the strict reader rejects, with the reader's error. It MUST also count the families whose `.paml` has unreconstructed cells, those with internal columns that have no AN, and those whose tree line has one unmatched parenthesis.
 
 #### Scenario: Missing file
 

@@ -2,14 +2,14 @@
 
 ## Project
 
-`panther-scoring-services` replaces four legacy PANTHER services, in this priority order:
+`panther-scoring-services` replaces four legacy PANTHER services, in this priority order (revised on 2026-10-29):
 
 | Priority | Service | What it does | Replaces |
 | -------- | ------- | ------------ | -------- |
-| 1 | `hmmscore` | Scores protein sequences against the PANTHER HMM library (HMMER3) | `pantherScoring/` (Perl) |
-| 1 | `refmap` | Maps protein IDs, such as UniProt accessions, to PANTHER families | `RefProteomeMapper/` (Perl) |
-| 2 | `csnp` | Coding-SNP impact scoring, the PANTHER-PSEP method | `cSNP_analysis/` (Perl, via `snpScore.cgi`) |
-| 3 | `treegrafter` | Places a sequence in a PANTHER family tree; infers subfamily and GO terms | `TreeGrafter/` (Perl 1.01). We **adopt** EBI's Python [`treegrafter`](https://github.com/ebi-pf-team/treegrafter) instead of porting it |
+| 1 | `csnp` | Coding-SNP impact scoring, the PANTHER-PSEP method | `cSNP_analysis/` (Perl, via `snpScore.cgi`) |
+| 2 | `refmap` | Maps protein IDs, such as UniProt accessions, to PANTHER families | `RefProteomeMapper/` (Perl) |
+| 3 | `hmmscore` | Scores protein sequences against the PANTHER HMM library (HMMER3) | `pantherScoring/` (Perl) |
+| 4 | `treegrafter` | Places a sequence in a PANTHER family tree; infers subfamily and GO terms | `TreeGrafter/` (Perl 1.01). We **adopt** EBI's Python [`treegrafter`](https://github.com/ebi-pf-team/treegrafter) instead of porting it |
 
 PANTHER-PSEP (Tang & Thomas 2016, PMID 27193693) estimates how long a substituted position has been preserved in evolution, in millions of years. It classifies the age, and reports a probability of a deleterious effect (`pDel`) from a step table. As coded (the help page and the PI's table disagree, see Gotchas):
 
@@ -149,7 +149,7 @@ Not part of the service:
 Data it needs: a PANTHER BLAST database and the per-family PAML library (`.paml`, `.orig.tree`, `.rst`). Both are frozen precomputed data from PANTHER 9, and must stay matched to each other.
 
 - **Pinned copies:** the PANTHER9 BLAST DB and `../panther_build/PAML_RST.tar.gz` (files dated 2015). Their ids agree, and spec §7.1 pins their checksums.
-- **Production:** the legacy production server is gone, so which library build it ran can't be checked. The port uses the pinned copies.
+- **Production:** `PAML_RST.tar.gz` was tarballed from the production server before it was shut down, so the pinned copy is production's library build (engine developer, 2026-10-29). This answers legacy behaviour spec §8, question 4. The port uses the pinned copies.
 
 ### `treegrafter`: `legacy/TreeGrafter/`
 
@@ -213,9 +213,11 @@ Don't read or reuse these:
 - **Run the legacy cSNP scripts only in a scratch copy.** `parse_blastp.pl -s HUMAN` writes `./HUMAN`, overwriting the tracked file, and sorts its BLAST input in place. Spec §7.2 has the commands.
 - **Relative path.** `PANTHER_PSEP1.01.pl` opens `species_pthr8_time.nhx` by relative path, so it only works when run from the `cSNP_analysis/` directory.
 - **Fixed line numbers.** `.rst` parsing reads 0-based lines 11 (the branch list) and 14 (the tree), that is, the 12th and 15th lines (`SCORE-9`).
-- **The thresholds and the pDel bounds disagree with the docs.** `PANTHER_PSEP1.01.pl` classifies at 180 / 380 Mya. The help page (`tips_csnpScores_content.jsp`) and the PI's 2021 ticket say 200 / 450 (`SCORE-5`). pDel tests `age < bound`, but the PI's table has inclusive bounds, so for example age 91 gets 0.19 instead of 0.17 (`SCORE-6`). Which is correct needs team verification before porting.
+- **The thresholds and the pDel bounds disagree with the docs.** `PANTHER_PSEP1.01.pl` classifies at 180 / 380 Mya. The help page (`tips_csnpScores_content.jsp`) and the PI's 2021 ticket say 200 / 450 (`SCORE-5`). pDel tests `age < bound`, but the PI's table has inclusive bounds, so for example age 91 gets 0.19 instead of 0.17 (`SCORE-6`). The port follows the code: 180 / 380 and `age < bound` (engine developer, 2026-10-29). The docs' values are proposed divergence rows 4 and 7, deferred until cSNP is live on production.
 - **The 2016 release's `sample.out` doesn't reproduce** against the current library (`DATA-4`). Use the goldens in spec §7.
 - **Hardcoded paths and versions elsewhere.** `alignOnTheFly.cgi` writes to `/usr/tmp/`. `treeGrafter.pl` hardcodes PANTHER 12 directory names. `genericMapping.cgi` reads `panther_classification/` relative to its working directory.
 - Each service's developer guide lists more under "Issues and Observations". For `csnp`, the full quirk catalog is §6 of the legacy behaviour spec.
 
 When something isn't clear from the legacy code, say "needs team verification" rather than guessing.
+
+When the legacy code and its docs disagree, follow the code, so M1 reproduces what ran in production. Log the docs' version as a proposed row in `docs/parity/divergences.md`, deferred until the service is live on production, and revisit it then (engine developer, 2026-10-29).

@@ -66,6 +66,7 @@ docker compose down                    # remove the container
 - **It's for the frontend to call,** through its dev proxy, with the real tools: `/api/v1/versions` then reports each tool's pinned version. It has no source mount and no reload, so rerun with `--build` after changing `api/` or `engine/`. Develop the API itself with the native dev server above.
 - **Both use port 8000.** Run one at a time.
 - **Name the service.** A bare `docker compose up` also runs the `engine` service's checks.
+- **To wait for it in a script,** use `curl --retry 30 --retry-all-errors --retry-delay 1 localhost:8000/api/v1/health`. Docker's port proxy accepts the connection before the app listens, so the first requests get an empty reply, not a refused connection, and `--retry-connrefused` doesn't retry them. CI's `api-image` job waits this way.
 
 ## Try the Jobs by Hand
 
@@ -128,6 +129,8 @@ After any change to a route, a request or response model, or an error response, 
 uv run python -m panther_api.openapi
 ```
 
+On Windows, the export writes CRLF line endings. Git stores the file with LF (`.gitattributes`), and the test reads it in text mode, so git's "CRLF will be replaced by LF" warning is harmless.
+
 ## Tests (pytest)
 
 Tests live in `tests/` and call the app through FastAPI's `TestClient`, so no server needs to be running and no test data is needed.
@@ -136,6 +139,8 @@ Tests live in `tests/` and call the app through FastAPI's `TestClient`, so no se
 - **`TestClient` is built on `httpx2`, not `httpx`** (Starlette 1.x). Type a test's responses as `httpx2.Response`; `httpx.Response` fails the type check. `fastapi[standard]` installs both.
 - **To test with a throwaway route**, build the app with `create_app(router)` from `panther_api.main`: the router is included under `/api/v1`, like the app's own.
 - **No test runs the external tools.** The app reads the tool versions once when it starts, through the engine's `report_tools()`. The autouse `fake_tools` fixture in `tests/conftest.py` replaces it with a report of all four tools at made-up paths, so tests give the same results with or without the tools installed. To test another report, patch `panther_api.versions.report_tools` again in the test, then build the app with `TestClient(create_app())`: the `client` fixture's app has already read the fake. The `api-image` CI job checks the real tools.
+- **Share test helpers through their own module,** such as `tests/job_helpers.py`, imported by its bare name (`from job_helpers import ...`). `tests/` has no `__init__.py`, so a test can't import from `conftest.py`.
+- **A monkeypatch never reaches a worker process.** Jobs run in `spawn` workers, which import every module afresh. To change what a job does, patch `panther_api.jobs.runner.run_job` with a module-level function from `tests/job_helpers.py`. The pool pickles it by reference, and the workers find it because they inherit the test process's `sys.path`. Anything else a worker needs goes in an environment variable set before the first job, since workers start when the first job is submitted.
 
 Run one file, or one test by name:
 

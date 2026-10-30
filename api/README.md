@@ -58,6 +58,7 @@ openapi.json     the committed schema; a test fails when it's out of date
 
 - **Before a pull request,** from `api/`: `uv run ruff check && uv run ruff format --check && uv run basedpyright && uv run pytest`.
 - **After any change to a route or model,** regenerate the schema with `uv run python -m panther_api.openapi`, and commit `openapi.json` in the same pull request.
+- **Never echo submitted values in an error.** Some Pydantic messages quote the input; `union_tag_invalid`, for an unknown `service`, does. `problems.py` rewrites the ones found so far. Test each new request model with a distinctive invalid value, and check that it isn't in the body.
 - **Plan changes in [`openspec/`](../openspec/).** No new dependency without a proposal.
 
 ## More

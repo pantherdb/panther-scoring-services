@@ -1,6 +1,6 @@
 # Proposal
 
-**Area:** cross-cutting. The work is in `api/` and `frontend/`, plus the root `compose.yaml` and `.github/workflows/ci.yml`, which all three developers own. Nothing in `engine/` changes. The contract changes too: the OpenAPI schema (frontend and API developers) and how the API reads the engine (API and engine developers).
+**Area:** cross-cutting. The work is in `api/` and `frontend/`, plus the root `compose.yaml` and `.github/workflows/ci.yml`, which all three developers own. In `engine/`, only the two-line `DATA_VERSION` export, which the engine developer asked for on #26. The contract changes too: the OpenAPI schema (frontend and API developers) and how the API reads the engine (API and engine developers).
 
 ## Why
 
@@ -32,13 +32,14 @@ None.
 - `scoring-input`: "cSNP species is a species code" also requires one of the engine's species codes.
 - `api-service`: "Versions report" adds each service's data version.
 - `scoring-ui`: "cSNP scoring not yet available" becomes "cSNP job not started", with no `501`. "Versions on every page" and "cSNP results on the job page" show the data versions.
+- `psep-engine`: a new requirement, "Data version": the engine exports cSNP's data release as `DATA_VERSION`, at the engine developer's request on #26.
 
 ## Impact
 
 - **API:** `jobs/csnp.py` (the species check and the adapter), `jobs/work.py`, `jobs/runner.py`, `jobs/models.py`, `routers/jobs.py`, `versions.py`, `openapi.json`, `pyproject.toml` (the two pytest markers), and `tests/`.
 - **Frontend:** `schema.d.ts`, `useSubmitCsnp.ts`, `SubmitAlert.tsx`, `VersionList.tsx`, the mocks, the unit tests and the e2e specs.
 - **Root:** `compose.yaml` and `.github/workflows/ci.yml`.
-- **The engine interface:** the API imports `SPECIES_CODES`, `CsnpInput`, `CsnpResult` and `score` from `panther_engine.csnp`, and `InputError` from `panther_engine.core.errors`, all public. It also imports `VERSION` from `panther_engine.csnp.scoring`, which isn't in `__all__` (Open Questions).
+- **The engine interface:** the API imports `SPECIES_CODES`, `CsnpInput`, `CsnpResult` and `score` from `panther_engine.csnp`, and `InputError` from `panther_engine.core.errors`, all public. It also imports `DATA_VERSION`, which `panther_engine.csnp` now exports (`psep-engine`, "Data version"), as the engine developer asked on #26.
 - **Running the API:** `csnp` jobs need `blastp` and the cSNP data. In the image, `blastp` is there; the data is the developer's `.data/`, fetched once. Without it, every `csnp` job fails with the generic `500`. Api-mode e2e needs the sample too.
 - **Parity with the reference:** this change computes no score; the engine's port does, and its goldens prove it. The API returns the engine's family and scores unchanged, and the end-to-end tests check them against spec §7.3. The one difference from the legacy service is divergence row 8, approved with `port-csnp`, which this change reports as a `422`. No new divergence.
 - **Two active changes touch `scoring-jobs`:** this one and `add-job-input-errors`, on different requirements. Archive `add-job-input-errors` first, since this change completes it.
@@ -47,8 +48,8 @@ None.
 
 For the engine developer:
 
-- **The data version's name.** On #20 the engine developer agreed the engine reports cSNP's data version. The API reads `panther_engine.csnp.scoring.VERSION`, which isn't in `panther_engine.csnp.__all__`. Should the engine export it, for example as `panther_engine.csnp.DATA_VERSION`, or say how the API should read it? The API's import then changes in one line. The value it reports, `"9"`, wouldn't.
-- **The APOE example against the sample.** The form's example, human APOE, is the legacy website's. Its family, `PTHR18976`, isn't among the data sample's 15 families, so against the sample its job succeeds with family `PTHR18976` and every substitution "Not scored: No PANTHER family for input sequence". The docs and the tests use P26439 instead. Should the sample gain `PTHR18976`, so the example scores in development and CI? And is `PTHR18976` in the full PAML_RST library, so the example scores on staging? Needs team verification; the frontend keeps the example.
+- **The data version's name** *(answered on #26, 2026-10-30)*. The engine exports it as `panther_engine.csnp.DATA_VERSION`, added in this change at the engine developer's request: `scoring.VERSION` re-exported and listed in `__all__`. The API imports it from there. The value stays `"9"`.
+- **The APOE example against the sample.** The form's example, human APOE, is the legacy website's. Its family, `PTHR18976`, isn't among the data sample's 15 families, so against the sample its job succeeds with family `PTHR18976` and every substitution "Not scored: No PANTHER family for input sequence". The docs and the tests use P26439 instead. Should the sample gain `PTHR18976`, so the example scores in development and CI? And is `PTHR18976` in the full PAML_RST library, so the example scores on staging? *(Answered on #26, 2026-10-30: yes to both.)* `PTHR18976`'s `.paml`, `.rst` and `.orig.tree` are in the full library, and it isn't one of the seven broken families, so the example scores on staging. The engine developer adds it to the sample as `csnp-sample-3`, in an engine change of their own, with parity cases through the Perl reference image. Once that lands, the api-mode e2e test can score the form's own example; this change doesn't wait for it, since P26439 already gives CI a real job.
 
 For the frontend developer:
 

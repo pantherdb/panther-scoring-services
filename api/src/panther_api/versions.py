@@ -9,10 +9,7 @@ import logging
 from importlib.metadata import version as package_version
 
 from panther_engine.core.tools import TOOLS, report_tools
-
-# Not in `panther_engine.csnp.__all__`: the engine developer agreed on #20 that the engine reports
-# cSNP's data version, and how the API should read it is an open question (wire-csnp-scoring).
-from panther_engine.csnp.scoring import VERSION as CSNP_DATA_VERSION
+from panther_engine.csnp import DATA_VERSION as CSNP_DATA_VERSION
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)

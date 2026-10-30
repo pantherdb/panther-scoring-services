@@ -65,7 +65,7 @@ A second `AfterValidator` on `species`, after the shape check, checks membership
 - **It's what the engine reads, not what's installed.** The data folder may be missing, or hold the full library or the sample; the release is the same. The deployment's data check is separate.
 - *Alternative:* a field on the `csnp` job only, such as `CsnpJob.data_version`. Rejected: a second place for versions, and every future service would add its own. Its one advantage, that a `tools` job wouldn't name cSNP's data, doesn't matter: the versions are the service's, not the job's.
 - *Alternative:* in the result, beside `family`. Rejected: the result mirrors the engine's `CsnpResult`.
-- **How it's read:** `from panther_engine.csnp.scoring import VERSION`, the one import from outside `panther_engine.csnp.__all__`. The proposal asks the engine developer to export it or name another way.
+- **How it's read:** `from panther_engine.csnp import DATA_VERSION`. The engine developer asked on #26 for the export to be added in this change: `panther_engine.csnp` re-exports `scoring.VERSION` as `DATA_VERSION` and lists it in `__all__` (`psep-engine`, "Data version"). Before that, the API read `scoring.VERSION`, which wasn't exported.
 
 ### 5. Input errors, as add-job-input-errors designed
 

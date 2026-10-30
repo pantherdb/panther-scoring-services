@@ -5,9 +5,10 @@
 - [x] 1.1 In `api/src/panther_api/jobs/csnp.py`, add `run_csnp()`, the adapter of design.md decision 1, and call it from `run_job`'s `csnp` case in `jobs/work.py`. Keep `work.py` free of import-time state. Verify with tests in `api/tests/test_jobs.py`: the adapter with a fake `score()` (the engine input it builds, the result it returns, a `null` family, the engine's errors passed on); `run_job` runs the `csnp` case; and a `csnp` job succeeds with the fake engine's scores through a real `spawn` worker (`score_with_a_fake_engine` in `tests/job_helpers.py`).
 - [x] 1.2 Remove the `501`: the check in `routers/jobs.py`, `CSNP_UNAVAILABLE`, and the `501` entry in the create route's OpenAPI responses. Update the docstrings that mention it. Verify that `tests/test_openapi.py` checks no `501` is documented, and the `501` tests are gone.
 - [x] 1.3 Add the species membership check of design.md decision 3. Verify with `tests/test_csnp_input.py` (every one of `SPECIES_CODES` is accepted; `ZZZZZ`, `XENLA`, `SALSA` and `9PRIM` are rejected with one error that doesn't repeat them) and `tests/test_jobs.py` (`XYZZY` gets a `422` at `["body", "csnp", "input", "species"]`, without the value, and no job).
-- [x] 1.4 Add `DataVersion` and `Versions.data` (design.md decision 4), read from `panther_engine.csnp.scoring.VERSION`. Verify with `tests/test_versions.py` (the body's `data`, the value `"9"`, and that it needs no `PANTHER_DATA_DIR`) and `tests/test_openapi.py` (the schema's `DataVersion`).
+- [x] 1.4 Add `DataVersion` and `Versions.data` (design.md decision 4), read from `panther_engine.csnp.DATA_VERSION` (task 1.7). Verify with `tests/test_versions.py` (the body's `data`, the value `"9"`, and that it needs no `PANTHER_DATA_DIR`) and `tests/test_openapi.py` (the schema's `DataVersion`).
 - [x] 1.5 Add the `tools` and `data` markers to `api/pyproject.toml` and `tests/markers.py`, and `tests/test_csnp_scoring.py` (design.md decision 6). Verify that natively they're reported as skipped, and that in the API image, with the data sample and `PANTHER_REQUIRE_TOOLS=1` and `PANTHER_REQUIRE_DATA=1`, the whole suite passes with none skipped.
 - [x] 1.6 Regenerate `api/openapi.json` with `uv run python -m panther_api.openapi`. Verify in `api/`: `uv sync --locked`, `uv run ruff check`, `uv run ruff format --check`, `uv run basedpyright` and `uv run pytest` pass.
+- [x] 1.7 At the engine developer's request on #26, export `DATA_VERSION` from `panther_engine.csnp`: `from panther_engine.csnp.scoring import VERSION as DATA_VERSION`, listed in `__all__`. Make `versions.py` and `tests/test_versions.py` import it from there. Verify that `tests/test_versions.py` passes (the value `"9"`, with no `PANTHER_DATA_DIR`), and that `uv run ruff check`, `ruff format --check` and `basedpyright` pass in `engine/` and `api/`.
 
 ## 2. API: Input Errors in Failed Jobs
 
@@ -48,7 +49,7 @@
 
 ### Next action
 
-Every task is done and committed on the worktree branch, for the coordinator's review. Next: open the pull request, and get the three approvals.
+Every task is done. The pull request is #26. The engine developer answered both open questions there (2026-10-30), and asked for the `DATA_VERSION` export in this change (task 1.7). Next: the engine developer's review of that export, and the three approvals.
 
 ### Blockers
 

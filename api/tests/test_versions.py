@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 from panther_engine.core.tools import TOOLS, ToolReport
-from panther_engine.csnp.scoring import VERSION as CSNP_DATA_VERSION
+from panther_engine.csnp import DATA_VERSION as CSNP_DATA_VERSION
 
 from panther_api.main import create_app
 from panther_api.versions import read_versions

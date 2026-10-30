@@ -95,7 +95,7 @@
 
 ### Next action
 
-Every task is done (2026-10-29). Next: open the pull request from `feat/api`. On it, check the items in the Workflow follow-up: both `api-image` legs, whether `jq` is on the `ubuntu-24.04-arm` runner, the build cache, and `dependency-review` with `panther-engine`. Record each result in Lessons learned.
+Every task is done (2026-10-29). The pull request is #16, from `feat/api`, and every CI job passed on it (see Lessons learned, "On #16"). Next: reviews on #16, and the reviewers settle the proposal's open questions. Archive after it merges. The next API change, the jobs endpoints, may join the same branch.
 
 ### Blockers
 
@@ -119,6 +119,10 @@ None.
 - **CI checked locally (4.1).** actionlint 1.7.12 reports no errors. The `api-image` job's build, run, health wait and versions steps pass locally. This machine has no `jq`, so the expression was checked with `ghcr.io/jqlang/jq:1.7.1`: it prints `true` and exits 0 on the real response, and prints `false` and exits 1 when one version is `null`. GitHub's Ubuntu runner images include `jq`; whether `ubuntu-24.04-arm` does too is checked on the pull request.
 - **The cache mode (4.1).** `api-image` reads both the `engine-<arch>` and `api-<arch>` scopes and writes `api-<arch>` with `mode=min`: only the layers in the API image, not the blast, hmmer and epang build stages, which `engine-image` already caches.
 - **Final check (6.1).** Run from a copy of the files git would commit: the API's native checks (25 tests), `docker compose run --rm engine` (17 tests, none skipped), and `docker compose up --build -d api` with the four pinned versions. markdownlint (42 files) and `openspec validate --all` (5 items) ran from the working repository, since the copy has no root `node_modules`.
+- **On #16 (2026-10-29), every job passed under `ci-passed`.**
+  - **`api-image`** passed on both legs: 44 s on amd64 and 37 s on arm64, reusing `engine-image`'s cached tool stages. On `ubuntu-24.04-arm`, the versions step printed the four pinned versions and `jq` printed `true`, so that runner has `jq`.
+  - **The build cache isn't stored twice.** The GitHub Actions cache stores layers as `buildkit-blob-1-sha256:…` entries, keyed by digest and shared by every scope. Each scope only adds an index (`index-api-amd64-…`, 15 KiB). The `api` job's first run added about 13 MiB of new layers.
+  - **`dependency-review` lists `panther-engine` and passes.** Its log has a `File: api/pyproject.toml` section with `+ panther-engine`, and says "We could not detect a license" for it. A dependency with no detected licence is reported, not failed, so no exemption was needed (design.md's Risks).
 - **Compose (3.3).** From a copy of the files git would commit, `docker compose up --build -d api` serves health and versions. With the frontend's `npm run dev` running, `localhost:5173/api/v1/versions` returns the same body through its proxy. `docker compose run --rm engine` still passes 17 tests with none skipped.
 
 - **Artifacts and code in one pull request (2026-10-29).** The team chose to skip the separate artifact-review pull request for the API work and review the artifacts and the implementation together. The artifacts were reviewed in conversation before apply started. `feat/api` was branched from `main` at `c61b850`, after `scaffold-engine` was archived.

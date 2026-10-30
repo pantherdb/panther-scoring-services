@@ -76,8 +76,9 @@ The app builds with the React Compiler, and `react-hooks` 7 fails the lint on wh
 
 - **Every API call goes through RTK Query** in `src/app/api/`. No `fetch` or `axios` in components.
 - **Types come from the OpenAPI schema.** Run `npm run api:types` after the API changes; a renamed field then fails `tsc` instead of failing in the browser. Never hand-write a type the schema already has.
-- **One module converts between the API's shapes and the app's.** If the API speaks snake_case, only that module renames fields.
+- **One module converts between the API's shapes and the app's.** If the API speaks snake_case, only that module renames fields. It's `src/app/api/wire.ts`.
 - **Poll job status with RTK Query's `pollingInterval`**, and stop when the job finishes or fails.
+- **Show "loading" when there's no data, not from `isLoading`.** While a request is retried after an error, RTK Query reports `isError` and `isLoading` both false, so a page that keys on them shows nothing.
 - **Read the store only through the typed hooks** in `src/app/hooks.ts` (`useAppSelector`, `useAppDispatch`). The lint refuses the plain `react-redux` hooks.
 - **Put state in the smallest place that works.** Form drafts and open/closed toggles live in component state. A slice is for state that several features share.
 - **Don't store derived data.** Compute it with a selector; use `createSelector` when it builds new arrays or objects.
@@ -114,6 +115,7 @@ The app builds with the React Compiler, and `react-hooks` 7 fails the lint on wh
 - **Two projects: desktop and mobile**, because layouts differ by width.
 - **Assert on behaviour, not on copy.** Wording changes; rules don't.
 - **Don't wait for `networkidle`.** Wait for the element you need.
+- **Files a spec imports from `src/`, such as mock data, import each other with relative paths.** Playwright doesn't resolve the `@/` alias.
 
 ## Lint and Format
 

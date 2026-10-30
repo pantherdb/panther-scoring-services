@@ -37,4 +37,4 @@ None.
 
 ## Open Questions
 
-- **Is a divergence row needed?** As above, we think not, because the difference is in the form, not in what the engine scores. Needs team verification by the engine developer.
+- **Is a divergence row needed?** *(Answered on #23, 2026-10-30.)* No. `docs/parity/divergences.md` records where the engine's output differs from the reference's for the same input. With commas, the engine still receives a list of substitutions and scores it as before; only how the form reads the box changes. That matches what was done before: rejecting malformed tokens instead of dropping them (#19) has no row, and row 6, about parsing the legacy form's input, was withdrawn because nothing parses that input any more.

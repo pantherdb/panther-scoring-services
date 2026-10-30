@@ -266,6 +266,60 @@
           }
         }
       }
+    },
+    "/api/v1/csnp/species": {
+      "get": {
+        "tags": [
+          "csnp"
+        ],
+        "summary": "The species cSNP scores against",
+        "description": "Every species a `csnp` job's `species` may name, with its name, in the engine's order.\n\nNeeds no data folder. The response may be cached for an hour.",
+        "operationId": "csnp_species_api_v1_csnp_species_get",
+        "responses": {
+          "200": {
+            "description": "Every species, in the engine's order.",
+            "headers": {
+              "Cache-Control": {
+                "description": "`public, max-age=3600`",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CsnpSpecies"
+                  },
+                  "type": "array",
+                  "title": "Response Csnp Species Api V1 Csnp Species Get"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as problem details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -433,6 +487,25 @@
         ],
         "title": "CsnpResult",
         "description": "The PANTHER family the protein was placed in, null with no family hit, and the scores."
+      },
+      "CsnpSpecies": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name"
+        ],
+        "title": "CsnpSpecies",
+        "description": "A species cSNP scores against: its PANTHER species code, such as `HUMAN`, and its\nscientific name, such as `Homo sapiens`. The code is what a `csnp` request's `species` names."
       },
       "DataVersion": {
         "properties": {

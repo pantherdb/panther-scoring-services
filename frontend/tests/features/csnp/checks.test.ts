@@ -178,6 +178,25 @@ describe('checkSpecies', () => {
   it('never quotes the species', () => {
     expect(checkSpecies('qwerty').join(' ')).not.toMatch(/qwerty/i)
   })
+
+  describe('with the species list', () => {
+    const codes = new Set(['HUMAN', 'MOUSE', 'PLAF7'])
+
+    it.each(['HUMAN', ' MOUSE ', 'PLAF7'])('accepts %j, in the list', species => {
+      expect(checkSpecies(species, codes)).toEqual([])
+    })
+
+    it('rejects a code of the right shape that is not in the list, without quoting it', () => {
+      const messages = checkSpecies('ZZZZZ', codes)
+
+      expect(messages).toEqual([expect.stringMatching(/from the list/i)])
+      expect(messages.join(' ')).not.toContain('ZZZZZ')
+    })
+
+    it('checks the shape first, with one message', () => {
+      expect(checkSpecies('human', codes)).toEqual([expect.stringMatching(/upper-case/i)])
+    })
+  })
 })
 
 describe('checkDraft', () => {
@@ -200,6 +219,13 @@ describe('checkDraft', () => {
     expect(checkDraft({ sequence: 'MKV', substitutions: 'L2P', species: 'human' })).toEqual({
       species: [expect.any(String)],
     })
+  })
+
+  it('checks the species against the list when it is given, and only its shape when not', () => {
+    const draft = { sequence: 'MKV', substitutions: 'L2P', species: 'ZZZZZ' }
+
+    expect(checkDraft(draft, new Set(['HUMAN']))).toEqual({ species: [expect.any(String)] })
+    expect(checkDraft(draft)).toEqual({})
   })
 
   it('checks the substitutions as they are split', () => {

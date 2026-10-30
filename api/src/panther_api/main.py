@@ -11,7 +11,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from panther_api.jobs.runner import JobRunner
 from panther_api.problems import PROBLEM_RESPONSES, add_problem_handlers, document_problems
-from panther_api.routers import health, jobs, versions
+from panther_api.routers import csnp, health, jobs, versions
 from panther_api.settings import Settings
 from panther_api.versions import read_versions
 
@@ -68,6 +68,7 @@ def create_app(*routers: APIRouter) -> FastAPI:
     api.include_router(health.router)
     api.include_router(versions.router)
     api.include_router(jobs.router)
+    api.include_router(csnp.router)
     for router in routers:
         api.include_router(router)
     app.include_router(api)

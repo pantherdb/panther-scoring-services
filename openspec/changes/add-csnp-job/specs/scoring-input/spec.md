@@ -51,17 +51,22 @@ A cSNP input SHALL be rejected when its `sequence`, after normalising, is empty,
 
 ### Requirement: cSNP substitutions are a list of tokens
 
-A cSNP input's `substitutions` SHALL be a list of 1 to 1,000 tokens. Each token MUST be 1 to 32 printable ASCII characters with no whitespace, and is upper-cased before scoring. A token MUST NOT be rejected for not being in `<residue><position><residue>` form: whether it can be scored is decided per substitution in the result.
+A cSNP input's `substitutions` SHALL be a list of 1 to 1,000 tokens. Each token MUST be 1 to 32 printable ASCII characters and, once upper-cased, MUST be a residue letter, a position and a residue letter (`[A-Z][0-9]+[A-Z]`). A token in that form MUST NOT be rejected because it can't be mapped onto the sequence: that is decided per substitution in the result.
 
 #### Scenario: Valid tokens, upper-cased
 
 - **WHEN** a cSNP input's `substitutions` is `["L46P", "c130r"]`
 - **THEN** it is accepted, and the substitutions scored are `L46P` and `C130R`, in that order
 
-#### Scenario: Tokens that aren't substitutions are kept
+#### Scenario: Tokens that aren't substitutions are rejected
 
-- **WHEN** a cSNP input's `substitutions` is `["XYZ", "G129", "G99999R"]`
-- **THEN** it is accepted, and all three tokens are scored, in that order
+- **WHEN** a cSNP input's `substitutions` is `["L46P", "XYZ"]`
+- **THEN** it is rejected, with an error on the second item of `substitutions`, and the error doesn't contain `XYZ`
+
+#### Scenario: Substitutions that can't be mapped are accepted
+
+- **WHEN** a cSNP input's `substitutions` is `["G99999R", "M1P"]`
+- **THEN** it is accepted, and both are scored, in that order
 
 #### Scenario: No substitutions
 

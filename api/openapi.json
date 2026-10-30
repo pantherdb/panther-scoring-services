@@ -311,7 +311,7 @@
           "species"
         ],
         "title": "CsnpInput",
-        "description": "One protein, the substitutions to score in it, and its species.\n\n`sequence` is the protein, as plain residues or FASTA with one header line. Whitespace and\nthe header are removed and letters upper-cased before scoring. `substitutions` are tokens such\nas `L46P`, positions counted from 1 in this sequence; each is upper-cased, and one that can't\nbe scored is reported in the result, not rejected. `species` is a PANTHER species code such\nas `HUMAN`."
+        "description": "One protein, the substitutions to score in it, and its species.\n\n`sequence` is the protein, as plain residues or FASTA with one header line. Whitespace and\nthe header are removed and letters upper-cased before scoring. `substitutions` are tokens such\nas `L46P`, positions counted from 1 in this sequence; each is upper-cased and must be a\nresidue letter, a position and a residue letter. One that can't be mapped onto the sequence,\nsuch as a wrong wild-type residue, is reported in the result, not rejected. `species` is a\nPANTHER species code such as `HUMAN`."
       },
       "CsnpJob": {
         "properties": {

@@ -97,9 +97,10 @@ export interface components {
          *
          *     `sequence` is the protein, as plain residues or FASTA with one header line. Whitespace and
          *     the header are removed and letters upper-cased before scoring. `substitutions` are tokens such
-         *     as `L46P`, positions counted from 1 in this sequence; each is upper-cased, and one that can't
-         *     be scored is reported in the result, not rejected. `species` is a PANTHER species code such
-         *     as `HUMAN`.
+         *     as `L46P`, positions counted from 1 in this sequence; each is upper-cased and must be a
+         *     residue letter, a position and a residue letter. One that can't be mapped onto the sequence,
+         *     such as a wrong wild-type residue, is reported in the result, not rejected. `species` is a
+         *     PANTHER species code such as `HUMAN`.
          */
         CsnpInput: {
             /** Sequence */

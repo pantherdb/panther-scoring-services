@@ -116,7 +116,8 @@ def test_no_sequence_is_rejected() -> None:
     assert rejected("MKV", sequence=MISSING) == [("sequence",)]
 
 
-# The substitutions: a list of tokens, upper-cased, never checked against the format.
+# The substitutions: a list of tokens, upper-cased, each in the legacy CGI's form
+# `[A-Z][0-9]+[A-Z]` (decided with the engine developer on PR #19, 2026-10-30).
 
 
 def test_tokens_are_upper_cased_and_kept_in_order() -> None:
@@ -125,12 +126,46 @@ def test_tokens_are_upper_cased_and_kept_in_order() -> None:
     assert substitutions == ["L46P", "C130R"]
 
 
-def test_tokens_that_arent_substitutions_are_kept() -> None:
-    tokens = ["XYZ", "G129", "G99999R", "M1P", "G129|", "a-z12R"]
+def test_substitutions_that_cant_be_mapped_are_still_accepted() -> None:
+    # In the CGI's form, so the legacy scored them: a position past the end, or a wrong
+    # wild-type residue, comes back as a "Not scored: Invalid substitution" row.
+    tokens = ["G99999R", "M1P", "a10v"]
 
     assert CsnpInput.model_validate(given(substitutions=tokens)).substitutions == [
-        token.upper() for token in tokens
+        "G99999R",
+        "M1P",
+        "A10V",
     ]
+
+
+@pytest.mark.parametrize(
+    "token",
+    # chr(0x131) is the dotless i, which str.upper() turns into an ASCII I.
+    [
+        "XYZQW",
+        "G1299",
+        "G1299|",
+        "A1099*",
+        "QQ1299R",
+        "1299R",
+        "G-1299R",
+        "G12.99R",
+        "a1099" + chr(0x131),
+    ],
+    ids=[
+        "letters",
+        "no mutant",
+        "pipe as mutant",
+        "stop as mutant",
+        "two wild-type",
+        "no wild-type",
+        "dash",
+        "dot",
+        "non-ascii that upper-cases to ascii",
+    ],
+)
+def test_a_token_that_isnt_a_substitution_is_rejected(token: str) -> None:
+    assert rejected(token, substitutions=["L4P", token]) == [("substitutions", 1)]
 
 
 def test_the_most_substitutions_are_accepted() -> None:

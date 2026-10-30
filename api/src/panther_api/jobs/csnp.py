@@ -32,6 +32,8 @@ _WHITESPACE = re.compile(r"[ \t\n\x0b\x0c\r]+")
 # Printable ASCII, without space.
 _PRINTABLE = re.compile(r"[!-~]+")
 _SPECIES = re.compile(r"[A-Z0-9]{1,5}")
+# The legacy CGI's substitution form, after upper-casing: wild-type residue, position, residue.
+_SUBSTITUTION = re.compile(r"[A-Z][0-9]+[A-Z]")
 
 
 def _normalise_sequence(value: str) -> str:
@@ -56,9 +58,15 @@ def _normalise_sequence(value: str) -> str:
 
 
 def _normalise_substitution(value: str) -> str:
-    if not _PRINTABLE.fullmatch(value):
+    """Upper-case the token, as the website did, and keep it only in the legacy CGI's form.
+
+    The CGI dropped any other token without a row (`snpScore.cgi` 212 to 214), so rejecting it
+    loses no score. Decided with the engine developer on PR #19 (2026-10-30). The ASCII check
+    comes first: str.upper() turns some other letters into ASCII ones (dotless i into I).
+    """
+    if not _PRINTABLE.fullmatch(value) or not _SUBSTITUTION.fullmatch(value.upper()):
         raise ValueError(
-            "Each substitution must be one token of printable ASCII characters without spaces, "
+            "Each substitution must be a residue letter, a position and a residue letter, "
             "such as L46P."
         )
     return value.upper()
@@ -90,9 +98,10 @@ class CsnpInput(BaseModel):
 
     `sequence` is the protein, as plain residues or FASTA with one header line. Whitespace and
     the header are removed and letters upper-cased before scoring. `substitutions` are tokens such
-    as `L46P`, positions counted from 1 in this sequence; each is upper-cased, and one that can't
-    be scored is reported in the result, not rejected. `species` is a PANTHER species code such
-    as `HUMAN`.
+    as `L46P`, positions counted from 1 in this sequence; each is upper-cased and must be a
+    residue letter, a position and a residue letter. One that can't be mapped onto the sequence,
+    such as a wrong wild-type residue, is reported in the result, not rejected. `species` is a
+    PANTHER species code such as `HUMAN`.
     """
 
     model_config = ConfigDict(extra="forbid")

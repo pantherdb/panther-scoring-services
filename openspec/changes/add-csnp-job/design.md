@@ -125,9 +125,9 @@ The legacy service is two layers: the website's form (`panther-site-java`), whic
 | `sequence` | More than 1,000,000 characters as submitted: rejected | **New.** Bounds the work before normalising; a 50,000-residue FASTA is about 51,000 characters |
 | `substitutions` | Required, a list of at least one token | `CsnpScoreForm.java` 96 to 99 (`errors.substitutions.not.available`) |
 | `substitutions` | At most 1,000 tokens | **New** (Open Questions) |
-| `substitutions` | Each token 1 to 32 printable ASCII characters, no whitespace | The 32 is **new**. The CGI splits on tab, runs of spaces and LF (`snpScore.cgi` 197) and the form on any whitespace run (`CsnpScoreAction.java` 154 to 156), so no legacy token contains whitespace. A token the CGI can score matches `(^[A-Z]\|a-z)([0-9]+)([A-Z\|a-z]$)` (`snpScore.cgi` 212), all printable ASCII; 32 characters allows a 30-digit position |
+| `substitutions` | Each token 1 to 32 printable ASCII characters | The 32 is **new**. The CGI splits on tab, runs of spaces and LF (`snpScore.cgi` 197) and the form on any whitespace run (`CsnpScoreAction.java` 154 to 156), so no legacy token contains whitespace. A token the CGI can score matches `(^[A-Z]\|a-z)([0-9]+)([A-Z\|a-z]$)` (`snpScore.cgi` 212), all printable ASCII; 32 characters allows a 30-digit position |
 | `substitutions` | Each token upper-cased | `CsnpScoreForm.java` 28 to 34 |
-| `substitutions` | **Not** checked against `<residue><position><residue>` | The CGI drops a non-matching token without a row (`snpScore.cgi` 212 to 214). A matching one that can't be mapped gets "Not scored: Invalid substitution" (`PANTHER_PSEP1.01.pl` 74 to 86). Rejecting either would make the API differ from the legacy; what the port does with dropped tokens is an open question |
+| `substitutions` | Once upper-cased, each token matches `[A-Z][0-9]+[A-Z]`: rejected otherwise | **New** (decided with the engine developer on #19, 2026-10-30). The CGI dropped a non-matching token without a row (`snpScore.cgi` 212 to 214), so no score is lost; the `422` points at the token by its index. Two CGI quirks aren't kept: `[A-Z\|a-z]` also took `\|` as the mutant residue (`G12\|` was scored as `G12`), and the CGI dropped `*` (`A10*`) although steps 2 and 3 score it (spec §7.5 `e4`, `SCORE-12`); accepting `*` would be new behaviour, to revisit once cSNP is live. A token in the form that can't be mapped still gets "Not scored: Invalid substitution" (`PANTHER_PSEP1.01.pl` 74 to 86). No divergence row: the engine's output for each token it receives doesn't change |
 | `species` | Required | The CGI defaults an empty value to `HUMAN` (`snpScore.cgi` 72 to 77), but the form required an organism and rejected an unknown one (`CsnpScoreForm.java` 101 to 107), preselecting the session's default (`dataset.jsp` 20 to 30, 66). Every request that reached scoring had one |
 | `species` | 1 to 5 characters, `A`–`Z` and `0`–`9` | The form sent a mnemonic from its cSNP list, `HUMAN`, `RAT`, `PLAF7`, `SYNY3` and 81 more (`OrganismConstants.java` 79, `CsnpScoreAction.java` 157 to 158). The CGI put it unquoted into a shell command and a `grep` pattern (`snpScore.cgi` 91, `parse_blastp.pl` 42: `CGI-5`); this shape has no shell or pattern metacharacters |
 | `input` | No other fields | As every input model (add-scoring-jobs design) |
@@ -152,7 +152,6 @@ The API normalises, and the engine receives residues only, upper-cased, with no 
 ## Risks / Trade-offs
 
 - **[A rule rejects input the legacy would have scored]** → Every rule but four comes from the legacy form or CGI, with its line. The four new ones (printable ASCII in the sequence, the 1,000,000-character raw cap, 1,000 tokens, 32 characters per token) are listed as open questions for the engine developer, and are easy to relax: relaxing a `422` breaks no client.
-- **[Kept tokens surprise users]** A token such as `XYZ` is accepted and then, if the port keeps the CGI's behaviour, gets no row. → Open question; the frontend can warn before submitting.
 - **[The `501` outlives its purpose]** → It's tied to the port in the Workflow follow-up, and the spec says it lasts only until the engine is wired in.
 - **[Contract drift from the engine's dataclasses]** → The field names and types are the agreed ones; the port's adapter maps them one to one, and its tests fail on any mismatch.
 
@@ -162,4 +161,4 @@ Nothing to migrate: the contract is additive, and a `csnp` request was a `422` (
 
 ## Open Questions
 
-All of them are in [proposal.md](proposal.md#open-questions), for the engine developer. None changes this change's tasks: each answer either relaxes or tightens a rule here, or lands with the port.
+The engine developer answered the proposal's questions on #19 (2026-10-30); proposal.md records the answers. Only the token rule changed this change. The rest confirm its rules, or land with the port.

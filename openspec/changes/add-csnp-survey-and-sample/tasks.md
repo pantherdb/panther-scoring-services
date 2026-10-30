@@ -124,7 +124,7 @@
 
 ## 8. Compose and CI
 
-- [ ] 8.1 In `compose.yaml`, mount `./.data` read-only at `/data` and set `PANTHER_DATA_DIR=/data`. Verify the "Sample fetched" scenario:
+- [ ] 8.1 In `compose.yaml`'s `engine` service, mount `./.data` read-only at `/data` and set `PANTHER_DATA_DIR=/data`. Leave the `api` service as it is: it needs the mount only once it runs cSNP jobs. Verify the "Sample fetched" scenario:
   - with the sample in `.data/`, `docker compose run --rm engine` passes with no data test skipped;
   - `git status --ignored .data` shows nothing new;
   - with `.data/csnp` moved aside, the data tests skip, naming `PANTHER_DATA_DIR`;
@@ -148,24 +148,29 @@
 - [ ] 9.1 From a clean clone of the branch, run the checks:
   - after `uv run panther-engine csnp sample fetch --data-dir ../.data` in `engine/`: `uv sync --locked && uv run ruff check && uv run ruff format --check && uv run basedpyright && PANTHER_REQUIRE_DATA=1 uv run pytest` passes, with only the `tools` tests skipped;
   - from the root, `docker compose run --rm engine` passes with nothing skipped;
+  - from `api/`, which imports the engine: `uv sync --locked && uv run pytest` passes, and `uv lock --check` reports no change;
   - `npx markdownlint-cli2` and `npx openspec validate --all --no-interactive` pass
 
 ## Workflow follow-up
 
-- Open a pull request with these artifacts. All three developers approve it, because it changes `CLAUDE.md`, `tech-stack.md` and `openspec/config.yaml`. The API developer also reviews the changes to `compose.yaml` and `ci.yml`, which the API's service will share. Apply starts after that.
-- The implementation's pull request is over the 400-line norm. Its description says why (proposal, Impact, Size), and walks through the work in task order.
+- The proposal and its implementation are reviewed together, in one pull request from `feat/add-csnp-survey-and-sample`. That was the engine developer's choice on 2026-10-29, instead of approving the proposal before any code is written.
+  - All three developers approve it, because it changes `CLAUDE.md`, `tech-stack.md` and `openspec/config.yaml`.
+  - The API developer also reviews the changes to `compose.yaml` and `ci.yml`, which the API's service shares.
+- The pull request is over the 400-line norm. Its description says why (proposal, Impact, Size), and walks through the work in task order.
 - When that pull request is opened, confirm on it that:
+  - the `api` and `api-image` jobs, which an engine change also runs, pass;
   - the `engine` job and both `engine-image` legs fetch the sample, with a cache miss on the first run and a hit on a re-run;
   - no data test is skipped in any of them (check the logs, not just the result).
 - After the implementation merges, archive with `/opsx:archive`. That creates `openspec/specs/csnp-data/spec.md` and adds the new requirements to `engine-core`.
 - Next change for cSNP: the parity harness. That means the Perl reference image (Engine condition 3) and the spec §7 goldens in `engine/tests/golden/csnp/`, run against the sample. Step 3 keeps the code's thresholds and pDel bounds (`SCORE-5`, `SCORE-6`; task 1.4).
+- Before step 3 is ported, agree the engine's cSNP interface with the API developer, in a change of its own. That covers the `score` function and its input and result types, `InputError`, the data version and the list of species codes. The API developer's questions of 2026-10-29 are the starting point.
 - After cSNP is live on production, open an issue for the science owner, thomaspd, on divergence rows 4 and 7: the pDel bounds and the thresholds. Ask which values are correct, and whether pDel should include its bounds.
 
 ## Notes
 
 ### Next action
 
-Open the pull request for these artifacts (see Workflow follow-up). Apply starts once all three developers have approved it.
+Run `/opsx:apply` on `feat/add-csnp-survey-and-sample`, where the proposal is committed. The proposal and the implementation go to review together (see Workflow follow-up).
 
 ### Blockers
 

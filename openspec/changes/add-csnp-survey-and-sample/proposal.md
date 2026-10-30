@@ -57,6 +57,7 @@ Not in this change:
 - **The parity harness, the Perl reference image (Engine condition 3) and golden files.** This change only names the golden-files folder.
 - **A checksum manifest of the full library** for deploys.
 - **Regenerating the cSNP data,** which tech-stack.md puts out of scope.
+- **The engine's cSNP interface for the API:** the `score` function with its input and result types, an `InputError` the API can show, and the data version. These are agreed with the API developer in a change of their own, before step 3 is ported.
 
 ## Capabilities
 
@@ -89,6 +90,9 @@ Not in this change:
 - **Size:** well over the 400-line norm. The engine developer chose one pull request (2026-10-29). The sample is chosen from the survey's results, and the survey is the readers' library-wide test, so the parts don't stand alone.
 - **Parity with the reference:** not affected. There is no scoring output. The survey compares the readers with the Perl's readings on every family. It reports the differences for the port to decide, so no divergence row is needed here. Row 7 is added only as a proposal, deferred until after production, so it changes nothing the port must match.
 - **API contract:** not affected.
+  - The API imports the engine (`connect-api-to-engine`), but nothing it uses changes: `report_tools()`, `ToolReport`, `TOOLS` and the `tools` stage.
+  - The engine gains no runtime dependency, so `api/uv.lock` doesn't change.
+  - The `engine` compose service gains the read-only data mount. The API developer asked to hear about changes to that service first.
 
 ## Open Questions
 

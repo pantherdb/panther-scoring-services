@@ -21,6 +21,12 @@ The engine today, from `scaffold-engine`:
 - the `tools` test marker;
 - the image, `compose.yaml`, and CI's `engine` and `engine-image` jobs.
 
+Since then, the API's changes in #16 (`connect-api-to-engine`, `add-scoring-jobs`) made `api/` depend on the engine:
+
+- **What the API reads.** `api/` imports the engine as a path dependency, and reads `report_tools()`, `ToolReport` and `TOOLS` from `core/tools.py`. The API developer asked that these, the `tools` stage and the `engine` compose service stay stable, or that changes be announced first. This change leaves the first three alone, and adds a data mount to the `engine` service.
+- **How the API image installs the engine.** The `Dockerfile`'s `api` stage installs it from `engine/src/` as a regular package, not editable, so package data such as `csnp/sample.json` goes with it.
+- **CI.** A change in `engine/**` also runs the `api` and `api-image` jobs.
+
 The data:
 
 - **The library.** `PAML_RST.tar.gz` is 2,350,213,383 bytes, beside `panther-workspace` at `../panther_build/`. It holds 8,607 families, three files each, and unpacks to 19.2 GB. It was tarballed from the production server before that was shut down, so it is the build production ran (engine developer, 2026-10-29).

@@ -264,3 +264,5 @@ docker run --rm -v "$PWD/api:/src/api:ro" -v "$PWD/engine:/src/engine:ro" -v "$P
 ```
 
 It installs the dev tools into the container's `/tmp`, and writes nothing to the mounts. The five real jobs take about a minute and a half.
+
+In Git Bash, start the `docker run` line with `MSYS_NO_PATHCONV=1`. Otherwise Git Bash rewrites container paths such as `/data` into Windows paths, and every `csnp` job fails with the generic error.

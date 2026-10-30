@@ -52,7 +52,7 @@ For the engine developer:
 
 For the frontend developer:
 
-- **A species list in the form.** The form checks the species' shape; the API checks membership, and the form shows its `422` on the field. Should the schema publish the 85 codes, as an enum, so the form can offer a list? Not needed to go live.
+- **A species list in the form.** The form checks the species' shape; the API checks membership, and the form shows its `422` on the field. Should the schema publish the 85 codes, as an enum, so the form can offer a list? Not needed to go live. The engine developer will export the species' names as `SPECIES_NAMES`, in a change of its own (#25), so a list can show names; the selector is a follow-up to that.
 
 Needs team verification:
 

@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from job_helpers import report_fake_tools
 from panther_engine.core.tools import ToolReport
 
 from panther_api.main import create_app
@@ -20,10 +21,17 @@ FAKE_REPORTS = (
 def fake_tools(monkeypatch: pytest.MonkeyPatch) -> tuple[ToolReport, ...]:
     """Stand in for the engine's tool report, so no test runs or needs the real tools.
 
+    It replaces the report where the app reads the versions and where the `tools` job calls it
+    in this process. Worker processes don't see a monkeypatch, so it also replaces the function
+    the job runner submits to them with one that returns the same versions (job_helpers.py).
+
     A test that needs another report patches `panther_api.versions.report_tools` again, before
-    it builds its app.
+    it builds its app; one that needs other work in the workers patches
+    `panther_api.jobs.runner.run_job` with another function from job_helpers.py.
     """
     monkeypatch.setattr("panther_api.versions.report_tools", lambda: list(FAKE_REPORTS))
+    monkeypatch.setattr("panther_api.jobs.tools.report_tools", lambda: list(FAKE_REPORTS))
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", report_fake_tools)
     return FAKE_REPORTS
 
 

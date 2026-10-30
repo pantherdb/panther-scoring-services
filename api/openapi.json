@@ -88,6 +88,172 @@
           }
         }
       }
+    },
+    "/api/v1/jobs": {
+      "post": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Start a job",
+        "description": "Start a job for `service` with its `input`. The job runs after this request returns.",
+        "operationId": "create_job_api_v1_jobs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ToolsJobRequest"
+                  }
+                ],
+                "title": "Job Request",
+                "discriminator": {
+                  "propertyName": "service",
+                  "mapping": {
+                    "tools": "#/components/schemas/ToolsJobRequest"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "The job was accepted. Poll it at `Location`.",
+            "headers": {
+              "Location": {
+                "description": "The job's path, `/api/v1/jobs/{job_id}`",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ToolsJob"
+                    }
+                  ],
+                  "title": "Response Create Job Api V1 Jobs Post",
+                  "discriminator": {
+                    "propertyName": "service",
+                    "mapping": {
+                      "tools": "#/components/schemas/ToolsJob"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as problem details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "A job's status and result",
+        "description": "The job's current state. An unknown, invalid or expired id is a 404.",
+        "operationId": "get_job_api_v1_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ToolsJob"
+                    }
+                  ],
+                  "discriminator": {
+                    "propertyName": "service",
+                    "mapping": {
+                      "tools": "#/components/schemas/ToolsJob"
+                    }
+                  },
+                  "title": "Response Get Job Api V1 Jobs  Job Id  Get"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as problem details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -105,6 +271,17 @@
           "status"
         ],
         "title": "Health"
+      },
+      "JobStatus": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "running",
+          "succeeded",
+          "failed"
+        ],
+        "title": "JobStatus",
+        "description": "Where a job is. It only moves forward: queued, running, then succeeded or failed."
       },
       "Problem": {
         "properties": {
@@ -160,6 +337,132 @@
         ],
         "title": "ToolVersion",
         "description": "An external tool and the version it reports: null if it's missing or can't be read."
+      },
+      "ToolsInput": {
+        "properties": {},
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ToolsInput",
+        "description": "The `tools` job takes no input: `{}`."
+      },
+      "ToolsJob": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "service": {
+            "type": "string",
+            "const": "tools",
+            "title": "Service"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ToolsResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Problem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "versions": {
+            "$ref": "#/components/schemas/Versions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "service",
+          "status",
+          "created_at",
+          "started_at",
+          "finished_at",
+          "result",
+          "error",
+          "versions"
+        ],
+        "title": "ToolsJob",
+        "description": "A `tools` job. Times are UTC, and null until reached.\n\n`result` is null unless the job succeeded, and `error` is null unless it failed. `versions`\nare the API, engine and tool versions the job ran with."
+      },
+      "ToolsJobRequest": {
+        "properties": {
+          "service": {
+            "type": "string",
+            "const": "tools",
+            "title": "Service"
+          },
+          "input": {
+            "$ref": "#/components/schemas/ToolsInput"
+          }
+        },
+        "type": "object",
+        "required": [
+          "service",
+          "input"
+        ],
+        "title": "ToolsJobRequest",
+        "description": "Start a `tools` job: report the external tools' versions from a worker process."
+      },
+      "ToolsResult": {
+        "properties": {
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/ToolVersion"
+            },
+            "type": "array",
+            "title": "Tools"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tools"
+        ],
+        "title": "ToolsResult",
+        "description": "Each external tool the engine uses, in the engine's order. Never where it was found."
       },
       "Versions": {
         "properties": {

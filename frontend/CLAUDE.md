@@ -56,6 +56,7 @@ The app builds with the React Compiler, and `react-hooks` 7 fails the lint on wh
 - Controls: `Button`, `ActionIcon`, `TextInput`, `Textarea`, `Select`, `MultiSelect`, `Checkbox`, `Switch`, `SegmentedControl`, `Tooltip`
 - Structure: `AppShell`, `Modal`, `Drawer`, `Menu`, `Popover`, `Tabs`, `Accordion`, `Table`
 - Forms and feedback: `notifications`, `Loader`, `Alert`, `Badge`, `Progress`. `useForm` is in `@mantine/form`, which isn't installed, so the cSNP form keeps its draft in a reducer; adding the package needs a proposal
+- **Give a `Select`, `Autocomplete` or `MultiSelect` `comboboxProps={{ floatingStrategy: 'fixed' }}`.** Otherwise, on a phone, opening one below the fold scrolls the page to the top and hides its options (the cSNP species field).
 
 **Tailwind** for layout, spacing, text and surfaces. Don't use Mantine's styled wrappers:
 

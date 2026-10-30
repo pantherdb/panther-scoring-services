@@ -91,7 +91,7 @@ The API SHALL run every job's work in a pool of worker processes, never on the p
 
 ### Requirement: A failing job reveals nothing internal
 
-When a job's work raises an error, the job SHALL end with status `failed` and an `error` in problem-details form, with a generic `detail`. The job MUST NOT contain the error's message, a traceback, file paths or configuration values. Other jobs MUST be unaffected.
+When a job's work raises an error other than an input error, the job SHALL end with status `failed` and an `error` in problem-details form, with a generic `detail`. The job MUST NOT contain the error's message, a traceback, file paths or configuration values. Other jobs MUST be unaffected.
 
 #### Scenario: The work raises
 
@@ -154,25 +154,6 @@ The API SHALL accept a `csnp` job request, `{"service": "csnp", "input": {"seque
 - **WHEN** a client sends a `csnp` request whose `input` also has `"organism": "HUMAN"`
 - **THEN** the API responds with status 422 and an error whose `loc` names `organism`
 
-### Requirement: cSNP scoring not available yet
-
-Until the engine's cSNP scoring is wired in, the API SHALL answer a valid `csnp` job request with status 501 and a problem-details body whose `detail` is "cSNP scoring isn't available yet.", and MUST NOT create a job. Validation comes first: an invalid `csnp` request gets the 422. The schema MUST document the 501 on `POST /api/v1/jobs`. A response MUST NOT contain a score.
-
-#### Scenario: A valid cSNP request
-
-- **WHEN** a client sends `POST /api/v1/jobs` with `{"service": "csnp", "input": {"sequence": "MKVLWAALLV", "substitutions": ["L4P"], "species": "HUMAN"}}`
-- **THEN** the API responds with status 501, content type `application/problem+json`, `detail` "cSNP scoring isn't available yet.", and no job is created
-
-#### Scenario: Documented in the schema
-
-- **WHEN** a client fetches `/api/v1/openapi.json`
-- **THEN** `POST /api/v1/jobs` lists a 501 response whose body is the problem-details schema
-
-#### Scenario: Tools jobs still run
-
-- **WHEN** a client has had a 501 for a `csnp` request and then submits a `tools` job
-- **THEN** the `tools` job reaches `succeeded`
-
 ### Requirement: cSNP job shape
 
 A `csnp` job SHALL have the shape every job has, with `service` `csnp` and a `result` that is `null` or `{"family", "scores"}`. `family` MUST be a string or `null`. Each item of `scores` MUST have `substitution` (a string), `age` (an integer number of millions of years, or `null`), `message` (a string) and `pdel` (a string, or `null`). Every field MUST be present, even when `null`.
@@ -181,3 +162,51 @@ A `csnp` job SHALL have the shape every job has, with `service` `csnp` and a `re
 
 - **WHEN** a client fetches `/api/v1/openapi.json`
 - **THEN** the job union has a `csnp` member whose `result` is the cSNP result or `null`, `family` is a required string or `null`, and each score requires `substitution` and `message` as strings, `age` as an integer or `null`, and `pdel` as a string or `null`
+
+### Requirement: Input errors reach the user
+
+When a job's work reports that its input can't be processed, by raising the engine's input error, the job SHALL end with status `failed`, a `null` `result`, and a problem-details `error` with status 422 whose `detail` is the input error's message. The job MUST NOT contain a traceback. Other jobs MUST be unaffected.
+
+#### Scenario: Unprocessable input
+
+- **WHEN** a job's work raises an input error with the message "Unknown organism."
+- **THEN** the job ends with status `failed`, a `null` `result`, and an `error` with status 422 and the `detail` "Unknown organism."
+
+#### Scenario: Other jobs keep running
+
+- **WHEN** one job's work raises an input error while another job runs
+- **THEN** the other job still ends with status `succeeded`
+
+### Requirement: cSNP job scores with the engine
+
+A valid `csnp` job request SHALL get status 202 and a job, whose work scores the input with the engine's cSNP scoring, with the sequence, substitutions and species as `scoring-input` normalised them. The job MUST succeed with the engine's family and scores, unchanged and in the order submitted. A substitution the engine doesn't score is a row of the result, not a failure.
+
+#### Scenario: A sample protein
+
+- **WHEN** a client submits a `csnp` job for the release sample's protein P26439, with the substitutions `A10E`, `G15D` and `S213G` and the species `HUMAN`, and polls it until it finishes
+- **THEN** the job has status `succeeded`, `family` `PTHR10366`, and the scores `A10E` 220 "possibly damaging" "0.50", `G15D` 4200 "probably damaging" "0.95" and `S213G` 91 "probably benign" "0.19", as spec §7.3 gives them
+
+#### Scenario: Every sample protein matches the goldens
+
+- **WHEN** a client submits a `csnp` job for each protein of the release sample, with its substitutions from `sample.input`, where `blastp` and the cSNP data sample are available
+- **THEN** each job succeeds with the family and the scores of its rows in spec §7.3
+
+#### Scenario: A substitution that isn't scored
+
+- **WHEN** a `csnp` job's substitutions include `M1V` for P26439
+- **THEN** the job succeeds, and that score has the message "Not scored: Invalid substitution", a `null` `age` and a `null` `pdel`
+
+#### Scenario: No family
+
+- **WHEN** a client submits a `csnp` job for P26439 with the species `PLAF7`
+- **THEN** the job succeeds with a `null` `family`, and each score has the message "Not scored: No PANTHER family for input sequence"
+
+#### Scenario: A sequence the engine can't read
+
+- **WHEN** a client submits a `csnp` job whose sequence is `1234567890`
+- **THEN** the job ends with status `failed`, a `null` `result`, and an `error` with status 422 whose `detail` says the sequence can't be read as a protein sequence
+
+#### Scenario: The data isn't there
+
+- **WHEN** the API runs without the cSNP data and a client submits a valid `csnp` job
+- **THEN** the job ends with status `failed` and an `error` with status 500 and the generic `detail`

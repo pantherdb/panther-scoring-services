@@ -134,4 +134,8 @@ Tag a spec with `test('...', { tag: '@api' }, async ({ page }) => { ... })`.
 
 ## Mocking in the Dev Server
 
-`npm run dev` starts MSW and logs `[MSW] Mocking enabled.` in the browser console. Mocked jobs live in the page, so reloading a job's page in mock mode shows "Job not found"; against a real API, the job is still there. To develop against a real API instead, run `npm run dev:api`. Which modes mock is set in the `.env.*` files in `frontend/` (`VITE_API_MOCKING=on` or `off`).
+`npm run dev` starts MSW and logs `[MSW] Mocking enabled.` in the browser console. Every page then shows a **Mock data** banner at the top, so a screenshot of mock results can't pass for real ones. Mocked jobs live in the page, so reloading a job's page in mock mode shows "Job not found"; against a real API, the job is still there. To develop against a real API instead, run `npm run dev:api`.
+
+- **Which modes mock** is set in the `.env.*` files in `frontend/` (`VITE_API_MOCKING=on` or `off`): `dev` and `build:e2e` mock; `dev:api` and `build` don't.
+- **One function reads it,** `isApiMocked()` in `src/app/mocking.ts`. Both MSW's start-up in `src/main.tsx` and the banner in `src/layout/AppLayout.tsx` ask it, so they can't disagree. In a Vitest test, turn it on with `vi.stubEnv('VITE_API_MOCKING', 'on')` and off again with `vi.unstubAllEnvs()` (see `tests/layout/AppLayout.test.tsx`).
+- **A build without mocking ships nothing of MSW:** its JavaScript leaves out MSW and the banner, and `vite.config.ts` removes `mockServiceWorker.js`, which Vite copies from `public/`, from its `dist/`. After `npm run build`, `grep -rli -e msw -e "mock data" dist` finds nothing.

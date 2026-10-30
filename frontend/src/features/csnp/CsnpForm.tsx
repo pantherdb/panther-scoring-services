@@ -47,7 +47,7 @@ export function CsnpForm() {
       />
       <Textarea
         label="Substitutions"
-        description="Such as L46P, separated by spaces or new lines. Positions count from 1 in this sequence."
+        description="Such as L46P, separated by spaces, commas or new lines. Positions count from 1 in this sequence."
         rows={4}
         resize="vertical"
         spellCheck={false}

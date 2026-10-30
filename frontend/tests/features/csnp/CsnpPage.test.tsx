@@ -107,6 +107,12 @@ describe('the cSNP form', () => {
     ])
     expect(speciesBox()).toHaveValue('HUMAN')
   })
+
+  it('says how to separate substitutions, commas included', () => {
+    renderRoute('/csnp')
+
+    expect(substitutionsBox()).toHaveAccessibleDescription(/spaces, commas or new lines/i)
+  })
 })
 
 describe('the client checks', () => {
@@ -137,6 +143,12 @@ describe('the client checks', () => {
       substitutionsBox,
       'L46P XYZ\nC130R G12|',
       /substitutions 2 \(XYZ\), 4 \(G12\|\)/i,
+    ],
+    [
+      'a semicolon, which does not separate substitutions',
+      substitutionsBox,
+      'L46P;C130R',
+      /substitution 1 \(L46P;C130R\)/i,
     ],
     ['lower case', speciesBox, 'human', /upper-case/i],
     ['too long', speciesBox, 'HOMOSAPIENS', /upper-case/i],
@@ -190,6 +202,25 @@ describe('submitting a cSNP request', () => {
       },
     ])
     expect(await main().findByRole('status')).toHaveTextContent(/queued/i)
+  })
+
+  it('sends comma-separated substitutions as separate ones, and opens the job', async () => {
+    const bodies = serveStart()
+    const { user, router } = renderRoute('/csnp')
+    await user.click(sequenceBox())
+    await user.paste(SEQUENCE)
+    await user.click(substitutionsBox())
+    await user.paste('L4P,c13r')
+
+    await user.click(submitButton())
+
+    await waitFor(() => expect(router.state.location.pathname).toMatch(JOB_PATH))
+    expect(bodies).toEqual([
+      {
+        service: 'csnp',
+        input: { sequence: SEQUENCE, substitutions: ['L4P', 'c13r'], species: 'HUMAN' },
+      },
+    ])
   })
 
   it('is disabled while the request is in flight', async () => {

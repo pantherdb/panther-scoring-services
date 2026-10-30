@@ -43,8 +43,10 @@ jobs:
         id: filter
         with:
           filters: |
+            # The API's schema too: the frontend's types are generated from it.
             frontend:
               - 'frontend/**'
+              - 'api/openapi.json'
               - '.nvmrc'
               - '.github/workflows/ci.yml'
             # The engine too, since the API imports it, and the image files: api-image builds them.
@@ -110,6 +112,10 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      # Fails when src/app/api/schema.d.ts doesn't match api/openapi.json. Fix: run
+      # `npm run api:types` in frontend/ and commit the result.
+      - name: API types are current (else run npm run api:types)
+        run: npm run api:types:check
       - run: npm run format:check
       - run: npm run lint
       - run: npm run type-check

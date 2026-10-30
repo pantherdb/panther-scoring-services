@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The web UI for PANTHER cSNP scoring: the app shell and pages through which users submit substitutions and read their scores.
+The web UI for PANTHER's scoring services (`hmmscore`, `refmap`, `csnp` and `treegrafter`): the app shell and pages through which users submit their input and read their results.
 
 ## Requirements
 

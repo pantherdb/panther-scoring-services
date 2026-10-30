@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-// Untagged: the shell makes no API calls, so this runs in every mode.
+// Untagged: these specs need nothing specific from the API, so they run in every mode.
 
 const BUILD_DETAILS = /localhost|127\.0\.0\.1|:\d{4,5}\b|VITE_|API_PROXY|npm |npx /
 

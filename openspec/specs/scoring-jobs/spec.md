@@ -1,6 +1,7 @@
 # scoring-jobs Specification
 
 ## Purpose
+
 The lifecycle of a scoring job in the API: submitting one with `POST /api/v1/jobs`, polling it with `GET /api/v1/jobs/{id}`, how jobs run in worker processes, how they fail and when they expire. Every scoring service runs through it.
 
 ## Requirements

@@ -8,11 +8,10 @@ import { useStartJobMutation } from '@/features/jobs'
 import { CSNP_FIELDS, type CsnpValues, type DraftAction, draftInput } from './draft'
 
 /**
- * Why the last submit didn't open a job, when it wasn't the input: `unavailable` is the
- * API's 501 until cSNP scoring is ported; `unreachable` is no answer from the API at all;
- * `failed` is anything else.
+ * Why the last submit didn't open a job, when it wasn't the input: `unreachable` is no
+ * answer from the API at all; `failed` is anything else.
  */
-export type SubmitProblem = 'unavailable' | 'unreachable' | 'failed' | null
+export type SubmitProblem = 'unreachable' | 'failed' | null
 
 function statusOf(error: unknown) {
   return typeof error === 'object' && error !== null && 'status' in error ? error.status : null
@@ -24,7 +23,7 @@ function dataOf(error: unknown) {
 
 /**
  * Starts a csnp job from the draft. A 202 opens the job's page; a 422's errors go to the
- * draft, on their fields; a 501 or any other failure is the returned `problem`.
+ * draft, on their fields; any other failure is the returned `problem`.
  */
 export function useSubmitCsnp(dispatch: Dispatch<DraftAction>) {
   const [startJob, { isLoading }] = useStartJobMutation()
@@ -46,10 +45,6 @@ export function useSubmitCsnp(dispatch: Dispatch<DraftAction>) {
           ...inputErrors(data, 'csnp', CSNP_FIELDS),
           sent: input.substitutions,
         })
-        return
-      }
-      if (status === 501) {
-        setProblem('unavailable')
         return
       }
       if (isUnreachable(error)) {

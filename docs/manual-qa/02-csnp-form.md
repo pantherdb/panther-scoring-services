@@ -1,10 +1,10 @@
 # 02: cSNP Form
 
-Checks the coding SNP scoring form: filling it, the checks it makes before sending, the results page, and what it says while the real API can't score cSNP yet. The first three test cases use mock data, because the API doesn't score cSNP yet; the last two use the real API. About 15 minutes.
+Checks the coding SNP scoring form: filling it, the checks it makes before sending, and the results page, first with mock data, then with real scores from the API. The first three test cases use mock data; the last two use the real API and the cSNP data sample. About 15 minutes.
 
 ## Before You Start
 
-You need Node `^22.22.2` or `>=24.15.0`, and for TC 2.4 and TC 2.5, Docker (with compose) and `curl`. Ports 8000 and 5173 must be free.
+You need Node `^22.22.2` or `>=24.15.0`, and for TC 2.4 and TC 2.5, Docker (with compose), `curl`, and the cSNP data sample in `.data/` at the repository root (157 MB, fetched once; see "The Data Sample" in `docs/testing/api.md`). Ports 8000 and 5173 must be free.
 
 For TC 2.1 to TC 2.3, start the website with mock data:
 
@@ -53,7 +53,7 @@ Then open `http://localhost:5173` in a browser.
 - [ ] The page shows **PANTHER family** `PTHR00000`.
 - [ ] A **Scores** table has four rows, in the order you typed: `L46P`, `C130R`, `R163C`, `R176C`, with columns **Substitution**, **Age (Mya)**, **Prediction or message** and **pDel**.
 - [ ] The `R176C` row reads "Not scored: Invalid substitution", with its age and pDel empty.
-- [ ] **Versions used** lists the API, the engine and the four tools, matching the footer.
+- [ ] **Versions used** lists the API, the engine, the four tools and **csnp data** `PANTHER 9`, matching the footer.
 - [ ] A dark banner at the very top says **Mock data**, and that nothing on the page comes from the scoring service. Scroll to the end of the page: the banner is still at the top of the window.
 - [ ] On a phone, or with the browser window narrowed to phone width, the page doesn't scroll sideways, every column is visible, and the banner's text wraps without being cut off.
 
@@ -62,7 +62,7 @@ Then open `http://localhost:5173` in a browser.
 
 ## Against the Real API
 
-Stop the mock website with Ctrl+C. From the repository root, start the API:
+Stop the mock website with Ctrl+C. If `.data/csnp/9/` isn't there yet, fetch the data sample, from `engine/`, with `uv run panther-engine csnp sample fetch --data-dir ../.data`. Then, from the repository root, start the API:
 
 ```sh
 docker compose up --build api
@@ -75,14 +75,20 @@ cd frontend
 npm run dev:api
 ```
 
-## TC 2.4 cSNP Scoring Isn't Available Yet
+## TC 2.4 Score a Protein With the Real API
+
+The data sample holds 15 PANTHER families. This test case uses a protein of one of them, P26439, from the PSEP release's sample, so its scores are real and known.
 
 - [ ] Open `http://localhost:5173/csnp`. There is no **Mock data** banner at the top of the page.
-- [ ] Click **Use an example**, then **Score substitutions**.
-- [ ] A message says cSNP scoring isn't available yet, and that your input is kept.
-- [ ] The address stays `/csnp`, and the sequence, the four substitutions and `HUMAN` are all still there.
-- [ ] The message shows no error code (such as 501), port number, file path or command.
-- [ ] Click **Score substitutions** again. The same message shows; nothing else changes.
+- [ ] Paste the second line of `engine/tests/golden/csnp/release/sample.fasta` (one line of residues starting `MGWSCLVTGA`) into **Protein sequence**. Type `A10E G15D S213G M1V` in **Substitutions**, and leave **Species** as `HUMAN`.
+- [ ] Click **Score substitutions**. A job page opens, and within about 10 seconds the status shows **Succeeded**, without a reload.
+- [ ] The page shows **PANTHER family** `PTHR10366`.
+- [ ] The **Scores** table has four rows, in this order: `A10E`, `220`, "possibly damaging", `0.50`; `G15D`, `4200`, "probably damaging", `0.95`; `S213G`, `91`, "probably benign", `0.19`; `M1V`, an empty age, "Not scored: Invalid substitution", an empty pDel.
+- [ ] **Versions used** lists the API, the engine, the four tools and **csnp data** `PANTHER 9`, matching the footer.
+- [ ] Reload the page. It shows the same job and scores.
+- [ ] Go back to `/csnp`, click **Use an example**, then **Score substitutions**. The example is human APOE, whose family isn't in the sample: the job succeeds with **PANTHER family** `PTHR18976`, and each of its four rows reads "Not scored: No PANTHER family for input sequence", with its age and pDel empty.
+- [ ] Go back to `/csnp`, type `1234567890` as the sequence, `A10E` as the substitution, and submit. The job page says the job failed, and that the sequence can't be read as a protein sequence. It shows no scores.
+- [ ] No page shows an error code, port number, file path or command.
 
 **Pass / Fail:**
 **Notes:**
@@ -91,7 +97,7 @@ npm run dev:api
 
 The form checks the same rules as the API, so a request the API would reject isn't sent from the form. This test case sends one directly. The end-to-end tests check that the form shows such an error on its field.
 
-- [ ] In a third terminal, send a request with an invalid species and no substitutions (the second command in `docs/testing/api.md`, "The cSNP Job: Validated, Not Scored Yet"):
+- [ ] In a third terminal, send a request with an invalid species and no substitutions (the command in `docs/testing/api.md`, "Requests That Are Refused"):
 
   ```sh
   curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
@@ -100,7 +106,8 @@ The form checks the same rules as the API, so a request the API would reject isn
 
 - [ ] The answer is `422`, with one error whose `loc` ends in `"substitutions"` and one whose `loc` ends in `"species"`.
 - [ ] The answer doesn't contain `human; id`.
-- [ ] Back in the browser, the form at `/csnp` still works: TC 2.4's message shows for the example.
+- [ ] Send it again with `"species": "ZZZZZ"`, the shape of a species code but not a species in the cSNP data. The answer is `422`, with an error whose `loc` ends in `"species"`, and it doesn't contain `ZZZZZ`.
+- [ ] Back in the browser, the form at `/csnp` still works: the example still opens a job page.
 
 **Pass / Fail:**
 **Notes:**

@@ -14,6 +14,7 @@ from datetime import timedelta
 from http import HTTPStatus
 
 from fastapi.concurrency import run_in_threadpool
+from panther_engine.core.errors import InputError
 
 from panther_api.jobs.store import JobRecord, JobStore
 from panther_api.jobs.work import JobRequest, run_job
@@ -26,8 +27,7 @@ UNEXPECTED_JOB_DETAIL = "The job hit an unexpected error and could not complete.
 WORKER_STOPPED_DETAIL = "The worker running the job stopped unexpectedly."
 
 
-def _job_problem(detail: str) -> Problem:
-    status = HTTPStatus.INTERNAL_SERVER_ERROR
+def _job_problem(detail: str, status: HTTPStatus = HTTPStatus.INTERNAL_SERVER_ERROR) -> Problem:
     return Problem(title=status.phrase, status=status, detail=detail)
 
 
@@ -73,6 +73,12 @@ class JobRunner:
                 logger.exception("A worker died running job %s", job.id)
                 job.fail(_job_problem(WORKER_STOPPED_DETAIL))
                 self._replace_pool(pool)
+            except InputError as error:
+                # The user's input, not a fault: the engine writes the message for the user, with
+                # no paths or tool output (engine-core, "Input errors"). Shown as given, and
+                # logged without a traceback.
+                logger.info("Job %s failed on its input: %s", job.id, error)
+                job.fail(_job_problem(str(error), HTTPStatus.UNPROCESSABLE_CONTENT))
             except Exception:
                 # As for a 500 (problems.py), nothing about the exception goes in the job. The
                 # log gets it, with the worker's traceback: concurrent.futures chains it as the

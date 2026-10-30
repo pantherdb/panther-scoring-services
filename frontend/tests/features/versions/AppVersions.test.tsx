@@ -18,6 +18,7 @@ const reported: Versions = {
     { name: 'hmmsearch', version: '3.4' },
     { name: 'epa-ng', version: '0.3.8' },
   ],
+  data: [{ service: 'csnp', panther: '9' }],
 }
 
 const BUILD_DETAILS = /localhost|:\d{4,5}\b|VITE_|API_PROXY|npm |npx |\/usr\/|\/opt\/|[A-Z]:\\/
@@ -47,8 +48,27 @@ describe('versions on every page', () => {
       ['hmmscan', '3.4'],
       ['hmmsearch', '3.4'],
       ['epa-ng', '0.3.8'],
+      ['csnp data', 'PANTHER 9'],
     ])
     expect(within(screen.getByRole('contentinfo')).queryByText(/loading/i)).not.toBeInTheDocument()
+  })
+
+  it("shows each service's data as the PANTHER release the API names", async () => {
+    reportVersions({
+      ...reported,
+      data: [
+        { service: 'csnp', panther: '10' },
+        { service: 'hmmscore', panther: '19' },
+      ],
+    })
+    renderRoute('/')
+
+    const shown = await shownVersions()
+    expect(shown.slice(-2)).toEqual([
+      ['csnp data', 'PANTHER 10'],
+      ['hmmscore data', 'PANTHER 19'],
+    ])
+    expect(shown).not.toContainEqual(['csnp data', 'PANTHER 9'])
   })
 
   it('shows a tool with a null version as not available, and the other tools', async () => {

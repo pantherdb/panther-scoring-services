@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 from panther_engine.core.tools import TOOLS, ToolReport
+from panther_engine.csnp import DATA_VERSION as CSNP_DATA_VERSION
 
 from panther_api.main import create_app
 from panther_api.versions import read_versions
@@ -46,6 +47,20 @@ def test_missing_and_unreadable_tools_are_null(monkeypatch: pytest.MonkeyPatch) 
     assert tools == {"blastp": None, "hmmscan": None}
 
 
+def test_read_versions_names_the_engines_csnp_data_version() -> None:
+    assert [(item.service, item.panther) for item in read_versions().data] == [
+        ("csnp", CSNP_DATA_VERSION)
+    ]
+    # The frozen PANTHER 9 data (CLAUDE.md), whatever the engine calls the constant.
+    assert CSNP_DATA_VERSION == "9"
+
+
+def test_the_data_version_doesnt_need_the_data(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PANTHER_DATA_DIR", raising=False)
+
+    assert read_versions().data[0].panther == "9"
+
+
 def test_read_versions_leaves_out_the_paths() -> None:
     assert FAKE_TOOLS_DIR not in read_versions().model_dump_json()
 
@@ -64,6 +79,7 @@ def test_versions_lists_every_tool(client: TestClient) -> None:
             {"name": "hmmsearch", "version": "3.4"},
             {"name": "epa-ng", "version": "0.3.8"},
         ],
+        "data": [{"service": "csnp", "panther": "9"}],
     }
 
 

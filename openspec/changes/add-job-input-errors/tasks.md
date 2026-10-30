@@ -17,8 +17,8 @@
 
 ## 2. API: Input Errors in Failed Jobs
 
-- [ ] 2.1 Once 1.1 is on the branch, in `jobs/runner.py`, catch `InputError` between `BrokenProcessPool` and `Exception`, and fail the job with `Problem(status=422, title="Unprocessable Content", detail=str(exc))`. Log it at `INFO` with the job id and message, without a traceback.
-- [ ] 2.2 Add tests in `api/tests/test_jobs.py`, with a module-level helper in `tests/job_helpers.py` that raises `InputError("Unknown organism.")` in a real worker:
+- [x] 2.1 Once 1.1 is on the branch, in `jobs/runner.py`, catch `InputError` between `BrokenProcessPool` and `Exception`, and fail the job with `Problem(status=422, title="Unprocessable Content", detail=str(exc))`. Log it at `INFO` with the job id and message, without a traceback.
+- [x] 2.2 Add tests in `api/tests/test_jobs.py`, with a module-level helper in `tests/job_helpers.py` that raises `InputError("Unknown organism.")` in a real worker:
   - the spec's "Unprocessable input" (the job is `failed`, `result` null, the `error` has status 422 and exactly that `detail`, and the body has no traceback);
   - "Other jobs keep running";
   - the existing "The work raises" test still passes unchanged.
@@ -26,11 +26,11 @@
   Verify:
   - `uv run python -m panther_api.openapi` leaves `api/openapi.json` unchanged (`git diff --exit-code api/openapi.json`);
   - `uv run ruff check`, `uv run ruff format --check`, `uv run basedpyright` and `uv run pytest` pass in `api/`.
-- [ ] 2.3 In `docs/testing/api.md`, under "Try the Jobs by Hand", show what a failed job looks like for an input error (422, the engine's message) and for an unexpected error (500, the generic detail). Verify `npx markdownlint-cli2` passes.
+- [x] 2.3 In `docs/testing/api.md`, under "Try the Jobs by Hand", show what a failed job looks like for an input error (422, the engine's message) and for an unexpected error (500, the generic detail). Verify `npx markdownlint-cli2` passes.
 
 ## 3. Final Check
 
-- [ ] 3.1 From a copy of the files git would commit:
+- [x] 3.1 From a copy of the files git would commit:
   - in `api/`: `uv sync --locked`, `ruff check`, `ruff format --check`, `basedpyright` and `pytest` pass;
   - from the root: `docker compose run --rm engine` passes, and the `api` image, built with `docker build --target api` and run with `docker run -p 8001:8000`, still runs a `tools` job to `succeeded` (leave the compose project and port 8000 alone: a developer's API may be running there);
   - `npx markdownlint-cli2` and `npx openspec validate --all --no-interactive` pass.
@@ -46,11 +46,11 @@
 
 ### Next action
 
-The artifacts are in #17, for the engine developer's review. Group 1 arrives with the `csnp` port (engine developer); then group 2.
+Every task is done. Groups 2 and 3 landed with `wire-csnp-scoring`, which adds the `csnp` job (2026-10-30). Archive this change before that one.
 
 ### Blockers
 
-- Group 2 needs `InputError` from group 1, which comes with the `csnp` port.
+None.
 
 ### Failed approaches
 
@@ -59,4 +59,5 @@ None yet.
 ### Lessons learned
 
 - **The engine developer's answers (2026-10-29).** `InputError` keeps its proposed name and module, and arrives with the `csnp` port. In `csnp`, "no family hit" and "invalid substitution" are per-substitution results, not input errors, so the example message in the spec and tasks is now "Unknown organism.", as in the `engine-core` scenario. A broken data file stays a generic failure.
+- **Groups 2 and 3 (`wire-csnp-scoring`, 2026-10-30).** The tests are in `api/tests/test_jobs.py`, with `raise_input_error` and `input_error_for_csnp` in `tests/job_helpers.py`. `api/openapi.json` changed in that change, for its own reasons, not for this one. Task 3.1's `docker compose run --rm engine` was run as the same `docker run` of the `engine` image, with the same mounts and environment, to leave the developer's compose project alone. The `INFO` log line doesn't reach `docker logs`: uvicorn configures only its own loggers.
 - **Subclasses across processes (engine developer's review on #17, 2026-10-30).** Unpickling an exception calls `cls(*exc.args)`, so a subclass with its own constructor came back garbled, or broke the pool and every running job. The design had called that failure "the safe direction"; it wasn't. The base class now defines `__reduce__`, and task 1.1 tests a subclass through a real worker.

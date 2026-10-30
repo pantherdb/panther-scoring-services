@@ -46,7 +46,8 @@ class ToolsJob(BaseModel):
 class CsnpJob(BaseModel):
     """A `csnp` job, with the same fields as every job. `result` is its PANTHER-PSEP scores.
 
-    Until the engine's cSNP scoring is wired in, no `csnp` job is created: the request gets a 501.
+    It fails with a 422 `error` when the engine can't read the sequence, and with the generic 500
+    otherwise.
     """
 
     id: UUID

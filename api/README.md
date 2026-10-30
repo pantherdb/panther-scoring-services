@@ -26,16 +26,19 @@ Everything is under `/api/v1`. The current, complete list is the schema in [`ope
 | Path | What it returns |
 | ---- | --------------- |
 | `GET /api/v1/health` | `{"status": "ok"}` while the process can serve requests |
-| `GET /api/v1/versions` | The API, engine and external tool versions, read once at startup |
+| `GET /api/v1/versions` | The API, engine, external tool and data versions, read once at startup |
 | `POST /api/v1/jobs` | Starts a job (`{"service": ..., "input": {...}}`). Returns `202`, the job, and its path in `Location` |
 | `GET /api/v1/jobs/{job_id}` | The job: `queued`, `running`, `succeeded` with its `result`, or `failed` with an `error` |
 | `/api/v1/docs`, `/api/v1/openapi.json` | The interactive docs and the schema |
 
 Every error is an RFC 9457 problem-details body (`application/problem+json`).
 
-Jobs run in a pool of worker processes and are kept in memory, so a restart loses them. Until the first scoring service is ported, the only job is the built-in `tools` job, which reports the external tools' versions from a worker. To try it, see "Try the Jobs by Hand" in [docs/testing/api.md](../docs/testing/api.md). The settings (`PANTHER_API_*`) are listed there too.
+Jobs run in a pool of worker processes and are kept in memory, so a restart loses them. There are two:
 
-The `csnp` job (`{"sequence", "substitutions", "species"}`) has its contract and its input validation, but until the engine's cSNP scoring is ported, a valid request gets `501` and no job is created.
+- **`csnp`** (`{"sequence", "substitutions", "species"}`) scores coding SNPs in one protein with the engine's PANTHER-PSEP port. It needs `blastp` and the cSNP data, in the folder `PANTHER_DATA_DIR` names; the compose `api` service mounts `.data/` there. A sequence the engine can't read fails the job with a `422` and the engine's message; any other error fails it with a generic `500`.
+- **`tools`**, built in, reports the external tools' versions from a worker.
+
+To try them, and to get the data sample, see "Try the Jobs by Hand" in [docs/testing/api.md](../docs/testing/api.md). The settings (`PANTHER_API_*`) are listed there too. `GET /api/v1/versions` and every job also name the PANTHER release each service's data comes from: PANTHER 9 for `csnp`.
 
 ## Layout
 
@@ -52,7 +55,8 @@ src/panther_api/
   openapi.py     writes openapi.json: uv run python -m panther_api.openapi
   routers/       one module per area; each is one include_router line in create_app()
 tests/           pytest with FastAPI's TestClient; conftest.py fakes the engine's tool report,
-                 and job_helpers.py the work that runs in the workers
+                 and job_helpers.py the work that runs in the workers. test_csnp_scoring.py
+                 runs real csnp jobs where blastp and the data sample are there (markers.py)
 openapi.json     the committed schema; a test fails when it's out of date
 ```
 

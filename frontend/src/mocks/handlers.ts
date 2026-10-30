@@ -14,8 +14,8 @@ export const handlers: AnyHandler[] = [
     const body: unknown = await request.json()
     const service =
       typeof body === 'object' && body !== null && 'service' in body ? body.service : undefined
-    // A csnp job is accepted as the API will accept it once scoring is ported; the
-    // real API's 501 is served by the tests that need it. Neither input is validated.
+    // A csnp job is accepted as the API accepts it, and gets the mock result. Neither
+    // input is validated.
     if (service !== 'tools' && service !== 'csnp') {
       return HttpResponse.json(
         {

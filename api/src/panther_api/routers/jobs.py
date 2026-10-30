@@ -11,8 +11,7 @@ from fastapi import APIRouter, Body, HTTPException, Request, Response, status
 from panther_api.jobs.models import JOB_ADAPTER, Job
 from panther_api.jobs.runner import JobRunner
 from panther_api.jobs.store import JobRecord
-from panther_api.jobs.work import CSNP_UNAVAILABLE, CsnpJobRequest, JobRequest
-from panther_api.problems import Problem
+from panther_api.jobs.work import JobRequest
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -27,12 +26,6 @@ _CREATE_RESPONSES: dict[int | str, dict[str, Any]] = {
                 "schema": {"type": "string"},
             }
         },
-    },
-    # Removed when the engine's cSNP scoring is wired in.
-    status.HTTP_501_NOT_IMPLEMENTED: {
-        "model": Problem,
-        "description": "The service can't run jobs yet: `csnp`, until its scoring is ported. "
-        "The request was valid, and no job was created.",
     },
 }
 
@@ -65,11 +58,9 @@ async def create_job(
 ) -> Job:
     """Start a job for `service` with its `input`. The job runs after this request returns.
 
-    A valid `csnp` request gets a 501 until cSNP scoring is available; its input is still
-    validated first.
+    An input the job can't run with is a 422, and no job is created. A problem only the work can
+    find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`.
     """
-    if isinstance(job_request, CsnpJobRequest):
-        raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, detail=CSNP_UNAVAILABLE)
     record = _runner(request).submit(job_request)
     response.headers["Location"] = request.app.url_path_for("get_job", job_id=str(record.id))
     return _job(record)

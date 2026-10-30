@@ -4,9 +4,20 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 from job_helpers import report_fake_tools
+from markers import fail_if_missing, skip_if_missing
 from panther_engine.core.tools import ToolReport
 
 from panther_api.main import create_app
+
+
+def pytest_runtest_setup(item: pytest.Item) -> None:
+    skip_if_missing(item)
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_runtest_call(item: pytest.Item) -> None:
+    fail_if_missing(item)
+
 
 # Every tool found, in the engine's order, at made-up paths that no response may contain.
 FAKE_REPORTS = (

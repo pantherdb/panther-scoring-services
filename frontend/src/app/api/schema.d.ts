@@ -57,8 +57,8 @@ export interface paths {
          * Start a job
          * @description Start a job for `service` with its `input`. The job runs after this request returns.
          *
-         *     A valid `csnp` request gets a 501 until cSNP scoring is available; its input is still
-         *     validated first.
+         *     An input the job can't run with is a 422, and no job is created. A problem only the work can
+         *     find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`.
          */
         post: operations["create_job_api_v1_jobs_post"];
         delete?: never;
@@ -100,7 +100,7 @@ export interface components {
          *     as `L46P`, positions counted from 1 in this sequence; each is upper-cased and must be a
          *     residue letter, a position and a residue letter. One that can't be mapped onto the sequence,
          *     such as a wrong wild-type residue, is reported in the result, not rejected. `species` is a
-         *     PANTHER species code such as `HUMAN`.
+         *     PANTHER species code such as `HUMAN`, one of the species in cSNP's data.
          */
         CsnpInput: {
             /** Sequence */
@@ -114,7 +114,8 @@ export interface components {
          * CsnpJob
          * @description A `csnp` job, with the same fields as every job. `result` is its PANTHER-PSEP scores.
          *
-         *     Until the engine's cSNP scoring is wired in, no `csnp` job is created: the request gets a 501.
+         *     It fails with a 422 `error` when the engine can't read the sequence, and with the generic 500
+         *     otherwise.
          */
         CsnpJob: {
             /**
@@ -144,8 +145,6 @@ export interface components {
         /**
          * CsnpJobRequest
          * @description Start a `csnp` job: score substitutions in one protein with PANTHER-PSEP.
-         *
-         *     Until the engine's cSNP scoring is wired in, a valid request gets a 501, and no job.
          */
         CsnpJobRequest: {
             /**
@@ -164,6 +163,17 @@ export interface components {
             family: string | null;
             /** Scores */
             scores: components["schemas"]["SubstitutionScore"][];
+        };
+        /**
+         * DataVersion
+         * @description The PANTHER release whose data a scoring service reads, such as "9" for cSNP's frozen
+         *     PANTHER 9 data. It names the release the engine reads, not whether the data is installed.
+         */
+        DataVersion: {
+            /** Service */
+            service: string;
+            /** Panther */
+            panther: string;
         };
         /** Health */
         Health: {
@@ -284,7 +294,7 @@ export interface components {
         };
         /**
          * Versions
-         * @description The API, engine and tool versions. Never includes where a tool was found.
+         * @description The API, engine, tool and data versions. Never includes where a tool or data was found.
          */
         Versions: {
             /** Api */
@@ -293,6 +303,8 @@ export interface components {
             engine: string;
             /** Tools */
             tools: components["schemas"]["ToolVersion"][];
+            /** Data */
+            data: components["schemas"]["DataVersion"][];
         };
         /**
          * FieldError
@@ -445,15 +457,6 @@ export interface operations {
             };
             /** @description Unexpected error */
             500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description The service can't run jobs yet: `csnp`, until its scoring is ported. The request was valid, and no job was created. */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -198,8 +198,22 @@ def test_the_csnp_result_in_the_schema(client: TestClient) -> None:
     }
 
 
-def test_the_csnp_501_is_documented(client: TestClient) -> None:
+def test_submitting_documents_no_501(client: TestClient) -> None:
     responses = served_schema(client)["paths"]["/api/v1/jobs"]["post"]["responses"]
 
-    assert list(responses["501"]["content"]) == [PROBLEM]
-    assert responses["501"]["content"][PROBLEM]["schema"] == {"$ref": f"{SCHEMAS}Problem"}
+    assert "501" not in responses
+
+
+def test_the_versions_name_each_services_data(client: TestClient) -> None:
+    schema = served_schema(client)
+    components = schema["components"]["schemas"]
+
+    assert "data" in components["Versions"]["required"]
+    assert components["Versions"]["properties"]["data"]["items"] == {
+        "$ref": f"{SCHEMAS}DataVersion"
+    }
+    assert sorted(components["DataVersion"]["required"]) == ["panther", "service"]
+    assert properties(schema, "DataVersion") == {
+        "service": {"type": "string"},
+        "panther": {"type": "string"},
+    }

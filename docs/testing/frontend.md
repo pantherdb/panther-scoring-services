@@ -61,7 +61,8 @@ Tests live in `tests/`, mirroring `src/`. Vitest collects only `tests/**/*.test.
 - **Mocked jobs move forward one status per poll.** `POST /api/v1/jobs` creates a `queued` job of the requested service, `tools` or `csnp`; each `GET /api/v1/jobs/{id}` then answers `queued`, `running`, then `succeeded`. An id the mock didn't create gets a 404. Create one without the UI with `createJob()` (a `tools` job) or `createJob('csnp')` from `src/mocks/jobs.ts`. `tests/setup.ts` forgets every mocked job after each test.
 - **A mocked `csnp` job succeeds with mock data,** `csnpResult` in `src/mocks/data/jobs.ts`: family `PTHR00000`, made-up ages, messages and pDel values, and a "Not scored" row. No engine produced it. The mocked `POST` doesn't validate a `csnp` input.
 - **To show a job in another state,** such as `failed`, a 404 or a 500, override `GET /api/v1/jobs/:id` with `server.use(...)`. `src/mocks/data/jobs.ts` builds a job body in any status: `toolsJob(id, status)` or `csnpJob(id, status)`.
-- **The real API answers a valid `csnp` request with `501`** until cSNP scoring is ported, but the mock accepts it, so mock mode can show results. To test the `501`, or a `422` with field errors, override `POST /api/v1/jobs` with `server.use(...)`; `csnpUnavailable` in `src/mocks/data/jobs.ts` is the API's `501` body. See `tests/features/csnp/CsnpPage.test.tsx`.
+- **To test a `422` with field errors, or another failure to start a job,** override `POST /api/v1/jobs` with `server.use(...)`. See `tests/features/csnp/CsnpPage.test.tsx`.
+- **The mocked versions name cSNP's data, PANTHER 9,** as the real API does (`data` in `src/mocks/data/versions.ts`). The UI shows what the API reports and never writes the release itself.
 - **The job page polls once a second,** with real timers. A test that waits for a status change raises its `findBy*` or `waitFor` timeout to a few seconds (see `tests/features/jobs/JobPage.test.tsx`).
 - **MSW 3 renamed `onUnhandledRequest` to `onUnhandledFrame`.** The behaviour is the same, but examples written for MSW 2 won't type-check. `tests/setup.ts` uses `onUnhandledFrame: 'error'`.
 - **To render a page**, use `renderRoute(path)` from `tests/utils/render.tsx`. It wraps the page in the same store, theme and routes as the app.
@@ -102,6 +103,7 @@ Each run prints its mode and target first, for example `[e2e] mode: api, target:
 - **Port 4173 must be free** in mock and api modes. Playwright never reuses a running server, because it could be a build for the other mode.
 - **Point the api mode at another API** by setting `API_PROXY_TARGET`. It also works for `npm run dev:api` and `npm run preview`.
 - **Site mode needs `E2E_BASE_URL`** and fails without it.
+- **Api mode needs the cSNP data sample** in the API's data folder. One `@api` spec scores a real `csnp` job, so the API needs `blastp`, which only its image has, and the sample: with `docker compose up --build api`, fetch it into `.data/` first ([api.md](api.md#the-data-sample)). Without it, that spec's job fails and the spec with it.
 
 Setting the variables, in bash and in PowerShell:
 
@@ -130,7 +132,8 @@ Tags choose which specs run in which mode:
 Tag a spec with `test('...', { tag: '@api' }, async ({ page }) => { ... })`.
 
 - **Site mode can point at a shared deployment.** Before tagging a spec `@api`, check it's safe to run there: for example, that submitting jobs to that site is acceptable.
-- **The `@api` cSNP tests expect the API's `501`,** and create no job. They fail once cSNP scoring is ported, on purpose: the change that removes the `501` replaces them. One of them rewrites the request in flight with `page.route`, so the real API's `422` reaches the form; the form's own checks would otherwise stop the request.
+- **One `@api` cSNP spec creates a real `csnp` job,** in site mode too. It submits the release sample's first protein, P26439, with three substitutions, and checks the scores the legacy service gave them. It doesn't use the form's example, human APOE: its family, `PTHR18976`, isn't among the data sample's 15, so against the sample every substitution would be "Not scored: No PANTHER family for input sequence".
+- **The other `@api` cSNP specs create no job:** the API answers each with a `422`. One of them rewrites the request in flight with `page.route`, so the real API's `422` reaches the form; the form's own checks would otherwise stop the request.
 
 ## Mocking in the Dev Server
 

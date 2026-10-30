@@ -39,11 +39,13 @@ async function expectJobVersionsShown(page: Page, versions: Versions) {
     'API',
     'Engine',
     ...versions.tools.map(tool => tool.name),
+    ...versions.data.map(data => `${data.service} data`),
   ])
   await expect(main.getByRole('definition')).toHaveText([
     versions.api,
     versions.engine,
     ...versions.tools.map(tool => tool.version ?? /not available/i),
+    ...versions.data.map(data => `PANTHER ${data.panther}`),
   ])
 }
 

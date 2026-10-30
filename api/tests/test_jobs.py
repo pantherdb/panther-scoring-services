@@ -1,3 +1,4 @@
+import logging
 import pickle
 import time
 from collections.abc import Iterator
@@ -6,24 +7,35 @@ from pathlib import Path
 from typing import Any, cast
 from uuid import UUID, uuid4
 
+import panther_engine.csnp as engine_csnp
 import pytest
 from clock import Clock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from job_helpers import (
+    FAKE_AGE,
+    FAKE_FAMILY,
+    FAKE_MESSAGE,
+    FAKE_PDEL,
     FAKE_RESULT,
     GATE_VARIABLE,
+    INPUT_ERROR_MESSAGE,
     INTERNAL_PATH,
     exit_worker,
     fail,
+    fake_score,
+    input_error_for_csnp,
+    raise_input_error,
     report_fake_tools,
+    score_with_a_fake_engine,
     wait_for_gate,
 )
+from panther_engine.core.errors import InputError
 from panther_engine.core.tools import ToolReport
 from pydantic import ValidationError
 
-from panther_api.jobs.csnp import CsnpInput
-from panther_api.jobs.runner import WORKER_STOPPED_DETAIL, JobRunner
+from panther_api.jobs.csnp import CsnpInput, CsnpResult, SubstitutionScore, run_csnp
+from panther_api.jobs.runner import UNEXPECTED_JOB_DETAIL, WORKER_STOPPED_DETAIL, JobRunner
 from panther_api.jobs.tools import ToolsInput, run_tools
 from panther_api.jobs.work import CsnpJobRequest, ToolsJobRequest, run_job
 from panther_api.main import create_app
@@ -293,6 +305,59 @@ def test_a_failed_job_leaves_the_next_one_alone(
     assert succeeded["status"] == "succeeded"
 
 
+# Input errors: the engine's InputError, raised in a real worker.
+
+
+def test_an_input_error_fails_the_job_with_a_422_and_its_message(
+    monkeypatch: pytest.MonkeyPatch, client: TestClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", raise_input_error)
+    caplog.set_level(logging.INFO, logger="panther_api.jobs.runner")
+
+    job = poll(client, submit(client)["id"])[-1]
+
+    assert job["status"] == "failed"
+    assert job["result"] is None
+    assert job["error"] == {
+        "type": "about:blank",
+        "title": "Unprocessable Content",
+        "status": 422,
+        "detail": INPUT_ERROR_MESSAGE,
+    }
+    assert "Traceback" not in str(job)
+    assert "InputError" not in str(job)
+    [record] = [record for record in caplog.records if job["id"] in record.getMessage()]
+    assert record.levelno == logging.INFO
+    assert INPUT_ERROR_MESSAGE in record.getMessage()
+    assert record.exc_info is None
+
+
+def test_other_jobs_keep_running_after_an_input_error(
+    monkeypatch: pytest.MonkeyPatch, gate: Path, client: TestClient
+) -> None:
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", input_error_for_csnp)
+    running = submit(client)
+    poll(client, running["id"], until=("running",))
+
+    failed = poll(client, submit(client, csnp_job())["id"])[-1]
+    gate.touch()
+    succeeded = poll(client, running["id"])[-1]
+
+    assert (failed["status"], failed["error"]["status"]) == ("failed", 422)
+    assert succeeded["status"] == "succeeded"
+
+
+def test_any_other_error_is_still_the_generic_500(
+    monkeypatch: pytest.MonkeyPatch, client: TestClient
+) -> None:
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", fail)
+
+    job = poll(client, submit(client)["id"])[-1]
+
+    assert job["error"]["status"] == 500
+    assert job["error"]["detail"] == UNEXPECTED_JOB_DETAIL
+
+
 def test_a_dead_worker_fails_its_job_and_later_jobs_run(
     monkeypatch: pytest.MonkeyPatch, client: TestClient
 ) -> None:
@@ -359,7 +424,7 @@ def test_an_invalid_setting_stops_the_app(monkeypatch: pytest.MonkeyPatch) -> No
         pass
 
 
-# The csnp job: validated at submit, then 501 until the engine's scoring is wired in.
+# The csnp job: validated at submit, then scored in a worker by the engine.
 
 CSNP_INPUT: dict[str, object] = {
     "sequence": "MKVLWAALLV",
@@ -427,32 +492,102 @@ def test_a_field_the_csnp_input_doesnt_take_is_a_422(client: TestClient) -> None
     assert_rejected(client, csnp_job(organism="XYZZY"), [[*CSNP_LOC, "organism"]])
 
 
-def test_a_valid_csnp_request_is_a_501_and_creates_no_job(client: TestClient) -> None:
-    response = client.post("/api/v1/jobs", json=csnp_job())
-
-    assert response.status_code == 501
-    assert response.headers["content-type"] == PROBLEM
-    assert "location" not in response.headers
-    assert response.json() == {
-        "type": "about:blank",
-        "title": "Not Implemented",
-        "status": 501,
-        "detail": "cSNP scoring isn't available yet.",
-    }
-    assert len(runner(client).store) == 0
+def test_a_species_the_engine_doesnt_score_is_a_422_without_the_value(
+    client: TestClient,
+) -> None:
+    # The shape of a species code, but not a species in cSNP's data.
+    assert_rejected(client, csnp_job(species="XYZZY"), [[*CSNP_LOC, "species"]])
 
 
-def test_tools_jobs_still_run_after_a_501(client: TestClient) -> None:
-    assert client.post("/api/v1/jobs", json=csnp_job()).status_code == 501
+def test_run_csnp_converts_to_and_from_the_engine(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[engine_csnp.CsnpInput] = []
 
-    job = poll(client, submit(client)["id"])[-1]
+    def score(
+        request: engine_csnp.CsnpInput, *, data_dir: Path | str | None = None
+    ) -> engine_csnp.CsnpResult:
+        seen.append(request)
+        return engine_csnp.CsnpResult(
+            "PTHR10366",
+            (
+                engine_csnp.SubstitutionScore("A10E", 220, "possibly damaging", "0.50"),
+                engine_csnp.SubstitutionScore(
+                    "M1V", None, "Not scored: Invalid substitution", None
+                ),
+            ),
+        )
 
-    assert job["status"] == "succeeded"
-    assert len(runner(client).store) == 1
+    monkeypatch.setattr("panther_engine.csnp.score", score)
+    request = CsnpInput.model_validate(
+        {"sequence": ">sp|P26439\nmgws\nclvt", "substitutions": ["a10e", "M1V"], "species": "HUMAN"}
+    )
+
+    result = run_csnp(request)
+
+    assert seen == [engine_csnp.CsnpInput("MGWSCLVT", ("A10E", "M1V"), "HUMAN")]
+    assert result == CsnpResult(
+        family="PTHR10366",
+        scores=[
+            SubstitutionScore(
+                substitution="A10E", age=220, message="possibly damaging", pdel="0.50"
+            ),
+            SubstitutionScore(
+                substitution="M1V", age=None, message="Not scored: Invalid substitution", pdel=None
+            ),
+        ],
+    )
 
 
-def test_run_job_refuses_a_csnp_request() -> None:
+def test_run_csnp_keeps_a_null_family(monkeypatch: pytest.MonkeyPatch) -> None:
+    no_hit = engine_csnp.SubstitutionScore(
+        "A10E", None, "Not scored: No PANTHER family for input sequence", None
+    )
+
+    def score(_request: engine_csnp.CsnpInput, **_options: object) -> engine_csnp.CsnpResult:
+        return engine_csnp.CsnpResult(None, (no_hit,))
+
+    monkeypatch.setattr("panther_engine.csnp.score", score)
+
+    result = run_csnp(CsnpInput.model_validate(CSNP_INPUT))
+
+    assert result.family is None
+    assert result.scores[0].message == no_hit.message
+
+
+def test_run_csnp_passes_the_engines_errors_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    def score(_request: engine_csnp.CsnpInput, **_options: object) -> engine_csnp.CsnpResult:
+        raise InputError("The sequence can't be read.")
+
+    monkeypatch.setattr("panther_engine.csnp.score", score)
+
+    with pytest.raises(InputError):
+        run_csnp(CsnpInput.model_validate(CSNP_INPUT))
+
+
+def test_run_job_runs_the_csnp_job(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("panther_engine.csnp.score", fake_score)
     request = CsnpJobRequest(service="csnp", input=CsnpInput.model_validate(CSNP_INPUT))
 
-    with pytest.raises(NotImplementedError):
-        run_job(request)
+    assert run_job(request) == run_csnp(request.input)
+
+
+def test_a_csnp_job_succeeds_with_the_engines_scores(
+    monkeypatch: pytest.MonkeyPatch, client: TestClient
+) -> None:
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", score_with_a_fake_engine)
+    body = csnp_job(substitutions=["l4p", "W5R"])
+
+    response = client.post("/api/v1/jobs", json=body)
+    assert response.status_code == 202
+    assert response.json()["service"] == "csnp"
+    job = poll(client, response.json()["id"])[-1]
+
+    assert job["status"] == "succeeded"
+    assert job["error"] is None
+    assert job["result"] == {
+        "family": FAKE_FAMILY,
+        "scores": [
+            {"substitution": token, "age": FAKE_AGE, "message": FAKE_MESSAGE, "pdel": FAKE_PDEL}
+            for token in ["L4P", "W5R"]
+        ],
+    }
+    assert job["versions"] == client.get("/api/v1/versions").json()

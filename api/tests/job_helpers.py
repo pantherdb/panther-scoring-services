@@ -11,8 +11,11 @@ import os
 import time
 from pathlib import Path
 
+import panther_engine.csnp
+from panther_engine.core.errors import InputError
+
 from panther_api.jobs.tools import ToolsResult
-from panther_api.jobs.work import JobRequest
+from panther_api.jobs.work import CsnpJobRequest, JobRequest, JobResult, run_job
 from panther_api.versions import ToolVersion
 
 # The fake tool versions, as conftest's FAKE_REPORTS gives them.
@@ -55,3 +58,47 @@ def wait_for_gate(_request: JobRequest) -> ToolsResult:
             raise TimeoutError("the test never opened the gate")
         time.sleep(0.02)
     return FAKE_RESULT
+
+
+INPUT_ERROR_MESSAGE = "Unknown organism."
+
+
+def raise_input_error(_request: JobRequest) -> ToolsResult:
+    """Report the input as unprocessable, as an engine service does: across the process boundary,
+    so the test covers how the error is pickled as well as how the runner handles it."""
+    raise InputError(INPUT_ERROR_MESSAGE)
+
+
+def input_error_for_csnp(request: JobRequest) -> ToolsResult:
+    """A `csnp` job raises the input error; any other job waits for the gate, then succeeds."""
+    if isinstance(request, CsnpJobRequest):
+        raise InputError(INPUT_ERROR_MESSAGE)
+    return wait_for_gate(request)
+
+
+# Each substitution's score from fake_score(): the fields after the token.
+FAKE_FAMILY = "PTHR10366"
+FAKE_AGE = 220
+FAKE_MESSAGE = "possibly damaging"
+FAKE_PDEL = "0.50"
+
+
+def fake_score(
+    request: panther_engine.csnp.CsnpInput, *, data_dir: Path | str | None = None
+) -> panther_engine.csnp.CsnpResult:
+    """The engine's `score()` without BLAST+ or data: the same score for each substitution, in
+    order."""
+    del data_dir
+    return panther_engine.csnp.CsnpResult(
+        FAKE_FAMILY,
+        tuple(
+            panther_engine.csnp.SubstitutionScore(token, FAKE_AGE, FAKE_MESSAGE, FAKE_PDEL)
+            for token in request.substitutions
+        ),
+    )
+
+
+def score_with_a_fake_engine(request: JobRequest) -> JobResult:
+    """The real `run_job`, in a worker, with the engine's `score()` replaced by fake_score()."""
+    panther_engine.csnp.score = fake_score
+    return run_job(request)

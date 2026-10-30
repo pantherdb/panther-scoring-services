@@ -60,6 +60,6 @@ Each needs team verification.
 
 - **A species list from the API.** The form takes a typed species code checked only for its shape. When the engine exports its species list (`add-csnp-job`, Open Questions), the API should publish it, and the form should become a selector. Who adds the endpoint, and when?
 - **Commas between substitutions.** The old site separated substitutions only by whitespace, so `L46P,C130R` is one token, and now a rejected one: the form names it and asks for the `L46P` form. Should the form split at commas too, as users may expect? That would accept input the old site didn't.
-- **`scoring-input`'s text.** Its "Tokens that aren't substitutions are kept" scenario becomes a rejection with PR #19's rule change. This change's checks follow the new rule; the `scoring-input` spec itself is PR #19's to update.
+- **`scoring-input`'s text** *(answered)*. PR #19 changed the scenario to "Tokens that aren't substitutions are rejected" before merging, and `openspec/specs/scoring-input/spec.md` now says so. This change's checks follow it.
 - **The PANTHER 9 note.** The old form said the cSNP tool uses PANTHER 9.0 data. The new UI shows only the versions the API reports, and those don't name the data version yet. Should the API report the PANTHER library version, as `frontend/CLAUDE.md` expects?
 - **What the `501` page should offer.** It keeps the input and says scoring isn't available yet. Should it also point to the downloadable PANTHER-PSEP tool, as the old form did for large inputs?

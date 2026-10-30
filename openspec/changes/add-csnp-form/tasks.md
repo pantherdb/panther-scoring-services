@@ -56,7 +56,7 @@ Test-first: each group writes its tests from the spec scenarios, runs them and s
 
 ### Next action
 
-Every task is done (2026-10-30) and committed locally on the agent's branch, based on `origin/feat/csnp-job` at `9b34dbe`. Next: put the commit on top of PR #19's updated branch (with the API's substitution rule), rerun the api-mode e2e run there (Workflow follow-up), and open the pull request after PR #19 merges.
+Every task is done (2026-10-30). PR #19 merged, and the commit was put on top of `main` at `fa87c1e`, which has the API's substitution rule. There, every frontend check passes: `api:types:check`, format, lint, type-check, build, 140 Vitest tests, and 18 mock-mode e2e. The api-mode e2e passes (22) against `docker compose up --build api` built from that `main`. Next: the pull request and its review.
 
 ### Blockers
 

@@ -1,10 +1,13 @@
-import type { Versions } from './versionsApi'
+import type { components } from '@/app/api/schema'
+
+type Versions = components['schemas']['Versions']
 
 type Props = {
   versions: Versions
 }
 
-// The API, the engine, then each tool in the order the API reports them.
+// The API, the engine, then each tool in the order the API reports them. Shared by
+// the footer (what the service runs now) and the job page (what a job ran with).
 export function VersionList({ versions }: Props) {
   const entries = [
     { label: 'API', version: versions.api },

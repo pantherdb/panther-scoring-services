@@ -11,7 +11,7 @@ describe('AppLayout', () => {
   it('shows the app title as the top-level heading', () => {
     renderRoute('/', { routes })
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('PANTHER cSNP Scoring')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^PANTHER Scoring$/)
   })
 
   it('renders the page inside the main region', () => {

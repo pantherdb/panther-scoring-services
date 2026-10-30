@@ -14,7 +14,10 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 
 from panther_api.jobs.csnp import CsnpInput, CsnpResult, run_csnp
+from panther_api.jobs.refmap import RefmapInput, RefmapResult
 from panther_api.jobs.tools import ToolsInput, ToolsResult, run_tools
+
+REFMAP_UNAVAILABLE = "refmap ID mapping isn't available yet."
 
 
 class ToolsJobRequest(BaseModel):
@@ -31,11 +34,23 @@ class CsnpJobRequest(BaseModel):
     input: CsnpInput
 
 
+class RefmapJobRequest(BaseModel):
+    """Start a `refmap` job: map protein IDs to PANTHER IDs for one organism.
+
+    Until the engine's refmap mapping is wired in, a valid request gets a 501, and no job.
+    """
+
+    service: Literal["refmap"]
+    input: RefmapInput
+
+
 # Tagged by `service`, so the schema is a `oneOf` with a discriminator, and each service adds a
 # member.
-JobRequest = Annotated[ToolsJobRequest | CsnpJobRequest, Field(discriminator="service")]
+JobRequest = Annotated[
+    ToolsJobRequest | CsnpJobRequest | RefmapJobRequest, Field(discriminator="service")
+]
 
-JobResult = ToolsResult | CsnpResult
+JobResult = ToolsResult | CsnpResult | RefmapResult
 
 
 def run_job(request: JobRequest) -> JobResult:
@@ -45,3 +60,7 @@ def run_job(request: JobRequest) -> JobResult:
             return run_tools(request.input)
         case CsnpJobRequest():
             return run_csnp(request.input)
+        case RefmapJobRequest():
+            # The router answers 501 and never submits one. If one gets here anyway, the job
+            # fails with the generic error, never a made-up mapping. The port calls the engine here.
+            raise NotImplementedError(REFMAP_UNAVAILABLE)

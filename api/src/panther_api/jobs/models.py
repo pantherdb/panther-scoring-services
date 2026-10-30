@@ -11,6 +11,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field, TypeAdapter
 
 from panther_api.jobs.csnp import CsnpResult
+from panther_api.jobs.refmap import RefmapResult
 from panther_api.jobs.tools import ToolsResult
 from panther_api.problems import Problem
 from panther_api.versions import Versions
@@ -61,7 +62,24 @@ class CsnpJob(BaseModel):
     versions: Versions
 
 
+class RefmapJob(BaseModel):
+    """A `refmap` job, with the same fields as every job. `result` is its ID mappings.
+
+    None is created until the engine's mapping is wired in: a valid request gets a 501.
+    """
+
+    id: UUID
+    service: Literal["refmap"]
+    status: JobStatus
+    created_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
+    result: RefmapResult | None
+    error: Problem | None
+    versions: Versions
+
+
 # Tagged by `service`, like the request, so the frontend narrows the result the same way.
-Job = Annotated[ToolsJob | CsnpJob, Field(discriminator="service")]
+Job = Annotated[ToolsJob | CsnpJob | RefmapJob, Field(discriminator="service")]
 
 JOB_ADAPTER: TypeAdapter[Job] = TypeAdapter(Job)

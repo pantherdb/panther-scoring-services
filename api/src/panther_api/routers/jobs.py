@@ -11,7 +11,8 @@ from fastapi import APIRouter, Body, HTTPException, Request, Response, status
 from panther_api.jobs.models import JOB_ADAPTER, Job
 from panther_api.jobs.runner import JobRunner
 from panther_api.jobs.store import JobRecord
-from panther_api.jobs.work import JobRequest
+from panther_api.jobs.work import REFMAP_UNAVAILABLE, JobRequest, RefmapJobRequest
+from panther_api.problems import Problem
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -26,6 +27,12 @@ _CREATE_RESPONSES: dict[int | str, dict[str, Any]] = {
                 "schema": {"type": "string"},
             }
         },
+    },
+    # Removed when the engine's refmap mapping is wired in.
+    status.HTTP_501_NOT_IMPLEMENTED: {
+        "model": Problem,
+        "description": "The service can't run jobs yet: `refmap`, until its mapping is ported. "
+        "The request was valid, and no job was created.",
     },
 }
 
@@ -59,8 +66,11 @@ async def create_job(
     """Start a job for `service` with its `input`. The job runs after this request returns.
 
     An input the job can't run with is a 422, and no job is created. A problem only the work can
-    find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`.
+    find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid
+    `refmap` request gets a 501 until its mapping is available; its input is still validated first.
     """
+    if isinstance(job_request, RefmapJobRequest):
+        raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, detail=REFMAP_UNAVAILABLE)
     record = _runner(request).submit(job_request)
     response.headers["Location"] = request.app.url_path_for("get_job", job_id=str(record.id))
     return _job(record)

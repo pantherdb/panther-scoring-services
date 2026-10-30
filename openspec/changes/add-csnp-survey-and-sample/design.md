@@ -110,6 +110,8 @@ engine/src/panther_engine/
 
 The manifest is package data, so `fetch` and `verify` need no path argument. It is a few kilobytes, and production never runs `fetch`.
 
+**`LibraryFormatError` is never an `InputError`.** `InputError` comes from `add-job-input-errors`, in `panther_engine.core.errors`. A broken library file isn't the user's fault, and `LibraryFormatError`'s message names the file and the line. So it must not be a subclass of `InputError`, whose message the API shows the user. A broken data file stays a generic job failure, a 500.
+
 ### 4. The sample is a release asset, pinned by a committed manifest
 
 This was the engine developer's decision, on 2026-10-29.

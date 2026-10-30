@@ -163,7 +163,7 @@
   - no data test is skipped in any of them (check the logs, not just the result).
 - After the implementation merges, archive with `/opsx:archive`. That creates `openspec/specs/csnp-data/spec.md` and adds the new requirements to `engine-core`.
 - Next change for cSNP: the parity harness. That means the Perl reference image (Engine condition 3) and the spec §7 goldens in `engine/tests/golden/csnp/`, run against the sample. Step 3 keeps the code's thresholds and pDel bounds (`SCORE-5`, `SCORE-6`; task 1.4).
-- Before step 3 is ported, agree the engine's cSNP interface with the API developer, in a change of its own. That covers the `score` function and its input and result types, `InputError`, the data version and the list of species codes. The API developer's questions of 2026-10-29 are the starting point.
+- Before step 3 is ported, agree the engine's cSNP interface with the API developer, in a change of its own. That covers the `score` function and its input and result types, the data version and the list of species codes. The API developer's questions of 2026-10-29 are the starting point. `InputError` is already settled by `add-job-input-errors`, and its task group 1 lands with the `csnp` port. None of `csnp`'s legacy conditions raises it.
 - After cSNP is live on production, open an issue for the science owner, thomaspd, on divergence rows 4 and 7: the pDel bounds and the thresholds. Ask which values are correct, and whether pDel should include its bounds.
 
 ## Notes

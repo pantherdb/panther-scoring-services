@@ -57,7 +57,7 @@ Not in this change:
 - **The parity harness, the Perl reference image (Engine condition 3) and golden files.** This change only names the golden-files folder.
 - **A checksum manifest of the full library** for deploys.
 - **Regenerating the cSNP data,** which tech-stack.md puts out of scope.
-- **The engine's cSNP interface for the API:** the `score` function with its input and result types, an `InputError` the API can show, and the data version. These are agreed with the API developer in a change of their own, before step 3 is ported.
+- **The engine's cSNP interface for the API:** the `score` function with its input and result types, and the data version. These are agreed with the API developer in a change of their own, before step 3 is ported. `InputError`, the exception whose message the API shows, is already settled by `add-job-input-errors`. It arrives with the `csnp` port, as that change's task group 1.
 
 ## Capabilities
 

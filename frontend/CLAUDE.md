@@ -55,7 +55,7 @@ The app builds with the React Compiler, and `react-hooks` 7 fails the lint on wh
 
 - Controls: `Button`, `ActionIcon`, `TextInput`, `Textarea`, `Select`, `MultiSelect`, `Checkbox`, `Switch`, `SegmentedControl`, `Tooltip`
 - Structure: `AppShell`, `Modal`, `Drawer`, `Menu`, `Popover`, `Tabs`, `Accordion`, `Table`
-- Forms and feedback: `useForm`, `notifications`, `Loader`, `Alert`, `Badge`, `Progress`
+- Forms and feedback: `notifications`, `Loader`, `Alert`, `Badge`, `Progress`. `useForm` is in `@mantine/form`, which isn't installed, so the cSNP form keeps its draft in a reducer; adding the package needs a proposal
 
 **Tailwind** for layout, spacing, text and surfaces. Don't use Mantine's styled wrappers:
 
@@ -107,6 +107,7 @@ The app builds with the React Compiler, and `react-hooks` 7 fails the lint on wh
 - **Mock at the API boundary**, not deep inside components.
 - **Keep a success test beside every test of a failure state.** A test that expects an error message also passes when every request fails for some other reason. One did, before `tests/setup.ts` made relative URLs work under Vitest.
 - **Tests run with reduced motion.** `tests/setup.ts` reports reduced motion to every `matchMedia` query, so Mantine transitions take no time and can't fire after a test has finished.
+- **Two Mantine features crash under jsdom:** `Textarea`'s `autosize` (it reads `document.fonts`) and `Table.ScrollContainer` (it needs `ResizeObserver`). Use fixed `rows` that resize vertically, and a Tailwind `overflow-x-auto` wrapper around the table.
 - **In tests, import `RouterProvider` from `react-router`, not `react-router/dom`.** Under Vitest, `react-router/dom` loads React Router's CommonJS build, which doesn't share context with the ESM build that `Outlet` and `Link` use. The layout renders, but `<Outlet />` stays empty, with no error. `tests/utils/render.tsx` already does this; `src/main.tsx` keeps `react-router/dom`, which is right in the browser.
 
 ### End-to-end

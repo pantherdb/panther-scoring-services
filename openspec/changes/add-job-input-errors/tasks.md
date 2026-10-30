@@ -1,7 +1,5 @@
 # Tasks
 
-Test-first: for each task, write its tests, run them and see them fail for the right reason, then write the code. Record each red run in the Notes.
-
 ## 1. Engine: the Input Error (engine developer)
 
 - [x] 1.1 Add `engine/src/panther_engine/core/errors.py` with `InputError(Exception)`, raised with one message. Its docstring states the contract:
@@ -19,14 +17,13 @@ Test-first: for each task, write its tests, run them and see them fail for the r
 
 ## 2. API: Input Errors in Failed Jobs
 
-- [ ] 2.1 Once 1.1 is on the branch, write these tests in `api/tests/test_jobs.py`, with a module-level helper in `tests/job_helpers.py` that raises `InputError("Unknown organism.")` in a real worker:
+- [ ] 2.1 Once 1.1 is on the branch, in `jobs/runner.py`, catch `InputError` between `BrokenProcessPool` and `Exception`, and fail the job with `Problem(status=422, title="Unprocessable Content", detail=str(exc))`. Log it at `INFO` with the job id and message, without a traceback.
+- [ ] 2.2 Add tests in `api/tests/test_jobs.py`, with a module-level helper in `tests/job_helpers.py` that raises `InputError("Unknown organism.")` in a real worker:
   - the spec's "Unprocessable input" (the job is `failed`, `result` null, the `error` has status 422 and exactly that `detail`, and the body has no traceback);
   - "Other jobs keep running";
   - the existing "The work raises" test still passes unchanged.
 
-  Run them and verify the new ones fail first, with status 500 and the generic detail.
-- [ ] 2.2 In `jobs/runner.py`, catch `InputError` between `BrokenProcessPool` and `Exception`, and fail the job with `Problem(status=422, title="Unprocessable Content", detail=str(exc))`. Log it at `INFO` with the job id and message, without a traceback. Verify:
-  - 2.1's tests pass;
+  Verify:
   - `uv run python -m panther_api.openapi` leaves `api/openapi.json` unchanged (`git diff --exit-code api/openapi.json`);
   - `uv run ruff check`, `uv run ruff format --check`, `uv run basedpyright` and `uv run pytest` pass in `api/`.
 - [ ] 2.3 In `docs/testing/api.md`, under "Try the Jobs by Hand", show what a failed job looks like for an input error (422, the engine's message) and for an unexpected error (500, the generic detail). Verify `npx markdownlint-cli2` passes.
@@ -35,7 +32,7 @@ Test-first: for each task, write its tests, run them and see them fail for the r
 
 - [ ] 3.1 From a copy of the files git would commit:
   - in `api/`: `uv sync --locked`, `ruff check`, `ruff format --check`, `basedpyright` and `pytest` pass;
-  - from the root: `docker compose run --rm engine` passes, and `docker compose up --build -d api` still runs a `tools` job to `succeeded` (then `docker compose down`);
+  - from the root: `docker compose run --rm engine` passes, and the `api` image, built with `docker build --target api` and run with `docker run -p 8001:8000`, still runs a `tools` job to `succeeded` (leave the compose project and port 8000 alone: a developer's API may be running there);
   - `npx markdownlint-cli2` and `npx openspec validate --all --no-interactive` pass.
 
 ## Workflow follow-up

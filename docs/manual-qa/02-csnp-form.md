@@ -16,7 +16,7 @@ npm run dev
 
 Then open `http://localhost:5173` in a browser.
 
-**The results in TC 2.3 are mock data,** made up to show the results page: family `PTHR00000` is not a real PANTHER family, and the ages, predictions and pDel values were not computed. Don't compare them with the legacy site.
+**The results in TC 2.3 are mock data,** made up to show the results page: family `PTHR00000` is not a real PANTHER family, and the ages, predictions and pDel values were not computed. Don't compare them with the legacy site. Every page says so in a dark **Mock data** banner at the top.
 
 ## TC 2.1 Open the Form
 
@@ -38,6 +38,8 @@ Then open `http://localhost:5173` in a browser.
 - [ ] Click **Use an example** again, add a substitution of 33 characters (for example `L` followed by 32 `1`s), and submit. The substitutions box says substitution 5 is longer than 32 characters.
 - [ ] Click **Use an example** again, add `XYZ` and `G12|` on two new lines, and submit. The substitutions box names substitution 5 (`XYZ`) and substitution 6 (`G12|`), and asks for the form `L46P`.
 - [ ] Change `XYZ` to `l46p` (lower case) and remove the `G12|` line. Submit: the form is accepted, because lower case is fine, and a job page opens.
+- [ ] Go back to `/csnp`, click **Use an example**, and replace the substitutions with `L46P, C130R,R163C` on one line. Submit: the form is accepted, with no message on the substitutions box, and a job page opens, because commas separate substitutions too. (The mock results always show the example's four rows, whatever was sent.)
+- [ ] Go back to `/csnp`, click **Use an example**, and replace the substitutions with `L46P;C130R`. Submit: the substitutions box names substitution 1 (`L46P;C130R`), because a semicolon doesn't separate substitutions.
 - [ ] Apart from the malformed substitutions, no message repeats what you typed, and none shows a port number, a file path or a command.
 
 **Pass / Fail:**
@@ -52,7 +54,8 @@ Then open `http://localhost:5173` in a browser.
 - [ ] A **Scores** table has four rows, in the order you typed: `L46P`, `C130R`, `R163C`, `R176C`, with columns **Substitution**, **Age (Mya)**, **Prediction or message** and **pDel**.
 - [ ] The `R176C` row reads "Not scored: Invalid substitution", with its age and pDel empty.
 - [ ] **Versions used** lists the API, the engine and the four tools, matching the footer.
-- [ ] On a phone, or with the browser window narrowed to phone width, the page doesn't scroll sideways, and every column is visible.
+- [ ] A dark banner at the very top says **Mock data**, and that nothing on the page comes from the scoring service. Scroll to the end of the page: the banner is still at the top of the window.
+- [ ] On a phone, or with the browser window narrowed to phone width, the page doesn't scroll sideways, every column is visible, and the banner's text wraps without being cut off.
 
 **Pass / Fail:**
 **Notes:**
@@ -74,7 +77,8 @@ npm run dev:api
 
 ## TC 2.4 cSNP Scoring Isn't Available Yet
 
-- [ ] Open `http://localhost:5173/csnp`, click **Use an example**, then **Score substitutions**.
+- [ ] Open `http://localhost:5173/csnp`. There is no **Mock data** banner at the top of the page.
+- [ ] Click **Use an example**, then **Score substitutions**.
 - [ ] A message says cSNP scoring isn't available yet, and that your input is kept.
 - [ ] The address stays `/csnp`, and the sequence, the four substitutions and `HUMAN` are all still there.
 - [ ] The message shows no error code (such as 501), port number, file path or command.

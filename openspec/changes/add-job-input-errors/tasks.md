@@ -8,14 +8,18 @@ Test-first: for each task, write its tests, run them and see them fail for the r
   - written for the person who submitted the input;
   - no file paths, tool output or internal identifiers;
   - only for problems with the input as a whole, since single-item problems belong in the result;
-  - a subclass must keep `args` reconstructible, or define `__reduce__`, so it pickles.
 
-  Verify that `engine/tests/test_errors.py` covers the spec's two scenarios: "Copied between processes" (a `pickle` round trip keeps the type and message) and "Raised in a worker process" (a module-level function raising it in a `spawn` `ProcessPoolExecutor` reaches the parent as `InputError` with the same message). Also verify that `docker compose run --rm engine` passes.
+  `InputError` defines `__reduce__`, rebuilding through a module-level `_rebuild(cls, message, state)` that doesn't call the subclass's `__init__` (design.md, "It survives the trip between processes"). Verify that `engine/tests/test_errors.py` covers the spec's three scenarios:
+  - "Copied between processes": a `pickle` round trip keeps the type and message;
+  - "Raised in a worker process": a module-level function raising it in a `spawn` `ProcessPoolExecutor` reaches the parent as `InputError` with the same message;
+  - "A subclass with its own constructor": a subclass whose `__init__` takes other arguments (for example `(family, species)`) arrives through a real `spawn` worker with its type, message and attributes, while another job running in the same pool succeeds.
+
+  Also verify that `docker compose run --rm engine` passes.
 - [ ] 1.2 Tell service authors how to use it, in the engine's docs (the engine README or `docs/testing/engine.md`, the engine developer's choice): when to raise it, the message rules, and that single-item problems go in the result. Verify `npx markdownlint-cli2` passes.
 
 ## 2. API: Input Errors in Failed Jobs
 
-- [ ] 2.1 Once 1.1 is on the branch, write these tests in `api/tests/test_jobs.py`, with a module-level helper in `tests/job_helpers.py` that raises `InputError("The input can't be scored.")` in a real worker:
+- [ ] 2.1 Once 1.1 is on the branch, write these tests in `api/tests/test_jobs.py`, with a module-level helper in `tests/job_helpers.py` that raises `InputError("Unknown organism.")` in a real worker:
   - the spec's "Unprocessable input" (the job is `failed`, `result` null, the `error` has status 422 and exactly that `detail`, and the body has no traceback);
   - "Other jobs keep running";
   - the existing "The work raises" test still passes unchanged.
@@ -57,4 +61,5 @@ None yet.
 
 ### Lessons learned
 
-- **The engine developer's answers (2026-10-29).** `InputError` keeps its proposed name and module, and arrives with the `csnp` port. In `csnp`, "no family hit" and "invalid substitution" are per-substitution results, not input errors, so the example message in the spec and tasks was changed from a no-family message to a neutral one. A broken data file stays a generic failure.
+- **The engine developer's answers (2026-10-29).** `InputError` keeps its proposed name and module, and arrives with the `csnp` port. In `csnp`, "no family hit" and "invalid substitution" are per-substitution results, not input errors, so the example message in the spec and tasks is now "Unknown organism.", as in the `engine-core` scenario. A broken data file stays a generic failure.
+- **Subclasses across processes (engine developer's review on #17, 2026-10-30).** Unpickling an exception calls `cls(*exc.args)`, so a subclass with its own constructor came back garbled, or broke the pool and every running job. The design had called that failure "the safe direction"; it wasn't. The base class now defines `__reduce__`, and task 1.1 tests a subclass through a real worker.

@@ -19,8 +19,8 @@ When a job's work reports that its input can't be processed, by raising the engi
 
 #### Scenario: Unprocessable input
 
-- **WHEN** a job's work raises an input error with the message "The input can't be scored."
-- **THEN** the job ends with status `failed`, a `null` `result`, and an `error` with status 422 and the `detail` "The input can't be scored."
+- **WHEN** a job's work raises an input error with the message "Unknown organism."
+- **THEN** the job ends with status `failed`, a `null` `result`, and an `error` with status 422 and the `detail` "Unknown organism."
 
 #### Scenario: Other jobs keep running
 

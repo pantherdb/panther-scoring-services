@@ -41,9 +41,16 @@ The behaviour is in [specs/engine-core/spec.md](specs/engine-core/spec.md) and [
 
 ### It survives the trip between processes
 
-An exception is pickled as its class and its `args`. `InputError(message)` keeps the message in `args`, so it arrives intact.
+By default, unpickling an exception calls `cls(*exc.args)`. That's fine for `InputError(message)`, but not for a subclass whose constructor takes something other than the message. The engine developer tested this with real `spawn` workers on Python 3.13 (review on #17, 2026-10-30):
 
-- **A subclass whose constructor takes other arguments must keep `args` reconstructible,** or define `__reduce__`. The engine's tests check the base class, round-tripped with `pickle` and through a real `spawn` worker. The docstring warns about subclasses.
+- with `__init__(self, organism)`, the message came back garbled ("Unknown organism: Unknown organism: XENLA.."), and would have been shown to the user;
+- with `__init__(self, family, species)`, the pool broke (`BrokenProcessPool`), and every job running at that moment failed with it.
+
+**So the base class defines `__reduce__`.** It rebuilds the exception without calling the subclass's `__init__`: a module-level `_rebuild(cls, message, state)` creates the instance with `cls.__new__`, sets the message with `Exception.__init__`, and restores the instance's `__dict__`. Every subclass then keeps its type, its message and its attributes, whatever its constructor takes. Subclass authors need no rule to remember.
+
+The engine's tests check the base class and a subclass whose constructor doesn't take the message, both round-tripped with `pickle` and through a real `spawn` worker, with another job running beside them.
+
+- *Alternative:* a docstring rule that subclasses keep `args` reconstructible or define their own `__reduce__`. Rejected: the failure is silent until it garbles a message or breaks the pool, and nothing enforces the rule.
 
 ### The job's error: status 422, the message as `detail`
 
@@ -65,7 +72,7 @@ The API's tests already run real `spawn` workers with module-level helpers (`api
 
 - **[A service raises `InputError` with an unsafe message]** → The contract is in the docstring and the spec. Each service's tests check its own messages. The API can't tell a safe message from an unsafe one, so review is the guard.
 - **[A bug is reported as an input error]** → Only explicit `raise InputError(...)` in the engine counts. Nothing converts other exceptions into it.
-- **[A subclass doesn't pickle]** → `concurrent.futures` would then raise a pickling error in place of the subclass, and the job fails with the generic `500`. The safe direction. The docstring tells subclass authors to keep `args` reconstructible.
+- **[A subclass doesn't survive the trip between processes]** → Without the base class's `__reduce__`, it would come back with a garbled message, or break the pool and fail every running job (see "It survives the trip between processes"). The base class's `__reduce__` makes every subclass safe, and a test sends such a subclass through a real worker.
 - **[Group 2 waits on group 1]** → Group 1 is one small module and its tests. The engine developer adds it with the first port, `csnp` (decided 2026-10-29); group 2 follows in the API change that adds the `csnp` job.
 
 ## Migration Plan

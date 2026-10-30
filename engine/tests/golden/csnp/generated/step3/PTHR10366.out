@@ -1,0 +1,42 @@
+no-family,M1C,Not scored: No PANTHER family for input sequence
+unmapped,M10Q,Not scored: Invalid substitution
+g1-start,P20F,PTHR10366,1,probably benign,0.02
+g1-end,G124F,PTHR10366,3806,probably damaging,0.89
+g1-past-end,G128W,Not scored: Invalid substitution
+g1-wrong-wt,D87N,Not scored: Invalid substitution
+g1-p43,D57S,PTHR10366,842,probably damaging,0.78
+g1-p33,E34S,PTHR10366,362,possibly damaging,0.50
+g1-p57,I76M,PTHR10366,1,probably benign,0.02
+g1-p66,G81Q,PTHR10366,3806,probably damaging,0.89
+g2-start,M13R,PTHR10366,4200,probably damaging,0.95
+g2-end,D488G,PTHR10366,1481,probably damaging,0.86
+g2-past-end,D485P,Not scored: Invalid substitution
+g2-wrong-wt,S309V,Not scored: Invalid substitution
+g2-p122,H125T,PTHR10366,1481,probably damaging,0.86
+g2-p261,L280K,PTHR10366,1481,probably damaging,0.86
+g2-p283,R299Y,PTHR10366,1481,probably damaging,0.86
+g2-p446,L464E,PTHR10366,1481,probably damaging,0.86
+g3-start,M12R,PTHR10366,4200,probably damaging,0.95
+g3-end,I370H,PTHR10366,1,probably benign,0.02
+g3-past-end,I365D,Not scored: Invalid substitution
+g3-wrong-wt,T167P,Not scored: Invalid substitution
+g3-p36,Y38R,PTHR10366,1630,probably damaging,0.89
+g3-p151,E153T,PTHR10366,1,probably benign,0.02
+g3-p321,L340A,PTHR10366,1,probably benign,0.02
+g3-p328,L345F,PTHR10366,1628,probably damaging,0.89
+g4-start,M15K,PTHR10366,4200,probably damaging,0.95
+g4-end,L367I,PTHR10366,4181,probably damaging,0.95
+g4-past-end,L366M,Not scored: Invalid substitution
+g4-wrong-wt,H30A,Not scored: Invalid substitution
+g4-p196,Y211P,PTHR10366,4200,probably damaging,0.95
+g4-p227,A243D,PTHR10366,4181,probably damaging,0.95
+g4-p300,K314L,PTHR10366,4180,probably damaging,0.95
+g4-p349,L366S,PTHR10366,4180,probably damaging,0.95
+g5-start,M4T,PTHR10366,4200,probably damaging,0.95
+g5-end,D565V,PTHR10366,148,probably benign,0.27
+g5-past-end,D568G,Not scored: Invalid substitution
+g5-wrong-wt,Y363Q,Not scored: Invalid substitution
+g5-p167,E183R,PTHR10366,593,probably damaging,0.57
+g5-p250,T253F,PTHR10366,1,probably benign,0.02
+g5-p386,D403F,PTHR10366,1,probably benign,0.02
+g5-p438,L452Q,PTHR10366,936,probably damaging,0.85

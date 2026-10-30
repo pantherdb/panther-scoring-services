@@ -1,0 +1,33 @@
+Supplemental results for CODEML (seqf: output.phylip  treef: output.cayley)
+
+
+TREE #  1
+
+Ancestral reconstruction by AAML.
+
+((((AN20: 0.1, AN21: 0.1): 0.1, AN22: 0.2): 0.1, (AN23: 0.1, AN24: 0.1): 0.1): 0.1, (AN25: 0.1, AN26: 0.1): 0.1);
+
+((((1, 2), 3), (4, 5)), (6, 7));
+
+  8..9     9..10    10..11   11..1    11..2    10..3     9..12    12..4    12..5     8..13    13..6    13..7  
+
+tree with node labels for Rod Page's TreeView
+((((1_AN20, 2_AN21) 11 , 3_AN22) 10 , (4_AN23, 5_AN24) 12 ) 9 , (6_AN25, 7_AN26) 13 ) 8 ;
+
+Nodes 8 to 13 are ancestral
+Unreliable at sites with alignment gaps
+
+(1) Marginal reconstruction of ancestral sequences
+List of extant and reconstructed sequences
+
+     7      5
+
+AN20               MAKLW
+AN21               MAKLW
+AN22               MARLW
+AN23               M-KLW
+AN24               M-KLW
+AN25               MAKLW
+AN26               MAKLW
+
+Overall accuracy of the 6 ancestral sequences:

@@ -116,12 +116,12 @@ One family for each check that found something, the smallest that shows it; the 
 | `PTHR17358` | 5,443 | Smallest with a taxon missing from the species tree (`DATA-3`) |
 | `PTHR11695` | 151,919,041 | The largest `.paml`, 136,336,728 bytes; unreconstructed cells |
 
-Every check that found something in the full library also finds something in the sample, apart from the BLAST checks: the sample has no BLAST database yet. `tests/test_csnp_sample_data.py` checks this.
+Every check that found something in the full library also finds something in the sample, apart from the BLAST checks, which read the BLAST archive's FASTA. The sample holds the BLAST database since `csnp-sample-2`, but not the FASTA. `tests/test_csnp_sample_data.py` checks this.
 
 ## What It Means for the Port
 
 - **The strict readers are safe for parity everywhere but the start column.** Every other legacy reading agrees with them on every file they accept. Step 3 can use them without a divergence row.
 - **The start column (`SCORE-2`) differs for 17.4% of leaves.** To match the goldens, step 3 must start from the last header match, `legacy.start_node`. Starting from the leaf's own column is proposed divergence row 2.
-- **The seven broken families can't be scored,** by the Perl or the port. Matching the Perl means reporting `Not scored: Invalid substitution` for a SNP in them; confirm that against the reference image when the parity harness exists.
+- **The seven broken families can't be scored,** by the Perl or the port. Matching the Perl means reporting `Not scored: Invalid substitution` for a SNP in them. The reference image confirmed it for the five in the sample (`port-csnp`, [inputs.md](inputs.md#generated-step-3-cases)).
 - **BLAST entries with `AN<n>` in the family field are never scored by the Perl.** 75,712 of them belong to families the library has. Matching the Perl means reporting `Not scored: No PANTHER family for input sequence` when one is the best hit. Reading the third field instead would score them: that would be a divergence, and is the port's decision, with the science owner.
 - **Events are reported as written.** The strict reader gives `0>0` and `UNK` as they are, and a missing taxon as missing. Step 3 must age those nodes as the Perl does (spec §4.4, `DATA-3`).

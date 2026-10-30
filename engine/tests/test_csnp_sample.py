@@ -17,6 +17,13 @@ provided that this Copyright statement is reproduced with each copy.
 ##########
 PANTHER-PSEP SNP scoring tool - Version 1.01
 """
+# A stand-in for PANTHER9.blast.tar.gz: the database files, and the FASTA the sample leaves out.
+BLAST_FILES = {
+    "blast/blast.phr": b"headers\n",
+    "blast/blast.pin": b"index\n",
+    "blast/blast.psq": b"sequences\n",
+    "blast/blast.fasta": b">P1\nMKV\n",
+}
 
 
 def sha256(path: Path) -> str:
@@ -31,14 +38,18 @@ def inputs(tmp_path: Path) -> Path:
         folder / "PAML_RST.tar.gz",
         [*family_files("PTHR00002"), *family_files(FAMILY), *family_files("PTHR00003_1")],
     )
+    make_tar(folder / "PANTHER9.blast.tar.gz", BLAST_FILES.items())
     (folder / "README.txt").write_text(README, encoding="utf-8")
     (folder / "families.txt").write_text(f"# the clean family\n{FAMILY}\n\nPTHR00003_1\n")
     return folder
 
 
-def build(inputs: Path, out: Path, *, archive_sha256: str | None = None) -> int:
+def build(
+    inputs: Path, out: Path, *, archive_sha256: str | None = None, blast_sha256: str | None = None
+) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     archive = inputs / "PAML_RST.tar.gz"
+    blast = inputs / "PANTHER9.blast.tar.gz"
     return main(
         [
             "csnp",
@@ -61,6 +72,10 @@ def build(inputs: Path, out: Path, *, archive_sha256: str | None = None) -> int:
             str(out.with_suffix(".json")),
             "--archive-sha256",
             archive_sha256 or sha256(archive),
+            "--blast-archive",
+            str(blast),
+            "--blast-sha256",
+            blast_sha256 or sha256(blast),
         ]
     )
 
@@ -107,6 +122,10 @@ def test_the_tarball_holds_the_families_the_species_tree_and_the_copyright(built
         "csnp/9/PAML_RST/PTHR00003_1.paml",
         "csnp/9/PAML_RST/PTHR00003_1.rst",
         "csnp/9/PSEP-COPYRIGHT.txt",
+        "csnp/9/blast",
+        "csnp/9/blast/blast.phr",
+        "csnp/9/blast/blast.pin",
+        "csnp/9/blast/blast.psq",
         "csnp/9/species_pthr8_time.nhx",
     ]
     assert copyright_text == "\n".join(README.splitlines()[:3]) + "\n"
@@ -143,12 +162,19 @@ def test_the_manifest_pins_the_tarball_the_source_and_each_file(built: Path, inp
         "name": "PAML_RST.tar.gz",
         "sha256": sha256(inputs / "PAML_RST.tar.gz"),
     }
+    assert manifest["blast"] == {
+        "name": "PANTHER9.blast.tar.gz",
+        "sha256": sha256(inputs / "PANTHER9.blast.tar.gz"),
+    }
     assert manifest["families"] == [FAMILY, "PTHR00003_1"]
     assert manifest["files"]["csnp/9/PAML_RST/PTHR00001.paml"] == sha256(
         FIXTURES / "PTHR00001.paml"
     )
     assert manifest["files"]["csnp/9/species_pthr8_time.nhx"] == sha256(FIXTURES / "species.nhx")
-    assert len(manifest["files"]) == 8
+    for name in ("blast.phr", "blast.pin", "blast.psq"):
+        expected = hashlib.sha256(BLAST_FILES[f"blast/{name}"]).hexdigest()
+        assert manifest["files"][f"csnp/9/blast/{name}"] == expected
+    assert len(manifest["files"]) == 11
 
 
 def test_an_archive_with_the_wrong_sha256_is_refused_and_nothing_is_written(
@@ -163,6 +189,32 @@ def test_an_archive_with_the_wrong_sha256_is_refused_and_nothing_is_written(
     assert status == 1
     assert pinned in err
     assert sha256(inputs / "PAML_RST.tar.gz") in err
+    assert list(out.parent.iterdir()) == []
+
+
+def test_a_blast_archive_with_the_wrong_sha256_is_refused_and_nothing_is_written(
+    inputs: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    out = tmp_path / "build" / "csnp-sample-1.tar.gz"
+    pinned = "0" * 64
+
+    status = build(inputs, out, blast_sha256=pinned)
+
+    err = capsys.readouterr().err
+    assert status == 1
+    assert pinned in err
+    assert sha256(inputs / "PANTHER9.blast.tar.gz") in err
+    assert list(out.parent.iterdir()) == []
+
+
+def test_a_blast_archive_without_the_database_is_refused(
+    inputs: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    blast = make_tar(inputs / "PANTHER9.blast.tar.gz", [("blast/blast.fasta", b">P1\nMKV\n")])
+    out = tmp_path / "build" / "csnp-sample-1.tar.gz"
+
+    assert build(inputs, out, blast_sha256=sha256(blast)) == 1
+    assert "blast/blast.phr" in capsys.readouterr().err
     assert list(out.parent.iterdir()) == []
 
 

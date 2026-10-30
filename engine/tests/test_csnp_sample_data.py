@@ -1,11 +1,13 @@
 """The cSNP data sample, read with the strict readers. Needs the sample in the data folder."""
 
 import json
+import shutil
 from pathlib import Path
 
 import pytest
 
 from panther_engine.core.manifest import sha256_file
+from panther_engine.core.process import run_tool
 from panther_engine.csnp import legacy, sample
 from panther_engine.csnp.library import LibraryFormatError, open_lines
 from panther_engine.csnp.orig_tree import read_orig_tree
@@ -93,6 +95,18 @@ def test_the_golden_families_and_the_species_tree_match_spec_7_1(csnp_data: Path
     for name, prefix in GOLDEN.items():
         assert sha256_file(csnp_data / sample.LIBRARY / name).startswith(prefix), name
     assert sha256_file(csnp_data / sample.SPECIES) == sample.PINNED_SPECIES
+
+
+@pytest.mark.tools("blastdbcmd")
+def test_the_blast_database_holds_every_sequence(csnp_data: Path) -> None:
+    program = shutil.which("blastdbcmd")
+    assert program is not None
+    database = csnp_data / sample.BLAST / "blast"
+
+    result = run_tool(Path(program), ["-db", str(database), "-info"], timeout=60)
+
+    assert result.returncode == 0, result.stderr
+    assert "\t570,173 sequences;" in result.stdout
 
 
 def test_the_species_tree_gives_each_taxon_its_age(csnp_data: Path) -> None:

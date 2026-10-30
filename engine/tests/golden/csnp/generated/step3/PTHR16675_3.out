@@ -1,0 +1,42 @@
+no-family,M20P,Not scored: No PANTHER family for input sequence
+unmapped,M6C,Not scored: Invalid substitution
+g1-start,M7P,PTHR16675_3,98,probably benign,0.19
+g1-end,C311K,PTHR16675_3,1,probably benign,0.02
+g1-past-end,C307Q,Not scored: Invalid substitution
+g1-wrong-wt,G135H,Not scored: Invalid substitution
+g1-p191,C193H,PTHR16675_3,97,probably benign,0.19
+g1-p39,V52K,PTHR16675_3,98,probably benign,0.19
+g1-p3,K4N,PTHR16675_3,1,probably benign,0.02
+g1-p142,G156N,PTHR16675_3,220,possibly damaging,0.50
+g2-start,M4I,PTHR16675_3,98,probably benign,0.19
+g2-end,V298H,PTHR16675_3,1,probably benign,0.02
+g2-past-end,V303K,Not scored: Invalid substitution
+g2-wrong-wt,G141S,Not scored: Invalid substitution
+g2-p172,Y176C,PTHR16675_3,2,probably benign,0.02
+g2-p200,P209D,PTHR16675_3,220,possibly damaging,0.50
+g2-p250,K257G,PTHR16675_3,1,probably benign,0.02
+g2-p278,D288I,PTHR16675_3,1,probably benign,0.02
+g3-start,M10I,PTHR16675_3,177,probably benign,0.27
+g3-end,E352W,PTHR16675_3,98,probably benign,0.19
+g3-past-end,E364W,Not scored: Invalid substitution
+g3-wrong-wt,I46S,Not scored: Invalid substitution
+g3-p92,K99N,PTHR16675_3,177,probably benign,0.27
+g3-p154,D154K,PTHR16675_3,91,probably benign,0.19
+g3-p290,D300W,PTHR16675_3,98,probably benign,0.19
+g3-p318,I336P,PTHR16675_3,30,probably benign,0.13
+g4-start,M14Q,PTHR16675_3,98,probably benign,0.19
+g4-end,A394W,PTHR16675_3,97,probably benign,0.19
+g4-past-end,A389E,PTHR16675_3,97,probably benign,0.19
+g4-wrong-wt,L353S,Not scored: Invalid substitution
+g4-p60,D74G,PTHR16675_3,98,probably benign,0.19
+g4-p83,D102I,PTHR16675_3,97,probably benign,0.19
+g4-p196,K215L,PTHR16675_3,97,probably benign,0.19
+g4-p336,S355P,PTHR16675_3,97,probably benign,0.19
+g5-start,T19V,PTHR16675_3,97,probably benign,0.19
+g5-end,A312C,PTHR16675_3,97,probably benign,0.19
+g5-past-end,A310T,Not scored: Invalid substitution
+g5-wrong-wt,M220W,Not scored: Invalid substitution
+g5-p114,N121Q,PTHR16675_3,97,probably benign,0.19
+g5-p125,T135F,PTHR16675_3,220,possibly damaging,0.50
+g5-p244,T252D,PTHR16675_3,97,probably benign,0.19
+g5-p258,V274D,PTHR16675_3,97,probably benign,0.19

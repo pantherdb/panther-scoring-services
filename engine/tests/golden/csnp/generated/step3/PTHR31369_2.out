@@ -1,0 +1,18 @@
+no-family,M21G,Not scored: No PANTHER family for input sequence
+unmapped,M13A,Not scored: Invalid substitution
+g1-start,M9Y,PTHR31369_2,51,probably benign,0.13
+g1-end,N201A,PTHR31369_2,51,probably benign,0.13
+g1-past-end,N184M,PTHR31369_2,51,probably benign,0.13
+g1-wrong-wt,C188N,Not scored: Invalid substitution
+g1-p5,I21A,PTHR31369_2,51,probably benign,0.13
+g1-p42,S50R,PTHR31369_2,51,probably benign,0.13
+g1-p72,C86V,PTHR31369_2,51,probably benign,0.13
+g1-p88,C107M,PTHR31369_2,51,probably benign,0.13
+g2-start,M16V,PTHR31369_2,51,probably benign,0.13
+g2-end,N192G,PTHR31369_2,51,probably benign,0.13
+g2-past-end,N189A,PTHR31369_2,51,probably benign,0.13
+g2-wrong-wt,T132F,Not scored: Invalid substitution
+g2-p17,I35H,PTHR31369_2,51,probably benign,0.13
+g2-p50,D62Y,PTHR31369_2,51,probably benign,0.13
+g2-p95,C100G,PTHR31369_2,51,probably benign,0.13
+g2-p149,A165L,PTHR31369_2,51,probably benign,0.13

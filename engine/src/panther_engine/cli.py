@@ -24,9 +24,9 @@ def build_parser() -> argparse.ArgumentParser:
     csnp_cli.configure(
         commands.add_parser(
             "csnp",
-            help="the cSNP data: survey the PAML library, build, fetch and verify the sample",
-            description="The cSNP service's data: the PAML_RST library survey, and the data "
-            "sample that developers and CI test against.",
+            help="cSNP: score a protein, survey the library, the data sample, parity checks",
+            description="The cSNP service: scoring, the PAML_RST library survey, the data sample "
+            "that developers and CI test against, and parity with the legacy scripts.",
         )
     )
     return parser

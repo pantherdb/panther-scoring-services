@@ -6,14 +6,20 @@ from pathlib import Path
 
 
 def run_tool(
-    program: Path | str, args: Sequence[str], *, timeout: float
+    program: Path | str,
+    args: Sequence[str],
+    *,
+    timeout: float,
+    input: str | None = None,
+    cwd: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Run `program` with `args`, never through a shell, and return the finished process.
 
     `program` is an absolute path, as `shutil.which` returns. Each item of `args` reaches the
-    program unchanged, as one argument. Output is captured as UTF-8 text. A non-zero exit status
-    is not an error here: the caller checks `returncode`. Running past `timeout` seconds kills the
-    program and raises `subprocess.TimeoutExpired`.
+    program unchanged, as one argument. `input`, if given, reaches the program's stdin unchanged,
+    as UTF-8 text. The program runs in the folder `cwd`, if given. Output is captured as UTF-8
+    text. A non-zero exit status is not an error here: the caller checks `returncode`. Running
+    past `timeout` seconds kills the program and raises `subprocess.TimeoutExpired`.
     """
     path = Path(program)
     if not path.is_absolute():
@@ -27,6 +33,8 @@ def run_tool(
     return subprocess.run(  # noqa: S603
         [str(path), *args],
         shell=False,
+        input=input,
+        cwd=cwd,
         capture_output=True,
         encoding="utf-8",
         errors="replace",

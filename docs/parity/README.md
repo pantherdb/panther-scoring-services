@@ -28,10 +28,10 @@ Parity is the acceptance test for **milestone M1** of each service. It does not 
 
 | File | Contents |
 | ---- | -------- |
-| `golden-setup.md` | How to run each reference and regenerate the golden files: the container, the Perl and tool versions (BLAST+, HMMER3, EPA-ng), the pinned `treegrafter` commit, and the PANTHER data versions |
-| `inputs.md` | Each test input, by service, and why it's in the set |
-| `divergences.md` | The divergence log (format below) |
-| `csnp-library-survey.md` | The survey of the cSNP PAML_RST library: what each check found across all 8,607 families, how the Perl's readings differ from the strict readers', and the families chosen for the cSNP data sample |
+| [golden-setup.md](golden-setup.md) | How to run each reference and regenerate the golden files: the container, the Perl and tool versions (BLAST+, HMMER3, EPA-ng), the pinned `treegrafter` commit, and the PANTHER data versions |
+| [inputs.md](inputs.md) | Each test input, by service, and why it's in the set |
+| [divergences.md](divergences.md) | The divergence log (format below) |
+| [csnp-library-survey.md](csnp-library-survey.md) | The survey of the cSNP PAML_RST library: what each check found across all 8,607 families, how the Perl's readings differ from the strict readers', and the families chosen for the cSNP data sample |
 
 The golden files themselves are test fixtures, so they live with the engine's tests in `engine/`. This folder explains them.
 
@@ -46,7 +46,7 @@ The legacy repository already has the reference material. Paths are relative to 
   - §7: pinned checksums for the PAML library, BLAST DB, species file and sample; commands to regenerate the outputs; and the expected outputs for the 35-SNP sample, the order-dependence run, the edge cases and the CGI.
 - `docs/2026-10-28-parity-review.md`: the defects and the keep-or-fix decisions, which are logged here as proposed divergences.
 
-**Matching those goldens byte for byte reproduces known defects.** Until a proposed row is approved, the Python matches the legacy output, defects included. `golden-setup.md` and `inputs.md` for `csnp` should start from spec §7 rather than redo it.
+**Matching those goldens byte for byte reproduces known defects.** Until a proposed row is approved, the Python matches the legacy output, defects included. [golden-setup.md](golden-setup.md) and [inputs.md](inputs.md) start from spec §7 rather than redo it.
 
 ## Divergence Log Format
 

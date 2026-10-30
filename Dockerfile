@@ -1,5 +1,6 @@
 # The engine and API images: Python, uv and the external tools at pinned versions, for linux/amd64
-# and linux/arm64. Stages: blast, hmmer, epang -> tools -> engine, api.
+# and linux/arm64. Stages: blast, hmmer, epang -> tools -> engine, api; and the test-only
+# csnp-reference, from engine.
 #
 # Every base image is pinned by digest and every download by version and sha256. Changing a pin
 # is a pull request that changes this file; Dependabot doesn't update them. The versions are
@@ -114,6 +115,34 @@ COPY --chown=panther:panther engine/pyproject.toml engine/uv.lock engine/.python
 RUN uv sync --locked --no-cache --no-install-project
 COPY --chown=panther:panther engine/ ./
 RUN uv sync --locked --no-cache
+
+# The cSNP reference, for parity tests only (Engine condition 3 in docs/design/tech-stack.md): the
+# engine with Debian's Perl and the legacy scripts at the parity reference, pantherdb/cSNP_analysis
+# at cebb5ab. That repository is private, so the scripts come from the named build context
+# csnp-reference-scripts, a `git archive cebb5ab` of a developer's checkout. The commands are in
+# docs/parity/golden-setup.md. Building `engine` or `api` never needs the context, and CI and
+# compose never build this stage.
+FROM engine AS csnp-reference
+USER root
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends perl; \
+    rm -rf /var/lib/apt/lists/*
+COPY --from=csnp-reference-scripts run_blastp.pl parse_blastp.pl PANTHER_PSEP1.01.pl \
+    /opt/csnp-reference/
+# sha256 of each script at cebb5ab, computed on 2026-10-29. A script that differs fails the build,
+# naming the file.
+RUN set -eux; \
+    cd /opt/csnp-reference; \
+    printf '%s  %s\n' \
+        5368a43cfc1865b33010ce7ff390107947dab678f848605e865a47828df6d0c5 run_blastp.pl \
+        e19ecf1a4ad4037a147d1913c649df01e1ee9ea147d7aa451caca2e1179030e4 parse_blastp.pl \
+        b931ff6688b3ce7e345a9ab872537c859296a01aa8835d3b529b4aa0b27e1735 PANTHER_PSEP1.01.pl \
+        | sha256sum --check --strict; \
+    perl -v | sed -n 2p
+USER panther
+# parse_blastp.pl's `sort` compares whole lines when percent identities tie: byte by byte, in C.
+ENV LC_ALL=C
 
 # The API: api/ and the engine installed into /opt/venv as regular packages, without the dev group,
 # serving on port 8000. The image runs what it was built from; nothing mounted over /work changes

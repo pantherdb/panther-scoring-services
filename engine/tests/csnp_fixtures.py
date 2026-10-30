@@ -2,6 +2,12 @@
 
 `PTHR00001` is a clean family: three leaves (nodes 1-3, AN2-AN4), the root (node 4, AN0) and one
 internal node (node 5, AN1), with two sites. The other files are broken copies of it.
+
+`PTHR00004` is for step 3: seven leaves (nodes 1-7, AN20-AN26), five sites, and an internal node of
+each kind: speciations (nodes 10 and 11), a duplication (9), a `0>0` node with a taxon (12), a
+speciation in Sauria, which the species tree lacks (13), and an `Ev=UNK` root (8). Column 13 is
+labelled AN21 too (`SCORE-2`), and node 11 has an unreconstructed cell at site 3. test_csnp_psep.py
+gives each node's age.
 """
 
 import gzip

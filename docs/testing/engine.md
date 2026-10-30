@@ -68,13 +68,69 @@ Every external tool is started through `run_tool()` in `src/panther_engine/core/
 
 In tests, the `make_tool` fixture (`tests/conftest.py`) writes a fake tool: a small shell script in a temporary folder. `tests/test_process.py` and `tests/test_tools.py` show how to use it.
 
+## Scoring From the Command Line
+
+`panther-engine csnp score` scores one protein as the API's `csnp` job does, for checks by hand and smoke tests. It needs `blastp`, so run it in the image, and the cSNP data sample or the full data. From the repository root:
+
+```sh
+docker compose run --rm -T engine sh -c \
+  'head -n 2 tests/golden/csnp/release/sample.fasta > /tmp/P26439.fasta &&
+   panther-engine csnp score /tmp/P26439.fasta --species HUMAN A10E G15D'
+```
+
+It prints tab-separated text:
+
+```text
+family        PTHR10366
+substitution  age   message            pdel
+A10E          220   possibly damaging  0.50
+G15D          4200  probably damaging  0.95
+```
+
+- **The file holds one protein:** FASTA with one header line, or the sequence alone. It's normalised as the API normalises a request: the header and all whitespace removed, upper case. A file with more than one sequence is refused.
+- **Substitutions** are a residue letter, a position and a residue letter, such as `A10E`, in any case.
+- **`--species`** is a code of the PANTHER9 BLAST database, such as `HUMAN`.
+- **`--json`** prints the result as `score()` returns it. **`--data-dir`** overrides `PANTHER_DATA_DIR`.
+- **Exit status 1** for input it can't score, with the reason on standard error.
+
+## Parity Tests
+
+The parity tests check the port against golden files made by the service's reference, byte for byte. For `csnp`, `tests/test_csnp_golden.py` reads `tests/golden/csnp/`:
+
+| Test | Needs | Checks |
+| ---- | ----- | ------ |
+| Step 2 | Nothing | `parse_blastp.pl`'s output for the spec's inputs and every generated step-2 run |
+| Step 3 | `data("csnp")` | The spec's §7.3 and §7.5, from step 2 on; every family's generated cases; the broken families give "Invalid substitution" |
+| Step 1 | `tools("blastp")`, `data("csnp")` | BLAST+ 2.17.0's output for the three sample proteins, and each one's best hit against the legacy `HUMAN` fixture |
+
+`tests/test_csnp_scoring.py` adds `score()` end to end, with `blastp`: spec §7.3 as three calls, one per protein.
+
+`panther-engine csnp parity check` runs the same comparisons and reports every case that differs, by family and SNP id, and the kinds of node the walks reached. From `engine/`, with the data sample:
+
+```sh
+uv run panther-engine csnp parity check tests/golden/csnp/generated --data-dir ../.data
+```
+
+It exits with status 1 if any case differs. Making the goldens needs the legacy Perl, in the `csnp-reference` image: see [golden-setup.md](../parity/golden-setup.md).
+
+## Input Errors
+
+A service raises `InputError` (`src/panther_engine/core/errors.py`) when it can't process the input **as a whole**, and only the engine can tell. For example, an organism its data doesn't have. The API fails the job with status `422` and shows the message to the user as it is.
+
+- **Single-item problems go in the result,** not in an exception. One substitution that can't be mapped, or one ID with no family, is a row of the result, so the rest of the input still gets its answers.
+- **The message is written for the person who submitted the input.** Say what's wrong and what to fix, in a sentence: "Unknown organism."
+- **The message never contains file paths, tool output or internal identifiers.** The API can't tell a safe message from an unsafe one, so review and each service's tests are the guard.
+- **Raise it only on purpose.** Never convert other exceptions into it. A bug, a broken data file or a failing tool raises anything else, and the API reports it as a generic `500`.
+- **Subclasses are fine,** with any constructor, such as `UnknownOrganism(organism)`. The base class rebuilds them across processes, so they keep their type, message and attributes. `tests/test_errors.py` checks this through a real `spawn` worker.
+
 ## Test Data
 
 ### The cSNP Data Sample
 
-The cSNP tests read a sample of the PAML_RST library: one family for each variant the [library survey](../parity/csnp-library-survey.md) found, the species tree, and the PSEP 1.01 release's copyright statement. The full library is 19.2 GB unpacked, too big for a laptop or a CI runner.
+The cSNP tests read a sample of the cSNP data: one family of the PAML_RST library for each variant the [library survey](../parity/csnp-library-survey.md) found, the whole PANTHER9 BLAST database, the species tree, and the PSEP 1.01 release's copyright statement. The full library is 19.2 GB unpacked, too big for a laptop or a CI runner.
 
-- **Where it lives:** a public release asset of this repository, `csnp-sample-1.tar.gz`, pinned by `engine/src/panther_engine/csnp/sample.json`. The manifest holds the tarball's URL and sha256, and the sha256 of each file in it.
+- **Where it lives:** a public release asset of this repository, `csnp-sample-2.tar.gz` (157 MB, 622 MB unpacked), pinned by `engine/src/panther_engine/csnp/sample.json`. The manifest holds the tarball's URL and sha256, the sha256 of each source archive, and the sha256 of each file in the tarball.
+- **What it holds:** under `csnp/9/`, the families in `PAML_RST/`, the BLAST database's `blast.phr`, `blast.pin` and `blast.psq` in `blast/`, `species_pthr8_time.nhx` and `PSEP-COPYRIGHT.txt`. The database is whole, so `blastp` finds the same hits as against the full data. The release's 326 MB `blast.fasta` stays out: `blastp` doesn't read it.
 - **Where it goes:** the data folder, under `csnp/9/`. The data folder is `PANTHER_DATA_DIR`. For development it's `.data/` at the repository root, which git ignores.
 
 Fetch it natively, from `engine/`:
@@ -112,37 +168,39 @@ def test_reads_every_sample_family(csnp_data: Path) -> None: ...
 
 ### Using the Full Library
 
-The full library unpacks into the same layout, so code never needs to know which it has. From the parent folder of this repository:
+The full data unpacks into the same layout, so code never needs to know which it has. From the parent folder of this repository:
 
 ```sh
 mkdir -p ~/panther-data/csnp/9
 tar -xzf panther_build/PAML_RST.tar.gz -C ~/panther-data/csnp/9
+tar -xzf PANTHER_PSEP1.01/PANTHER9.blast.tar.gz -C ~/panther-data/csnp/9
 cp panther-workspace/legacy/cSNP_analysis/species_pthr8_time.nhx ~/panther-data/csnp/9/
 (cd panther-scoring-services/engine && uv run panther-engine csnp sample fetch --data-dir ~/panther-data)
 ```
 
-The last line adds the copyright statement and checks the sample's files, which the full library also holds. Then set `PANTHER_DATA_DIR=~/panther-data`. It needs 19.2 GB free.
+The BLAST archive unpacks to `csnp/9/blast/`, with the `blast.fasta` the sample leaves out; it's harmless. The last line adds the copyright statement and checks the sample's files, which the full data also holds. Then set `PANTHER_DATA_DIR=~/panther-data`. It needs 19.9 GB free.
 
 ### Publishing a New Sample
 
 A new sample is a new release tag and a new manifest. Old releases stay, so old commits can still fetch their sample. Never replace the asset of an existing release: the manifests that pin it would fail to fetch.
 
 1. **Choose the families** from the survey, and record them in [csnp-library-survey.md](../parity/csnp-library-survey.md). To rebuild the current sample, list its families with `jq -r '.families[]' src/panther_engine/csnp/sample.json > families.txt`.
-2. **Build** from `engine/`, with the next tag. The archive and the species tree must match the checksums in the legacy behaviour spec §7.1:
+2. **Build** from `engine/`, with the next tag. The two archives and the species tree must match the checksums in the legacy behaviour spec §7.1:
 
    ```sh
    uv run panther-engine csnp sample build ../../panther_build/PAML_RST.tar.gz \
+     --blast-archive ../../PANTHER_PSEP1.01/PANTHER9.blast.tar.gz \
      --species ../../panther-workspace/legacy/cSNP_analysis/species_pthr8_time.nhx \
      --readme ../../PANTHER_PSEP1.01/README.txt \
-     --families families.txt --tag csnp-sample-2
+     --families families.txt --tag csnp-sample-3
    ```
 
-   It writes `csnp-sample-2.tar.gz` and `src/panther_engine/csnp/sample.json`. A second build gives the same bytes.
+   It writes `csnp-sample-3.tar.gz` and `src/panther_engine/csnp/sample.json`, in about two minutes. A second build gives the same bytes.
 3. **Publish** the tarball. It needs write access to the repository:
 
    ```sh
-   gh release create csnp-sample-2 csnp-sample-2.tar.gz --prerelease \
-     --title "cSNP data sample 2" --notes "See docs/parity/csnp-library-survey.md"
+   gh release create csnp-sample-3 csnp-sample-3.tar.gz --prerelease \
+     --title "cSNP data sample 3" --notes "See docs/parity/csnp-library-survey.md"
    ```
 
    `--prerelease` keeps the sample from becoming the repository's Latest release. `--latest=false` isn't enough: GitHub makes the only release Latest anyway, as it did with `csnp-sample-1`.

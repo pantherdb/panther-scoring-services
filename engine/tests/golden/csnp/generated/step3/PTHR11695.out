@@ -1,0 +1,42 @@
+no-family,M11I,Not scored: No PANTHER family for input sequence
+unmapped,M19N,Not scored: Invalid substitution
+g1-start,M2W,PTHR11695,1037,probably damaging,0.85
+g1-end,Y307W,PTHR11695,2,probably benign,0.02
+g1-past-end,Y319N,Not scored: Invalid substitution
+g1-wrong-wt,Y240K,Not scored: Invalid substitution
+g1-p289,V295Y,PTHR11695,220,possibly damaging,0.50
+g1-p214,G233R,PTHR11695,1037,probably damaging,0.85
+g1-p184,Y190F,PTHR11695,2,probably benign,0.02
+g1-p130,V150K,PTHR11695,176,probably benign,0.27
+g2-start,M10C,PTHR11695,4200,probably damaging,0.95
+g2-end,L350D,PTHR11695,1,probably benign,0.02
+g2-past-end,L359D,Not scored: Invalid substitution
+g2-wrong-wt,D152M,Not scored: Invalid substitution
+g2-p44,L58D,PTHR11695,402,probably damaging,0.57
+g2-p88,S93K,PTHR11695,1,probably benign,0.02
+g2-p133,G136R,PTHR11695,4200,probably damaging,0.95
+g2-p161,A164F,PTHR11695,1,probably benign,0.02
+g3-start,M21G,PTHR11695,4181,probably damaging,0.95
+g3-end,E395S,PTHR11695,4180,probably damaging,0.95
+g3-past-end,E416V,Not scored: Invalid substitution
+g3-wrong-wt,I373D,Not scored: Invalid substitution
+g3-p94,G94F,PTHR11695,4200,probably damaging,0.95
+g3-p202,V222W,PTHR11695,4181,probably damaging,0.95
+g3-p292,Q308C,PTHR11695,4180,probably damaging,0.95
+g3-p344,G351H,PTHR11695,4180,probably damaging,0.95
+g4-start,M4Q,PTHR11695,470,probably damaging,0.57
+g4-end,E364P,PTHR11695,275,possibly damaging,0.50
+g4-past-end,E378C,Not scored: Invalid substitution
+g4-wrong-wt,S322T,Not scored: Invalid substitution
+g4-p227,Q231Y,PTHR11695,275,possibly damaging,0.50
+g4-p319,L319H,PTHR11695,1237,probably damaging,0.85
+g4-p338,T356W,PTHR11695,275,possibly damaging,0.50
+g4-p351,R351Q,PTHR11695,1037,probably damaging,0.85
+g5-start,M21F,PTHR11695,4200,probably damaging,0.95
+g5-end,L371R,PTHR11695,1,probably benign,0.02
+g5-past-end,L388E,Not scored: Invalid substitution
+g5-wrong-wt,F342S,Not scored: Invalid substitution
+g5-p71,H77K,PTHR11695,4200,probably damaging,0.95
+g5-p107,E127V,PTHR11695,1,probably benign,0.02
+g5-p221,T222N,PTHR11695,1,probably benign,0.02
+g5-p230,K244G,PTHR11695,1368,probably damaging,0.86

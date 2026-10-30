@@ -1,0 +1,42 @@
+no-family,M2W,Not scored: No PANTHER family for input sequence
+unmapped,M18G,Not scored: Invalid substitution
+g1-start,M19R,PTHR17358,97,probably benign,0.19
+g1-end,Y43G,PTHR17358,97,probably benign,0.19
+g1-past-end,Y32C,PTHR17358,97,probably benign,0.19
+g1-wrong-wt,A11N,Not scored: Invalid substitution
+g1-p13,T16R,PTHR17358,97,probably benign,0.19
+g1-p9,C26I,PTHR17358,1,probably benign,0.02
+g1-p20,I34L,PTHR17358,1,probably benign,0.02
+g1-p23,W41C,PTHR17358,97,probably benign,0.19
+g2-start,M6Y,PTHR17358,97,probably benign,0.19
+g2-end,Y34D,PTHR17358,97,probably benign,0.19
+g2-past-end,Y43D,PTHR17358,97,probably benign,0.19
+g2-wrong-wt,F23N,Not scored: Invalid substitution
+g2-p11,N24S,PTHR17358,97,probably benign,0.19
+g2-p18,T23G,PTHR17358,97,probably benign,0.19
+g2-p24,L43G,PTHR17358,97,probably benign,0.19
+g2-p25,L27Y,PTHR17358,97,probably benign,0.19
+g3-start,R3Q,PTHR17358,97,probably benign,0.19
+g3-end,Q32E,PTHR17358,97,probably benign,0.19
+g3-past-end,Q45M,Not scored: Invalid substitution
+g3-wrong-wt,G15N,Not scored: Invalid substitution
+g3-p8,T8W,PTHR17358,97,probably benign,0.19
+g3-p13,T31P,PTHR17358,97,probably benign,0.19
+g3-p14,V33Q,PTHR17358,97,probably benign,0.19
+g3-p19,L21F,PTHR17358,97,probably benign,0.19
+g4-start,M17V,PTHR17358,97,probably benign,0.19
+g4-end,Y45H,PTHR17358,97,probably benign,0.19
+g4-past-end,Y49S,PTHR17358,97,probably benign,0.19
+g4-wrong-wt,P10K,Not scored: Invalid substitution
+g4-p8,L14A,PTHR17358,97,probably benign,0.19
+g4-p9,F14N,PTHR17358,97,probably benign,0.19
+g4-p15,V23H,PTHR17358,97,probably benign,0.19
+g4-p16,L25G,PTHR17358,97,probably benign,0.19
+g5-start,M2A,PTHR17358,97,probably benign,0.19
+g5-end,Y36V,PTHR17358,97,probably benign,0.19
+g5-past-end,Y48R,PTHR17358,97,probably benign,0.19
+g5-wrong-wt,W20M,Not scored: Invalid substitution
+g5-p5,T14V,PTHR17358,97,probably benign,0.19
+g5-p11,N27K,PTHR17358,97,probably benign,0.19
+g5-p24,L26M,PTHR17358,97,probably benign,0.19
+g5-p25,L34D,PTHR17358,97,probably benign,0.19

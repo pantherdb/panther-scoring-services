@@ -95,22 +95,26 @@ export function checkSubstitutions(tokens: string[]): string[] {
   return messages
 }
 
-/** Checks the species box's text, trimmed, as it will be sent. */
-export function checkSpecies(text: string): string[] {
+/**
+ * Checks the species, trimmed, as it will be sent. `codes` is the API's species list, once it
+ * has loaded: the same codes the API accepts. Without it, only the shape is checked here.
+ */
+export function checkSpecies(text: string, codes?: ReadonlySet<string>): string[] {
   const species = text.trim()
   if (species === '') return ['Enter a PANTHER species code, such as HUMAN.']
   if (!SPECIES.test(species)) {
     return ['Use a PANTHER species code of 1 to 5 upper-case letters or digits, such as HUMAN.']
   }
+  if (codes && !codes.has(species)) return ['Choose a species from the list.']
   return []
 }
 
-/** Every field's errors; a field with none is left out. */
-export function checkDraft(values: CsnpValues): DraftErrors['fields'] {
+/** Every field's errors; a field with none is left out. `codes` as for `checkSpecies`. */
+export function checkDraft(values: CsnpValues, codes?: ReadonlySet<string>): DraftErrors['fields'] {
   const found: Record<CsnpField, string[]> = {
     sequence: checkSequence(values.sequence),
     substitutions: checkSubstitutions(splitSubstitutions(values.substitutions)),
-    species: checkSpecies(values.species),
+    species: checkSpecies(values.species, codes),
   }
   const errors: DraftErrors['fields'] = {}
   for (const field of CSNP_FIELDS) {

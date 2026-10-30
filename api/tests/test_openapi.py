@@ -268,3 +268,31 @@ def test_the_versions_name_each_services_data(client: TestClient) -> None:
         "service": {"type": "string"},
         "panther": {"type": "string"},
     }
+
+
+# The cSNP species list.
+
+
+def test_the_csnp_species_list_in_the_schema(client: TestClient) -> None:
+    schema = served_schema(client)
+    responses = schema["paths"]["/api/v1/csnp/species"]["get"]["responses"]
+
+    body = responses["200"]["content"]["application/json"]["schema"]
+    assert body["type"] == "array"
+    assert body["items"] == {"$ref": f"{SCHEMAS}CsnpSpecies"}
+    assert "Cache-Control" in responses["200"]["headers"]
+    assert "422" not in responses
+    species = schema["components"]["schemas"]["CsnpSpecies"]
+    assert sorted(species["required"]) == ["code", "name"]
+    assert properties(schema, "CsnpSpecies") == {
+        "code": {"type": "string"},
+        "name": {"type": "string"},
+    }
+
+
+def test_the_csnp_requests_species_is_not_an_enum(client: TestClient) -> None:
+    # The species list is the endpoint above; the request keeps its validator.
+    species = served_schema(client)["components"]["schemas"]["CsnpInput"]["properties"]["species"]
+
+    assert species["type"] == "string"
+    assert "enum" not in species

@@ -49,6 +49,8 @@ uv downloads Python 3.13 itself if it isn't on the machine. In VS Code, use the 
 | `uv run pytest -k metacharacters` | One test, by name |
 | `uv run panther-engine --version` | The CLI. `panther-engine tools` reports the tools found on your `PATH` |
 
+**Breaking code on purpose to see a test fail?** Run that check with `PYTHONDONTWRITEBYTECODE=1`, or delete the module's `.pyc` after restoring it. Python reuses its cached bytecode while the source's size and its modification time, in whole seconds, are unchanged, so an edit undone within a second at the same size still runs the broken code (`add-csnp-species-names`, task 1.3).
+
 ## Tests That Need the Tools
 
 A test that runs a real tool is marked with the tools it needs:

@@ -199,6 +199,25 @@ The engine SHALL publish the species codes it scores against: the species in the
 - **WHEN** a protein is scored with the species `XXXXX`
 - **THEN** scoring fails with an error that isn't an input error, and nothing is searched
 
+### Requirement: Species names
+
+The engine SHALL publish a name for each species code it scores against: the name the old site's cSNP list gives that code (`CSNP_SHORT_LONG_ORG_LIST` in `panther-site-java`'s `OrganismConstants.java`), as written there. It MUST publish a name for exactly the codes it scores against, and a caller MUST NOT be able to change the names.
+
+#### Scenario: A name for every code
+
+- **WHEN** the published names are compared with the published species codes
+- **THEN** there is one name for each of the 85 codes, and no name for any other code
+
+#### Scenario: The old site's names
+
+- **WHEN** the names of `HUMAN`, `PLAF7`, `SYNY3` and `CANFA` are looked up
+- **THEN** they are `Homo sapiens`, `Plasmodium falciparum`, `Synechocystis` and `Canis familiaris`, as the old site's list has them
+
+#### Scenario: Read-only
+
+- **WHEN** a caller tries to change a name, or to add one
+- **THEN** it fails, and the names are unchanged
+
 ### Requirement: A query BLAST+ can't read
 
 When BLAST+ can't read the query (exit status 1), or the sequence starts with a character BLAST+ reads as the start of a comment (`!`, `#` or `;`), the engine SHALL raise its input error, with a message written for the submitter that contains no tool output. This is divergence 8: the reference reported every substitution as "Not scored: No PANTHER family for input sequence".

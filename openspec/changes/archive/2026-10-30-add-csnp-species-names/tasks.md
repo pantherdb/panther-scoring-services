@@ -24,7 +24,13 @@
 
 ### Next action
 
-Every task is done. Open the pull request against `main`. The API developer reviews it, with the engine developer's sign-off on the proposal.
+None: the change is merged (#27, `ce48464`) and archived (2026-10-30).
+
+- tmushayahama approved #27 from the API and frontend side, and merged it. Their review agreed to copying the 85 names from `panther-site-java`, the proposal's question for review. The form will show "Homo sapiens (HUMAN)", in the order the API serves them.
+- CI on `7090c87` passed (run 41134147982): `engine` 391 passed, `engine-image` 410 on both architectures, `api` 147.
+- `SPECIES_NAMES` is on `main`, as #26's answers told the API developer. Next on their side: serving the codes with their names, and the form's species selector.
+- The lesson learned is now in `docs/testing/engine.md`, under Natively.
+- The proposal's open questions stay open: which names production showed, and the older names.
 
 ### Blockers
 

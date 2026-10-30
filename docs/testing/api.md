@@ -39,6 +39,7 @@ With the dev server running:
 
 - `http://localhost:8000/api/v1/health` returns `{"status":"ok"}`.
 - `http://localhost:8000/api/v1/versions` returns the API, engine and tool versions. Run natively, every tool's `version` is `null`, because the external tools are only in the image.
+- `http://localhost:8000/api/v1/csnp/species` returns the species a `csnp` job accepts, with their names. See [The Species List](#the-species-list).
 - `http://localhost:8000/api/v1/docs` is the interactive documentation.
 - `http://localhost:8000/api/v1/openapi.json` is the schema.
 - `POST http://localhost:8000/api/v1/jobs` starts a job, and `GET http://localhost:8000/api/v1/jobs/{id}` polls it. See [Try the Jobs by Hand](#try-the-jobs-by-hand).
@@ -189,9 +190,29 @@ A request the API accepts can still fail in its worker, in one of two ways:
 
 An input error is logged at `INFO`, without a traceback. Uvicorn's logging shows only its own loggers, so it doesn't appear in `docker compose logs api` as the image is configured now.
 
+#### The Species List
+
+`GET /api/v1/csnp/species` lists the 85 species a `csnp` job's `species` may name, with their scientific names, in the engine's order (`panther_engine.csnp.SPECIES_NAMES`). The form's species dropdown reads it. It needs no data, so it works natively too:
+
+```sh
+curl -si localhost:8000/api/v1/csnp/species
+```
+
+It starts like this, and goes on for 83 more, `{"code": "HUMAN", "name": "Homo sapiens"}` among them:
+
+```json
+[
+  { "code": "ANOCA", "name": "Anolis carolinensis" },
+  { "code": "ANOGA", "name": "Anopheles gambiae" },
+  "…"
+]
+```
+
+The response has `Cache-Control: public, max-age=3600`: the list changes only with a new image. The request's `species` stays a plain string in the schema, with no enum; the API checks it against the same codes (`add-csnp-species-list`, design.md, decision 2).
+
 #### Requests That Are Refused
 
-An invalid request gets the `422` validation problem, which names each failing field and never repeats its value, and no job is created. A `species` must also be one of the 85 species in cSNP's data (`panther_engine.csnp.SPECIES_CODES`): `ZZZZZ` gets "cSNP scoring has no sequences for this species. …" on `species`. Here `species` isn't a species code and `substitutions` is empty:
+An invalid request gets the `422` validation problem, which names each failing field and never repeats its value, and no job is created. A `species` must also be one of the 85 species in cSNP's data (`panther_engine.csnp.SPECIES_CODES`, the codes [the species list](#the-species-list) gives): `ZZZZZ` gets "cSNP scoring has no sequences for this species. …" on `species`. Here `species` isn't a species code and `substitutions` is empty:
 
 ```sh
 curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \

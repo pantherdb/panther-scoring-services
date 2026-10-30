@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 
+import { species as mockedSpecies } from '@/mocks/data/species'
 import { createJob } from '@/mocks/jobs'
 
 import { server } from '../../mocks/server'
@@ -25,8 +26,38 @@ function substitutionsBox() {
   return main().getByLabelText(/substitutions/i)
 }
 
+// The species selector, or the code box when the list can't be loaded: the same label. By role,
+// since the selector's open list of options has that label too.
 function speciesBox() {
-  return main().getByLabelText(/species/i)
+  return (
+    main().queryByRole('combobox', { name: /species/i }) ??
+    main().getByRole('textbox', { name: /species/i })
+  )
+}
+
+const HUMAN = 'Homo sapiens (HUMAN)'
+
+// The selector shows HUMAN once the mocked list has loaded.
+async function speciesLoaded() {
+  await waitFor(() => expect(speciesBox()).toHaveValue(HUMAN))
+}
+
+// Clears the selector's text, types `search` in it and clicks the option named `option`. A
+// click leaves the chosen species' label in the box, so typing alone would add to it.
+async function search(user: ReturnType<typeof renderRoute>['user'], text: string) {
+  await speciesLoaded()
+  await user.click(speciesBox())
+  await user.clear(speciesBox())
+  await user.type(speciesBox(), text)
+}
+
+async function chooseSpecies(
+  user: ReturnType<typeof renderRoute>['user'],
+  text: string,
+  option: string
+) {
+  await search(user, text)
+  await user.click(await screen.findByRole('option', { name: option }))
 }
 
 function submitButton() {
@@ -85,13 +116,14 @@ describe('the cSNP form', () => {
     expect(router.state.location.pathname).toBe('/csnp')
     expect(sequenceBox()).toHaveValue('')
     expect(substitutionsBox()).toHaveValue('')
-    expect(speciesBox()).toHaveValue('HUMAN')
+    await speciesLoaded()
     expect(submitButton()).toBeEnabled()
   })
 
-  it("fills every box with the legacy website's example", async () => {
+  it("fills every box with the legacy website's example, the species HUMAN included", async () => {
     const { user } = renderRoute('/csnp')
-    await user.type(speciesBox(), 'X')
+    await chooseSpecies(user, 'muscul', 'Mus musculus (MOUSE)')
+    expect(speciesBox()).toHaveValue('Mus musculus (MOUSE)')
 
     await user.click(main().getByRole('button', { name: /use an example/i }))
 
@@ -104,7 +136,7 @@ describe('the cSNP form', () => {
       'R163C',
       'R176C',
     ])
-    expect(speciesBox()).toHaveValue('HUMAN')
+    expect(speciesBox()).toHaveValue(HUMAN)
   })
 
   it('says how to separate substitutions, commas included', () => {
@@ -115,19 +147,20 @@ describe('the cSNP form', () => {
 })
 
 describe('the client checks', () => {
-  it('shows an error on each empty field and sends nothing', async () => {
+  it('shows an error on each empty box and sends nothing', async () => {
     const bodies = serveStart()
     const { user, router } = renderRoute('/csnp')
-    await user.clear(speciesBox())
+    await speciesLoaded()
 
     await user.click(submitButton())
 
-    for (const box of [sequenceBox(), substitutionsBox(), speciesBox()]) {
+    for (const box of [sequenceBox(), substitutionsBox()]) {
       expect(box).toBeInvalid()
     }
     expect(sequenceBox()).toHaveAccessibleDescription(/enter a protein sequence/i)
     expect(substitutionsBox()).toHaveAccessibleDescription(/at least one substitution/i)
-    expect(speciesBox()).toHaveAccessibleDescription(/species code/i)
+    // The selector can't be emptied: it still holds HUMAN.
+    expect(speciesBox()).toBeValid()
     expect(bodies).toEqual([])
     expect(router.state.location.pathname).toBe('/csnp')
   })
@@ -149,8 +182,6 @@ describe('the client checks', () => {
       'L46P;C130R',
       /substitution 1 \(L46P;C130R\)/i,
     ],
-    ['lower case', speciesBox, 'human', /upper-case/i],
-    ['too long', speciesBox, 'HOMOSAPIENS', /upper-case/i],
   ])(
     'shows an error for %s, on its field only, and sends nothing',
     async (_name, box, text, error) => {
@@ -184,12 +215,11 @@ describe('the client checks', () => {
 })
 
 describe('submitting a cSNP request', () => {
-  it('sends the sequence as typed, the substitutions split, the species trimmed, and opens the job', async () => {
+  it("sends the sequence as typed, the substitutions split, the chosen species' code, and opens the job", async () => {
     const bodies = serveStart()
     const { user, router } = renderRoute('/csnp')
     await fillValid(user)
-    await user.clear(speciesBox())
-    await user.type(speciesBox(), 'PLAF7 ')
+    await chooseSpecies(user, 'plas', 'Plasmodium falciparum (PLAF7)')
 
     await user.click(submitButton())
 
@@ -253,7 +283,7 @@ describe("the API's validation errors", () => {
     expect(sequenceBox()).toBeValid()
     expect(sequenceBox()).toHaveValue(SEQUENCE)
     expect(substitutionsBox()).toHaveValue('L4P c13r\nG12V')
-    expect(speciesBox()).toHaveValue('HUMAN')
+    expect(speciesBox()).toHaveValue(HUMAN)
     expect(router.state.location.pathname).toBe('/csnp')
   })
 
@@ -293,8 +323,7 @@ describe("the API's validation errors", () => {
     await user.click(submitButton())
     await waitFor(() => expect(speciesBox()).toBeInvalid())
 
-    await user.clear(speciesBox())
-    await user.type(speciesBox(), 'RAT')
+    await chooseSpecies(user, 'RAT', 'Rattus norvegicus (RAT)')
 
     expect(speciesBox()).toBeValid()
     serveStart()
@@ -322,7 +351,7 @@ describe('when the job is not started', () => {
     expect(bodies).toHaveLength(1)
     expect(sequenceBox()).toHaveValue(SEQUENCE)
     expect(substitutionsBox()).toHaveValue('L4P c13r\nG12V')
-    expect(speciesBox()).toHaveValue('HUMAN')
+    expect(speciesBox()).toHaveValue(HUMAN)
     expect(router.state.location.pathname).toBe('/csnp')
     expect(screen.getByRole('main').textContent).not.toMatch(/501|not implemented/i)
     expect(submitButton()).toBeEnabled()
@@ -398,5 +427,201 @@ describe('when the job is not started', () => {
     await user.click(submitButton())
 
     expect(await main().findByRole('alert')).toHaveTextContent(/couldn.t be started/i)
+  })
+})
+
+describe('the species selector', () => {
+  it('offers each species the API lists, by name and code, sorted by name', async () => {
+    const { user } = renderRoute('/csnp')
+    await speciesLoaded()
+
+    await user.click(speciesBox())
+
+    const names = (await screen.findAllByRole('option')).map(option => option.textContent)
+    const expected = mockedSpecies
+      .map(({ code, name }) => `${name} (${code})`)
+      .sort((a, b) => a.localeCompare(b, 'en'))
+    expect(names).toEqual(expected)
+  })
+
+  it('finds a species by part of its name, in any case', async () => {
+    const { user } = renderRoute('/csnp')
+
+    await search(user, 'MUSCUL')
+
+    const options = await screen.findAllByRole('option')
+    expect(options.map(option => option.textContent)).toEqual(['Mus musculus (MOUSE)'])
+    await user.click(options[0]!)
+    expect(speciesBox()).toHaveValue('Mus musculus (MOUSE)')
+  })
+
+  it('finds a species by its code, in any case', async () => {
+    const { user } = renderRoute('/csnp')
+
+    await search(user, 'plaf7')
+
+    const options = await screen.findAllByRole('option')
+    expect(options.map(option => option.textContent)).toEqual(['Plasmodium falciparum (PLAF7)'])
+  })
+
+  it('says when no species matches, and keeps the species chosen before', async () => {
+    const { user } = renderRoute('/csnp')
+
+    await search(user, 'xyz')
+
+    expect(screen.queryAllByRole('option')).toEqual([])
+    expect(main().getByText(/no species matches/i)).toBeInTheDocument()
+    await user.click(sequenceBox())
+    expect(speciesBox()).toHaveValue(HUMAN)
+  })
+
+  it('works with the keyboard alone, and sends the code', async () => {
+    const bodies = serveStart()
+    const { user, router } = renderRoute('/csnp')
+    await fillValid(user)
+    await speciesLoaded()
+
+    await user.tab()
+    expect(speciesBox()).toHaveFocus()
+    await user.keyboard('rattus')
+    await user.keyboard('{ArrowDown}{Enter}')
+    expect(speciesBox()).toHaveValue('Rattus norvegicus (RAT)')
+    await user.click(submitButton())
+
+    await waitFor(() => expect(router.state.location.pathname).toMatch(JOB_PATH))
+    expect(bodies).toEqual([
+      expect.objectContaining({ input: expect.objectContaining({ species: 'RAT' }) }),
+    ])
+  })
+
+  it('says the species are loading until the list arrives, and the form can be filled', async () => {
+    let release = () => {}
+    const gate = new Promise<void>(resolve => (release = resolve))
+    server.use(
+      http.get('/api/v1/csnp/species', async () => {
+        await gate
+        return HttpResponse.json(mockedSpecies)
+      })
+    )
+    const { user } = renderRoute('/csnp')
+
+    expect(speciesBox()).toBeDisabled()
+    expect(speciesBox()).toHaveAttribute('placeholder', expect.stringMatching(/loading/i))
+    await fillValid(user)
+    expect(substitutionsBox()).toHaveValue('L4P c13r\nG12V')
+
+    release()
+    await speciesLoaded()
+    expect(speciesBox()).toBeEnabled()
+  })
+})
+
+describe('when the species list can’t be loaded', () => {
+  function serveSpeciesFailure() {
+    server.use(
+      http.get('/api/v1/csnp/species', () =>
+        HttpResponse.json(
+          { type: 'about:blank', title: 'x', status: 500, detail: 'at /opt/app :8000' },
+          { status: 500, headers: PROBLEM }
+        )
+      )
+    )
+  }
+
+  function retryButton() {
+    return main().getByRole('button', { name: /load the list of species again/i })
+  }
+
+  async function fallbackShown() {
+    expect(await main().findByRole('button', { name: /species again/i })).toBeInTheDocument()
+  }
+
+  it('offers a box for the code, holding HUMAN, says why in fixed text, and offers to retry', async () => {
+    serveSpeciesFailure()
+    renderRoute('/csnp')
+
+    await fallbackShown()
+
+    expect(speciesBox()).toHaveValue('HUMAN')
+    expect(speciesBox()).toBeEnabled()
+    expect(speciesBox()).toHaveAccessibleDescription(/couldn.t be loaded/i)
+    expect(screen.getByRole('main').textContent).not.toMatch(BUILD_DETAILS)
+    expect(screen.getByRole('main').textContent).not.toMatch(/500/)
+  })
+
+  it('sends a typed code, trimmed', async () => {
+    serveSpeciesFailure()
+    const bodies = serveStart()
+    const { user, router } = renderRoute('/csnp')
+    await fallbackShown()
+    await fillValid(user)
+    await user.clear(speciesBox())
+    await user.type(speciesBox(), 'MOUSE ')
+
+    await user.click(submitButton())
+
+    await waitFor(() => expect(router.state.location.pathname).toMatch(JOB_PATH))
+    expect(bodies).toEqual([
+      expect.objectContaining({ input: expect.objectContaining({ species: 'MOUSE' }) }),
+    ])
+  })
+
+  it.each([
+    ['empty', '', /species code/i],
+    ['lower case', 'human', /upper-case/i],
+    ['too long', 'HOMOSAPIENS', /upper-case/i],
+  ])(
+    'checks the shape of a typed code: %s is refused on its field only',
+    async (_name, text, error) => {
+      serveSpeciesFailure()
+      const bodies = serveStart()
+      const { user } = renderRoute('/csnp')
+      await fallbackShown()
+      await fillValid(user)
+      await user.clear(speciesBox())
+      if (text) await user.type(speciesBox(), text)
+
+      await user.click(submitButton())
+
+      expect(speciesBox()).toBeInvalid()
+      expect(speciesBox()).toHaveAccessibleDescription(error)
+      expect(sequenceBox()).toBeValid()
+      expect(substitutionsBox()).toBeValid()
+      expect(bodies).toEqual([])
+    }
+  )
+
+  it('brings the selector back on a retry, keeping the typed species', async () => {
+    serveSpeciesFailure()
+    const { user } = renderRoute('/csnp')
+    await fallbackShown()
+    await user.clear(speciesBox())
+    await user.type(speciesBox(), 'MOUSE')
+    server.resetHandlers()
+
+    await user.click(retryButton())
+
+    await waitFor(() => expect(speciesBox()).toHaveValue('Mus musculus (MOUSE)'))
+    expect(main().queryByRole('button', { name: /species again/i })).toBeNull()
+  })
+
+  it('refuses a typed code the list turns out not to have, and sends nothing', async () => {
+    serveSpeciesFailure()
+    const { user } = renderRoute('/csnp')
+    await fallbackShown()
+    await fillValid(user)
+    await user.clear(speciesBox())
+    await user.type(speciesBox(), 'ZZZZZ')
+    server.resetHandlers()
+    const bodies = serveStart()
+    await user.click(retryButton())
+    await waitFor(() => expect(main().queryByRole('button', { name: /species again/i })).toBeNull())
+
+    await user.click(submitButton())
+
+    expect(speciesBox()).toBeInvalid()
+    expect(speciesBox()).toHaveAccessibleDescription(/from the list/i)
+    expect(speciesBox()).toHaveValue('')
+    expect(bodies).toEqual([])
   })
 })

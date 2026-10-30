@@ -1,6 +1,7 @@
 import { http, HttpResponse, type AnyHandler } from 'msw'
 
 import { jobNotFound } from '@/mocks/data/jobs'
+import { species } from '@/mocks/data/species'
 import { versions } from '@/mocks/data/versions'
 import { createJob, pollJob } from '@/mocks/jobs'
 
@@ -9,6 +10,8 @@ const PROBLEM = { 'Content-Type': 'application/problem+json' }
 // Mock API handlers, shared by the dev server, the e2e build and Vitest.
 export const handlers: AnyHandler[] = [
   http.get('/api/v1/versions', () => HttpResponse.json(versions)),
+
+  http.get('/api/v1/csnp/species', () => HttpResponse.json(species)),
 
   http.post('/api/v1/jobs', async ({ request }) => {
     const body: unknown = await request.json()

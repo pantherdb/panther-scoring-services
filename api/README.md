@@ -1,6 +1,6 @@
 # api
 
-The HTTP API for PANTHER's four scoring services (`hmmscore`, `refmap`, `csnp`, `treegrafter`): one FastAPI app, `panther_api`. It imports the engine in [`engine/`](../engine/README.md) as a library, never over HTTP. Its OpenAPI schema is the contract with [`frontend/`](../frontend/README.md) and with the PANTHER website.
+The HTTP API for PANTHER's four scoring services (`hmmscore`, `refmap`, `csnp`, `treegrafter`): one FastAPI app, `panther_api`. It imports the engine in [`engine/`](../engine/) as a library, never over HTTP. Its OpenAPI schema is the contract with [`frontend/`](../frontend/README.md) and with the PANTHER website.
 
 ## Quick Start
 

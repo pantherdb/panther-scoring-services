@@ -12,7 +12,7 @@ In mock mode (`npm run dev`, and the `build:e2e` build for the e2e tests), every
 - **It shows only on mocks:** in `npm run dev` and the `build:e2e` build. Never with the real API: `npm run dev:api`, `npm run preview` of a `build`, and the production `build`.
 - **One flag decides mock mode.** Today `main.tsx` reads `VITE_API_MOCKING` itself to start MSW. That check moves into one function in `src/app/`, which both MSW's start-up and the shell read, so they can't disagree.
 - **The production build ships no mock code:** neither the banner's text nor MSW. Its JavaScript already leaves MSW out; MSW's worker script, which Vite copies from `public/` into every build, is now left out of builds without mocking too.
-- **Tests, written first:** Vitest for the banner with the flag on and off; Playwright in mock mode on the home page, `/csnp`, a job page and the not-found page, on desktop and mobile; Playwright in api mode for its absence; and a check of the production build's `dist/`.
+- **Tests:** Vitest for the banner with the flag on and off; Playwright in mock mode on the home page, `/csnp`, a job page and the not-found page, on desktop and mobile; Playwright in api mode for its absence; and a check of the production build's `dist/`.
 - **Docs:** `docs/testing/frontend.md` (what mock mode shows) and `docs/manual-qa/02-csnp-form.md` (the banner beside the mock results).
 
 No new dependency.

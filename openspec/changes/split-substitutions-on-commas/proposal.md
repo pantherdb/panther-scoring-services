@@ -12,7 +12,7 @@ A comma can never be part of a valid token (`[A-Z][0-9]+[A-Z]` once upper-cased,
 
 - **The substitutions box splits at any run of whitespace and commas,** in the order typed, dropping empty pieces: `"L46P, C130R,,R163C\n"` is `L46P`, `C130R`, `R163C`. No other character separates: `L46P;C130R` is still one token, which the form rejects and names.
 - **The form's help text** says "separated by spaces, commas or new lines".
-- **Tests, written first:** unit tests for the splitter (commas, mixed separators, repeated commas, a trailing comma, commas with spaces) and a form test that `L46P,C130R` is sent as two substitutions.
+- **Tests:** unit tests for the splitter (commas, mixed separators, repeated commas, a trailing comma, commas with spaces) and a form test that `L46P,C130R` is sent as two substitutions.
 - **Docs:** `docs/manual-qa/02-csnp-form.md` gets a step that pastes comma-separated substitutions.
 
 No new dependency.

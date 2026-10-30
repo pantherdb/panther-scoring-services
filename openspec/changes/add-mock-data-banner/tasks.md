@@ -1,7 +1,5 @@
 # Tasks
 
-Test-first: each group writes its tests from the spec scenarios, runs them and sees them fail for the right reason, records the red run in the Notes, then implements.
-
 ## 1. The Flag and the Banner
 
 - [x] 1.1 Extend `tests/layout/AppLayout.test.tsx` (Home page on mocks, Not a build detail, Against the real API): with `VITE_API_MOCKING` stubbed `on`, the shell shows a region named "Mock data" whose text says mock data and the scoring service, with no build details, and the page body is still in `main`; with it `off`, there is no such region. Add `tests/app/mocking.test.ts` for `isApiMocked()` (`on` is true; `off` and unset are false). In `tests/app/router.test.tsx`, the not-found page shows the region with the flag on. Run them and verify the "on" tests fail because there's no region and the module doesn't exist, while the "off" tests and the existing tests pass. Record the red run in the Notes.

@@ -1,7 +1,5 @@
 # Tasks
 
-Test-first: each group writes its tests from the spec scenarios, runs them and sees them fail for the right reason, records the red run in the Notes, then implements.
-
 ## 1. The Splitter
 
 - [x] 1.1 In `tests/features/csnp/substitutions.test.ts`, keep "Spaces, tabs and new lines", and replace the test that keeps commas in a token with the spec's "Commas" (`L46P,C130R`; `L46P, C130R,,R163C\n`), plus mixed separators, repeated commas, a leading and a trailing comma, commas with spaces and tabs, and text of only commas and spaces; and "Other separators are part of a token" (`L46P;C130R`, and `;`, `|` and `+` kept). Run it and verify the comma tests fail because the commas stay in the tokens, while the whitespace and other-separator tests pass. Record the red run in the Notes.

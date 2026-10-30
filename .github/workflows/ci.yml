@@ -257,8 +257,9 @@ jobs:
           docker run --rm -v "$PWD/.data:/data:ro" -e PANTHER_DATA_DIR=/data
           -e PANTHER_REQUIRE_DATA=1 panther-engine:ci uv run --no-sync pytest
 
-  # Builds the API image natively on each architecture, starts it, and checks that the API reports
-  # a version for every tool. engine-image checks the exact pinned versions on the same tools stage.
+  # Builds the API image natively on each architecture, starts it with the cSNP data sample mounted
+  # read-only, checks that the API reports a version for every tool, and runs a real csnp job.
+  # engine-image checks the exact pinned versions on the same tools stage.
   api-image:
     name: api-image
     needs: changes
@@ -287,8 +288,19 @@ jobs:
             type=gha,scope=engine-${{ matrix.arch }}
             type=gha,scope=api-${{ matrix.arch }}
           cache-to: type=gha,mode=min,scope=api-${{ matrix.arch }}
+      # The same cache and fetch as engine-image, with the API image's engine CLI.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .data/csnp
+          key: csnp-sample-${{ hashFiles('engine/src/panther_engine/csnp/sample.json') }}
+      - name: cSNP data sample
+        run: >-
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" panther-api:ci
+          panther-engine csnp sample fetch --data-dir /fetch
       - name: Start the API
-        run: docker run -d --name api -p 8000:8000 panther-api:ci
+        run: >-
+          docker run -d --name api -p 8000:8000 -v "$PWD/.data:/data:ro" -e PANTHER_DATA_DIR=/data
+          panther-api:ci
       # Docker's port proxy accepts connections before the app listens, and the first requests get
       # an empty reply rather than a refused connection, so retry on every error.
       - name: Wait for the health check
@@ -298,6 +310,32 @@ jobs:
           curl -fsS http://localhost:8000/api/v1/versions | tee versions.json
           echo
           jq -e '(.tools | length == 4) and all(.tools[]; .version != null)' versions.json
+      # The release sample's first protein, P26439, with three of its spec §7.3 rows.
+      - name: A csnp job scores a sample protein
+        run: |
+          sequence=$(sed -n 2p engine/tests/golden/csnp/release/sample.fasta)
+          jq -n --arg sequence "$sequence" \
+            '{service: "csnp", input: {sequence: $sequence, substitutions: ["A10E", "G15D", "S213G"], species: "HUMAN"}}' \
+            > request.json
+          id=$(curl -fsS -H 'Content-Type: application/json' -d @request.json \
+            http://localhost:8000/api/v1/jobs | jq -r .id)
+          for _ in $(seq 120); do
+            curl -fsS "http://localhost:8000/api/v1/jobs/$id" > job.json
+            case "$(jq -r .status job.json)" in succeeded|failed) break ;; esac
+            sleep 1
+          done
+          jq . job.json
+          jq -e '
+            .status == "succeeded"
+            and .versions.data == [{service: "csnp", panther: "9"}]
+            and .result == {
+              family: "PTHR10366",
+              scores: [
+                {substitution: "A10E", age: 220, message: "possibly damaging", pdel: "0.50"},
+                {substitution: "G15D", age: 4200, message: "probably damaging", pdel: "0.95"},
+                {substitution: "S213G", age: 91, message: "probably benign", pdel: "0.19"}
+              ]
+            }' job.json
       - name: API logs
         if: failure()
         run: docker logs api

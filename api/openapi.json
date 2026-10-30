@@ -95,7 +95,7 @@
           "jobs"
         ],
         "summary": "Start a job",
-        "description": "Start a job for `service` with its `input`. The job runs after this request returns.\n\nA valid `csnp` request gets a 501 until cSNP scoring is available; its input is still\nvalidated first.",
+        "description": "Start a job for `service` with its `input`. The job runs after this request returns.\n\nAn input the job can't run with is a 422, and no job is created. A problem only the work can\nfind, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`.",
         "operationId": "create_job_api_v1_jobs_post",
         "requestBody": {
           "content": {
@@ -168,16 +168,6 @@
           },
           "500": {
             "description": "Unexpected error",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "The service can't run jobs yet: `csnp`, until its scoring is ported. The request was valid, and no job was created.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -311,7 +301,7 @@
           "species"
         ],
         "title": "CsnpInput",
-        "description": "One protein, the substitutions to score in it, and its species.\n\n`sequence` is the protein, as plain residues or FASTA with one header line. Whitespace and\nthe header are removed and letters upper-cased before scoring. `substitutions` are tokens such\nas `L46P`, positions counted from 1 in this sequence; each is upper-cased and must be a\nresidue letter, a position and a residue letter. One that can't be mapped onto the sequence,\nsuch as a wrong wild-type residue, is reported in the result, not rejected. `species` is a\nPANTHER species code such as `HUMAN`."
+        "description": "One protein, the substitutions to score in it, and its species.\n\n`sequence` is the protein, as plain residues or FASTA with one header line. Whitespace and\nthe header are removed and letters upper-cased before scoring. `substitutions` are tokens such\nas `L46P`, positions counted from 1 in this sequence; each is upper-cased and must be a\nresidue letter, a position and a residue letter. One that can't be mapped onto the sequence,\nsuch as a wrong wild-type residue, is reported in the result, not rejected. `species` is a\nPANTHER species code such as `HUMAN`, one of the species in cSNP's data."
       },
       "CsnpJob": {
         "properties": {
@@ -394,7 +384,7 @@
           "versions"
         ],
         "title": "CsnpJob",
-        "description": "A `csnp` job, with the same fields as every job. `result` is its PANTHER-PSEP scores.\n\nUntil the engine's cSNP scoring is wired in, no `csnp` job is created: the request gets a 501."
+        "description": "A `csnp` job, with the same fields as every job. `result` is its PANTHER-PSEP scores.\n\nIt fails with a 422 `error` when the engine can't read the sequence, and with the generic 500\notherwise."
       },
       "CsnpJobRequest": {
         "properties": {
@@ -413,7 +403,7 @@
           "input"
         ],
         "title": "CsnpJobRequest",
-        "description": "Start a `csnp` job: score substitutions in one protein with PANTHER-PSEP.\n\nUntil the engine's cSNP scoring is wired in, a valid request gets a 501, and no job."
+        "description": "Start a `csnp` job: score substitutions in one protein with PANTHER-PSEP."
       },
       "CsnpResult": {
         "properties": {
@@ -443,6 +433,25 @@
         ],
         "title": "CsnpResult",
         "description": "The PANTHER family the protein was placed in, null with no family hit, and the scores."
+      },
+      "DataVersion": {
+        "properties": {
+          "service": {
+            "type": "string",
+            "title": "Service"
+          },
+          "panther": {
+            "type": "string",
+            "title": "Panther"
+          }
+        },
+        "type": "object",
+        "required": [
+          "service",
+          "panther"
+        ],
+        "title": "DataVersion",
+        "description": "The PANTHER release whose data a scoring service reads, such as \"9\" for cSNP's frozen\nPANTHER 9 data. It names the release the engine reads, not whether the data is installed."
       },
       "Health": {
         "properties": {
@@ -709,16 +718,24 @@
             },
             "type": "array",
             "title": "Tools"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/DataVersion"
+            },
+            "type": "array",
+            "title": "Data"
           }
         },
         "type": "object",
         "required": [
           "api",
           "engine",
-          "tools"
+          "tools",
+          "data"
         ],
         "title": "Versions",
-        "description": "The API, engine and tool versions. Never includes where a tool was found."
+        "description": "The API, engine, tool and data versions. Never includes where a tool or data was found."
       },
       "FieldError": {
         "description": "One field that failed validation. The submitted value is never included.",

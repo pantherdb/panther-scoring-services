@@ -13,10 +13,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
-from panther_api.jobs.csnp import CsnpInput, CsnpResult
+from panther_api.jobs.csnp import CsnpInput, CsnpResult, run_csnp
 from panther_api.jobs.tools import ToolsInput, ToolsResult, run_tools
-
-CSNP_UNAVAILABLE = "cSNP scoring isn't available yet."
 
 
 class ToolsJobRequest(BaseModel):
@@ -27,10 +25,7 @@ class ToolsJobRequest(BaseModel):
 
 
 class CsnpJobRequest(BaseModel):
-    """Start a `csnp` job: score substitutions in one protein with PANTHER-PSEP.
-
-    Until the engine's cSNP scoring is wired in, a valid request gets a 501, and no job.
-    """
+    """Start a `csnp` job: score substitutions in one protein with PANTHER-PSEP."""
 
     service: Literal["csnp"]
     input: CsnpInput
@@ -49,6 +44,4 @@ def run_job(request: JobRequest) -> JobResult:
         case ToolsJobRequest():
             return run_tools(request.input)
         case CsnpJobRequest():
-            # The router answers 501 and never submits one. If one gets here anyway, the job
-            # fails with the generic error, never a made-up score. The port calls the engine here.
-            raise NotImplementedError(CSNP_UNAVAILABLE)
+            return run_csnp(request.input)

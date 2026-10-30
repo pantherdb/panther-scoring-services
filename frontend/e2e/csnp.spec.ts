@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
 import { expect, test, type Page } from '@playwright/test'
 
 import { csnpResult } from '../src/mocks/data/jobs'
@@ -86,35 +89,59 @@ test(
       'API',
       'Engine',
       ...mockedVersions.tools.map(tool => tool.name),
+      ...mockedVersions.data.map(data => `${data.service} data`),
     ])
     await expectNoBuildDetails(page)
     await expectNoSidewaysScroll(page)
   }
 )
 
-// The @api tests below create no job: the API answers each with a 422 or its 501. So
-// they're safe in site mode. The 501 test fails once cSNP scoring is ported, on purpose:
-// the port removes it (add-csnp-form tasks.md, Workflow follow-up).
+// The release sample's first protein, P26439, and three of its substitutions with the scores
+// the legacy service gave them (the engine's goldens, spec §7.3). The data sample covers its
+// family; the form's APOE example isn't in the sample (docs/testing/frontend.md).
+const GOLDEN = fileURLToPath(new URL('../../engine/tests/golden/csnp/release/', import.meta.url))
+const SAMPLE_PROTEIN = readFileSync(`${GOLDEN}sample.fasta`, 'utf8').split(/\n\s*\n/)[0] ?? ''
+const SAMPLE_SCORES = [
+  ['A10E', '220', 'possibly damaging', '0.50'],
+  ['G15D', '4200', 'probably damaging', '0.95'],
+  ['S213G', '91', 'probably benign', '0.19'],
+]
 
+// Creates a real job: in api mode the API needs the cSNP data sample, and in site mode the
+// site does too.
 test(
-  'says cSNP scoring is not available yet when the API answers 501, and keeps the input',
+  'scores a protein the data sample covers, and shows its scores with the data version',
   { tag: '@api' },
   async ({ page }) => {
-    await openFormWithExample(page)
+    // A search takes seconds, and the API's first job also starts a worker.
+    test.setTimeout(90_000)
+    await page.goto('/csnp')
     const { sequence, substitutions, species, submit } = fields(page)
-    const typed = await sequence.inputValue()
+    await sequence.fill(SAMPLE_PROTEIN)
+    await substitutions.fill(SAMPLE_SCORES.map(([token]) => token).join(' '))
+    await species.fill('HUMAN')
 
     await submit.click()
 
-    await expect(page.getByRole('main').getByRole('alert')).toHaveText(/available yet/i)
-    await expect(page).toHaveURL(FORM_URL)
-    await expect(sequence).toHaveValue(typed)
-    await expect(substitutions).toHaveValue(/L46P\s+C130R\s+R163C\s+R176C/)
-    await expect(species).toHaveValue('HUMAN')
-    await expect(submit).toBeEnabled()
+    await expect(page).toHaveURL(JOB_URL)
+    const main = page.getByRole('main')
+    await expect(main.getByRole('status')).toHaveText(/succeeded/i, { timeout: 60_000 })
+    await expect(main.getByText('PTHR10366')).toBeVisible()
+    const rows = main
+      .getByRole('table', { name: /scores/i })
+      .getByRole('row')
+      .filter({ has: page.getByRole('cell') })
+    await expect(rows).toHaveCount(SAMPLE_SCORES.length)
+    for (const [i, cells] of SAMPLE_SCORES.entries()) {
+      await expect(rows.nth(i).getByRole('cell')).toHaveText(cells)
+    }
+    await expect(main.getByRole('definition').last()).toHaveText(/^PANTHER \S+$/)
     await expectNoBuildDetails(page)
+    await expectNoSidewaysScroll(page)
   }
 )
+
+// The @api tests below create no job: the API answers each with a 422.
 
 test(
   "shows the API's 422 on the field it names, when a request gets past the client checks",

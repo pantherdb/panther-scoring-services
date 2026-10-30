@@ -9,11 +9,16 @@ from panther_api.jobs.store import JobStore
 from panther_api.jobs.tools import ToolsInput, ToolsResult
 from panther_api.jobs.work import ToolsJobRequest
 from panther_api.problems import Problem
-from panther_api.versions import ToolVersion, Versions
+from panther_api.versions import DataVersion, ToolVersion, Versions
 
 EXPIRY = timedelta(hours=24)
 REQUEST = ToolsJobRequest(service="tools", input=ToolsInput())
-VERSIONS = Versions(api="1.0", engine="2.0", tools=[ToolVersion(name="blastp", version="2.17.0")])
+VERSIONS = Versions(
+    api="1.0",
+    engine="2.0",
+    tools=[ToolVersion(name="blastp", version="2.17.0")],
+    data=[DataVersion(service="csnp", panther="9")],
+)
 RESULT = ToolsResult(tools=[ToolVersion(name="blastp", version="2.17.0")])
 ERROR = Problem(title="Internal Server Error", status=500, detail="It failed.")
 

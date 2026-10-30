@@ -37,10 +37,16 @@ services:
 
   # The API, as the image serves it, for the frontend's dev proxy to call. No mount and no reload:
   # rebuild with --build after a change. Develop the API natively (docs/testing/api.md). Name the
-  # service when starting it, or `docker compose up` also runs the engine's checks.
+  # service when starting it, or `docker compose up` also runs the engine's checks. Its csnp jobs
+  # read the data folder as the engine service does: fetch the cSNP data sample into .data/ first
+  # (docs/testing/api.md). Without it, every csnp job fails with the generic error.
   api:
     build:
       context: .
       target: api
     ports:
       - "8000:8000"
+    volumes:
+      - ./.data:/data:ro
+    environment:
+      PANTHER_DATA_DIR: /data

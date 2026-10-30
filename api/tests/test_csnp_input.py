@@ -1,11 +1,12 @@
 """The cSNP input rules (openspec scoring-input), on the model, in the test process.
 
-The API returns no job for a cSNP request yet, so the normalised values are only visible here.
+The normalised values reach the engine, not the job, so they're checked here.
 """
 
 from typing import Any
 
 import pytest
+from panther_engine.csnp import SPECIES_CODES
 from pydantic import ValidationError
 
 from panther_api.jobs.csnp import CsnpInput
@@ -215,9 +216,22 @@ def test_a_token_that_isnt_one_token_is_rejected(token: object, marker: str) -> 
 # The species: a species code, required.
 
 
-@pytest.mark.parametrize("species", ["HUMAN", "RAT", "PLAF7", "SYNY3", "9PRIM"])
+@pytest.mark.parametrize("species", ["HUMAN", "RAT", "PLAF7", "SYNY3", "PIG"])
 def test_a_species_code_is_accepted(species: str) -> None:
     assert CsnpInput.model_validate(given(species=species)).species == species
+
+
+def test_every_species_the_engine_scores_is_accepted() -> None:
+    for species in SPECIES_CODES:
+        assert CsnpInput.model_validate(given(species=species)).species == species
+
+
+# A species code's shape, but no sequences for it in the PANTHER9 BLAST database: XENLA and
+# SALSA are newer PANTHER species, and 9PRIM no species at all.
+@pytest.mark.parametrize("species", ["ZZZZZ", "XENLA", "SALSA", "9PRIM"])
+def test_a_species_the_engine_doesnt_score_is_rejected(species: str) -> None:
+    assert species not in SPECIES_CODES
+    assert rejected(species, species=species) == [("species",)]
 
 
 @pytest.mark.parametrize(

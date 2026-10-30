@@ -48,6 +48,11 @@ pythonVersion = "3.13"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
+# As in the engine (docs/testing/api.md, "Tests With the Tools and Data").
+markers = [
+    "tools(*names): runs the named external tools; skipped if one is missing, failed if PANTHER_REQUIRE_TOOLS=1",
+    "data(*services): reads the named services' data sample from PANTHER_DATA_DIR (or .data/); skipped if missing, failed if PANTHER_REQUIRE_DATA=1",
+]
 
 [tool.fastapi]
 entrypoint = "panther_api.main:app"

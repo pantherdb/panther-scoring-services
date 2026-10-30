@@ -11,7 +11,7 @@ npm ci
 npm run dev                            # http://localhost:5173, with the API mocked by MSW
 ```
 
-To use the real API instead, start it first, either with `docker compose up --build api` from the repository root or natively from `api/`. Then run `npm run dev:api`, which sends `/api` to `localhost:8000`.
+To use the real API instead, start it first, either with `docker compose up --build api` from the repository root or natively from `api/`. Then run `npm run dev:api`, which sends `/api` to `localhost:8000`. To score cSNP against it, the API needs `blastp`, which only its image has, and the cSNP data sample in `.data/`: see [docs/testing/api.md](../docs/testing/api.md#the-data-sample).
 
 ## Layout
 

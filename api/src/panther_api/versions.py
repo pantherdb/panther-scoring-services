@@ -1,16 +1,29 @@
-"""The versions behind every answer: the API's, the engine's and each external tool's.
+"""The versions behind every answer: the API's, the engine's, each service's data and each
+external tool's.
 
-The image fixes all of them, so the app reads them once when it starts (main.py). Job results will
-carry the same model.
+The image fixes all of them, so the app reads them once when it starts (main.py), and every job
+carries them.
 """
 
 import logging
 from importlib.metadata import version as package_version
 
 from panther_engine.core.tools import TOOLS, report_tools
+
+# Not in `panther_engine.csnp.__all__`: the engine developer agreed on #20 that the engine reports
+# cSNP's data version, and how the API should read it is an open question (wire-csnp-scoring).
+from panther_engine.csnp.scoring import VERSION as CSNP_DATA_VERSION
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
+
+
+class DataVersion(BaseModel):
+    """The PANTHER release whose data a scoring service reads, such as "9" for cSNP's frozen
+    PANTHER 9 data. It names the release the engine reads, not whether the data is installed."""
+
+    service: str
+    panther: str
 
 
 class ToolVersion(BaseModel):
@@ -21,11 +34,12 @@ class ToolVersion(BaseModel):
 
 
 class Versions(BaseModel):
-    """The API, engine and tool versions. Never includes where a tool was found."""
+    """The API, engine, tool and data versions. Never includes where a tool or data was found."""
 
     api: str
     engine: str
     tools: list[ToolVersion]
+    data: list[DataVersion]
 
 
 def read_versions() -> Versions:
@@ -43,4 +57,6 @@ def read_versions() -> Versions:
         api=package_version("panther-api"),
         engine=package_version("panther-engine"),
         tools=tools,
+        # One entry per ported service, in the order the services were ported.
+        data=[DataVersion(service="csnp", panther=CSNP_DATA_VERSION)],
     )

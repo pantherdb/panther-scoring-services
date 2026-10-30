@@ -15,6 +15,7 @@ const versions = {
     { name: 'blastp', version: '2.17.0' },
     { name: 'epa-ng', version: null },
   ],
+  data: [{ service: 'csnp', panther: '9' }],
 }
 
 const succeeded: WireJob = {

@@ -7,15 +7,9 @@ type Props = {
 }
 
 // Why the last submit didn't open a job, in fixed text: the response could carry build
-// details, and the 501's wording is the UI's own.
+// details.
 export function SubmitAlert({ problem }: Props) {
   switch (problem) {
-    case 'unavailable':
-      return (
-        <Alert title="cSNP scoring isn’t available yet">
-          Scoring is still being moved to this website. Your input is kept on this page.
-        </Alert>
-      )
     case 'unreachable':
       return (
         <Alert title="The scoring service can’t be reached">

@@ -124,6 +124,7 @@ describe('the job page', () => {
       ['API', versions.api],
       ['Engine', versions.engine],
       ...versions.tools.map(tool => [tool.name, tool.version]),
+      ['csnp data', 'PANTHER 9'],
     ])
   })
 
@@ -259,7 +260,20 @@ describe('a csnp job on the job page', () => {
       ['API', versions.api],
       ['Engine', versions.engine],
       ...versions.tools.map(tool => [tool.name, tool.version]),
+      ['csnp data', 'PANTHER 9'],
     ])
+  })
+
+  it("shows the data version the job reports, not the service's current one", async () => {
+    serveJob({
+      ...csnpJob(ID, 'succeeded'),
+      versions: { ...versions, data: [{ service: 'csnp', panther: '8' }] },
+    })
+    renderRoute(`/jobs/${ID}`)
+
+    expect(await shownStatus()).toMatch(/succeeded/i)
+    expect(jobVersions()).toContainEqual(['csnp data', 'PANTHER 8'])
+    expect(jobVersions()).not.toContainEqual(['csnp data', 'PANTHER 9'])
   })
 
   it('shows a substitution that was not scored with its message, and empty age and pDel', async () => {

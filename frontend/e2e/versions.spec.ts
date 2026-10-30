@@ -13,11 +13,13 @@ async function expectVersionsShown(page: Page, versions: Versions) {
     'API',
     'Engine',
     ...versions.tools.map(tool => tool.name),
+    ...versions.data.map(data => `${data.service} data`),
   ])
   await expect(footer.getByRole('definition')).toHaveText([
     versions.api,
     versions.engine,
     ...versions.tools.map(tool => tool.version ?? /not available/i),
+    ...versions.data.map(data => `PANTHER ${data.panther}`),
   ])
 }
 

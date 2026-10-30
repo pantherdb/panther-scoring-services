@@ -86,11 +86,3 @@ export function csnpJob(id: string, status: JobStatus): CsnpJob {
     result: status === 'succeeded' ? csnpResult : null,
   }
 }
-
-/** The API's answer to a valid csnp request until scoring is ported: 501, and no job. */
-export const csnpUnavailable: Problem = {
-  type: 'about:blank',
-  title: 'Not Implemented',
-  status: 501,
-  detail: "cSNP scoring isn't available yet.",
-}

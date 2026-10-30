@@ -2,7 +2,6 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 
-import { csnpUnavailable } from '@/mocks/data/jobs'
 import { createJob } from '@/mocks/jobs'
 
 import { server } from '../../mocks/server'
@@ -305,15 +304,21 @@ describe("the API's validation errors", () => {
 })
 
 describe('when the job is not started', () => {
-  it('says cSNP scoring is not available yet on a 501, keeps the input, and stays', async () => {
-    const bodies = serveProblem(501, csnpUnavailable)
+  it('treats a 501 as any other failure to start, keeps the input, and stays', async () => {
+    // The API no longer answers 501 for a csnp request: nothing special is shown for one.
+    const bodies = serveProblem(501, {
+      type: 'about:blank',
+      title: 'Not Implemented',
+      status: 501,
+      detail: 'Not implemented.',
+    })
     const { user, router } = renderRoute('/csnp')
     await fillValid(user)
 
     await user.click(submitButton())
 
     const alert = await main().findByRole('alert')
-    expect(alert).toHaveTextContent(/isn.t available yet/i)
+    expect(alert).toHaveTextContent(/couldn.t be started/i)
     expect(bodies).toHaveLength(1)
     expect(sequenceBox()).toHaveValue(SEQUENCE)
     expect(substitutionsBox()).toHaveValue('L4P c13r\nG12V')
@@ -341,7 +346,6 @@ describe('when the job is not started', () => {
 
     const alert = await main().findByRole('alert')
     expect(alert).toHaveTextContent(/couldn.t be started/i)
-    expect(alert).not.toHaveTextContent(/available yet/i)
     expect(screen.getByRole('main').textContent).not.toMatch(BUILD_DETAILS)
     expect(screen.getByRole('main').textContent).not.toMatch(/500|internal server error/i)
     expect(router.state.location.pathname).toBe('/csnp')

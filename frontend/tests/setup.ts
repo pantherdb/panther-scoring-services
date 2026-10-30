@@ -23,6 +23,16 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 })
 
+// jsdom has no ResizeObserver and no scrollIntoView, and Mantine's Select needs both: it
+// crashes on render without ResizeObserver, and scrolls the active option into view as the
+// user moves through the options. jsdom has no layout to observe or scroll, so both do nothing.
+globalThis.ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+Element.prototype.scrollIntoView = () => {}
+
 // The app calls a relative /api/v1, as it must in the browser. A browser's Request resolves a
 // relative URL against the page; Node's, which jsdom leaves in place, throws "Invalid URL".
 // Resolve it against jsdom's location, as the browser would.

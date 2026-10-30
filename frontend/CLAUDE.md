@@ -109,6 +109,7 @@ The app builds with the React Compiler, and `react-hooks` 7 fails the lint on wh
 - **Keep a success test beside every test of a failure state.** A test that expects an error message also passes when every request fails for some other reason. One did, before `tests/setup.ts` made relative URLs work under Vitest.
 - **Tests run with reduced motion.** `tests/setup.ts` reports reduced motion to every `matchMedia` query, so Mantine transitions take no time and can't fire after a test has finished.
 - **Two Mantine features crash under jsdom:** `Textarea`'s `autosize` (it reads `document.fonts`) and `Table.ScrollContainer` (it needs `ResizeObserver`). Use fixed `rows` that resize vertically, and a Tailwind `overflow-x-auto` wrapper around the table.
+- **`Select` needs `ResizeObserver` and `scrollIntoView`,** which `tests/setup.ts` stubs as no-ops, and `MantineProvider env="test"` (`tests/utils/render.tsx`): without it, the dropdown is hidden, because jsdom gives it no layout. With it there are no portals, so the open list of options is inside the form, labelled like the field. Find the field by its role, `combobox`.
 - **In tests, import `RouterProvider` from `react-router`, not `react-router/dom`.** Under Vitest, `react-router/dom` loads React Router's CommonJS build, which doesn't share context with the ESM build that `Outlet` and `Link` use. The layout renders, but `<Outlet />` stays empty, with no error. `tests/utils/render.tsx` already does this; `src/main.tsx` keeps `react-router/dom`, which is right in the browser.
 
 ### End-to-end

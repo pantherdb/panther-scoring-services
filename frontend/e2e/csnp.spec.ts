@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
 
 import { csnpResult } from '../src/mocks/data/jobs'
+import { species as mockedSpecies } from '../src/mocks/data/species'
 import { versions as mockedVersions } from '../src/mocks/data/versions'
 
 const BUILD_DETAILS = /localhost|127\.0\.0\.1|:\d{4,5}\b|VITE_|API_PROXY|npm |npx /
@@ -26,7 +27,8 @@ function fields(page: Page) {
   return {
     sequence: main.getByLabel(/protein sequence/i),
     substitutions: main.getByLabel(/substitutions/i),
-    species: main.getByLabel(/species/i),
+    // The selector. By role: its open list of options is labelled "Species" too.
+    species: main.getByRole('combobox', { name: /species/i }),
     submit: main.getByRole('button', { name: /score substitutions/i }),
     example: main.getByRole('button', { name: /use an example/i }),
   }
@@ -44,17 +46,32 @@ async function openFormWithExample(page: Page) {
   await expect(fields(page).substitutions).toHaveValue(/L46P/)
 }
 
+const HUMAN = 'Homo sapiens (HUMAN)'
+
+// Clears the selector, types `text` in it, and clicks the option named `option`. The options
+// are in a portal, outside <main>.
+async function chooseSpecies(page: Page, text: string, option: string) {
+  const { species } = fields(page)
+  await expect(species).toHaveValue(HUMAN)
+  await species.click()
+  await species.fill(text)
+  await page.getByRole('option', { name: option }).click()
+  await expect(species).toHaveValue(option)
+}
+
 // Untagged: the client checks send nothing, so this holds in every mode.
-test('shows an error on each empty field, and stays on the form', async ({ page }) => {
+test('shows an error on each empty box, and stays on the form', async ({ page }) => {
   await page.goto('/csnp')
   const { sequence, substitutions, species, submit } = fields(page)
-  await species.fill('')
+  await expect(species).toHaveValue(HUMAN)
 
   await submit.click()
 
-  for (const field of [sequence, substitutions, species]) {
+  for (const field of [sequence, substitutions]) {
     await expect(field).toHaveAttribute('aria-invalid', 'true')
   }
+  // The selector can't be emptied: it still holds HUMAN.
+  await expect(species).not.toHaveAttribute('aria-invalid', 'true')
   await expect(page).toHaveURL(FORM_URL)
   await expectNoBuildDetails(page)
   await expectNoSidewaysScroll(page)
@@ -96,6 +113,30 @@ test(
   }
 )
 
+test(
+  'chooses a species by typing part of its name, and sends its code',
+  { tag: '@mock' },
+  async ({ page }) => {
+    await openFormWithExample(page)
+    const { species, submit } = fields(page)
+    // On a phone the field is below the fold: opening it must not scroll the page away from it.
+    await species.click()
+    await expect(page.getByRole('option')).toHaveCount(mockedSpecies.length)
+
+    await chooseSpecies(page, 'muscul', 'Mus musculus (MOUSE)')
+    const request = page.waitForRequest(
+      request => request.url().endsWith('/api/v1/jobs') && request.method() === 'POST'
+    )
+    await submit.click()
+
+    const body = (await request).postDataJSON() as { input: { species: string } }
+    expect(body.input.species).toBe('MOUSE')
+    await expect(page).toHaveURL(JOB_URL)
+    await expectNoBuildDetails(page)
+    await expectNoSidewaysScroll(page)
+  }
+)
+
 // The release sample's first protein, P26439, and three of its substitutions with the scores
 // the legacy service gave them (the engine's goldens, spec §7.3). The data sample covers its
 // family; the form's APOE example isn't in the sample (docs/testing/frontend.md).
@@ -119,7 +160,7 @@ test(
     const { sequence, substitutions, species, submit } = fields(page)
     await sequence.fill(SAMPLE_PROTEIN)
     await substitutions.fill(SAMPLE_SCORES.map(([token]) => token).join(' '))
-    await species.fill('HUMAN')
+    await expect(species).toHaveValue(HUMAN)
 
     await submit.click()
 
@@ -138,6 +179,48 @@ test(
     await expect(main.getByRole('definition').last()).toHaveText(/^PANTHER \S+$/)
     await expectNoBuildDetails(page)
     await expectNoSidewaysScroll(page)
+  }
+)
+
+test("offers the API's whole species list", { tag: '@api' }, async ({ page }) => {
+  const response = await page.request.get('/api/v1/csnp/species')
+  expect(response.status()).toBe(200)
+  const listed = (await response.json()) as { code: string; name: string }[]
+  expect(listed.length).toBeGreaterThan(mockedSpecies.length)
+  await page.goto('/csnp')
+  const { species } = fields(page)
+  await expect(species).toHaveValue(HUMAN)
+
+  await species.click()
+
+  const options = page.getByRole('option')
+  await expect(options).toHaveCount(listed.length)
+  for (const { code, name } of listed) {
+    await expect(page.getByRole('option', { name: `${name} (${code})` })).toHaveCount(1)
+  }
+})
+
+// Creates a real job, which runs after the test: the API needs the cSNP data sample.
+test(
+  'starts a job with a species chosen from the list other than HUMAN',
+  { tag: '@api' },
+  async ({ page }) => {
+    await page.goto('/csnp')
+    const { sequence, substitutions, submit } = fields(page)
+    await sequence.fill(SAMPLE_PROTEIN)
+    await substitutions.fill('A10E')
+    await chooseSpecies(page, 'musculus', 'Mus musculus (MOUSE)')
+    const request = page.waitForRequest(
+      request => request.url().endsWith('/api/v1/jobs') && request.method() === 'POST'
+    )
+
+    await submit.click()
+
+    const body = (await request).postDataJSON() as { input: { species: string } }
+    expect(body.input.species).toBe('MOUSE')
+    await expect(page).toHaveURL(JOB_URL)
+    await expect(page.getByRole('main').getByRole('status')).toBeVisible()
+    await expectNoBuildDetails(page)
   }
 )
 
@@ -163,7 +246,7 @@ test(
     await expect(species).toHaveAttribute('aria-invalid', 'true')
     await expect(sequence).not.toHaveAttribute('aria-invalid', 'true')
     await expect(substitutions).not.toHaveAttribute('aria-invalid', 'true')
-    await expect(species).toHaveValue('HUMAN')
+    await expect(species).toHaveValue(HUMAN)
     await expect(page).toHaveURL(FORM_URL)
     await expectNoBuildDetails(page)
   }

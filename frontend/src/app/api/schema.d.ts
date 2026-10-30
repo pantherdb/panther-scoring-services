@@ -56,6 +56,9 @@ export interface paths {
         /**
          * Start a job
          * @description Start a job for `service` with its `input`. The job runs after this request returns.
+         *
+         *     A valid `csnp` request gets a 501 until cSNP scoring is available; its input is still
+         *     validated first.
          */
         post: operations["create_job_api_v1_jobs_post"];
         delete?: never;
@@ -88,6 +91,79 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * CsnpInput
+         * @description One protein, the substitutions to score in it, and its species.
+         *
+         *     `sequence` is the protein, as plain residues or FASTA with one header line. Whitespace and
+         *     the header are removed and letters upper-cased before scoring. `substitutions` are tokens such
+         *     as `L46P`, positions counted from 1 in this sequence; each is upper-cased, and one that can't
+         *     be scored is reported in the result, not rejected. `species` is a PANTHER species code such
+         *     as `HUMAN`.
+         */
+        CsnpInput: {
+            /** Sequence */
+            sequence: string;
+            /** Substitutions */
+            substitutions: string[];
+            /** Species */
+            species: string;
+        };
+        /**
+         * CsnpJob
+         * @description A `csnp` job, with the same fields as every job. `result` is its PANTHER-PSEP scores.
+         *
+         *     Until the engine's cSNP scoring is wired in, no `csnp` job is created: the request gets a 501.
+         */
+        CsnpJob: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            service: "csnp";
+            status: components["schemas"]["JobStatus"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Started At */
+            started_at: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            result: components["schemas"]["CsnpResult"] | null;
+            error: components["schemas"]["Problem"] | null;
+            versions: components["schemas"]["Versions"];
+        };
+        /**
+         * CsnpJobRequest
+         * @description Start a `csnp` job: score substitutions in one protein with PANTHER-PSEP.
+         *
+         *     Until the engine's cSNP scoring is wired in, a valid request gets a 501, and no job.
+         */
+        CsnpJobRequest: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            service: "csnp";
+            input: components["schemas"]["CsnpInput"];
+        };
+        /**
+         * CsnpResult
+         * @description The PANTHER family the protein was placed in, null with no family hit, and the scores.
+         */
+        CsnpResult: {
+            /** Family */
+            family: string | null;
+            /** Scores */
+            scores: components["schemas"]["SubstitutionScore"][];
+        };
         /** Health */
         Health: {
             /**
@@ -118,6 +194,25 @@ export interface components {
             status: number;
             /** Detail */
             detail: string;
+        };
+        /**
+         * SubstitutionScore
+         * @description One substitution's score, as the legacy service reported it.
+         *
+         *     `age` is how long the position has been preserved, in millions of years, and `pdel` the
+         *     probability of a deleterious effect as the legacy two-decimal string, such as "0.50". Either
+         *     may be null, as when the substitution wasn't scored. `message` is the legacy text: the
+         *     prediction, or why it wasn't scored.
+         */
+        SubstitutionScore: {
+            /** Substitution */
+            substitution: string;
+            /** Age */
+            age: number | null;
+            /** Message */
+            message: string;
+            /** Pdel */
+            pdel: string | null;
         };
         /**
          * ToolVersion
@@ -323,7 +418,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ToolsJobRequest"];
+                "application/json": components["schemas"]["ToolsJobRequest"] | components["schemas"]["CsnpJobRequest"];
             };
         };
         responses: {
@@ -335,7 +430,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ToolsJob"];
+                    "application/json": components["schemas"]["ToolsJob"] | components["schemas"]["CsnpJob"];
                 };
             };
             /** @description Request validation failed */
@@ -349,6 +444,15 @@ export interface operations {
             };
             /** @description Unexpected error */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The service can't run jobs yet: `csnp`, until its scoring is ported. The request was valid, and no job was created. */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -384,7 +488,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ToolsJob"];
+                    "application/json": components["schemas"]["ToolsJob"] | components["schemas"]["CsnpJob"];
                 };
             };
             /** @description Request validation failed */

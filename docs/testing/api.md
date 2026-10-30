@@ -117,6 +117,43 @@ What else to try:
 - **Errors:** an unknown `service`, or an `input` with a field it doesn't take, gets a `422` problem listing the field. `GET /api/v1/jobs/not-a-real-id` gets a `404` problem.
 - **Natively:** the same steps work against `uv run fastapi dev --port 8000` in `api/`, but every tool's `version` is `null`, because the tools are only in the image.
 
+### The cSNP Job: Validated, Not Scored Yet
+
+The `csnp` job's contract is in place, but the engine's cSNP scoring isn't. The API validates a `csnp` request as it will when scoring lands, then answers a valid one with `501` and creates no job. The rules are in `openspec/specs/scoring-input/` (until `add-csnp-job` is archived, `openspec/changes/add-csnp-job/specs/scoring-input/spec.md`).
+
+A valid request gets `501`:
+
+```sh
+curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
+  -d '{"service": "csnp", "input": {"sequence": ">sp|P02649|APOE_HUMAN\nMKVLWAALLVTFLAGCQAKV", "substitutions": ["L4P", "C130R"], "species": "HUMAN"}}'
+```
+
+```json
+{ "type": "about:blank", "title": "Not Implemented", "status": 501, "detail": "cSNP scoring isn't available yet." }
+```
+
+An invalid one gets the `422` validation problem, which names each failing field and never repeats its value. Here `species` isn't a species code and `substitutions` is empty:
+
+```sh
+curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
+  -d '{"service": "csnp", "input": {"sequence": "MKVLWAALLV", "substitutions": [], "species": "human; id"}}'
+```
+
+```json
+{
+  "type": "about:blank",
+  "title": "Unprocessable Content",
+  "status": 422,
+  "detail": "Request validation failed",
+  "errors": [
+    { "loc": ["body", "csnp", "input", "substitutions"], "msg": "List should have at least 1 item after validation, not 0", "type": "too_short" },
+    { "loc": ["body", "csnp", "input", "species"], "msg": "Value error, The species must be a PANTHER species code of 1 to 5 upper-case letters or digits, such as HUMAN.", "type": "value_error" }
+  ]
+}
+```
+
+The `tools` job runs as before.
+
 `docker compose down` stops the API, and its jobs with it.
 
 ## The OpenAPI Schema

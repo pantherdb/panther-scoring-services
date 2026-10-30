@@ -1,6 +1,7 @@
 import json
 from typing import Any
 
+import pytest
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
@@ -96,10 +97,13 @@ def test_job_request_is_a_union_tagged_by_service(client: TestClient) -> None:
     operation = served_schema(client)["paths"]["/api/v1/jobs"]["post"]
     body = operation["requestBody"]["content"]["application/json"]["schema"]
 
-    assert body["oneOf"] == [{"$ref": f"{SCHEMAS}ToolsJobRequest"}]
+    assert body["oneOf"] == [
+        {"$ref": f"{SCHEMAS}ToolsJobRequest"},
+        {"$ref": f"{SCHEMAS}CsnpJobRequest"},
+    ]
     assert body["discriminator"] == {
         "propertyName": "service",
-        "mapping": {"tools": f"{SCHEMAS}ToolsJobRequest"},
+        "mapping": {"tools": f"{SCHEMAS}ToolsJobRequest", "csnp": f"{SCHEMAS}CsnpJobRequest"},
     }
 
 
@@ -109,7 +113,10 @@ def test_submitting_documents_202_with_location(client: TestClient) -> None:
     assert "200" not in responses
     assert "Location" in responses["202"]["headers"]
     job = responses["202"]["content"]["application/json"]["schema"]
-    assert job["discriminator"]["mapping"] == {"tools": f"{SCHEMAS}ToolsJob"}
+    assert job["discriminator"]["mapping"] == {
+        "tools": f"{SCHEMAS}ToolsJob",
+        "csnp": f"{SCHEMAS}CsnpJob",
+    }
     assert list(responses["422"]["content"]) == [PROBLEM]
 
 
@@ -117,7 +124,7 @@ def test_polling_documents_the_job_and_problems(client: TestClient) -> None:
     responses = served_schema(client)["paths"]["/api/v1/jobs/{job_id}"]["get"]["responses"]
 
     job = responses["200"]["content"]["application/json"]["schema"]
-    assert job["oneOf"] == [{"$ref": f"{SCHEMAS}ToolsJob"}]
+    assert job["oneOf"] == [{"$ref": f"{SCHEMAS}ToolsJob"}, {"$ref": f"{SCHEMAS}CsnpJob"}]
     assert responses["default"]["content"][PROBLEM]["schema"] == {"$ref": f"{SCHEMAS}Problem"}
 
 
@@ -127,12 +134,72 @@ def test_job_status_is_a_named_enum(client: TestClient) -> None:
     assert status["enum"] == ["queued", "running", "succeeded", "failed"]
 
 
-def test_job_result_and_error_are_required_and_nullable(client: TestClient) -> None:
-    job = served_schema(client)["components"]["schemas"]["ToolsJob"]
+@pytest.mark.parametrize(
+    ("job_model", "result_model"), [("ToolsJob", "ToolsResult"), ("CsnpJob", "CsnpResult")]
+)
+def test_job_result_and_error_are_required_and_nullable(
+    client: TestClient, job_model: str, result_model: str
+) -> None:
+    job = served_schema(client)["components"]["schemas"][job_model]
 
-    for field, model in (("result", "ToolsResult"), ("error", "Problem")):
+    for field, model in (("result", result_model), ("error", "Problem")):
         assert field in job["required"]
         assert job["properties"][field]["anyOf"] == [
             {"$ref": f"{SCHEMAS}{model}"},
             {"type": "null"},
         ]
+
+
+# The csnp job.
+
+NULLABLE_STRING = {"anyOf": [{"type": "string"}, {"type": "null"}]}
+
+
+def properties(schema: dict[str, Any], model: str) -> dict[str, Any]:
+    """The model's properties, without their titles."""
+    component = schema["components"]["schemas"][model]
+    return {
+        name: {key: value for key, value in prop.items() if key != "title"}
+        for name, prop in component["properties"].items()
+    }
+
+
+def test_the_csnp_request_and_input(client: TestClient) -> None:
+    schema = served_schema(client)
+    components = schema["components"]["schemas"]
+
+    assert properties(schema, "CsnpJobRequest") == {
+        "service": {"type": "string", "const": "csnp"},
+        "input": {"$ref": f"{SCHEMAS}CsnpInput"},
+    }
+    csnp_input = components["CsnpInput"]
+    assert sorted(csnp_input["required"]) == ["sequence", "species", "substitutions"]
+    assert csnp_input["additionalProperties"] is False
+    assert csnp_input["properties"]["substitutions"]["type"] == "array"
+    assert csnp_input["properties"]["substitutions"]["items"]["type"] == "string"
+
+
+def test_the_csnp_result_in_the_schema(client: TestClient) -> None:
+    schema = served_schema(client)
+    components = schema["components"]["schemas"]
+
+    assert sorted(components["CsnpResult"]["required"]) == ["family", "scores"]
+    assert properties(schema, "CsnpResult") == {
+        "family": NULLABLE_STRING,
+        "scores": {"type": "array", "items": {"$ref": f"{SCHEMAS}SubstitutionScore"}},
+    }
+    score = components["SubstitutionScore"]
+    assert sorted(score["required"]) == ["age", "message", "pdel", "substitution"]
+    assert properties(schema, "SubstitutionScore") == {
+        "substitution": {"type": "string"},
+        "age": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+        "message": {"type": "string"},
+        "pdel": NULLABLE_STRING,
+    }
+
+
+def test_the_csnp_501_is_documented(client: TestClient) -> None:
+    responses = served_schema(client)["paths"]["/api/v1/jobs"]["post"]["responses"]
+
+    assert list(responses["501"]["content"]) == [PROBLEM]
+    assert responses["501"]["content"][PROBLEM]["schema"] == {"$ref": f"{SCHEMAS}Problem"}

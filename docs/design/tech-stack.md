@@ -1,6 +1,6 @@
 # Tech Stack Proposal
 
-**Status:** Proposed, 2026-10-27; revised 2026-10-28 for four services. Not final until the [open questions](#open-questions) are answered and the [reviewers](#review) sign off. The frontend part was split out and accepted on 2026-10-28: see [frontend-stack.md](frontend-stack.md). The API's tooling (uv, Python version, lint, types, tests, error format) was split out and accepted on 2026-10-28: see [api-stack.md](api-stack.md); the API's architecture stays here. Revised 2026-10-29: [pinned tool versions](#pinning-tool-versions) in the container image (BLAST+ 2.17.0 tested against the PANTHER9 database), worker processes (API recommendation 1), the site moving to the JSON API (API recommendation 2), the parity oracle image (Engine condition 3), cSNP data regeneration as a separate project, and the environments and cSNP data sample (Shared Concerns).
+**Status:** Proposed, 2026-10-27; revised 2026-10-28 for four services. Not final until the [open questions](#open-questions) are answered and the [reviewers](#review) sign off. The frontend part was split out and accepted on 2026-10-28: see [frontend-stack.md](frontend-stack.md). The API's tooling (uv, Python version, lint, types, tests, error format) was split out and accepted on 2026-10-28: see [api-stack.md](api-stack.md); the API's architecture stays here. Revised 2026-10-29: [pinned tool versions](#pinning-tool-versions) in the container image (BLAST+ 2.17.0 tested against the PANTHER9 database), worker processes (API recommendation 1), the site moving to the JSON API (API recommendation 2), the parity oracle image (Engine condition 3), cSNP data regeneration as a separate project, and the environments and cSNP data sample (Shared Concerns). Revised again 2026-10-29 (`add-csnp-survey-and-sample`): the service priority, with `csnp` first; the origin of `PAML_RST.tar.gz`, production's library build; and following the legacy code where it and its docs disagree, which keeps the code's cSNP thresholds and pDel bounds for M1 (Engine condition 7). Also the cSNP data sample's storage, a release asset unpacked under `PANTHER_DATA_DIR` (Shared Concerns, Data).
 
 ## Summary
 
@@ -13,14 +13,14 @@
 
 ## Scope: Four Services
 
-Revised on 2026-10-28. The repo was first scoped to cSNP scoring only. It replaces four legacy PANTHER services:
+Revised on 2026-10-28. The repo was first scoped to cSNP scoring only. It replaces four legacy PANTHER services. The priority order was revised on 2026-10-29, putting `csnp` first:
 
 | Service | Replaces (in `panther-workspace/legacy/`) | Approach | Priority |
 | ------- | ----------------------------------------- | -------- | -------- |
-| `hmmscore` | `pantherScoring/` | Port the Perl | 1 |
-| `refmap` | `RefProteomeMapper/` | Port the Perl | 1 |
-| `csnp` | `cSNP_analysis/`: `snpScore.cgi` and the scripts it runs | Port the Perl | 2 |
-| `treegrafter` | `TreeGrafter/` (Perl 1.01) | **Adopt** EBI's Python [`treegrafter`](https://github.com/ebi-pf-team/treegrafter) | 3 |
+| `csnp` | `cSNP_analysis/`: `snpScore.cgi` and the scripts it runs | Port the Perl | 1 |
+| `refmap` | `RefProteomeMapper/` | Port the Perl | 2 |
+| `hmmscore` | `pantherScoring/` | Port the Perl | 3 |
+| `treegrafter` | `TreeGrafter/` (Perl 1.01) | **Adopt** EBI's Python [`treegrafter`](https://github.com/ebi-pf-team/treegrafter) | 4 |
 
 The team stays split by layer: one owner each for `frontend/`, `api/` and `engine/`, each covering all four services.
 
@@ -195,9 +195,12 @@ Conditions:
    - Run its `prepare` step as part of data provisioning for each PAINT release, not per request.
 6. **Fix legacy bugs on purpose, and record each one as a divergence.** For cSNP:
    - **Never replicate** the command injection (`CGI-5`) or the shared temp file and query id (`CGI-6`). Neither changes a correct single request's output, so neither needs a divergence row.
-   - **Decide keep or fix** for each defect that changes results: `SCORE-2`, `SCORE-7`/`SCORE-8`, `SCORE-6` and `MAP-4`. (`CGI-2`/`CGI-3` no longer apply: there is no legacy endpoint to parse the site's form input.) Each fix is a proposed row in [divergences.md](../parity/divergences.md) until the science owner approves it, and it needs updated goldens.
+   - **Decide keep or fix** for each defect that changes results: `SCORE-2`, `SCORE-7`/`SCORE-8` and `MAP-4`. (`CGI-2`/`CGI-3` no longer apply: there is no legacy endpoint to parse the site's form input.) Each fix is a proposed row in [divergences.md](../parity/divergences.md) until the science owner approves it, and it needs updated goldens.
+   - **`SCORE-6` is kept for M1:** pDel tests `age < bound`, as the code does (condition 7).
    - **Plumbing to fix freely,** with no output change: read the species tree path from config instead of a relative path; give each job its own temp directory and delete it afterwards; move the `.rst` parsing (fixed 0-based lines 11 and 14, `SCORE-9`) into one module with its own tests.
-7. **Settle the cSNP thresholds and pDel bounds before porting it** (`SCORE-5`, `SCORE-6`). `PANTHER_PSEP1.01.pl` classifies at **180 / 380 Mya**, as does the 2016 README. The website help page and the PI's 2021 ticket say **200 / 450 Mya**. pDel uses exclusive bounds where the PI's table has inclusive ones.
+7. **Keep the code's cSNP thresholds and pDel bounds for M1** (`SCORE-5`, `SCORE-6`). `PANTHER_PSEP1.01.pl` classifies at **180 / 380 Mya**, as does the 2016 README, and pDel tests `age < bound`. The website help page and the science owner's 2021 ticket say **200 / 450 Mya**, and the ticket's pDel table has inclusive bounds.
+   - **Decided by the engine developer on 2026-10-29:** where the legacy code and its docs disagree, follow the code, so M1 reproduces what ran in production.
+   - **The docs' values are proposed rows 4 and 7** in [divergences.md](../parity/divergences.md), deferred until cSNP is live on production. Then the science owner is asked which values are correct.
 
 ## Runtime Tools and Milestones
 
@@ -273,12 +276,12 @@ The other three services have no M2 defined.
 
   - **cSNP's BLAST database must stay matched to its PAML library.** It can't use the current release's sequences, or the family and node IDs won't line up.
   - **Regenerating the cSNP data is out of scope here.** Rebuilding PAML_RST for newer PANTHER libraries is a separate project, once the service is up. Until then, the frozen files are used as they are, including the two empty `.rst` files (`PTHR11711`, `PTHR19241`).
-  - **The cSNP PAML library is 2.35 GB compressed and 19.2 GB unpacked:** 8,607 families, three files each. The developer copy, `panther_build/PAML_RST.tar.gz` beside `panther-workspace`, matches the checksum pinned in spec §7.1 (checked 2026-10-29).
+  - **The cSNP PAML library is 2.35 GB compressed and 19.2 GB unpacked:** 8,607 families, three files each. The developer copy, `panther_build/PAML_RST.tar.gz` beside `panther-workspace`, matches the checksum pinned in spec §7.1 (checked 2026-10-29). It was tarballed from the legacy production server before that was shut down, so it is the library build production ran (engine developer, 2026-10-29).
   - **Developers and CI use a sample of the cSNP data.** The full set lives on staging and production (Environments, below).
-    - **Pick the sample from a one-time library survey,** before porting. Parse every family with the new parser, sort the file variants, and check what should hold: every `.paml` has its `.rst` and `.orig.tree`, the fixed `.rst` lines 11 and 14 (`SCORE-9`) have the expected shape, and so on. Then include one family per variant. The survey is Python only, and runs wherever the archive is.
+    - **Pick the sample from a one-time library survey,** before porting. Done on 2026-10-29: [csnp-library-survey.md](../parity/csnp-library-survey.md). Parse every family with the new parser, sort the file variants, and check what should hold: every `.paml` has its `.rst` and `.orig.tree`, the fixed `.rst` lines 11 and 14 (`SCORE-9`) have the expected shape, and so on. Then include one family per variant. The survey is Python only, and runs wherever the archive is.
     - **Start from** `PTHR10366` and `PTHR15126` (the goldens in spec §7) and `PTHR11711` and `PTHR19241` (empty `.rst`). Variants known so far: internal-node labels that collide with leaf labels (`SCORE-2`), split families (`DATA-1`), taxa missing from the species file and `Ev=0>0` nodes (`DATA-3`), and very large `.paml` files.
     - **Use the PANTHER9 BLAST database whole** (690 MB unpacked). A cut-down database changes e-values, which scale with database size, and so can change which hits pass the cutoff; it would need the full size passed with `-dbsize`.
-    - **How the sample is stored** (Git LFS, a release asset, or a script that extracts named families from `PAML_RST.tar.gz` and checks their checksums) is the engine developer's decision. `PTHR10366.paml` alone is 69 MB, too big for plain git.
+    - **The sample is a public release asset of this repository,** decided and approved for publishing by the engine developer on 2026-10-29. The release `csnp-sample-1` holds 15 families, the species tree and the PSEP copyright statement: 26 MB, 260 MB unpacked. `engine/src/panther_engine/csnp/sample.json` pins it. It unpacks under `PANTHER_DATA_DIR` at `csnp/9/`, in the layout of the full library, so code never needs to know which it has. Fetching it, and publishing a new one, are in [engine.md](../testing/engine.md#the-csnp-data-sample). Git LFS and an extract-only script were rejected (`add-csnp-survey-and-sample`, design decision 4).
 - **Containers:** one image for the API plus engine (Python, BLAST+, HMMER3, EPA-ng, [pinned](#pinning-tool-versions)), and a static build for the frontend. Production runs these containers. A test-only image runs the legacy Perl references (Engine condition 3). A `docker compose` setup for local development lets all three developers run the same stack.
 - **Developer platforms.** Everything that calls the engine's tools runs in the containers, so no machine needs native BLAST+, HMMER or EPA-ng. HMMER and EPA-ng have no Windows builds at all.
   - **Windows:** Docker Desktop with WSL2. Clone the repo, and `panther-workspace` beside it, inside the WSL2 filesystem (for example `~/panther/`), and run git, npm, uv and `docker compose` from the WSL2 shell. Bind mounts from `C:\` cross a slow file-sharing bridge, and file watching (Vite, server reload) misses changes made across it. x86-64 laptops run the amd64 image natively. The engine's compose checks were run this way on 2026-10-29, and pass (`scaffold-engine`).
@@ -323,10 +326,10 @@ Each needs team verification.
 
 The legacy behaviour spec's §8 lists these in full.
 
-- **Thresholds and pDel:** which is correct, 180 / 380 Mya (code, 2016 README) or 200 / 450 Mya (help page, PI's 2021 ticket)? Should pDel use the table's inclusive bounds?
+- **Thresholds and pDel, after production:** M1 keeps the code's 180 / 380 Mya and `age < bound` ([Engine condition 7](#engine-engine-agree-with-conditions)). Once cSNP is live on production, ask the science owner which is correct: those, or 200 / 450 Mya (help page, the science owner's 2021 ticket) with the table's inclusive pDel bounds (divergence rows 4 and 7).
 - **The PSEP definition:** is reporting the first *failing* ancestor's age, rather than the last preserved one's, what the paper intends (`SCORE-3`)?
 - **Keep or fix:** for each defect in the parity review's "Decisions needed" table.
-- **Production CGI and library build:** can't be checked any more. The legacy cSNP production server is gone, so which `snpScore.cgi` copy and which PAML_RST build it ran are unknown. Neither blocks the port: the site moves to the JSON API, so no CGI copy is imitated, and the library we use is the pinned `PAML_RST.tar.gz` (checksum in spec §7.1, files dated 2015, ids consistent with the PANTHER9 BLAST DB). Its origin stays unrecorded.
+- **Production CGI:** can't be checked any more. The legacy cSNP production server is gone, so which `snpScore.cgi` copy it ran is unknown. That doesn't block the port: the site moves to the JSON API, so no CGI copy is imitated. The library build is known: the pinned `PAML_RST.tar.gz` (checksum in spec §7.1) was tarballed from the production server before it was shut down (Data, under [Shared Concerns](#shared-concerns)).
 - **Species:** which species must the species filter support? Should the species file gain Perissodactyla, Artiodactyla and Sauria (`DATA-3`)?
 - **Split families:** should the 410 families that exist only as split parts (`PTHRnnnnn_N`) be reachable (`DATA-1`)?
 
@@ -351,6 +354,6 @@ The legacy behaviour spec's §8 lists these in full.
 | Frontend developer | Frontend ↔ api contract (the frontend stack is accepted in [frontend-stack.md](frontend-stack.md)) | Pending |
 | API developer | API section; both contracts | Pending |
 | Engine developer | Engine section; M1 scope for each service | Pending |
-| Science owner | cSNP thresholds; cSNP's M2; the TreeGrafter divergence | Pending |
+| Science owner (`thomaspd`) | cSNP thresholds, after production; cSNP's M2; the TreeGrafter divergence | Pending |
 
 Once everyone has signed off and the open questions are answered, change the status at the top to **Accepted**.

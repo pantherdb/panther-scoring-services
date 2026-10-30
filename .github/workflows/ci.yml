@@ -195,11 +195,24 @@ jobs:
       - run: uv run ruff check
       - run: uv run ruff format --check
       - run: uv run basedpyright
-      # The tests marked `tools` skip here; engine-image runs them with the tools.
+      # The cSNP data sample, keyed on its manifest, so a new sample misses the cache. Shared with
+      # both engine-image legs: the data is the same on every architecture.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .data/csnp
+          key: csnp-sample-${{ hashFiles('engine/src/panther_engine/csnp/sample.json') }}
+      # Always runs: on a cache hit it only checks the files, so a corrupted cache can't pass.
+      - run: uv run panther-engine csnp sample fetch --data-dir ../.data
+      # The tests marked `tools` skip here; engine-image runs them with the tools. The tests marked
+      # `data` fail if the sample is missing.
       - run: uv run pytest
+        env:
+          PANTHER_REQUIRE_DATA: "1"
 
   # Builds the engine image natively on each architecture, then runs the tool report and the full
-  # test suite in it. The image sets PANTHER_REQUIRE_TOOLS=1, so a missing tool fails, not skips.
+  # test suite in it, with the cSNP data sample mounted read-only. The image sets
+  # PANTHER_REQUIRE_TOOLS=1 and the run sets PANTHER_REQUIRE_DATA=1, so a missing tool or missing
+  # data fails, not skips.
   # If ubuntu-24.04-arm isn't available to the repository, drop it from the matrix and check arm64
   # on an Apple Silicon machine before merging.
   engine-image:
@@ -229,8 +242,20 @@ jobs:
           cache-to: type=gha,mode=max,scope=engine-${{ matrix.arch }}
       - name: Tool report
         run: docker run --rm panther-engine:ci panther-engine tools
-      - name: Tests, with the tools required
-        run: docker run --rm panther-engine:ci uv run --no-sync pytest
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .data/csnp
+          key: csnp-sample-${{ hashFiles('engine/src/panther_engine/csnp/sample.json') }}
+      # Fetched in the image, as the runner's user: the runner then owns the files, and needs no
+      # uv. On a cache hit it only checks them.
+      - name: cSNP data sample
+        run: >-
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" panther-engine:ci
+          panther-engine csnp sample fetch --data-dir /fetch
+      - name: Tests, with the tools and the data required
+        run: >-
+          docker run --rm -v "$PWD/.data:/data:ro" -e PANTHER_DATA_DIR=/data
+          -e PANTHER_REQUIRE_DATA=1 panther-engine:ci uv run --no-sync pytest
 
   # Builds the API image natively on each architecture, starts it, and checks that the API reports
   # a version for every tool. engine-image checks the exact pinned versions on the same tools stage.

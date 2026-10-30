@@ -1,0 +1,7 @@
+Node number,Node1 AN2,Node2 AN3,Node3 AN4,Node4 AN0,Node5 AN1
+root number,Node5,Node5,Node4,Node5,Node4
+Branch,0.10000,0.20000,0.30000,100,0.05000
+Site 1,M,M,M,M,M
+Probability of site 1,1,1,1,1.000,0.999
+Site 2,A,-,G,A,A
+Probability of site 2,1,0,1,0.982,0.640

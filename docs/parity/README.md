@@ -31,10 +31,11 @@ Parity is the acceptance test for **milestone M1** of each service. It does not 
 | `golden-setup.md` | How to run each reference and regenerate the golden files: the container, the Perl and tool versions (BLAST+, HMMER3, EPA-ng), the pinned `treegrafter` commit, and the PANTHER data versions |
 | `inputs.md` | Each test input, by service, and why it's in the set |
 | `divergences.md` | The divergence log (format below) |
+| `csnp-library-survey.md` | The survey of the cSNP PAML_RST library: what each check found across all 8,607 families, how the Perl's readings differ from the strict readers', and the families chosen for the cSNP data sample |
 
 The golden files themselves are test fixtures, so they live with the engine's tests in `engine/`. This folder explains them.
 
-**Store the golden files and the parity inputs byte for byte.** Give their folder a `-text` rule in `.gitattributes`; the comment there says where. The repo's default turns CRLF into LF when a file is committed, on every OS. Some `csnp` cases carry a carriage return on purpose: `e10`'s input line ends in CRLF, and `MAP-5` keeps the trailing `\r` in the output substitution.
+**Store the golden files and the parity inputs byte for byte.** Their folder, `engine/tests/golden/<service>/`, has a `-text` rule in `.gitattributes`. The repo's default turns CRLF into LF when a file is committed, on every OS. Some `csnp` cases carry a carriage return on purpose: `e10`'s input line ends in CRLF, and `MAP-5` keeps the trailing `\r` in the output substitution.
 
 ### Where to start for `csnp`
 

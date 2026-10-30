@@ -1,0 +1,28 @@
+Supplemental results for CODEML (seqf: output.phylip  treef: output.cayley)
+
+
+TREE #  1
+
+Ancestral reconstruction by AAML.
+
+((AN2: 0.10000, AN3: 0.20000): 0.05000, AN4: 0.30000);
+
+((1, 2), 3);
+
+
+  4..5     5..1     5..2     4..3  
+
+tree with node labels for Rod Page's TreeView
+((1_AN2, 2_AN3) 5 , 3_AN4) 4 ;
+
+Nodes 4 to 5 are ancestral
+Unreliable at sites with alignment gaps
+
+(1) Marginal reconstruction of ancestral sequences
+List of extant and reconstructed sequences
+
+     5      2
+
+AN2               MA
+AN3               M-
+AN4               MG

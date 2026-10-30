@@ -14,10 +14,13 @@ services:
       context: .
       target: engine
     # The working copy replaces the copy the image installed from, at the same path, so the
-    # editable install in /opt/venv imports it.
+    # editable install in /opt/venv imports it. The developer's data folder, .data/, is mounted
+    # read-only: fetch the cSNP data sample into it first (docs/testing/engine.md).
     volumes:
       - ./engine:/work/engine
+      - ./.data:/data:ro
     environment:
+      PANTHER_DATA_DIR: /data
       # The environment stays in the image and never touches engine/.venv. An out-of-date
       # uv.lock stops the run instead of being rewritten.
       UV_PROJECT_ENVIRONMENT: /opt/venv

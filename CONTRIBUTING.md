@@ -102,7 +102,8 @@ Specs are organized by capability, not by developer. This is the starting layout
 | `scoring-jobs` | The API job lifecycle: `POST /api/v1/jobs`, `GET /api/v1/jobs/{id}`, the request and job shapes, worker processes, failures, expiry and their settings, and the built-in `tools` job |
 | `scoring-ui` | The form, job status, results table, CSV export and help content |
 | `engine-core` | Behaviour every engine service shares: the CLI, the pinned external tools in the image, finding them, reporting their versions and running them without a shell |
-| `psep-engine` | Pipeline behaviour, thresholds, and parity with the Perl |
+| `csnp-data` | The cSNP data: reading the PAML_RST library and the species tree, the library survey, and the data sample |
+| `psep-engine` | cSNP scoring: pipeline behaviour, thresholds, and parity with the Perl |
 
 ## Where Things Go
 
@@ -120,6 +121,7 @@ Specs are organized by capability, not by developer. This is the starting layout
 - **Contracts need both sides.** A change to the OpenAPI schema needs the frontend and API developers. A change to the engine interface needs the API and engine developers.
 - **OpenSpec doesn't approve science.** Any difference from the Perl output ships only with a row in `docs/parity/divergences.md` that names an approver.
 - **When the legacy code is unclear, write "needs team verification".** Don't guess, and don't let the assistant guess.
+- **When the legacy code and its docs disagree, follow the code.** M1 then reproduces what ran in production. Log the docs' version as a proposed row in `docs/parity/divergences.md`, deferred until the service is live on production, and revisit it then. Decided by the engine developer on 2026-10-29.
 
 ## Gates
 

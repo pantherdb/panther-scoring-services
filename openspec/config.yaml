@@ -2,7 +2,7 @@ schema: spec-driven
 
 # Constraints for OpenSpec artifacts. The full project guide is CLAUDE.md.
 context: |
-  Scope is four PANTHER services, in priority order: hmmscore and refmap, then csnp (PANTHER-PSEP), then treegrafter. No other PANTHER tools.
+  Scope is four PANTHER services, in priority order (revised 2026-10-29): csnp (PANTHER-PSEP), then refmap, then hmmscore, then treegrafter. No other PANTHER tools.
   Three areas, one owner each, each covering all four services: frontend/ (React + TypeScript), api/ (FastAPI), engine/ (Python package: shared core/ plus csnp, hmmscore, refmap, treegrafter submodules).
   engine/ is a library with a CLI that api/ imports. There is no HTTP between them.
   The OpenAPI schema is the frontend/api contract; frontend types are generated from it.
@@ -11,8 +11,10 @@ context: |
   Each service keeps its own toolchain: csnp BLAST+, hmmscore HMMER3, treegrafter HMMER3 and EPA-ng, refmap none. Adding a tool or changing a method needs science-owner sign-off; HMMER or grafting for csnp is milestone M2.
   csnp runs on frozen PANTHER 9 data; its legacy behaviour spec and parity review in ../panther-workspace/legacy/cSNP_analysis define its reference and quirk IDs; the other services share the current PANTHER release.
   The legacy code at ../panther-workspace is read-only reference. Where it is unclear, write "needs team verification" instead of guessing.
+  Where the legacy code and its docs disagree, follow the code, so M1 reproduces what ran in production; log the docs' version as a proposed divergence, deferred until the service is live on production.
   The frontend stack is Accepted (docs/design/frontend-stack.md; conventions in frontend/CLAUDE.md).
-  The API and engine stacks in docs/design/tech-stack.md are Proposed, and its open questions are unresolved, including the csnp 180/380 vs 200/450 Mya thresholds.
+  The API and engine stacks in docs/design/tech-stack.md are Proposed, and its open questions are unresolved.
+  For csnp, M1 keeps the code's 180/380 Mya thresholds and age < bound pDel; the docs' 200/450 Mya is revisited after csnp is live on production.
 
 rules:
   proposal:

@@ -21,6 +21,7 @@ docker compose run --rm engine panther-engine tools                 # the CLI: e
 - **The first run builds the image.** That takes about two minutes. Later runs reuse it.
 - **Rebuild after a change to the image.** That means the `Dockerfile`, `engine/tools-env/` or `engine/uv.lock`. Add `--build`: `docker compose run --rm --build engine`. A changed `uv.lock` without a rebuild still works, but each run then reinstalls the packages in the container.
 - **Your working copy is mounted** at `/work/engine`, so the checks run against your edits without a rebuild.
+- **Your `.data/` folder is mounted read-only** at `/data`, with `PANTHER_DATA_DIR=/data`. Fetch the cSNP data sample into it first ([Test Data](#test-data)), or the tests that need it skip.
 - **Nothing is written into `engine/`.** The image keeps its own environment in `/opt/venv`, and no bytecode or caches land in the mount. A local `engine/.venv` keeps working.
 - **`uv.lock` is never rewritten.** If it's out of date with `pyproject.toml`, the run stops. Update it natively with `uv lock` in `engine/`.
 
@@ -69,7 +70,86 @@ In tests, the `make_tool` fixture (`tests/conftest.py`) writes a fake tool: a sm
 
 ## Test Data
 
-No scoring data yet. The cSNP data sample comes with the survey change.
+### The cSNP Data Sample
+
+The cSNP tests read a sample of the PAML_RST library: one family for each variant the [library survey](../parity/csnp-library-survey.md) found, the species tree, and the PSEP 1.01 release's copyright statement. The full library is 19.2 GB unpacked, too big for a laptop or a CI runner.
+
+- **Where it lives:** a public release asset of this repository, `csnp-sample-1.tar.gz`, pinned by `engine/src/panther_engine/csnp/sample.json`. The manifest holds the tarball's URL and sha256, and the sha256 of each file in it.
+- **Where it goes:** the data folder, under `csnp/9/`. The data folder is `PANTHER_DATA_DIR`. For development it's `.data/` at the repository root, which git ignores.
+
+Fetch it natively, from `engine/`:
+
+```sh
+uv run panther-engine csnp sample fetch --data-dir ../.data
+uv run panther-engine csnp sample verify --data-dir ../.data    # optional: check every file again
+```
+
+Or through compose, from the repository root, with `.data/` mounted writable at another path:
+
+```sh
+docker compose run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" engine \
+  panther-engine csnp sample fetch --data-dir /fetch
+```
+
+- **`fetch` checks before it unpacks.** It downloads the tarball over HTTPS, checks its sha256 against the manifest, unpacks it into a temporary folder, checks every file, then moves the files into place. If anything fails, the data folder is left as it was.
+- **Run it again any time.** When the folder already matches the manifest, it downloads nothing.
+- **`--from FILE`** takes a local copy of the tarball instead of downloading it.
+- **`--user "$(id -u):$(id -g)"`** makes you the owner of the fetched files. On Linux, files written by the image's user would otherwise belong to that user, and you couldn't delete them.
+
+### Tests That Need the Data
+
+A test that reads a service's data sample is marked with the service:
+
+```python
+@pytest.mark.data("csnp")
+def test_reads_every_sample_family(csnp_data: Path) -> None: ...
+```
+
+- **The data folder is `PANTHER_DATA_DIR`,** or `.data/` at the repository root where it isn't set. The `csnp_data` fixture is its `csnp/9/` folder. compose mounts `.data/` read-only at `/data` and sets `PANTHER_DATA_DIR=/data`, so the same tests run in the image.
+- **Where the sample isn't there,** the test is skipped, and the reason names the data and `PANTHER_DATA_DIR`: `needs the csnp data sample, not found in …`.
+- **With `PANTHER_REQUIRE_DATA=1`,** missing data fails the test instead. CI sets it. compose doesn't, so without the sample `docker compose run --rm engine` still passes, listing the skips.
+- **Each test checks only that the files are there.** One test, `test_the_sample_matches_its_manifest`, hashes every file against the manifest.
+
+### Using the Full Library
+
+The full library unpacks into the same layout, so code never needs to know which it has. From the parent folder of this repository:
+
+```sh
+mkdir -p ~/panther-data/csnp/9
+tar -xzf panther_build/PAML_RST.tar.gz -C ~/panther-data/csnp/9
+cp panther-workspace/legacy/cSNP_analysis/species_pthr8_time.nhx ~/panther-data/csnp/9/
+(cd panther-scoring-services/engine && uv run panther-engine csnp sample fetch --data-dir ~/panther-data)
+```
+
+The last line adds the copyright statement and checks the sample's files, which the full library also holds. Then set `PANTHER_DATA_DIR=~/panther-data`. It needs 19.2 GB free.
+
+### Publishing a New Sample
+
+A new sample is a new release tag and a new manifest. Old releases stay, so old commits can still fetch their sample. Never replace the asset of an existing release: the manifests that pin it would fail to fetch.
+
+1. **Choose the families** from the survey, and record them in [csnp-library-survey.md](../parity/csnp-library-survey.md). To rebuild the current sample, list its families with `jq -r '.families[]' src/panther_engine/csnp/sample.json > families.txt`.
+2. **Build** from `engine/`, with the next tag. The archive and the species tree must match the checksums in the legacy behaviour spec §7.1:
+
+   ```sh
+   uv run panther-engine csnp sample build ../../panther_build/PAML_RST.tar.gz \
+     --species ../../panther-workspace/legacy/cSNP_analysis/species_pthr8_time.nhx \
+     --readme ../../PANTHER_PSEP1.01/README.txt \
+     --families families.txt --tag csnp-sample-2
+   ```
+
+   It writes `csnp-sample-2.tar.gz` and `src/panther_engine/csnp/sample.json`. A second build gives the same bytes.
+3. **Publish** the tarball. It needs write access to the repository:
+
+   ```sh
+   gh release create csnp-sample-2 csnp-sample-2.tar.gz --prerelease \
+     --title "cSNP data sample 2" --notes "See docs/parity/csnp-library-survey.md"
+   ```
+
+   `--prerelease` keeps the sample from becoming the repository's Latest release. `--latest=false` isn't enough: GitHub makes the only release Latest anyway, as it did with `csnp-sample-1`.
+4. **Fetch it** into an empty folder with `fetch --data-dir`, to check the upload.
+5. **Commit the manifest.** CI's cache is keyed on it, so the next run fetches the new sample.
+
+### Tool Version Fixtures
 
 `tests/fixtures/tool-versions/` holds each tool's version output, recorded in the arm64 image. `tests/test_tools.py` checks the version patterns against it. When a tool's pin changes, rebuild the image, then record each file again from the repository root:
 

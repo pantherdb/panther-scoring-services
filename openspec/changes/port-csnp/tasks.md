@@ -190,7 +190,7 @@ Test-first: for each task that adds code, write its tests, run them and see them
 
 ### Next action
 
-Every task is done. Open the pull request (Workflow follow-up): all three developers approve it, and the engine developer's approval dates divergence row 8. On the pull request, check CI's logs as listed there.
+Every task is done, and the pull request is #24. Its CI passed, with the logs checked as the Workflow follow-up lists (Progress). The engine developer approved divergence row 8 on 2026-10-30, and the row is dated. They opened #24, so GitHub can't take their review: the dated row is their sign-off, and the API and frontend developers approve on GitHub. Then merge, and archive with `/opsx:archive`.
 
 ### Blockers
 
@@ -211,6 +211,12 @@ None. The engine developer decided the three that came up in apply (2026-10-30):
 - **Step-1 golden (task 7.5):** the same bytes from BLAST+ 2.17.0 on amd64, run under emulation from the `Dockerfile`'s `blast` stage, as on arm64.
 - **End to end (task 7.4):** in the engine image, `score()` reproduces spec §7.3 for the three proteins, one call each, through BLAST+ 2.17.0. `tests/test_csnp_scoring.py` takes about 70 s there.
 - **Final check (task 9.1), 2026-10-30,** from a copy of the files git would commit: in `engine/`, `uv sync --locked`, `ruff check`, `ruff format --check`, `basedpyright` and `PANTHER_REQUIRE_DATA=1 uv run pytest` pass, 381 passed and only the 18 `tools` tests skipped; `docker compose run --rm --build engine` passes, 399 passed, none skipped; in `api/`, `uv sync --locked`, `uv run pytest` (147 passed) and `uv lock --check` pass; `npx markdownlint-cli2` and `npx openspec validate --all --no-interactive` pass. Run again after 3.4, from a fresh copy, with `sample fetch` downloading the published sample: 387 passed natively with only the 19 `tools` tests skipped, 406 passed in compose with none skipped, and the rest as before.
+- **CI on #24, 2026-10-30,** on the merge with `main`: every check passed, and `frontend` was skipped. In the logs:
+  - the `engine` job missed the cache, fetched `csnp-sample-2` and saved it; 387 passed, and the only 19 skipped need `blastp` or `blastdbcmd`;
+  - both `engine-image` legs fetched the sample in the image and passed 406, none skipped: 93 s on arm64, 105 s on amd64;
+  - `api` passed 147, and both `api-image` legs passed.
+
+  Each image leg warned "Unable to reserve cache": all three jobs missed it at once, and the `engine` job saved it first.
 - **Order of work:** steps 2 and 3 (groups 5 and 6) were written before the case generator (4.4), which uses step 3's tree to choose genes and positions whose walks stop at each kind of node.
 
 ### Failed approaches

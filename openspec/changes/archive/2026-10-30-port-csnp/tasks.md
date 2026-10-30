@@ -190,7 +190,12 @@ Test-first: for each task that adds code, write its tests, run them and see them
 
 ### Next action
 
-Every task is done, and the pull request is #24. Its CI passed, with the logs checked as the Workflow follow-up lists (Progress). The engine developer approved divergence row 8 on 2026-10-30, and the row is dated. They opened #24, so GitHub can't take their review: the dated row is their sign-off, and the API and frontend developers approve on GitHub. Then merge, and archive with `/opsx:archive`.
+None: the change is merged (#24, `8d82d7c`) and archived (2026-10-30).
+
+- The engine developer approved divergence row 8 on 2026-10-30, in the row. tmushayahama approved #24 from the API and frontend side, and merged it the same day; mugitty was requested too, and hadn't reviewed it.
+- CI on #24's last commit, `0c0e07f`, passed (run 41101545750), and all three engine jobs hit the sample's cache.
+- The second lesson learned is now in `docs/parity/csnp-library-survey.md`, on the broken families. The first was already in `docs/parity/inputs.md`.
+- **Follow-up:** asked on #24, the engine developer said the engine will export the species' names, as `SPECIES_NAMES` beside `SPECIES_CODES`, from the old site's cSNP list. That is a change of its own.
 
 ### Blockers
 

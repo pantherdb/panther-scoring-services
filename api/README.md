@@ -27,20 +27,30 @@ Everything is under `/api/v1`. The current, complete list is the schema in [`ope
 | ---- | --------------- |
 | `GET /api/v1/health` | `{"status": "ok"}` while the process can serve requests |
 | `GET /api/v1/versions` | The API, engine and external tool versions, read once at startup |
+| `POST /api/v1/jobs` | Starts a job (`{"service": ..., "input": {...}}`). Returns `202`, the job, and its path in `Location` |
+| `GET /api/v1/jobs/{job_id}` | The job: `queued`, `running`, `succeeded` with its `result`, or `failed` with an `error` |
 | `/api/v1/docs`, `/api/v1/openapi.json` | The interactive docs and the schema |
 
 Every error is an RFC 9457 problem-details body (`application/problem+json`).
+
+Jobs run in a pool of worker processes and are kept in memory, so a restart loses them. Until the first scoring service is ported, the only job is the built-in `tools` job, which reports the external tools' versions from a worker. To try it, see "Try the Jobs by Hand" in [docs/testing/api.md](../docs/testing/api.md). The settings (`PANTHER_API_*`) are listed there too.
 
 ## Layout
 
 ```text
 src/panther_api/
-  main.py        create_app(): the /api/v1 router, the error handlers, and the startup that reads the versions
+  main.py        create_app(): the /api/v1 router, the error handlers, and the startup that reads
+                 the settings and versions and starts the job runner
+  settings.py    the PANTHER_API_* settings, read once at startup
   problems.py    problem-details errors, and how the schema documents them
   versions.py    the Versions model, read from the engine
+  jobs/          the job models, the in-memory store, the worker-pool runner, and work.py:
+                 what the workers run. A scoring service joins by adding its request,
+                 result and case there
   openapi.py     writes openapi.json: uv run python -m panther_api.openapi
   routers/       one module per area; each is one include_router line in create_app()
-tests/           pytest with FastAPI's TestClient; conftest.py fakes the engine's tool report
+tests/           pytest with FastAPI's TestClient; conftest.py fakes the engine's tool report,
+                 and job_helpers.py the work that runs in the workers
 openapi.json     the committed schema; a test fails when it's out of date
 ```
 

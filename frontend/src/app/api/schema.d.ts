@@ -44,6 +44,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a job
+         * @description Start a job for `service` with its `input`. The job runs after this request returns.
+         */
+        post: operations["create_job_api_v1_jobs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A job's status and result
+         * @description The job's current state. An unknown, invalid or expired id is a 404.
+         */
+        get: operations["get_job_api_v1_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -56,6 +96,12 @@ export interface components {
              */
             status: "ok";
         };
+        /**
+         * JobStatus
+         * @description Where a job is. It only moves forward: queued, running, then succeeded or failed.
+         * @enum {string}
+         */
+        JobStatus: "queued" | "running" | "succeeded" | "failed";
         /**
          * Problem
          * @description An RFC 9457 problem details body.
@@ -82,6 +128,63 @@ export interface components {
             name: string;
             /** Version */
             version: string | null;
+        };
+        /**
+         * ToolsInput
+         * @description The `tools` job takes no input: `{}`.
+         */
+        ToolsInput: Record<string, never>;
+        /**
+         * ToolsJob
+         * @description A `tools` job. Times are UTC, and null until reached.
+         *
+         *     `result` is null unless the job succeeded, and `error` is null unless it failed. `versions`
+         *     are the API, engine and tool versions the job ran with.
+         */
+        ToolsJob: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            service: "tools";
+            status: components["schemas"]["JobStatus"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Started At */
+            started_at: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            result: components["schemas"]["ToolsResult"] | null;
+            error: components["schemas"]["Problem"] | null;
+            versions: components["schemas"]["Versions"];
+        };
+        /**
+         * ToolsJobRequest
+         * @description Start a `tools` job: report the external tools' versions from a worker process.
+         */
+        ToolsJobRequest: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            service: "tools";
+            input: components["schemas"]["ToolsInput"];
+        };
+        /**
+         * ToolsResult
+         * @description Each external tool the engine uses, in the engine's order. Never where it was found.
+         */
+        ToolsResult: {
+            /** Tools */
+            tools: components["schemas"]["ToolVersion"][];
         };
         /**
          * Versions
@@ -189,6 +292,108 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Versions"];
+                };
+            };
+            /** @description Unexpected error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Error, as problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    create_job_api_v1_jobs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ToolsJobRequest"];
+            };
+        };
+        responses: {
+            /** @description The job was accepted. Poll it at `Location`. */
+            202: {
+                headers: {
+                    /** @description The job's path, `/api/v1/jobs/{job_id}` */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolsJob"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Unexpected error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Error, as problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    get_job_api_v1_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolsJob"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
                 };
             };
             /** @description Unexpected error */

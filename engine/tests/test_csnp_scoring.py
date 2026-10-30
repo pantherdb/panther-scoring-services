@@ -1,6 +1,7 @@
 """`score()`, the interface agreed on #19: its checks and its result without data, then the whole
 pipeline with `blastp` and the data sample, against spec §7.3."""
 
+import hashlib
 import multiprocessing
 import os
 import shutil
@@ -12,7 +13,14 @@ import pytest
 
 from panther_engine.core.errors import InputError
 from panther_engine.core.process import run_tool
-from panther_engine.csnp import SPECIES_CODES, CsnpInput, CsnpResult, SubstitutionScore, score
+from panther_engine.csnp import (
+    SPECIES_CODES,
+    SPECIES_NAMES,
+    CsnpInput,
+    CsnpResult,
+    SubstitutionScore,
+    score,
+)
 from panther_engine.csnp.blast import BlastError
 from panther_engine.csnp.scoring import reported_family, to_score
 
@@ -110,6 +118,42 @@ def test_a_request_the_api_would_reject_is_a_value_error_and_nothing_is_searched
 def test_the_species_codes_include_the_ones_the_spec_names() -> None:
     assert len(SPECIES_CODES) == 85
     assert {"HUMAN", "PLAF7", "SYNY3"} <= SPECIES_CODES
+
+
+def test_each_species_code_has_a_name_and_no_other_code_has_one() -> None:
+    assert set(SPECIES_NAMES) == SPECIES_CODES
+    assert len(SPECIES_NAMES) == 85
+    assert all(SPECIES_NAMES.values())
+
+
+def test_the_species_names_are_the_old_sites() -> None:
+    codes = ["HUMAN", "PLAF7", "SYNY3", "CANFA"]
+
+    names = [SPECIES_NAMES[code] for code in codes]
+
+    assert names == ["Homo sapiens", "Plasmodium falciparum", "Synechocystis", "Canis familiaris"]
+
+
+def test_a_caller_cant_change_or_add_a_species_name() -> None:
+    before = dict(SPECIES_NAMES)
+
+    with pytest.raises(TypeError):
+        SPECIES_NAMES["HUMAN"] = "Human"  # pyright: ignore[reportIndexIssue]
+    with pytest.raises(TypeError):
+        SPECIES_NAMES["XXXXX"] = "Nobody"  # pyright: ignore[reportIndexIssue]
+
+    assert dict(SPECIES_NAMES) == before
+
+
+def test_the_species_names_match_the_old_sites_list() -> None:
+    # The sha256 of the 85 entries of `CSNP_SHORT_LONG_ORG_LIST`, in `panther-site-java`'s
+    # `OrganismConstants.java` at panther-workspace `ba373a3`: each `CODE-Name` on a line of its
+    # own, in the list's order, which is code order. Changing a name on purpose changes it.
+    text = "".join(f"{code}-{name}\n" for code, name in SPECIES_NAMES.items())
+
+    digest = hashlib.sha256(text.encode()).hexdigest()
+
+    assert digest == "a48cb19169798d67dda3d8372f35eb26582985a9dec66165425c7e17992b381d"
 
 
 @pytest.mark.parametrize(

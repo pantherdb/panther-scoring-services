@@ -191,6 +191,26 @@ describe('the job page', () => {
     expect(screen.getByRole('main').textContent).not.toMatch(/500|internal server error/i)
   })
 
+  it.each([
+    ['the network fails', () => HttpResponse.error()],
+    [
+      'the dev proxy has no API behind it',
+      () => new HttpResponse(null, { status: 500, headers: { 'Content-Type': 'text/plain' } }),
+    ],
+  ])(
+    "says the scoring service can't be reached when %s, and offers to try again",
+    async (_, answer) => {
+      serveJob(answer)
+      renderRoute(`/jobs/${ID}`)
+
+      const alert = await main().findByRole('alert')
+      expect(alert).toHaveTextContent(/can.t be reached/i)
+      expect(alert).not.toHaveTextContent(/couldn.t be loaded/i)
+      expect(main().getByRole('button', { name: /try again/i })).toBeEnabled()
+      expect(screen.getByRole('main').textContent).not.toMatch(BUILD_DETAILS)
+    }
+  )
+
   it('shows the job after trying again, once the API answers', async () => {
     serveProblem(500)
     const { user } = renderRoute(`/jobs/${ID}`)

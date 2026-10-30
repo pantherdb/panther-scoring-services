@@ -102,6 +102,30 @@ When the API answers a cSNP request with 501, the form SHALL say that cSNP scori
 - **WHEN** the user submits a valid input and the API answers 500
 - **THEN** the form says the job couldn't be started, shows no status code or build details, stays at `/csnp`, and can be submitted again
 
+### Requirement: An unreachable scoring service is named as such
+
+When a request to start or load a job gets no answer from the API (the network fails, or what answers isn't the API: the development proxy with no API behind it, or a server answering 502, 503 or 504), the cSNP form, the tools check and the job page SHALL say that the scoring service can't be reached, in fixed text with no status code or build details, instead of the message for an error from the API. The user's input MUST be kept, and the action MUST be possible to try again.
+
+#### Scenario: The network fails while submitting the cSNP form
+
+- **WHEN** the user submits a valid cSNP input and the request fails with a network error
+- **THEN** the form says the scoring service can't be reached, keeps the input, stays at `/csnp`, and can be submitted again
+
+#### Scenario: The development proxy has no API behind it
+
+- **WHEN** the user clicks the tools check and the answer is a 500 without problem details
+- **THEN** the home page says the scoring service can't be reached, and the button can be clicked again
+
+#### Scenario: The job page can't reach the API
+
+- **WHEN** the job page loads a job and the request fails with a network error
+- **THEN** the page says the scoring service can't be reached, shows no status code or build details, and offers to try again
+
+#### Scenario: An error from the API is not called unreachable
+
+- **WHEN** the API itself answers 500 with problem details
+- **THEN** the UI says the job couldn't be started or loaded, not that the service can't be reached
+
 ### Requirement: Submitting a cSNP request opens its job
 
 When the API accepts a cSNP request with 202, the UI SHALL open `/jobs/{id}` for the new job. While the request is in flight, the submit action MUST be disabled.

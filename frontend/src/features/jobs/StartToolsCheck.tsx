@@ -1,12 +1,14 @@
 import { Alert, Button } from '@mantine/core'
 import { useNavigate } from 'react-router'
 
+import { isUnreachable } from '@/app/api/errors'
+
 import { useStartJobMutation } from './jobsApi'
 
 // A placeholder until the service forms exist: starts the built-in tools job,
 // which reports each scoring tool's version, and opens its page.
 export function StartToolsCheck() {
-  const [startJob, { isLoading, isError }] = useStartJobMutation()
+  const [startJob, { isLoading, isError, error }] = useStartJobMutation()
   const navigate = useNavigate()
 
   async function start() {
@@ -32,11 +34,16 @@ export function StartToolsCheck() {
       >
         Check the scoring tools
       </Button>
-      {isError && (
-        <Alert title="The check couldn’t be started" className="w-full">
-          Try again in a moment.
-        </Alert>
-      )}
+      {isError &&
+        (isUnreachable(error) ? (
+          <Alert title="The scoring service can’t be reached" className="w-full">
+            Check your connection, then try again in a moment.
+          </Alert>
+        ) : (
+          <Alert title="The check couldn’t be started" className="w-full">
+            Try again in a moment.
+          </Alert>
+        ))}
     </section>
   )
 }

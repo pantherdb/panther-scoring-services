@@ -16,6 +16,12 @@ export function SubmitAlert({ problem }: Props) {
           Scoring is still being moved to this website. Your input is kept on this page.
         </Alert>
       )
+    case 'unreachable':
+      return (
+        <Alert title="The scoring service can’t be reached">
+          Check your connection, then try again in a moment. Your input is kept on this page.
+        </Alert>
+      )
     case 'failed':
       return <Alert title="The job couldn’t be started">Try again in a moment.</Alert>
     case null:

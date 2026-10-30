@@ -321,6 +321,40 @@ describe('when the job is not started', () => {
     await waitFor(() => expect(router.state.location.pathname).toMatch(JOB_PATH))
   })
 
+  it.each([
+    ['the network fails', () => HttpResponse.error()],
+    [
+      'the dev proxy has no API behind it',
+      () => new HttpResponse(null, { status: 500, headers: { 'Content-Type': 'text/plain' } }),
+    ],
+    [
+      'a server in between answers 503',
+      () =>
+        new HttpResponse('<html>Service Unavailable</html>', {
+          status: 503,
+          headers: { 'Content-Type': 'text/html' },
+        }),
+    ],
+  ])(
+    "says the scoring service can't be reached when %s, and keeps the input",
+    async (_, answer) => {
+      server.use(http.post('/api/v1/jobs', answer))
+      const { user, router } = renderRoute('/csnp')
+      await fillValid(user)
+
+      await user.click(submitButton())
+
+      const alert = await main().findByRole('alert')
+      expect(alert).toHaveTextContent(/can.t be reached/i)
+      expect(alert).not.toHaveTextContent(/couldn.t be started/i)
+      expect(screen.getByRole('main').textContent).not.toMatch(BUILD_DETAILS)
+      expect(screen.getByRole('main').textContent).not.toMatch(/500|503|unavailable/i)
+      expect(router.state.location.pathname).toBe('/csnp')
+      expect(sequenceBox()).not.toHaveValue('')
+      expect(submitButton()).toBeEnabled()
+    }
+  )
+
   it('treats a 422 without field errors as a failure to start', async () => {
     serveProblem(422, { type: 'about:blank', title: 'x', status: 422, detail: 'x' })
     const { user } = renderRoute('/csnp')

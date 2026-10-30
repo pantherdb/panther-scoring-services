@@ -115,7 +115,7 @@ frontend/CLAUDE.md and frontend-stack.md put a form's draft in Mantine `useForm`
 - **`loc`'s layout** is `["body", <service>, "input", <field>, …]` (`api-service`; `docs/testing/api.md`, cSNP subsection). `inputErrors(problem, service, fields)` returns, for each of `fields`, its errors in order as `{msg, item}`, where `item` is a list item's index or `null`, and, under `other`, the `msg` of every error whose `loc` doesn't have that layout or names another field.
 - **A list item's error** (`["body", "csnp", "input", "substitutions", 2]`) goes on the `substitutions` field, prefixed with the token's place, counted from 1, and the token itself, "Substitution 3 (G12V): ", because the box holds every token and the message alone wouldn't say which. The token comes from the form's own copy of the list it sent (the `rejected` action's `sent`), never from the response, which doesn't echo it; if the index is past that list, only the place is given. The prefix is the cSNP form's wording, so the draft reducer adds it, not `wire.ts`. *(Decided during apply, 2026-10-29 and 2026-10-30: the first test expected `wire.ts` to word it, and naming the token came with the rule change.)*
 - **`CsnpForm` puts each field's messages on that field,** through the Mantine input's `error` prop, which sets `aria-invalid` and describes the input. The form's other errors, such as an input field the form doesn't have, go in an alert above the submit button.
-- **The `msg` is shown as the API wrote it,** for example "Value error, The species must be a PANTHER species code of 1 to 5 upper-case letters or digits, such as HUMAN." The "Value error, " prefix is Pydantic's. Stripping it would be the client rewriting the server's text, so it's left as it is (Risks).
+- **The `msg` is shown as the API wrote it,** for example "The species must be a PANTHER species code of 1 to 5 upper-case letters or digits, such as HUMAN." *(Updated in review, 2026-10-30: the API used to send Pydantic's "Value error, " prefix before such messages. It now removes it in `problems.py`, so every client gets the plain message, and this form still shows the `msg` as given.)*
 
 ### Submitting
 
@@ -126,8 +126,10 @@ frontend/CLAUDE.md and frontend-stack.md put a form's draft in Mantine `useForm`
 | `202` | navigate | `/jobs/{id}`, from the job's `id`, as the tools check does |
 | `422` with a `ValidationProblem` body | `rejected` | each `msg` on its field; the input unchanged |
 | `501` | `unavailable` | an alert: cSNP scoring isn't available yet, and the input is kept so it can be submitted later |
-| anything else, including a network error or a `422` without the expected body | `failed` | an alert: the job couldn't be started, try again in a moment |
+| no answer from the API: a network error, a timeout, or a `5xx` without problem details (the dev proxy with no API behind it answers `500` with an empty body; a server in between answers `502` to `504`) | `unreachable` | an alert: the scoring service can't be reached, check your connection, and the input is kept |
+| anything else, including the API's own `500` or a `422` without the expected body | `failed` | an alert: the job couldn't be started, try again in a moment |
 
+- **"Can't be reached" is decided in one place,** `src/app/api/errors.ts`'s `isUnreachable`, from RTK Query's error. The API answers every error with problem details, so `FETCH_ERROR`, `TIMEOUT_ERROR`, a `PARSING_ERROR` from a `5xx`, or a numeric `5xx` without problem details all mean the API never answered. The tools check and the job page use it too, so the three screens say the same thing. In development the form also logs a `console.warn` pointing at `docs/testing/api.md`; the screen shows no build details. *(Added in review, 2026-10-30: the user saw "couldn't be started" when the API wasn't running, with no hint why.)*
 - **The request body** is `{service: "csnp", input: {sequence, substitutions, species}}`: the sequence as typed, the split substitutions, the trimmed species.
 - **The alerts' text is fixed.** The `501`'s `detail` ("cSNP scoring isn't available yet.") is the API's, but the UI's own words say the same and add that the input is kept. For other failures nothing from the response is shown: its status or body could carry build details. In development, the error is logged with `console.warn` behind `import.meta.env.DEV`, as frontend/CLAUDE.md asks.
 - **The button** shows a loader and is disabled while the request is in flight (`isLoading`), as `StartToolsCheck` does. A new submit clears the last alert.
@@ -183,7 +185,6 @@ Job        = ToolsJob' | CsnpJob'                   (app: camelCase times, resul
 
 - **[The client's checks drift from the API's]** A rule relaxed in the API still blocks in the form. → The constants are in one file, each naming its rule; the scoring-input change that relaxes one updates `checks.ts` in the same pull request (it regenerates the frontend's types anyway). A rule tightened in the API is caught by the server, and shown on the field.
 - **[The `501` test fails the day scoring lands]** The `@api` test expects a `501`. → Intended: the port's pull request removes it, with the frontend's `501` branch (Workflow follow-up).
-- **[Pydantic's "Value error, " prefix]** shows in the field's message. → Shown as the API wrote it; raise it with the API developer as a wording change, not a client rewrite.
 - **[Mock results look real]** → The family id is `PTHR00000`, the data is commented as mock, and mock mode exists only in development and e2e builds.
 
 ## Migration Plan

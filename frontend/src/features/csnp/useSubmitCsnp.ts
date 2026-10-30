@@ -1,6 +1,7 @@
 import { type Dispatch, useState } from 'react'
 import { useNavigate } from 'react-router'
 
+import { isUnreachable } from '@/app/api/errors'
 import { inputErrors, isValidationProblem } from '@/app/api/wire'
 import { useStartJobMutation } from '@/features/jobs'
 
@@ -8,9 +9,10 @@ import { CSNP_FIELDS, type CsnpValues, type DraftAction, draftInput } from './dr
 
 /**
  * Why the last submit didn't open a job, when it wasn't the input: `unavailable` is the
- * API's 501 until cSNP scoring is ported; `failed` is anything else.
+ * API's 501 until cSNP scoring is ported; `unreachable` is no answer from the API at all;
+ * `failed` is anything else.
  */
-export type SubmitProblem = 'unavailable' | 'failed' | null
+export type SubmitProblem = 'unavailable' | 'unreachable' | 'failed' | null
 
 function statusOf(error: unknown) {
   return typeof error === 'object' && error !== null && 'status' in error ? error.status : null
@@ -48,6 +50,16 @@ export function useSubmitCsnp(dispatch: Dispatch<DraftAction>) {
       }
       if (status === 501) {
         setProblem('unavailable')
+        return
+      }
+      if (isUnreachable(error)) {
+        if (import.meta.env.DEV) {
+          console.warn(
+            'The API could not be reached. Is it running? See docs/testing/api.md',
+            error
+          )
+        }
+        setProblem('unreachable')
         return
       }
       // Shown with fixed text: the response could carry build details.

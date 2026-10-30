@@ -1,6 +1,6 @@
 # Proposal
 
-**Area:** frontend. Outside `frontend/`, it adds one manual QA checklist, `docs/manual-qa/02-csnp-form.md`, and edits `docs/testing/frontend.md`. It changes nothing in `api/` or `engine/`.
+**Area:** frontend, plus one small API change. Outside `frontend/`, it adds one manual QA checklist, `docs/manual-qa/02-csnp-form.md`, and edits `docs/testing/frontend.md`, `docs/manual-qa/01-tools-check.md` and `docs/testing/api.md`. In `api/`, review on #20 added a change to `src/panther_api/problems.py` (commit 079b16a): a `422`'s message no longer starts with Pydantic's "Value error, " prefix. It changes nothing in `engine/`.
 
 **Depends on** `add-csnp-job` (PR #19): the `csnp` job contract, its `422` validation problem and its `501`, and the regenerated `frontend/src/app/api/schema.d.ts`. This change's branch starts from PR #19's head, `9b34dbe`, and merges after it.
 
@@ -51,15 +51,15 @@ None.
 ## Impact
 
 - **Frontend code:** `src/app/api/wire.ts` (the job and request unions, the `422` helpers), `src/app/router.tsx` (`/csnp`), a new `src/features/csnp/`, `src/features/jobs/` (the `csnp` result and title), `src/features/home/HomePage.tsx` (the link), `src/mocks/`; tests in `tests/` and `e2e/`.
-- **API contract:** consumed, not changed. `npm run api:types:check` passes with the committed `schema.d.ts`.
+- **API contract:** the schema is unchanged; `npm run api:types:check` passes with the committed `schema.d.ts`. **The API's `422` messages change wording:** a validator's message no longer starts with "Value error, " (`api/src/panther_api/problems.py`, with its test in `api/tests/test_problems.py`; added in review on #20). Clients that matched on the prefix would need updating; none in this repository did.
 - **Parity with the legacy cSNP service:** not affected. The UI scores nothing: it shows the API's `message`, `age` and `pdel` as given, and hard-codes no threshold, prediction label or pDel value. Its checks reject only what the API rejects. The token form check is the legacy CGI's own, so a token it turns away is one the legacy would have dropped without a row. No divergence row is needed for this change; whether rejecting, rather than dropping, needs one is PR #19's question.
 
 ## Open Questions
 
 Each needs team verification.
 
-- **A species list from the API.** The form takes a typed species code checked only for its shape. When the engine exports its species list (`add-csnp-job`, Open Questions), the API should publish it, and the form should become a selector. Who adds the endpoint, and when?
-- **Commas between substitutions.** The old site separated substitutions only by whitespace, so `L46P,C130R` is one token, and now a rejected one: the form names it and asks for the `L46P` form. Should the form split at commas too, as users may expect? That would accept input the old site didn't.
+- **A species list from the API** *(answered on #20, 2026-10-30)*. Yes. The engine exports the 85 codes, with their names, with the cSNP port; the API change that removes the `501` can serve them, and the form becomes a selector then.
+- **Commas between substitutions** *(answered on #20, 2026-10-30)*. The engine developer left it to the frontend developer, who chose to split on commas too. That's a follow-up change.
 - **`scoring-input`'s text** *(answered)*. PR #19 changed the scenario to "Tokens that aren't substitutions are rejected" before merging, and `openspec/specs/scoring-input/spec.md` now says so. This change's checks follow it.
-- **The PANTHER 9 note.** The old form said the cSNP tool uses PANTHER 9.0 data. The new UI shows only the versions the API reports, and those don't name the data version yet. Should the API report the PANTHER library version, as `frontend/CLAUDE.md` expects?
+- **The PANTHER 9 note** *(answered on #20, 2026-10-30)*. Yes. The engine reports its data version (`csnp/9/`) with the port, so the job's versions will name it.
 - **What the `501` page should offer.** It keeps the input and says scoring isn't available yet. Should it also point to the downloadable PANTHER-PSEP tool, as the old form did for large inputs?

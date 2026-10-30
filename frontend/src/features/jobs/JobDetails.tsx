@@ -10,6 +10,7 @@ import { JobStatus } from './JobStatus'
 // Each service's job page heading. A new service adds a row.
 const SERVICE_TITLES: Record<JobService, string> = {
   tools: 'Scoring tools check',
+  csnp: 'Coding SNP impact scoring',
 }
 
 type Props = {

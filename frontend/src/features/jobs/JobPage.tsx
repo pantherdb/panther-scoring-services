@@ -1,6 +1,8 @@
 import { Alert, Button, Loader } from '@mantine/core'
 import { Link, useParams } from 'react-router'
 
+import { isUnreachable } from '@/app/api/errors'
+
 import { JobDetails } from './JobDetails'
 import { isNotFound, useJob } from './useJob'
 
@@ -11,7 +13,9 @@ export function JobPage() {
 
   if (isError && isNotFound(error)) return <JobNotFound />
   // Fixed text only: the error's status and body could carry build details.
-  if (isError) return <JobUnavailable onRetry={() => void refetch()} />
+  if (isError) {
+    return <JobUnavailable unreachable={isUnreachable(error)} onRetry={() => void refetch()} />
+  }
   // Not isLoading: it's false while "Try again" refetches after an error.
   if (!job) return <JobLoading />
   return <JobDetails job={job} />
@@ -33,16 +37,24 @@ function JobNotFound() {
 }
 
 type UnavailableProps = {
+  /** No answer from the API at all, as opposed to an error from it. */
+  unreachable: boolean
   onRetry: () => void
 }
 
-function JobUnavailable({ onRetry }: UnavailableProps) {
+function JobUnavailable({ unreachable, onRetry }: UnavailableProps) {
   return (
     <section className="flex flex-col items-start gap-4">
       <h2 className="text-lg font-semibold">Job unavailable</h2>
-      <Alert title="The job couldn’t be loaded" className="w-full">
-        Try again in a moment.
-      </Alert>
+      {unreachable ? (
+        <Alert title="The scoring service can’t be reached" className="w-full">
+          Check your connection, then try again in a moment.
+        </Alert>
+      ) : (
+        <Alert title="The job couldn’t be loaded" className="w-full">
+          Try again in a moment.
+        </Alert>
+      )}
       <Button onClick={onRetry}>Try again</Button>
     </section>
   )

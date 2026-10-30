@@ -12,9 +12,11 @@ export const handlers: AnyHandler[] = [
 
   http.post('/api/v1/jobs', async ({ request }) => {
     const body: unknown = await request.json()
-    const isTools =
-      typeof body === 'object' && body !== null && 'service' in body && body.service === 'tools'
-    if (!isTools) {
+    const service =
+      typeof body === 'object' && body !== null && 'service' in body ? body.service : undefined
+    // A csnp job is accepted as the API will accept it once scoring is ported; the
+    // real API's 501 is served by the tests that need it. Neither input is validated.
+    if (service !== 'tools' && service !== 'csnp') {
       return HttpResponse.json(
         {
           type: 'about:blank',
@@ -22,13 +24,17 @@ export const handlers: AnyHandler[] = [
           status: 422,
           detail: 'The request is not valid.',
           errors: [
-            { loc: ['body'], msg: 'Only the tools job is mocked', type: 'union_tag_invalid' },
+            {
+              loc: ['body'],
+              msg: 'Only tools and csnp jobs are mocked',
+              type: 'union_tag_invalid',
+            },
           ],
         },
         { status: 422, headers: PROBLEM }
       )
     }
-    const job = createJob()
+    const job = createJob(service)
     return HttpResponse.json(job, { status: 202, headers: { Location: `/api/v1/jobs/${job.id}` } })
   }),
 

@@ -118,8 +118,11 @@ async def _http_error(_request: Request, exc: StarletteHTTPException) -> JSONRes
     return _respond(problem, exc.headers)
 
 
+VALUE_ERROR_PREFIX = "Value error, "
+
+
 def _message(error: Mapping[str, Any]) -> str:
-    """Pydantic's message, except where it quotes the submitted value."""
+    """Pydantic's message, except where it quotes the submitted value or adds a prefix."""
     # A tagged union's message quotes the tag it was given, such as an unknown `service`.
     if error["type"] == "union_tag_invalid":
         ctx = error.get("ctx", {})
@@ -127,7 +130,12 @@ def _message(error: Mapping[str, Any]) -> str:
             f"Input tag found using {ctx.get('discriminator')} does not match any of the "
             f"expected tags: {ctx.get('expected_tags')}"
         )
-    return str(error["msg"])
+    message = str(error["msg"])
+    # A validator's ValueError reads "Value error, <message>"; users read only the message,
+    # which our validators write for them.
+    if error["type"] == "value_error":
+        return message.removeprefix(VALUE_ERROR_PREFIX)
+    return message
 
 
 async def _validation_error(_request: Request, exc: RequestValidationError) -> JSONResponse:

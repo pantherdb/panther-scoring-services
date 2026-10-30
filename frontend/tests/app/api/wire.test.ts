@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { fromWireJob, type WireJob } from '@/app/api/wire'
+import {
+  fromWireJob,
+  inputErrors,
+  isValidationProblem,
+  type ValidationProblem,
+  type WireJob,
+} from '@/app/api/wire'
 
 const versions = {
   api: '0.1.0',
@@ -70,5 +76,84 @@ describe('fromWireJob', () => {
     const keys = Object.keys(fromWireJob(succeeded))
 
     expect(keys.filter(key => key.includes('_'))).toEqual([])
+  })
+})
+
+const csnpResult = {
+  family: 'PTHR00000',
+  scores: [
+    { substitution: 'L46P', age: 100, message: 'a message', pdel: '0.50' },
+    { substitution: 'R176C', age: null, message: 'Not scored: Invalid substitution', pdel: null },
+  ],
+}
+
+describe('fromWireJob, for a csnp job', () => {
+  it('keeps its service and result, null age and pdel included, unchanged', () => {
+    const wire: WireJob = { ...succeeded, service: 'csnp', result: csnpResult }
+
+    const job = fromWireJob(wire)
+
+    expect(job.service).toBe('csnp')
+    expect(job.result).toEqual(csnpResult)
+    expect(job.finishedAt).toBe(Date.UTC(2026, 9, 30, 0, 32, 1, 540))
+  })
+})
+
+const problem: ValidationProblem = {
+  type: 'about:blank',
+  title: 'Unprocessable Content',
+  status: 422,
+  detail: 'Request validation failed',
+  errors: [
+    { loc: ['body', 'csnp', 'input', 'species'], msg: 'Bad species.', type: 'value_error' },
+    { loc: ['body', 'csnp', 'input', 'substitutions', 2], msg: 'Bad token.', type: 'value_error' },
+    { loc: ['body', 'csnp', 'input', 'species'], msg: 'Still bad.', type: 'value_error' },
+    { loc: ['body', 'csnp', 'input', 'organism'], msg: 'Extra input.', type: 'extra_forbidden' },
+    { loc: ['body'], msg: 'Body broken.', type: 'json_invalid' },
+  ],
+}
+
+const CSNP_FIELDS = ['sequence', 'substitutions', 'species'] as const
+
+describe('isValidationProblem', () => {
+  it('accepts a 422 validation problem', () => {
+    expect(isValidationProblem(problem)).toBe(true)
+  })
+
+  it.each([
+    ['a plain problem', { type: 'about:blank', title: 'x', status: 501, detail: 'x' }],
+    ['errors that are not a list', { ...problem, errors: 'no' }],
+    ['an error without a loc', { ...problem, errors: [{ msg: 'x', type: 'x' }] }],
+    ['null', null],
+    ['text', 'Unprocessable Content'],
+  ])('refuses %s', (_name, value) => {
+    expect(isValidationProblem(value)).toBe(false)
+  })
+})
+
+describe('inputErrors', () => {
+  it("puts each error's msg on the input field its loc names, in order, with a list item's index", () => {
+    const { fields } = inputErrors(problem, 'csnp', CSNP_FIELDS)
+
+    expect(fields).toEqual({
+      species: [
+        { msg: 'Bad species.', item: null },
+        { msg: 'Still bad.', item: null },
+      ],
+      substitutions: [{ msg: 'Bad token.', item: 2 }],
+    })
+  })
+
+  it('keeps an error on a field the form does not have, or on no field, under other', () => {
+    const { other } = inputErrors(problem, 'csnp', CSNP_FIELDS)
+
+    expect(other).toEqual(['Extra input.', 'Body broken.'])
+  })
+
+  it("does not put another service's errors on this service's fields", () => {
+    const { fields, other } = inputErrors(problem, 'tools', CSNP_FIELDS)
+
+    expect(fields).toEqual({})
+    expect(other).toHaveLength(problem.errors.length)
   })
 })

@@ -69,8 +69,8 @@ The versions below are the ones pinned in the API image today. If the image chan
 ## TC 1.5 The API Is Down
 
 - [ ] Stop the API: press Ctrl+C in its terminal.
-- [ ] Reload a job's page. It's headed **Job unavailable**, says the job couldn't be loaded, and has a **Try again** button. It shows no status and no table.
-- [ ] Go to the home page and click **Check the scoring tools**. A message says the check couldn't be started; the address stays on the home page.
+- [ ] Reload a job's page. It's headed **Job unavailable**, says the scoring service can't be reached, and has a **Try again** button. It shows no status and no table.
+- [ ] Go to the home page and click **Check the scoring tools**. A message says the scoring service can't be reached; the address stays on the home page.
 - [ ] Neither message shows a port number, a file path, an error code or a command.
 - [ ] Start the API again (`docker compose up api`), wait until it's ready, then click **Try again** on the job's page. It now says **Job not found**: the API keeps jobs in memory, so they're lost when it restarts.
 - [ ] Click **Check the scoring tools** on the home page again. The check runs and succeeds.

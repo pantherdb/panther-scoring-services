@@ -1,5 +1,6 @@
 import type { Job } from '@/app/api/wire'
 
+import { CsnpScores } from './CsnpScores'
 import { ToolsResult } from './ToolsResult'
 
 type Props = {
@@ -8,9 +9,10 @@ type Props = {
 
 // A succeeded job's result, in its service's form. A new service adds a case.
 export function JobResult({ job }: Props) {
-  if (job.result === null) return null
   switch (job.service) {
     case 'tools':
-      return <ToolsResult result={job.result} />
+      return job.result && <ToolsResult result={job.result} />
+    case 'csnp':
+      return job.result && <CsnpScores result={job.result} />
   }
 }

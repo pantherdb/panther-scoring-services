@@ -1,10 +1,11 @@
 from collections.abc import Iterator
+from typing import Annotated
 
 import httpx2
 import pytest
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
-from pydantic import BaseModel
+from pydantic import AfterValidator, BaseModel
 
 from panther_api.main import create_app
 
@@ -20,6 +21,21 @@ class Payload(BaseModel):
 
 @router.post("/test/validate")
 def validate(payload: Payload) -> Payload:
+    return payload
+
+
+def _needs_letters(value: str) -> str:
+    if not value.isalpha():
+        raise ValueError("Use letters only.")
+    return value
+
+
+class Letters(BaseModel):
+    word: Annotated[str, AfterValidator(_needs_letters)]
+
+
+@router.post("/test/letters")
+def letters(payload: Letters) -> Letters:
     return payload
 
 
@@ -85,3 +101,14 @@ def test_unexpected_error_reveals_nothing(client: TestClient) -> None:
     assert_problem(response, 500)
     assert "failed reading" not in response.text
     assert INTERNAL_PATH not in response.text
+
+
+def test_a_validators_message_has_no_value_error_prefix(client: TestClient) -> None:
+    # Pydantic writes a ValueError raised in a validator as "Value error, <message>". Users
+    # read the message, so the API returns it without the prefix.
+    response = client.post("/api/v1/test/letters", json={"word": "abc123"})
+
+    assert_problem(response, 422)
+    assert response.json()["errors"] == [
+        {"loc": ["body", "word"], "msg": "Use letters only.", "type": "value_error"}
+    ]

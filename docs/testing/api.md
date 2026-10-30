@@ -147,7 +147,7 @@ curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
   "detail": "Request validation failed",
   "errors": [
     { "loc": ["body", "csnp", "input", "substitutions"], "msg": "List should have at least 1 item after validation, not 0", "type": "too_short" },
-    { "loc": ["body", "csnp", "input", "species"], "msg": "Value error, The species must be a PANTHER species code of 1 to 5 upper-case letters or digits, such as HUMAN.", "type": "value_error" }
+    { "loc": ["body", "csnp", "input", "species"], "msg": "The species must be a PANTHER species code of 1 to 5 upper-case letters or digits, such as HUMAN.", "type": "value_error" }
   ]
 }
 ```

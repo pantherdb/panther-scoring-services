@@ -3,7 +3,14 @@ import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 
 import type { WireJob } from '@/app/api/wire'
-import { jobError, jobNotFound, toolsJob, toolsResult } from '@/mocks/data/jobs'
+import {
+  csnpJob,
+  csnpResult,
+  jobError,
+  jobNotFound,
+  toolsJob,
+  toolsResult,
+} from '@/mocks/data/jobs'
 import { versions } from '@/mocks/data/versions'
 import { createJob } from '@/mocks/jobs'
 
@@ -184,6 +191,26 @@ describe('the job page', () => {
     expect(screen.getByRole('main').textContent).not.toMatch(/500|internal server error/i)
   })
 
+  it.each([
+    ['the network fails', () => HttpResponse.error()],
+    [
+      'the dev proxy has no API behind it',
+      () => new HttpResponse(null, { status: 500, headers: { 'Content-Type': 'text/plain' } }),
+    ],
+  ])(
+    "says the scoring service can't be reached when %s, and offers to try again",
+    async (_, answer) => {
+      serveJob(answer)
+      renderRoute(`/jobs/${ID}`)
+
+      const alert = await main().findByRole('alert')
+      expect(alert).toHaveTextContent(/can.t be reached/i)
+      expect(alert).not.toHaveTextContent(/couldn.t be loaded/i)
+      expect(main().getByRole('button', { name: /try again/i })).toBeEnabled()
+      expect(screen.getByRole('main').textContent).not.toMatch(BUILD_DETAILS)
+    }
+  )
+
   it('shows the job after trying again, once the API answers', async () => {
     serveProblem(500)
     const { user } = renderRoute(`/jobs/${ID}`)
@@ -194,5 +221,98 @@ describe('the job page', () => {
 
     expect(await shownStatus()).toMatch(/succeeded/i)
     expect(main().queryByRole('alert')).not.toBeInTheDocument()
+  })
+})
+
+// The score table's body rows, each as its cells' text.
+function scoreRows() {
+  const table = main().getByRole('table', { name: /scores/i })
+  return within(table)
+    .getAllByRole('row')
+    .slice(1)
+    .map(row =>
+      within(row)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent)
+    )
+}
+
+describe('a csnp job on the job page', () => {
+  it("shows a succeeded job's family, each score as given, in order, and its versions", async () => {
+    serveJob(csnpJob(ID, 'succeeded'))
+    renderRoute(`/jobs/${ID}`)
+
+    expect(await shownStatus()).toMatch(/succeeded/i)
+    expect(
+      main().getByRole('heading', { level: 2, name: /coding snp impact scoring/i })
+    ).toBeInTheDocument()
+    expect(main().getByText(csnpResult.family ?? '')).toBeInTheDocument()
+    expect(scoreRows()).toEqual(
+      csnpResult.scores.map(score => [
+        score.substitution,
+        score.age === null ? '' : String(score.age),
+        score.message,
+        score.pdel ?? '',
+      ])
+    )
+    expect(jobVersions()).toEqual([
+      ['API', versions.api],
+      ['Engine', versions.engine],
+      ...versions.tools.map(tool => [tool.name, tool.version]),
+    ])
+  })
+
+  it('shows a substitution that was not scored with its message, and empty age and pDel', async () => {
+    serveJob({
+      ...csnpJob(ID, 'succeeded'),
+      result: {
+        family: 'PTHR00000',
+        scores: [
+          { substitution: 'G129R', age: 91, message: 'a message', pdel: '0.19' },
+          {
+            substitution: 'XYZ',
+            age: null,
+            message: 'Not scored: Invalid substitution',
+            pdel: null,
+          },
+          { substitution: 'R5C', age: 0, message: 'another message', pdel: '0.50' },
+        ],
+      },
+    })
+    renderRoute(`/jobs/${ID}`)
+
+    expect(await shownStatus()).toMatch(/succeeded/i)
+    expect(scoreRows()).toEqual([
+      ['G129R', '91', 'a message', '0.19'],
+      ['XYZ', '', 'Not scored: Invalid substitution', ''],
+      ['R5C', '0', 'another message', '0.50'],
+    ])
+  })
+
+  it('says there is no PANTHER family when the family is null, and still shows the scores', async () => {
+    serveJob({ ...csnpJob(ID, 'succeeded'), result: { ...csnpResult, family: null } })
+    renderRoute(`/jobs/${ID}`)
+
+    expect(await shownStatus()).toMatch(/succeeded/i)
+    expect(main().getByText(/no panther family/i)).toBeInTheDocument()
+    expect(main().queryByText(/PTHR/)).not.toBeInTheDocument()
+    expect(scoreRows()).toHaveLength(csnpResult.scores.length)
+  })
+
+  it('shows the family it was placed in, not "no family", when there is one', async () => {
+    serveJob(csnpJob(ID, 'succeeded'))
+    renderRoute(`/jobs/${ID}`)
+
+    expect(await shownStatus()).toMatch(/succeeded/i)
+    expect(main().getByText(/panther family/i)).toHaveTextContent('PTHR00000')
+    expect(main().queryByText(/no panther family/i)).not.toBeInTheDocument()
+  })
+
+  it('shows no score table while the job is running', async () => {
+    serveJob(csnpJob(ID, 'running'))
+    renderRoute(`/jobs/${ID}`)
+
+    expect(await shownStatus()).toMatch(/running/i)
+    expect(main().queryByRole('table')).not.toBeInTheDocument()
   })
 })

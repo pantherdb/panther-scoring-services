@@ -1,29 +1,37 @@
 import type { components } from '@/app/api/schema'
-import { toolsJob } from '@/mocks/data/jobs'
+import { csnpJob, toolsJob } from '@/mocks/data/jobs'
 
-type ToolsJob = components['schemas']['ToolsJob']
+type WireJob = components['schemas']['ToolsJob'] | components['schemas']['CsnpJob']
+type Service = WireJob['service']
+type JobStatus = components['schemas']['JobStatus']
 
-// The mocked API's jobs, by id, with how many times each has been polled. A job
-// moves forward one status per poll: queued, then running, then succeeded.
-const polls = new Map<string, number>()
+const JOB_BODIES: Record<Service, (id: string, status: JobStatus) => WireJob> = {
+  tools: toolsJob,
+  csnp: csnpJob,
+}
+
+// The mocked API's jobs, by id, with their service and how many times each has been
+// polled. A job moves forward one status per poll: queued, then running, then succeeded.
+const jobs = new Map<string, { service: Service; polls: number }>()
 
 const STATUS_BY_POLL = ['queued', 'running', 'succeeded'] as const
 
-export function createJob(): ToolsJob {
+export function createJob(service: Service = 'tools'): WireJob {
   const id = crypto.randomUUID()
-  polls.set(id, 0)
-  return toolsJob(id, 'queued')
+  jobs.set(id, { service, polls: 0 })
+  return JOB_BODIES[service](id, 'queued')
 }
 
 /** The job's next state, or undefined for an id no mocked job has. */
-export function pollJob(id: string): ToolsJob | undefined {
-  const count = polls.get(id)
-  if (count === undefined) return undefined
-  polls.set(id, count + 1)
-  return toolsJob(id, STATUS_BY_POLL[Math.min(count, STATUS_BY_POLL.length - 1)])
+export function pollJob(id: string): WireJob | undefined {
+  const job = jobs.get(id)
+  if (job === undefined) return undefined
+  const { service, polls } = job
+  jobs.set(id, { service, polls: polls + 1 })
+  return JOB_BODIES[service](id, STATUS_BY_POLL[Math.min(polls, STATUS_BY_POLL.length - 1)])
 }
 
 /** Forgets every mocked job. Vitest calls it after each test. */
 export function resetJobs() {
-  polls.clear()
+  jobs.clear()
 }

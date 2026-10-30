@@ -84,6 +84,26 @@ describe('checking the scoring tools from the home page', () => {
     await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/jobs\//))
   })
 
+  it.each([
+    ['the network fails', () => HttpResponse.error()],
+    [
+      'the dev proxy has no API behind it',
+      () => new HttpResponse(null, { status: 500, headers: { 'Content-Type': 'text/plain' } }),
+    ],
+  ])("says the scoring service can't be reached when %s", async (_, answer) => {
+    server.use(http.post('/api/v1/jobs', answer))
+    const { user, router } = renderRoute('/')
+
+    await user.click(checkButton())
+
+    const alert = await within(screen.getByRole('main')).findByRole('alert')
+    expect(alert).toHaveTextContent(/can.t be reached/i)
+    expect(alert).not.toHaveTextContent(/couldn.t be started/i)
+    expect(screen.getByRole('main').textContent).not.toMatch(BUILD_DETAILS)
+    expect(router.state.location.pathname).toBe('/')
+    expect(checkButton()).toBeEnabled()
+  })
+
   it('keeps the home page content above it', () => {
     renderRoute('/')
 

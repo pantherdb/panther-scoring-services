@@ -63,7 +63,7 @@ The UI MUST NOT show build or environment details, such as ports, environment va
 
 ### Requirement: Versions on every page
 
-Every page SHALL show the API version, the engine version and each external tool with its version, as `GET /api/v1/versions` reports them and in the order reported, so a result can be traced to what produced it. A tool with a `null` version MUST be shown as not available, not left out. If the versions can't be loaded, the page MUST say so instead of showing an empty list, and the rest of the page MUST still work.
+Every page SHALL show the API version, the engine version, each external tool with its version, and each service's data with the PANTHER release the API names for it, as `GET /api/v1/versions` reports them and in the order reported, so a result can be traced to what produced it. A tool with a `null` version MUST be shown as not available, not left out. If the versions can't be loaded, the page MUST say so instead of showing an empty list, and the rest of the page MUST still work.
 
 #### Scenario: All versions reported
 
@@ -89,6 +89,11 @@ Every page SHALL show the API version, the engine version and each external tool
 
 - **WHEN** the page shows the versions
 - **THEN** the versions text contains no port numbers, environment variable names, shell commands or file paths
+
+#### Scenario: Each service's data
+
+- **WHEN** the user opens `/` and the API reports the data `[{"service": "csnp", "panther": "10"}]`
+- **THEN** the page shows cSNP's data as PANTHER 10, after the tools, and no other PANTHER release for it
 
 ### Requirement: Job page at its own URL
 
@@ -190,17 +195,42 @@ The home page SHALL offer an action, secondary to the page's main content, that 
 
 ### Requirement: cSNP form
 
-The UI SHALL offer a cSNP scoring form at `/csnp`, linked from the home page. It MUST have a sequence box that takes plain residues or FASTA with one header, a substitutions box, and a species box that starts as `HUMAN`. An action MUST fill all three with the legacy website's example input.
+The UI SHALL offer a cSNP scoring form at `/csnp`, linked from the home page. It MUST have a sequence box that takes plain residues or FASTA with one header, a substitutions box, and a species selector that starts as `HUMAN`. The selector MUST offer the species the API lists for cSNP, each shown by its name and its code, such as "Homo sapiens (HUMAN)", and none it doesn't list. Typing part of a name or of a code MUST narrow the options to the species that match, in any letter case. The selector MUST have a label, and MUST be usable with the keyboard alone. Whatever the selector shows, the request MUST send the species' code. An action MUST fill all three with the legacy website's example input.
 
 #### Scenario: Open the form from the home page
 
 - **WHEN** the user opens `/` and follows the link to cSNP scoring
-- **THEN** the UI shows `/csnp`, with an empty sequence box, an empty substitutions box and the species `HUMAN`
+- **THEN** the UI shows `/csnp`, with an empty sequence box, an empty substitutions box and the species "Homo sapiens (HUMAN)"
 
 #### Scenario: Use the example
 
-- **WHEN** the user chooses to use an example on `/csnp`
-- **THEN** the sequence box holds the legacy example's APOE sequence, the substitutions box holds `L46P`, `C130R`, `R163C` and `R176C`, and the species is `HUMAN`
+- **WHEN** the user has chosen another species and chooses to use an example on `/csnp`
+- **THEN** the sequence box holds the legacy example's APOE sequence, the substitutions box holds `L46P`, `C130R`, `R163C` and `R176C`, and the species is "Homo sapiens (HUMAN)"
+
+#### Scenario: The species the API lists
+
+- **WHEN** the user opens the species selector
+- **THEN** it offers each species the API lists, by name and code, and no other
+
+#### Scenario: Search by name
+
+- **WHEN** the user types `muscul` in the species selector and chooses the one option left
+- **THEN** the species is "Mus musculus (MOUSE)"
+
+#### Scenario: Search by code
+
+- **WHEN** the user types `plaf7` in the species selector
+- **THEN** the selector offers "Plasmodium falciparum (PLAF7)", and no species whose name or code doesn't contain `plaf7`
+
+#### Scenario: With the keyboard
+
+- **WHEN** the user moves to the species selector with Tab, types part of a name, picks an option with the arrow keys and confirms with Enter
+- **THEN** the species is the one picked
+
+#### Scenario: The code is sent
+
+- **WHEN** the user chooses "Mus musculus (MOUSE)" and submits a valid input
+- **THEN** the request's `species` is `MOUSE`
 
 ### Requirement: cSNP substitutions split on whitespace and commas
 
@@ -223,12 +253,12 @@ The UI SHALL split the substitutions box into the request's list of tokens at ev
 
 ### Requirement: cSNP form checks the input before sending
 
-Before sending, the cSNP form SHALL check the input against `scoring-input`'s cSNP rules: the sequence, the substitutions as split, each in `<residue><position><residue>` form once upper-cased, and the species. Each broken rule MUST be shown on its field, and no request MUST be sent while any is broken. The form MUST NOT reject an input that the rules accept.
+Before sending, the cSNP form SHALL check the input against `scoring-input`'s cSNP rules: the sequence, the substitutions as split, each in `<residue><position><residue>` form once upper-cased, and the species. Once the species list has loaded, the species MUST be one of its codes; before then, or when the list couldn't be loaded, the form checks the species' shape only, and the API checks the rest. Each broken rule MUST be shown on its field, and no request MUST be sent while any is broken. The form MUST NOT reject an input that the rules accept.
 
 #### Scenario: Empty form
 
-- **WHEN** the user clears the species and submits the form with every box empty
-- **THEN** the sequence, substitutions and species fields each show an error, and no request is sent
+- **WHEN** the user submits the form with the sequence and substitutions boxes empty
+- **THEN** the sequence and substitutions fields each show an error, and no request is sent
 
 #### Scenario: Two sequences
 
@@ -247,12 +277,17 @@ Before sending, the cSNP form SHALL check the input against `scoring-input`'s cS
 
 #### Scenario: Not a species code
 
-- **WHEN** the user submits the species `human` or `HOMOSAPIENS`
+- **WHEN** the species list couldn't be loaded, and the user submits the species `human`, `HOMOSAPIENS` or an empty species
 - **THEN** the species field shows an error, and no request is sent
+
+#### Scenario: A species not in the list
+
+- **WHEN** the species list couldn't be loaded, the user types the species `ZZZZZ`, the list then loads, and the user submits
+- **THEN** the species field shows an error asking for a species from the list, and no request is sent
 
 #### Scenario: A valid input is sent
 
-- **WHEN** the user submits a FASTA sequence of 50,000 residues, the substitutions `L46P c130r G99999R`, and the species `PLAF7`
+- **WHEN** the user submits a FASTA sequence of 50,000 residues, the substitutions `L46P c130r G99999R`, and the species "Plasmodium falciparum (PLAF7)"
 - **THEN** no field shows an error, and the request is sent with that sequence, `["L46P", "c130r", "G99999R"]` and `PLAF7`
 
 ### Requirement: Server field errors shown on their fields
@@ -279,19 +314,19 @@ When the API answers a cSNP request with a 422 validation problem, the form SHAL
 - **WHEN** a field shows an error from the API and the user edits that field
 - **THEN** the field no longer shows the error
 
-### Requirement: cSNP scoring not yet available
+### Requirement: cSNP job not started
 
-When the API answers a cSNP request with 501, the form SHALL say that cSNP scoring isn't available yet, in fixed text, keep the user's input, and stay at `/csnp`. When it answers with any other error, the form MUST say the job couldn't be started, in fixed text with no status code or build details, and stay usable.
-
-#### Scenario: The API answers 501
-
-- **WHEN** the user submits a valid input and the API answers 501
-- **THEN** the form says cSNP scoring isn't available yet, the sequence, substitutions and species are unchanged, and the UI stays at `/csnp`
+When the API answers a cSNP request with an error other than a 422 validation problem with field errors, the form SHALL say the job couldn't be started, in fixed text with no status code or build details, keep the user's input, stay at `/csnp`, and stay usable. No status, including 501, MUST get a message of its own.
 
 #### Scenario: The API answers 500
 
 - **WHEN** the user submits a valid input and the API answers 500
 - **THEN** the form says the job couldn't be started, shows no status code or build details, stays at `/csnp`, and can be submitted again
+
+#### Scenario: The API answers 501
+
+- **WHEN** the user submits a valid input and the API answers 501
+- **THEN** the form says the job couldn't be started, as for any other error, the sequence, substitutions and species are unchanged, and the UI stays at `/csnp`
 
 ### Requirement: An unreachable scoring service is named as such
 
@@ -333,12 +368,12 @@ When the API accepts a cSNP request with 202, the UI SHALL open `/jobs/{id}` for
 
 ### Requirement: cSNP results on the job page
 
-When a `csnp` job has succeeded, the job page SHALL show its PANTHER family, or say there is no PANTHER family when `family` is `null`, and a table with one row per score, in the order given: the substitution, the age in millions of years, the message, and the pDel, each exactly as the API gives it. A `null` age or pDel MUST be shown as empty, not as zero. The job's versions MUST be shown with it.
+When a `csnp` job has succeeded, the job page SHALL show its PANTHER family, or say there is no PANTHER family when `family` is `null`, and a table with one row per score, in the order given: the substitution, the age in millions of years, the message, and the pDel, each exactly as the API gives it. A `null` age or pDel MUST be shown as empty, not as zero. The job's versions MUST be shown with it, including the PANTHER release of its data, as the job reports it.
 
 #### Scenario: A scored job
 
 - **WHEN** the user opens the page of a succeeded `csnp` job whose family is `PTHR00000`
-- **THEN** the page shows `PTHR00000`, each score's substitution, age, message and pDel in the order given, and the job's API, engine and tool versions
+- **THEN** the page shows `PTHR00000`, each score's substitution, age, message and pDel in the order given, and the job's API, engine, tool and data versions
 
 #### Scenario: A substitution that wasn't scored
 
@@ -349,6 +384,16 @@ When a `csnp` job has succeeded, the job page SHALL show its PANTHER family, or 
 
 - **WHEN** the user opens the page of a succeeded `csnp` job whose family is `null`
 - **THEN** the page says there is no PANTHER family, and still shows the scores
+
+#### Scenario: The job's own data version
+
+- **WHEN** the user opens the page of a succeeded `csnp` job whose versions report cSNP's data as PANTHER 8, while the API now reports PANTHER 9
+- **THEN** the job's versions show PANTHER 8, not PANTHER 9
+
+#### Scenario: Real scores
+
+- **WHEN** the user submits the release sample's protein P26439 with the substitutions `A10E G15D S213G` to the API with the cSNP data sample
+- **THEN** the job page shows `PTHR10366` and the rows `A10E` 220 "possibly damaging" 0.50, `G15D` 4200 "probably damaging" 0.95 and `S213G` 91 "probably benign" 0.19
 
 ### Requirement: Mock data is marked on every page
 
@@ -392,3 +437,27 @@ When the UI calls the scoring service, it MUST NOT show the mock data banner on 
 
 - **WHEN** the production build is made
 - **THEN** none of its files contains the banner's text or the API mocking library
+
+### Requirement: cSNP species list unavailable
+
+While the species list loads, the cSNP form SHALL say so in the species field. If the list can't be loaded, the form MUST stay usable: it MUST offer a box for a species code instead, keeping the species chosen so far, say in fixed text that the list couldn't be loaded, with no status code or build details, and offer to load the list again. When the list then loads, the form MUST offer the selector, keeping the species if it is in the list.
+
+#### Scenario: Loading
+
+- **WHEN** the user opens `/csnp` and the species list hasn't loaded yet
+- **THEN** the species field says the species are loading, and the sequence and substitutions boxes can be filled
+
+#### Scenario: The list fails to load
+
+- **WHEN** the user opens `/csnp` and the API answers the species list with an error
+- **THEN** the species field is a box holding `HUMAN`, the form says the species list couldn't be loaded, shows no status code or build details, and offers to try again
+
+#### Scenario: Submitting without the list
+
+- **WHEN** the species list couldn't be loaded, and the user types the species `MOUSE` and submits a valid input
+- **THEN** the request is sent with the species `MOUSE`
+
+#### Scenario: Trying again
+
+- **WHEN** the species list couldn't be loaded, the user typed `MOUSE`, and chooses to try again, and the list now loads
+- **THEN** the species field is the selector, showing "Mus musculus (MOUSE)"

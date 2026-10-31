@@ -28,6 +28,21 @@
 - [x] 6.1 In `api/`: `uv sync --locked && uv run ruff check && uv run ruff format --check && uv run basedpyright && uv run pytest`. In `frontend/`: `npm run api:types:check`, `format:check`, `lint`, `type-check`, `npm test -- --run` and `npm run test:e2e`. From the root: `npx markdownlint-cli2`, `npx openspec validate --all --no-interactive` and `docker build --target api .`. All pass; record the results in Notes.
 - [x] 6.2 Against the image, on port 8002 (never 8000): `docker build --target api -t panther-api:refmap .`, then `MSYS_NO_PATHCONV=1 docker run -d --rm --name panther-api-refmap -p 8002:8000 panther-api:refmap`. With the commands in `docs/testing/api.md` against port 8002, a valid `refmap` request gets the `501`, the invalid one gets the `422` without its values, and a `tools` job still reaches `succeeded`. Then `docker stop panther-api-refmap`. Record the result in Notes.
 
+## 7. The Engine Developer's Review on #30
+
+- [x] 7.1 Cap a `422`'s errors in `problems._validation_error`: the first 100, each with its `loc`, and the total in `detail` when there are more. Measure 100,000 empty IDs before and after (design.md, decision 7). Add the MODIFIED `api-service` requirement, and tests in `test_problems.py` and `test_jobs.py`. Check that `frontend/` reads only `errors`.
+- [x] 7.2 Add proposed rows 9 (`REFMAP-9`) and 10 (`REFMAP-10` and the new ID rules) to `docs/parity/divergences.md`, with no approver, and a footer line for `REFMAP-` IDs. Point the legacy doc's `REFMAP-9` and `REFMAP-10` at them.
+- [x] 7.3 In `docs/testing/api.md`, say the refmap contract and input rules are proposed in this change, not settled.
+- [x] 7.4 Check the legacy doc against RefProteomeMapper's `master` (`649c85f`), read-only: cite `master` for the CGI's lines, fix where the CGI reads its data (and design.md, decision 3), and say which version production ran needs team verification. Say only the CGI warns on an empty line.
+- [x] 7.5 Put `pattern` and `maxLength` on `organism`, and `pattern` on each of `ids`, in the schema only (`json_schema_extra`). Regenerate `api/openapi.json` and the frontend's types, and test that the patterns agree with the validators.
+- [x] 7.6 Note beside the `501` in `routers/jobs.py` that the organism check against `ORGANISM_CODES` lands with its removal.
+- [x] 7.7 design.md: why `id` stays in each mapping, the remaining reasons against `extra`, and the result's size in memory as a known issue for the wiring change. proposal.md: whether `RefmapResult` carries `organism`, as an open question.
+- [x] 7.8 Run every check in 6.1, without `test:e2e` and `docker build`, which this review's changes don't reach. Record the results in Notes.
+
+## 8. When Archiving
+
+- [ ] 8.1 In `docs/testing/api.md`, "The refmap Job": replace "proposed in `openspec/changes/add-refmap-job/`" with where the contract and input rules then live (`openspec/specs/scoring-jobs/` and `openspec/specs/scoring-input/`), and drop any rule the review changed.
+
 ## Workflow follow-up
 
 - Open a pull request with these artifacts and the implementation. Reviewers:
@@ -36,14 +51,14 @@
   - **the engine developer reviews the proposed interface** (design.md, decision 3), the input rules against `docs/parity/refmap-legacy-behaviour.md`, and answers the proposal's Open Questions, the organism key first;
   - the engine and API developers decide jobs or synchronous (design.md, decision 1), and the decision is recorded in `docs/design/tech-stack.md`'s `refmap` open questions.
 - **The engine developer's port** (a change of its own) adds `panther_engine.refmap.map_ids`, its dataclasses and `ORGANISM_CODES`, the data under `PANTHER_DATA_DIR`, a reference image and the goldens.
-- **The wiring change removes the `501`:** it deletes the branch in `routers/jobs.py`, its schema entry and tests; replaces `run_job`'s `refmap` case with an adapter to `map_ids`; checks `organism` against `ORGANISM_CODES`; adds `refmap`'s data version to `Versions.data`; and REMOVES "refmap not available yet" from `scoring-jobs`. An organism list endpoint, for a selector, follows the engine's list, as cSNP's species endpoint does.
+- **The wiring change removes the `501`:** it deletes the branch in `routers/jobs.py`, its schema entry and tests; replaces `run_job`'s `refmap` case with an adapter to `map_ids`; checks `organism` against `ORGANISM_CODES` in the same change, never after the `501` goes (the comment beside the `501` says so); stores a large result compactly, and/or caps or shortens how long it's kept (design.md, Risks); adds `refmap`'s data version to `Versions.data`; and REMOVES "refmap not available yet" from `scoring-jobs`. An organism list endpoint, for a selector, follows the engine's list, as cSNP's species endpoint does.
 - After this merges, archive with `/opsx:archive`.
 
 ## Notes
 
 ### Next action
 
-Every task is done (2026-10-30) and committed locally on the agent's branch, from `origin/feat/refmap-job` at `32f7299`. Next: the coordinator reviews the commit and opens the pull request (Workflow follow-up); the engine developer answers the proposal's Open Questions.
+The pull request is #30, under review, with `main` merged in (2026-10-30). The engine developer's review asked for changes; section 7 makes them. Next: the review's fixes are reviewed and pushed, then the engine developer answers the proposal's Open Questions, the organism key first, and approves or rejects divergence rows 9 and 10. Task 8.1 waits for the archive.
 
 ### Blockers
 

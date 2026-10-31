@@ -46,10 +46,18 @@ def _check_id(value: str) -> str:
     return value
 
 
+# The schema carries each rule as a `pattern`, so clients learn it from the contract. Only the
+# schema: the validators enforce it, with messages a pattern mismatch wouldn't give.
 ProteinId = Annotated[
     str,
     StringConstraints(min_length=1, max_length=LONGEST_ID),
     AfterValidator(_check_id),
+    Field(json_schema_extra={"pattern": "^[!-~]+$"}),
+]
+Organism = Annotated[
+    str,
+    AfterValidator(_check_organism),
+    Field(json_schema_extra={"pattern": "^[A-Z0-9]{1,5}$", "maxLength": 5}),
 ]
 
 
@@ -63,7 +71,7 @@ class RefmapInput(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    organism: Annotated[str, AfterValidator(_check_organism)]
+    organism: Organism
     ids: Annotated[list[ProteinId], Field(min_length=1, max_length=MOST_IDS)]
 
 

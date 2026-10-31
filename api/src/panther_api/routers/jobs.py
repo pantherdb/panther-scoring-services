@@ -28,7 +28,9 @@ _CREATE_RESPONSES: dict[int | str, dict[str, Any]] = {
             }
         },
     },
-    # Removed when the engine's refmap mapping is wired in.
+    # Removed when the engine's refmap mapping is wired in. The check of `organism` against the
+    # engine's organism list (ORGANISM_CODES) lands in the same change: until then only its
+    # shape is checked, and this 501 keeps any other code from reaching the engine.
     status.HTTP_501_NOT_IMPLEMENTED: {
         "model": Problem,
         "description": "The service can't run jobs yet: `refmap`, until its mapping is ported. "

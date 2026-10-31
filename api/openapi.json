@@ -632,13 +632,16 @@
         "properties": {
           "organism": {
             "type": "string",
+            "maxLength": 5,
+            "pattern": "^[A-Z0-9]{1,5}$",
             "title": "Organism"
           },
           "ids": {
             "items": {
               "type": "string",
               "maxLength": 64,
-              "minLength": 1
+              "minLength": 1,
+              "pattern": "^[!-~]+$"
             },
             "type": "array",
             "maxItems": 100000,

@@ -1,25 +1,25 @@
 # `refmap`: The Legacy Service
 
-What the legacy reference-proteome mapping does, as its code runs it, for the `refmap` port. cSNP has its behaviour spec in `panther-workspace`; `refmap` had none, so this is it. Written for `add-refmap-job` on 2026-10-30, from reading the code: nothing here was run, because the classification files aren't in `panther-workspace`.
+What the legacy reference-proteome mapping does, as its code runs it, for the `refmap` port. cSNP has its behaviour spec in `panther-workspace`; `refmap` had none, so this is it. Written for `add-refmap-job` on 2026-10-30, from reading the code, and checked against RefProteomeMapper's `master` the same day: nothing here was run, because the classification files aren't in `panther-workspace`. The deliberate differences are proposed rows 9 and 10 in [divergences.md](divergences.md).
 
 Paths are relative to `panther-workspace/legacy/`, with line numbers. Where the code doesn't settle something, it says **needs team verification**.
 
 ## The Service
 
-`RefProteomeMapper/` has two scripts, at commit `4fc6a09` of 2019-07-26, its latest (public, `pantherdb/RefProteomeMapper`):
+`RefProteomeMapper/` (public, `pantherdb/RefProteomeMapper`) has two scripts. Its `master` is at `649c85f`, the merge on 2026-10-27 of four commits from 2020 (`1f965ae` to `64c6c47`) and a doc commit. Of the two scripts, they change only the CGI: it now loads `config.yaml` and opens `<panther_classification_directory>/panther_classification/<organism>` (The Data). `map_panther.pl` is unchanged since `4fc6a09` of 2019-07-26, so it stays the parity reference at that commit. The CGI's line numbers below are `master`'s; at `4fc6a09` they are 3 to 4 lower. Which of the two versions production ran needs team verification. `panther-workspace`'s copy is still at `4fc6a09`; its `origin/dustine32-config-yaml` (`907fb0d`) has the same tree as `master`.
 
 | Script | Role |
 | ------ | ---- |
-| `genericMapping.cgi` | What the website called. Reads `organism` and `fileContents` from a GET or POST form, loads `panther_classification/<organism>`, and prints one line per input line |
+| `genericMapping.cgi` | What the website called. Reads `organism` and `fileContents` from a GET or POST form, loads the organism's classification file, and prints one line per input line |
 | `map_panther.pl` | The CLI, with the same lookup: `-i` the classification file, `-g` the gene list. The parity reference (tech-stack.md, Runtime Tools and Milestones) |
 
 The lookup, in both:
 
-1. Read the classification file into a hash: each line's first tab field maps to its second (`map_panther.pl` 27 to 33, `genericMapping.cgi` 40 to 49).
-2. For each input line, remove every `\r`, split on tab, and look up the first field (`map_panther.pl` 39 to 44, `genericMapping.cgi` 54 to 61).
-3. Print `<id>\t<PANTHER ID>\t<rest of the line>`, or `<id>\tNOHIT\t<rest>` with no match (`map_panther.pl` 47 and 50, `genericMapping.cgi` 65 and 68). The rest is the line's other fields joined by tabs, so a line with only an ID ends in a tab.
+1. Read the classification file into a hash: each line's first tab field maps to its second (`map_panther.pl` 27 to 33, `genericMapping.cgi` 43 to 53).
+2. For each input line, remove every `\r`, split on tab, and look up the first field (`map_panther.pl` 39 to 44, `genericMapping.cgi` 58 to 65).
+3. Print `<id>\t<PANTHER ID>\t<rest of the line>`, or `<id>\tNOHIT\t<rest>` with no match (`map_panther.pl` 47 and 50, `genericMapping.cgi` 69 and 72). The rest is the line's other fields joined by tabs, so a line with only an ID ends in a tab.
 
-The CGI says `Content-Type: text/html` for this tab-separated text (`genericMapping.cgi` 23). The CLI prints its counts of mapped and unmapped IDs to standard error (`map_panther.pl` 55 to 56); the CGI counts them and never prints them.
+The CGI says `Content-Type: text/html` for this tab-separated text (`genericMapping.cgi` 26). The CLI prints its counts of mapped and unmapped IDs to standard error (`map_panther.pl` 55 to 56); the CGI counts them and never prints them.
 
 ## What the Website Called
 
@@ -53,7 +53,7 @@ The site parsed the CGI's output as a "PANTHER Generic Mapping File" (`UploadedF
 
 ## The Data
 
-- **Where:** `panther_classification/<long name>`, relative to the CGI's working directory (`genericMapping.cgi` 41), served over HTTP too (`map_panther_cls`), and `stats` beside it.
+- **Where:** on `master`, `<panther_classification_directory>/panther_classification/<long name>`. The CGI loads `config.yaml` from its working directory, and reads `panther_classification_directory` from it (`genericMapping.cgi` 20 and 44 to 46). `config.example.yaml` sets it to `panther_classification`, which would make the path `panther_classification/panther_classification/<long name>`; production's `config.yaml` isn't in `panther-workspace`. At `4fc6a09`, the CGI read `panther_classification/<long name>` relative to its working directory. `map_panther.pl` takes the file's path as `-i`. The site also fetched the files over HTTP (`map_panther_cls`, `/mapping19/panther_classification/<long name>`), with `stats` beside them, so the folder holding `panther_classification/` was served at `/mapping19/`. Which CGI version and settings production ran needs team verification. `master`'s README says the data can be obtained from `ftp://ftp.pantherdb.org/generic_mapping`.
 - **Format:** tab-separated; the service reads only the first two fields of each line. The first is the ID, the second the PANTHER ID. The site parses whole files the same way (`GeneListAnalysisAction.java` 828 to 829), and rejects any second field that isn't `PTHR…` or `NOHIT`, so the files' PANTHER IDs are families or subfamilies, such as the help's `PTHR10078:SF1` (`tips_toolsUploadFile.jsp` 32).
 - **Release:** PANTHER 19, from the `mapping19` URLs.
 - **Needs team verification:** where the files come from (no code or doc in `panther_build` names `panther_classification/`; its `refProteomePANTHERmapping_*` files look like the library build's own mapping, not these), how many there are, their size, any columns after the second, their line endings, whether an ID repeats in one file, whether they have a header line, and whether the PANTHER 19 copy still exists.
@@ -64,21 +64,21 @@ Each has a parity call, as cSNP's spec has: **Match** (the port reproduces it), 
 
 | ID | Quirk | Evidence | Parity |
 | -- | ----- | -------- | ------ |
-| `REFMAP-1` | The lookup is exact and case-sensitive, on the whole first field: no trimming, case folding, or stripping of an isoform (`-2`) or version (`.1`). `p04217`, or `P04217` with a trailing space, doesn't match `P04217` | `map_panther.pl` 42 to 44, `genericMapping.cgi` 59 to 61 | Match. Decide whether lower case should map |
-| `REFMAP-2` | An ID that repeats in a classification file maps to its last line's PANTHER ID | `map_panther.pl` 31 to 32, `genericMapping.cgi` 46 to 47 | Match. Whether any file has one: needs team verification |
-| `REFMAP-3` | A classification line loses its `\n` but not a `\r`. If a file has CRLF endings and two fields, every PANTHER ID ends in `\r` | `map_panther.pl` 30, `genericMapping.cgi` 44 | Match, if any file has CRLF. Needs team verification |
-| `REFMAP-4` | One output line per input line, in order, a repeated ID on each | `map_panther.pl` 39 to 51, `genericMapping.cgi` 55 to 69 | Match |
-| `REFMAP-5` | The fields after the ID are printed after the PANTHER ID | `map_panther.pl` 42 to 43, `genericMapping.cgi` 59 to 60 | N/A: the API takes IDs only, and a client re-attaches its own columns by position |
-| `REFMAP-6` | An ID with no match is printed with `NOHIT` | `map_panther.pl` 50, `genericMapping.cgi` 68 | Match, as `null` in the API and `None` in the engine |
-| `REFMAP-7` | The CGI decodes `%XX` in `fileContents` but not `+`, and doesn't decode `organism` at all. The site posts a URL-encoded form (`Utils.java` 545 to 586, commons-httpclient's `PostMethod.setRequestBody`), which writes a space as `+`, so a space in the site's input reached the CGI as `+`: a line of space-separated IDs was one ID, `NOHIT` | `genericMapping.cgi` 14 to 21. The encoding is commons-httpclient 3's form encoding, not run here | N/A: no compatibility endpoint. The API rejects an ID with whitespace, so no answer changes |
-| `REFMAP-8` | `organism` goes unchecked into a two-argument `open`: `../` reads any file the web server can, and a value ending in `\|` runs a command. Whether the CGI was reachable from outside the site's server needs team verification: the site's settings use `localhost`, with a public host commented out (`extra.properties.example` 18 to 23) | `genericMapping.cgi` 19, 41 to 42 | Never replicated. The API takes a 1-to-5-character code and the engine maps it to its file |
-| `REFMAP-9` | An unknown organism, or a missing or unreadable file, maps every ID to `NOHIT`, with no error: `open`'s failure isn't checked | `genericMapping.cgi` 42; `map_panther.pl` 28 | Not replicated, with no row: an unknown organism is a `422`, and missing data fails the job. Neither changes a correctly deployed service's answer |
-| `REFMAP-10` | An empty input line gives a line with an empty ID and `NOHIT` (and a Perl warning). The CGI drops trailing empty lines (`split`); the CLI doesn't | `genericMapping.cgi` 54 to 68, `map_panther.pl` 39 to 51 | N/A: the API rejects an empty ID |
+| `REFMAP-1` | The lookup is exact and case-sensitive, on the whole first field: no trimming, case folding, or stripping of an isoform (`-2`) or version (`.1`). `p04217`, or `P04217` with a trailing space, doesn't match `P04217` | `map_panther.pl` 42 to 44, `genericMapping.cgi` 63 to 65 | Match. Decide whether lower case should map |
+| `REFMAP-2` | An ID that repeats in a classification file maps to its last line's PANTHER ID | `map_panther.pl` 31 to 32, `genericMapping.cgi` 50 to 51 | Match. Whether any file has one: needs team verification |
+| `REFMAP-3` | A classification line loses its `\n` but not a `\r`. If a file has CRLF endings and two fields, every PANTHER ID ends in `\r` | `map_panther.pl` 30, `genericMapping.cgi` 48 | Match, if any file has CRLF. Needs team verification |
+| `REFMAP-4` | One output line per input line, in order, a repeated ID on each | `map_panther.pl` 39 to 51, `genericMapping.cgi` 59 to 73 | Match |
+| `REFMAP-5` | The fields after the ID are printed after the PANTHER ID | `map_panther.pl` 42 to 43, `genericMapping.cgi` 63 to 64 | N/A: the API takes IDs only, and a client re-attaches its own columns by position |
+| `REFMAP-6` | An ID with no match is printed with `NOHIT` | `map_panther.pl` 50, `genericMapping.cgi` 72 | Match, as `null` in the API and `None` in the engine |
+| `REFMAP-7` | The CGI decodes `%XX` in `fileContents` but not `+`, and doesn't decode `organism` at all. The site posts a URL-encoded form (`Utils.java` 545 to 586, commons-httpclient's `PostMethod.setRequestBody`), which writes a space as `+`, so a space in the site's input reached the CGI as `+`: a line of space-separated IDs was one ID, `NOHIT` | `genericMapping.cgi` 15 to 24. The encoding is commons-httpclient 3's form encoding, not run here | N/A: no compatibility endpoint. The API rejects an ID with whitespace, so no answer changes |
+| `REFMAP-8` | `organism` goes unchecked into a two-argument `open`: `../` reads any file the web server can, and a value ending in `\|` runs a command. Whether the CGI was reachable from outside the site's server needs team verification: the site's settings use `localhost`, with a public host commented out (`extra.properties.example` 18 to 23) | `genericMapping.cgi` 22, 44 to 46 | Never replicated. The API takes a 1-to-5-character code and the engine maps it to its file |
+| `REFMAP-9` | An unknown organism, or a missing or unreadable file, maps every ID to `NOHIT`, with no error: `open`'s failure isn't checked | `genericMapping.cgi` 46; `map_panther.pl` 28 | Not replicated: proposed [divergence 9](divergences.md). An unknown organism is a `422`, and missing data fails the job |
+| `REFMAP-10` | An empty input line gives a line with an empty ID and `NOHIT` (and, from the CGI, a Perl warning). The CGI drops trailing empty lines (`split`); the CLI doesn't | `genericMapping.cgi` 58 to 72, `map_panther.pl` 39 to 51 | Not replicated: proposed [divergence 10](divergences.md), with the API's other ID rules. The API rejects an empty ID with a `422` |
 | `REFMAP-11` | `map_panther.pl` calls an undefined `usage` on `-h` or a bad option, and never uses `-o` | `map_panther.pl` 18 to 20 | N/A |
 
 ## Proposed Golden Inputs
 
-For the engine developer's port; none exist yet. Run through `map_panther.pl` at `4fc6a09`, saved byte for byte in `engine/tests/golden/refmap/`, and described in [inputs.md](inputs.md) when they exist.
+For the engine developer's port; none exist yet. Run through `map_panther.pl` at `4fc6a09` (the same file as on `master`), saved byte for byte in `engine/tests/golden/refmap/`, and described in [inputs.md](inputs.md) when they exist.
 
 | Input | Against | Shows |
 | ----- | ------- | ----- |

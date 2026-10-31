@@ -76,7 +76,7 @@ The step-2 port passes every one, and the release sample and the edge cases, byt
 
 ### Generated Step-3 Cases
 
-Step 3 alone: snpParse rows, one file per family of the [data sample](csnp-library-survey.md#the-sample), each run through `PANTHER_PSEP1.01.pl` in a fresh process. 606 cases in 15 families.
+Step 3 alone: snpParse rows, one file per family of the [data sample](csnp-library-survey.md#the-sample), each run through `PANTHER_PSEP1.01.pl` in a fresh process. 648 cases in 16 families.
 
 Per family:
 
@@ -98,12 +98,12 @@ What `parity check` reports for the committed set: the walks that stopped at a n
 
 | Kind | How the Perl ages it | Stopped at | Visited |
 | ---- | -------------------- | ---------- | ------- |
-| `0>1`, a speciation in a taxon of the species tree | The taxon's age | 212 | 243 |
-| `Ev=1>0, not read`: a duplication | Its oldest child plus one, capped at 4200 | 51 | 85 |
+| `0>1`, a speciation in a taxon of the species tree | The taxon's age | 224 | 258 |
+| `Ev=1>0, not read`: a duplication | Its oldest child plus one, capped at 4200 | 63 | 99 |
 | `Ev=0>0, not read` | As a duplication | 16 | 29 |
 | `Ev=UNK, not read`: the root of `PTHR24073_7_3` and `PTHR24073_10_1` | As a duplication | 7 | 7 |
-| `missing taxon`: a speciation in a taxon the species tree lacks (`DATA-3`) | As a duplication | 18 | 70 |
-| `leaf` | 0 | 0 | 271 |
+| `missing taxon`: a speciation in a taxon the species tree lacks (`DATA-3`) | As a duplication | 24 | 82 |
+| `leaf` | 0 | 0 | 295 |
 
 **No `1>0` or `0>0` node is read as an event.** The data writes duplications and `0>0` nodes without `S=`, and the Perl's pattern needs `Ev=…:S=…:ID=…` in that order, so it reads no event for them and ages them as duplications. Spec §4.4 says so. The "Not read" in the kind is the port's, for this report.
 
@@ -113,7 +113,15 @@ What `parity check` reports for the committed set: the walks that stopped at a n
 
 ### The Step-1 Golden
 
-`blast/` holds the BLAST+ 2.17.0 output for the three sample proteins, named `P0001`, against the sample's database. Each one's best hit for `HUMAN` has the subject id, start positions and aligned sequences of its first row in `release/HUMAN`, the legacy BLAST+'s output. Only the identity's decimals differ: 2.17.0 writes 3 (`93.801`), the legacy 2 (`93.80`), so step 2 recomputes it with 2 ([tech-stack.md](../design/tech-stack.md#pinning-tool-versions)). The output is the same on arm64 and amd64.
+`blast/` holds the BLAST+ 2.17.0 output for the three sample proteins and the form's example (below), each named `P0001`, against the sample's database. Each sample protein's best hit for `HUMAN` has the subject id, start positions and aligned sequences of its first row in `release/HUMAN`, the legacy BLAST+'s output. Only the identity's decimals differ: 2.17.0 writes 3 (`93.801`), the legacy 2 (`93.80`), so step 2 recomputes it with 2 ([tech-stack.md](../design/tech-stack.md#pinning-tool-versions)). The output is the same on arm64 and amd64.
+
+### The Form's Example
+
+The scoring form's example, from the legacy site's help page (`tips_exampleCsnpInput_content.jsp`): human APOE, with `L46P`, `C130R`, `R163C` and `R176C`, for `HUMAN`. It's the first thing most users score, and the generated cases needn't reach its gene or its positions. Its family, `PTHR18976`, joined the data sample for it in `csnp-sample-3`.
+
+- **Step 1:** `blast/APOE.csv`. The best hit for `HUMAN` is `APOE_HUMAN` itself (`P02649`), identical over all 317 residues, so step 2 maps each position to itself.
+- **Steps 2 and 3:** `example/apoe.input` holds the four SNP lines as `score()` gives them to step 2. The reference image's output is `apoe.snpparse` and `apoe.out`: L46P 91 Mya and C130R 6 Mya, probably benign; R163C and R176C 220 Mya, possibly damaging.
+- **The numbering includes the signal peptide,** as the help page says: `C130R` is APOE4's substitution, which the literature calls C112R.
 
 ### What Isn't in the Set
 

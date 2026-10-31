@@ -11,24 +11,26 @@ a result. A worker process imports this module, so keep its imports light and se
 import time.
 """
 
-import re
 from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
+
+from panther_api.jobs.fields import (
+    LONGEST_SPECIES_CODE,
+    PRINTABLE,
+    SPECIES_CODE,
+    schema_pattern,
+)
 
 MOST_IDS = 100_000
 """The website's limit on a mapping's lines (`ListAnalysisConstants.maxNumLinesAllowed`)."""
 
 LONGEST_ID = 64
 
-# A UniProt species mnemonic: the last `_` part of the legacy organism's long name.
-_ORGANISM = re.compile(r"[A-Z0-9]{1,5}")
-# Printable ASCII, without space.
-_PRINTABLE = re.compile(r"[!-~]+")
-
 
 def _check_organism(value: str) -> str:
-    if not _ORGANISM.fullmatch(value):
+    """A UniProt species mnemonic: the last `_` part of the legacy organism's long name."""
+    if not SPECIES_CODE.fullmatch(value):
         raise ValueError(
             "The organism must be a UniProt species code of 1 to 5 upper-case letters or "
             "digits, such as HUMAN."
@@ -38,7 +40,7 @@ def _check_organism(value: str) -> str:
 
 def _check_id(value: str) -> str:
     """Kept as submitted: the legacy lookup is exact and case-sensitive (`REFMAP-1`)."""
-    if not _PRINTABLE.fullmatch(value):
+    if not PRINTABLE.fullmatch(value):
         raise ValueError(
             f"Each ID must be 1 to {LONGEST_ID} printable ASCII characters, with no spaces, "
             "such as P04217."
@@ -52,12 +54,17 @@ ProteinId = Annotated[
     str,
     StringConstraints(min_length=1, max_length=LONGEST_ID),
     AfterValidator(_check_id),
-    Field(json_schema_extra={"pattern": "^[!-~]+$"}),
+    Field(json_schema_extra={"pattern": schema_pattern(PRINTABLE)}),
 ]
 Organism = Annotated[
     str,
     AfterValidator(_check_organism),
-    Field(json_schema_extra={"pattern": "^[A-Z0-9]{1,5}$", "maxLength": 5}),
+    Field(
+        json_schema_extra={
+            "pattern": schema_pattern(SPECIES_CODE),
+            "maxLength": LONGEST_SPECIES_CODE,
+        }
+    ),
 ]
 
 

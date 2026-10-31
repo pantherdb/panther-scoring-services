@@ -148,12 +148,16 @@ As `add-csnp-job` did it:
 api/src/panther_api/jobs/
   refmap.py    RefmapInput (with its validation), IdMapping, RefmapResult. Pydantic only, so a
                worker imports it cheaply
-  work.py      RefmapJobRequest joins JobRequest, RefmapResult joins JobResult; run_job's refmap
-               case raises NotImplementedError
-  models.py    RefmapJob joins Job
+  fields.py    the printable-ASCII and species-code shapes refmap.py and csnp.py both check
+  work.py      RefmapJobRequest joins JobRequest, RefmapResult joins JobResult; refmap's row in
+               UNAVAILABLE; run_job's refmap case raises NotImplementedError
+  models.py    RefmapJob joins Job, as a JobFields with its service and result
 api/src/panther_api/routers/jobs.py
-               the 501 for a refmap request, before submit, and the 501 documented on POST /jobs
+               the 501 for a service in UNAVAILABLE, before submit, and the 501 documented on
+               POST /jobs while UNAVAILABLE has a row
 ```
+
+- **One table of unavailable services** (`UNAVAILABLE` in `work.py`) gives each one's `501` detail and the end of the `501`'s description. The router reads it for both, so the wiring change deletes refmap's row and `run_job`'s case, and the `501` leaves the schema with the last row.
 
 - **Validate, then `501`:** clients get the real `422`s now, and the only change when mapping lands is that a valid request gets a `202`.
 - **No job:** a job that always fails would look like a fault; a `501` says what's true. The `501`'s description names `refmap` only, since `csnp` runs now.
@@ -188,7 +192,7 @@ Measured in-process (`TestClient`, on a Windows developer machine, 2026-10-30), 
 - **[A rule rejects input the legacy would have mapped]** → Only IDs over 64 characters, or with whitespace or non-ASCII characters. The site's input reached the CGI with spaces as `+`, so none of those mapped through the site. Easy to relax. Proposed divergence 10 records it.
 - **[Jobs are the wrong call for a lookup]** → Decision 1's alternative can be added later beside the job, with the same models, without breaking anyone.
 - **[The `501` outlives its purpose]** → Tied to the wiring change in the Workflow follow-up, as cSNP's was.
-- **[The wiring drops the `501` before the organism check]** → Then any well-shaped code, such as `ZZZZZ`, would reach the engine. A comment beside the `501` in `routers/jobs.py`, and the Workflow follow-up, say the check against `ORGANISM_CODES` lands in the same change.
+- **[The wiring drops the `501` before the organism check]** → Then any well-shaped code, such as `ZZZZZ`, would reach the engine. A comment on refmap's row in `UNAVAILABLE` (`jobs/work.py`), which is what makes the `501`, and the Workflow follow-up, say the check against `ORGANISM_CODES` lands in the same change.
 - **[A large result's size in memory]** → Known issue, for the wiring change to fix; not fixed here, because nothing builds a `refmap` result yet. 100,000 `IdMapping` models take about 59 MB, and the job keeps them, with the 100,000-ID request in `JobRecord.request`, for `job_expiry_seconds` (24 hours by default); nothing caps how many such jobs are kept, and each poll serialises about 5 MB. The wiring change should store a result compactly, for example as its serialised JSON or as parallel lists, and/or cap or shorten how long large results are kept. `id` stays in each mapping (decision 2).
 - **[A `422` is slow to build for a large bad list]** → The cap bounds the response, not the 1.1 s Pydantic spends listing 100,000 errors on the event loop (decision 7). A follow-up, if it matters in practice.
 - **[Contract drift from the engine's dataclasses]** → The engine developer reviews decision 3 before porting; the wiring's adapter maps the fields one to one, and its tests fail on a mismatch.

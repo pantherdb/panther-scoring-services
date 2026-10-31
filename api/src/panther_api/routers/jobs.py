@@ -11,7 +11,7 @@ from fastapi import APIRouter, Body, HTTPException, Request, Response, status
 from panther_api.jobs.models import JOB_ADAPTER, Job
 from panther_api.jobs.runner import JobRunner
 from panther_api.jobs.store import JobRecord
-from panther_api.jobs.work import REFMAP_UNAVAILABLE, JobRequest, RefmapJobRequest
+from panther_api.jobs.work import UNAVAILABLE, JobRequest
 from panther_api.problems import Problem
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -28,15 +28,16 @@ _CREATE_RESPONSES: dict[int | str, dict[str, Any]] = {
             }
         },
     },
-    # Removed when the engine's refmap mapping is wired in. The check of `organism` against the
-    # engine's organism list (ORGANISM_CODES) lands in the same change: until then only its
-    # shape is checked, and this 501 keeps any other code from reaching the engine.
-    status.HTTP_501_NOT_IMPLEMENTED: {
-        "model": Problem,
-        "description": "The service can't run jobs yet: `refmap`, until its mapping is ported. "
-        "The request was valid, and no job was created.",
-    },
 }
+# Documented while any service is unavailable (jobs/work.py's UNAVAILABLE, which says when each
+# row goes, and what lands with it).
+if UNAVAILABLE:
+    _CREATE_RESPONSES[status.HTTP_501_NOT_IMPLEMENTED] = {
+        "model": Problem,
+        "description": "The service can't run jobs yet: "
+        + "; ".join(f"`{service}`, {why.until}" for service, why in UNAVAILABLE.items())
+        + ". The request was valid, and no job was created.",
+    }
 
 
 def _runner(request: Request) -> JobRunner:
@@ -71,8 +72,9 @@ async def create_job(
     find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid
     `refmap` request gets a 501 until its mapping is available; its input is still validated first.
     """
-    if isinstance(job_request, RefmapJobRequest):
-        raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, detail=REFMAP_UNAVAILABLE)
+    unavailable = UNAVAILABLE.get(job_request.service)
+    if unavailable is not None:
+        raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, detail=unavailable.detail)
     record = _runner(request).submit(job_request)
     response.headers["Location"] = request.app.url_path_for("get_job", job_id=str(record.id))
     return _job(record)

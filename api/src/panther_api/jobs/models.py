@@ -1,6 +1,7 @@
 """The job as the API returns it. Workers never import this module.
 
-A scoring service joins by adding its own job model, with its `service` and `result`, to `Job`.
+A scoring service joins by adding its own job model to `Job`: a `JobFields` with its `service`
+and `result`.
 """
 
 from datetime import datetime
@@ -26,57 +27,44 @@ class JobStatus(StrEnum):
     FAILED = "failed"
 
 
-class ToolsJob(BaseModel):
+class JobFields[ServiceT: str, ResultT: BaseModel](BaseModel):
+    """The fields every job has, in this order. Each job model sets `service` and `result`.
+
+    Not itself in the schema: only the job models are.
+    """
+
+    id: UUID
+    service: ServiceT
+    status: JobStatus
+    created_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
+    result: ResultT | None
+    error: Problem | None
+    versions: Versions
+
+
+class ToolsJob(JobFields[Literal["tools"], ToolsResult]):
     """A `tools` job. Times are UTC, and null until reached.
 
     `result` is null unless the job succeeded, and `error` is null unless it failed. `versions`
     are the API, engine and tool versions the job ran with.
     """
 
-    id: UUID
-    service: Literal["tools"]
-    status: JobStatus
-    created_at: datetime
-    started_at: datetime | None
-    finished_at: datetime | None
-    result: ToolsResult | None
-    error: Problem | None
-    versions: Versions
 
-
-class CsnpJob(BaseModel):
+class CsnpJob(JobFields[Literal["csnp"], CsnpResult]):
     """A `csnp` job, with the same fields as every job. `result` is its PANTHER-PSEP scores.
 
     It fails with a 422 `error` when the engine can't read the sequence, and with the generic 500
     otherwise.
     """
 
-    id: UUID
-    service: Literal["csnp"]
-    status: JobStatus
-    created_at: datetime
-    started_at: datetime | None
-    finished_at: datetime | None
-    result: CsnpResult | None
-    error: Problem | None
-    versions: Versions
 
-
-class RefmapJob(BaseModel):
+class RefmapJob(JobFields[Literal["refmap"], RefmapResult]):
     """A `refmap` job, with the same fields as every job. `result` is its ID mappings.
 
     None is created until the engine's mapping is wired in: a valid request gets a 501.
     """
-
-    id: UUID
-    service: Literal["refmap"]
-    status: JobStatus
-    created_at: datetime
-    started_at: datetime | None
-    finished_at: datetime | None
-    result: RefmapResult | None
-    error: Problem | None
-    versions: Versions
 
 
 # Tagged by `service`, like the request, so the frontend narrows the result the same way.

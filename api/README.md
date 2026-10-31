@@ -50,11 +50,13 @@ src/panther_api/
   main.py        create_app(): the /api/v1 router, the error handlers, and the startup that reads
                  the settings and versions and starts the job runner
   settings.py    the PANTHER_API_* settings, read once at startup
-  problems.py    problem-details errors, and how the schema documents them
+  problems.py    problem-details errors, and how the schema documents them. A 422 lists at
+                 most the first 100 field errors
   versions.py    the Versions model, read from the engine
   jobs/          the job models, the in-memory store, the worker-pool runner, and work.py:
                  what the workers run. A scoring service joins by adding its request,
-                 result and case there
+                 result and case there; one not ported yet also gets a row in UNAVAILABLE,
+                 for its 501. fields.py holds the input shapes more than one service checks
   openapi.py     writes openapi.json: uv run python -m panther_api.openapi
   routers/       one module per area; each is one include_router line in create_app(). csnp.py
                  holds cSNP's species list

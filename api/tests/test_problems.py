@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from pydantic import AfterValidator, BaseModel
 
 from panther_api.main import create_app
+from panther_api.problems import MOST_FIELD_ERRORS, VALIDATION_DETAIL
 
 INTERNAL_PATH = "/data/panther/19/books/PTHR10000/hmmer.hmm"
 SUBMITTED_VALUE = "xyzzy-not-a-number"
@@ -36,6 +37,15 @@ class Letters(BaseModel):
 
 @router.post("/test/letters")
 def letters(payload: Letters) -> Letters:
+    return payload
+
+
+class Counts(BaseModel):
+    counts: list[int]
+
+
+@router.post("/test/counts")
+def counts(payload: Counts) -> Counts:
     return payload
 
 
@@ -112,3 +122,43 @@ def test_a_validators_message_has_no_value_error_prefix(client: TestClient) -> N
     assert response.json()["errors"] == [
         {"loc": ["body", "word"], "msg": "Use letters only.", "type": "value_error"}
     ]
+
+
+def _bad_counts(client: TestClient, bad: int) -> httpx2.Response:
+    """A list of `bad` values that aren't integers, each with its own field error."""
+    return client.post("/api/v1/test/counts", json={"counts": [SUBMITTED_VALUE] * bad})
+
+
+@pytest.mark.parametrize("bad", [1, MOST_FIELD_ERRORS])
+def test_up_to_the_cap_every_error_is_listed(client: TestClient, bad: int) -> None:
+    response = _bad_counts(client, bad)
+
+    assert_problem(response, 422)
+    body = response.json()
+    assert body["detail"] == VALIDATION_DETAIL
+    assert [error["loc"] for error in body["errors"]] == [
+        ["body", "counts", index] for index in range(bad)
+    ]
+
+
+def test_past_the_cap_the_first_errors_are_listed_with_the_total(client: TestClient) -> None:
+    response = _bad_counts(client, 12_345)
+
+    assert_problem(response, 422)
+    body = response.json()
+    assert [error["loc"] for error in body["errors"]] == [
+        ["body", "counts", index] for index in range(MOST_FIELD_ERRORS)
+    ]
+    assert all(error["msg"] and error["type"] for error in body["errors"])
+    assert body["detail"] == (
+        f"Request validation failed: 12,345 fields are invalid, and the first "
+        f"{MOST_FIELD_ERRORS} are listed."
+    )
+    assert SUBMITTED_VALUE not in response.text
+
+
+def test_one_past_the_cap_is_counted(client: TestClient) -> None:
+    body = _bad_counts(client, MOST_FIELD_ERRORS + 1).json()
+
+    assert len(body["errors"]) == MOST_FIELD_ERRORS
+    assert body["detail"].startswith(f"Request validation failed: {MOST_FIELD_ERRORS + 1:,} fields")

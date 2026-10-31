@@ -234,7 +234,7 @@ curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
 
 ### The refmap Job
 
-A `refmap` job will map protein IDs, such as UniProt accessions, to PANTHER IDs for one organism. Its contract is settled (`openspec/changes/add-refmap-job/`) and the input rules are in `openspec/specs/scoring-input/`, but the engine doesn't map yet. So a valid request gets a `501` problem, and no job is created:
+A `refmap` job will map protein IDs, such as UniProt accessions, to PANTHER IDs for one organism. Its contract and input rules are proposed in `openspec/changes/add-refmap-job/`, and the engine doesn't map yet. So a valid request gets a `501` problem, and no job is created:
 
 ```sh
 curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
@@ -250,7 +250,7 @@ curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
 }
 ```
 
-An invalid request still gets the `422` validation problem first, without the submitted values. `organism` must be the shape of a UniProt species code, 1 to 5 upper-case letters or digits; whether the engine has the organism is checked once it exports its list. Each of `ids` must be 1 to 64 printable ASCII characters with no whitespace, and there can be up to 100,000. Here the organism is a long name and the second ID holds two:
+An invalid request still gets the `422` validation problem first, without the submitted values. `organism` must be the shape of a UniProt species code, 1 to 5 upper-case letters or digits; whether the engine has the organism is checked once it exports its list. Each of `ids` must be 1 to 64 printable ASCII characters with no whitespace, and there can be up to 100,000. A `422` lists at most the first 100 failing fields, for any service; when there are more, its `detail` says how many there were in all, such as "Request validation failed: 100,000 fields are invalid, and the first 100 are listed." Here the organism is a long name and the second ID holds two:
 
 ```sh
 curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \

@@ -35,11 +35,12 @@ from panther_engine.core.tools import ToolReport
 from pydantic import ValidationError
 
 from panther_api.jobs.csnp import CsnpInput, CsnpResult, SubstitutionScore, run_csnp
-from panther_api.jobs.refmap import RefmapInput
+from panther_api.jobs.refmap import MOST_IDS, RefmapInput
 from panther_api.jobs.runner import UNEXPECTED_JOB_DETAIL, WORKER_STOPPED_DETAIL, JobRunner
 from panther_api.jobs.tools import ToolsInput, run_tools
 from panther_api.jobs.work import CsnpJobRequest, RefmapJobRequest, ToolsJobRequest, run_job
 from panther_api.main import create_app
+from panther_api.problems import MOST_FIELD_ERRORS
 
 # The directory in conftest's fake report paths. No job may contain it.
 FAKE_TOOLS_DIR = "fake-tools"
@@ -630,6 +631,21 @@ def test_every_invalid_refmap_field_is_listed(client: TestClient) -> None:
     body: dict[str, object] = {"service": "refmap", "input": {"ids": []}}
 
     assert_rejected(client, body, [[*REFMAP_LOC, "organism"], [*REFMAP_LOC, "ids"]])
+
+
+def test_a_422_for_every_id_lists_the_first_100(client: TestClient) -> None:
+    response = client.post("/api/v1/jobs", json=refmap_job(ids=[""] * MOST_IDS))
+
+    assert response.status_code == 422
+    body = response.json()
+    assert [error["loc"] for error in body["errors"]] == [
+        [*REFMAP_LOC, "ids", index] for index in range(MOST_FIELD_ERRORS)
+    ]
+    assert body["detail"] == (
+        "Request validation failed: 100,000 fields are invalid, and the first 100 are listed."
+    )
+    assert len(response.content) < 20_000
+    assert len(runner(client).store) == 0
 
 
 def test_a_field_the_refmap_input_doesnt_take_is_a_422(client: TestClient) -> None:

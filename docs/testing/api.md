@@ -234,7 +234,7 @@ curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
 
 ### The refmap Job
 
-A `refmap` job will map protein IDs, such as UniProt accessions, to PANTHER IDs for one organism. Its contract and input rules are proposed in `openspec/changes/add-refmap-job/`, and the engine doesn't map yet. So a valid request gets a `501` problem, and no job is created:
+A `refmap` job will map protein IDs, such as UniProt accessions, to PANTHER IDs for one organism. Its contract and input rules are in `openspec/specs/scoring-jobs/` and `openspec/specs/scoring-input/`, and the engine doesn't map yet. So a valid request gets a `501` problem, and no job is created:
 
 ```sh
 curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \

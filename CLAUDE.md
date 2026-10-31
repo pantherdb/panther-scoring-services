@@ -118,6 +118,7 @@ Data it needs: the PANTHER HMM library (`books/`, `globals/`, `binHmm`) and a FA
 | ---- | ---- |
 | `map_panther.pl` | CLI: maps each ID in a gene list to a PANTHER family, or `NOHIT` |
 | `genericMapping.cgi` | Web entry point: `organism`, `fileContents`; returns tab-delimited text |
+| `config.example.yaml` | `panther_classification_directory`, read by `genericMapping.cgi` on `master` |
 
 Data it needs: one tab-delimited classification file per organism (`panther_classification/`).
 
@@ -216,7 +217,7 @@ Don't read or reuse these:
 - **Fixed line numbers.** `.rst` parsing reads 0-based lines 11 (the branch list) and 14 (the tree), that is, the 12th and 15th lines (`SCORE-9`).
 - **The thresholds and the pDel bounds disagree with the docs.** `PANTHER_PSEP1.01.pl` classifies at 180 / 380 Mya. The help page (`tips_csnpScores_content.jsp`) and the PI's 2021 ticket say 200 / 450 (`SCORE-5`). pDel tests `age < bound`, but the PI's table has inclusive bounds, so for example age 91 gets 0.19 instead of 0.17 (`SCORE-6`). The port follows the code: 180 / 380 and `age < bound` (engine developer, 2026-10-29). The docs' values are proposed divergence rows 4 and 7, deferred until cSNP is live on production.
 - **The 2016 release's `sample.out` doesn't reproduce** against the current library (`DATA-4`). Use the goldens in spec §7.
-- **Hardcoded paths and versions elsewhere.** `alignOnTheFly.cgi` writes to `/usr/tmp/`. `treeGrafter.pl` hardcodes PANTHER 12 directory names. `genericMapping.cgi` reads `panther_classification/` relative to its working directory.
+- **Hardcoded paths and versions elsewhere.** `alignOnTheFly.cgi` writes to `/usr/tmp/`. `treeGrafter.pl` hardcodes PANTHER 12 directory names. On RefProteomeMapper's `master` (`649c85f`), `genericMapping.cgi` loads `config.yaml` from its working directory and reads `<panther_classification_directory>/panther_classification/<organism>`; `config.example.yaml` sets that directory to `panther_classification`, which doubles the folder. At `4fc6a09`, before the 2020 commits merged on 2026-10-27, it read `panther_classification/` relative to its working directory. Which version production ran needs team verification. `map_panther.pl`, the parity reference, is the same in both.
 - Each service's developer guide lists more under "Issues and Observations". For `csnp`, the full quirk catalog is §6 of the legacy behaviour spec.
 
 When something isn't clear from the legacy code, say "needs team verification" rather than guessing.

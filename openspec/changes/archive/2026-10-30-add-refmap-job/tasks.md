@@ -42,7 +42,7 @@
 
 ## 8. When Archiving
 
-- [ ] 8.1 In `docs/testing/api.md`, "The refmap Job": replace "proposed in `openspec/changes/add-refmap-job/`" with where the contract and input rules then live (`openspec/specs/scoring-jobs/` and `openspec/specs/scoring-input/`), and drop any rule the review changed.
+- [x] 8.1 In `docs/testing/api.md`, "The refmap Job": replace "proposed in `openspec/changes/add-refmap-job/`" with where the contract and input rules then live (`openspec/specs/scoring-jobs/` and `openspec/specs/scoring-input/`), and drop any rule the review changed.
 
 ## Workflow follow-up
 

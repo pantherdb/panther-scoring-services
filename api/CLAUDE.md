@@ -26,8 +26,9 @@ If the schema changed, also run `npm run api:types` in `frontend/` and commit `s
   A change in behaviour starts as an OpenSpec change, and its tests follow the spec's scenarios.
 - **Every error is RFC 9457 problem details** (`problems.py`). The details:
   - A `422` lists each failing field by its `loc`, with a message written for a person; `problems.py` drops Pydantic's "Value error, " prefix.
+  - **A `422` lists at most the first 100 field errors** (`MOST_FIELD_ERRORS`), with the total in `detail`, so a list such as `refmap`'s 100,000 IDs can't produce a body of megabytes.
   - **Never echo a submitted value in an error.** Some Pydantic messages quote the input; `problems.py` rewrites the ones found so far. Test every new request model with a distinctive invalid value, and assert it isn't in the body.
-- **Everything is a job.** `POST /api/v1/jobs` starts one, and `GET /api/v1/jobs/{id}` polls it. Don't add a synchronous scoring endpoint without a team decision; whether `refmap` gets one is an open question (#30).
+- **Everything is a job.** `POST /api/v1/jobs` starts one, and `GET /api/v1/jobs/{id}` polls it. Don't add a synchronous scoring endpoint without a team decision; whether `refmap` gets one is an open question in `add-refmap-job`.
 
 ## Jobs
 
@@ -37,6 +38,7 @@ If the schema changed, also run `npm run api:types` in `frontend/` and commit `s
 - **Only the event loop touches a job.** The handlers are `async def` and never run work themselves.
 - **Validate and normalise in the request model,** before a job starts. Follow the legacy website's clean-up, as `scoring-input` records it, so the engine gets what the legacy scripts got.
 - **Check a code against the engine's list, not only its shape,** before a request can reach the engine. cSNP's `species` is checked against `panther_engine.csnp.SPECIES_CODES`. This is how the API avoids the legacy command injection (`CGI-5`).
+- **Shapes that more than one service checks** live in `jobs/fields.py`, such as `SPECIES_CODE` and `PRINTABLE`. Each service keeps its own messages. Put a shape into the schema with `schema_pattern()`.
 - **How a job fails:**
   - When the engine raises `panther_engine.core.errors.InputError`, the input as a whole can't be processed. The job fails with a `422`, and the engine's message as `detail`; the engine writes that message for the user.
   - Any other exception fails the job with the generic `500` detail, and its details go only to the log.
@@ -56,13 +58,13 @@ The order that worked for `csnp`:
 1. **The contract,** against a stand-in (#19):
    - the request and result models in `jobs/<service>.py`;
    - the request in `work.py`'s `JobRequest` union, and the result in `JobResult`;
-   - a job model in `models.py`;
-   - a valid request answered with a `501` and no job until the port exists.
+   - a job model in `models.py`, subclassing `JobFields`;
+   - a row in `work.py`'s `UNAVAILABLE` table, so a valid request gets a `501` and no job until the port exists, and a `run_job` case that refuses to run.
 2. **The form,** against the contract (#20).
 3. **The port and its parity goldens,** in the engine (#24).
-4. **Wiring:** the `501` goes, `run_job` calls the engine, and the code check against the engine's list lands in the same change (#26).
+4. **Wiring:** the `UNAVAILABLE` row goes, `run_job` calls the engine, and the code check against the engine's list lands in the same change (#26).
 
-`refmap` is at step 1 (#30), and the open work is tracked in #46.
+`refmap`'s contract is merged (#30): its form is #35, and its wiring is #40, after the engine's port. The open work is tracked in #46.
 
 ## Tests
 

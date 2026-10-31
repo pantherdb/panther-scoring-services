@@ -57,6 +57,7 @@ Rules:
 
 - **OpenSpec is the only place for plans.** Don't create `.plans/`, TODO files or other task trackers.
 - **Claude drafts, the team decides.** Every artifact is reviewed and owned by a person before the next step.
+- **No AI attribution.** Don't add a `Co-Authored-By` line for an assistant, or a "Generated with …" footer, to commits, pull request descriptions, comments or docs (CONTRIBUTING.md, "AI-Written Code").
 - **OpenSpec doesn't approve science.** A change can propose a difference from a service's reference, but it ships only with an approved row in `docs/parity/divergences.md`.
 - **Pull requests and CI are the enforceable gates.** The `main` ruleset requires a pull request, a code owner's approval and a passing `ci-passed` check (`.github/workflows/ci.yml`). Instructions here and in `openspec/config.yaml` are guidance, not enforcement.
 

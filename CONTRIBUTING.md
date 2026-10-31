@@ -90,6 +90,7 @@ Keep pull requests under about 400 changed lines, not counting lock files and ge
 - **You own what you merge.** The reviewer can ask about any line, and "the assistant wrote it" isn't an answer.
 - **Read the diff before you open the pull request.** Run `/code-review` first if you like, but it doesn't replace reading.
 - **No new dependencies without a proposal.** Name each new package in the change's proposal; dependency review in CI flags the rest.
+- **No AI attribution.** Commits, pull requests, comments and docs carry no assistant credit: no `Co-Authored-By` line for an assistant, and no "Generated with …" footer. The person who opens the pull request is its author.
 
 ## Spec Layout
 

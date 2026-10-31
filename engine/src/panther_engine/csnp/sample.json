@@ -1,10 +1,10 @@
 {
-  "tag": "csnp-sample-2",
+  "tag": "csnp-sample-3",
   "asset": {
-    "name": "csnp-sample-2.tar.gz",
-    "url": "https://github.com/pantherdb/panther-scoring-services/releases/download/csnp-sample-2/csnp-sample-2.tar.gz",
-    "sha256": "87506a6406a5c1e7a6d528e1683a6ebb6f631496ab0bf5b7ae0a435e0215b7c3",
-    "bytes": 156610658
+    "name": "csnp-sample-3.tar.gz",
+    "url": "https://github.com/pantherdb/panther-scoring-services/releases/download/csnp-sample-3/csnp-sample-3.tar.gz",
+    "sha256": "a580b37d267643698a5da5e8828918038f1358b1d8ebdab01cdf2ea9a3b267a4",
+    "bytes": 156764767
   },
   "source": {
     "name": "PAML_RST.tar.gz",
@@ -28,6 +28,7 @@
     "PTHR16675_3",
     "PTHR17358",
     "PTHR17486",
+    "PTHR18976",
     "PTHR19241",
     "PTHR21493",
     "PTHR23125_2",
@@ -63,6 +64,9 @@
     "csnp/9/PAML_RST/PTHR17486.orig.tree": "b9cfd4c7b5a20a6637d6311ffad02a5a0687ecfe571e83add147e15cf192ca47",
     "csnp/9/PAML_RST/PTHR17486.paml": "f49ff2ea6c763c719608e660bc0ad445d472f1fd6b2a58bf8884d0d8c8247aa1",
     "csnp/9/PAML_RST/PTHR17486.rst": "f755ecb48b4698e60cff5c544ade23de973aaa23e2375e14b6535021b1837967",
+    "csnp/9/PAML_RST/PTHR18976.orig.tree": "7fed57afd8301ae8ddf5158cf9e2b216229355d85d6cee2fca58d06ed8082a0e",
+    "csnp/9/PAML_RST/PTHR18976.paml": "69edda4e7cb0eb72ed9922d281ab1409e8aad13bdbd040d336658c95a457e591",
+    "csnp/9/PAML_RST/PTHR18976.rst": "09e756921a1d80af7ed425b9d80fdc7fd0b199fefd310672d2bb2016b84ca908",
     "csnp/9/PAML_RST/PTHR19241.orig.tree": "ac17273b336c207590a08f26f256cf9d72540ce7acb7c90ed49bc60d24314c8a",
     "csnp/9/PAML_RST/PTHR19241.paml": "c8aa9ee041dce0f0694b8d79b629fc2782aeda4253a4878c185d9f6292d5c07f",
     "csnp/9/PAML_RST/PTHR19241.rst": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",

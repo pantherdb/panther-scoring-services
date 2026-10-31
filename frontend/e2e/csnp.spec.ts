@@ -139,7 +139,7 @@ test(
 
 // The release sample's first protein, P26439, and three of its substitutions with the scores
 // the legacy service gave them (the engine's goldens, spec §7.3). The data sample covers its
-// family; the form's APOE example isn't in the sample (docs/testing/frontend.md).
+// family, as it does the form's APOE example's (docs/testing/frontend.md).
 const GOLDEN = fileURLToPath(new URL('../../engine/tests/golden/csnp/release/', import.meta.url))
 const SAMPLE_PROTEIN = readFileSync(`${GOLDEN}sample.fasta`, 'utf8').split(/\n\s*\n/)[0] ?? ''
 const SAMPLE_SCORES = [

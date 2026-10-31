@@ -129,9 +129,9 @@ A service raises `InputError` (`src/panther_engine/core/errors.py`) when it can'
 
 ### The cSNP Data Sample
 
-The cSNP tests read a sample of the cSNP data: one family of the PAML_RST library for each variant the [library survey](../parity/csnp-library-survey.md) found, the whole PANTHER9 BLAST database, the species tree, and the PSEP 1.01 release's copyright statement. The full library is 19.2 GB unpacked, too big for a laptop or a CI runner.
+The cSNP tests read a sample of the cSNP data: one family of the PAML_RST library for each variant the [library survey](../parity/csnp-library-survey.md) found, and the family of the scoring form's example, the whole PANTHER9 BLAST database, the species tree, and the PSEP 1.01 release's copyright statement. The full library is 19.2 GB unpacked, too big for a laptop or a CI runner.
 
-- **Where it lives:** a public release asset of this repository, `csnp-sample-2.tar.gz` (157 MB, 622 MB unpacked), pinned by `engine/src/panther_engine/csnp/sample.json`. The manifest holds the tarball's URL and sha256, the sha256 of each source archive, and the sha256 of each file in the tarball.
+- **Where it lives:** a public release asset of this repository, `csnp-sample-3.tar.gz` (157 MB, 624 MB unpacked), pinned by `engine/src/panther_engine/csnp/sample.json`. The manifest holds the tarball's URL and sha256, the sha256 of each source archive, and the sha256 of each file in the tarball.
 - **What it holds:** under `csnp/9/`, the families in `PAML_RST/`, the BLAST database's `blast.phr`, `blast.pin` and `blast.psq` in `blast/`, `species_pthr8_time.nhx` and `PSEP-COPYRIGHT.txt`. The database is whole, so `blastp` finds the same hits as against the full data. The release's 326 MB `blast.fasta` stays out: `blastp` doesn't read it.
 - **Where it goes:** the data folder, under `csnp/9/`. The data folder is `PANTHER_DATA_DIR`. For development it's `.data/` at the repository root, which git ignores.
 

@@ -1,5 +1,6 @@
 """The port against the reference's goldens, byte for byte: the legacy behaviour spec's §7.3 and
-§7.5, and the reference image's output for the generated cases (tests/golden/csnp/README.md).
+§7.5, and the reference image's output for the generated cases and for the scoring form's example
+(tests/golden/csnp/README.md).
 
 Step 2 needs no data. Step 3 reads the data sample's library. The comparison functions are the ones
 `panther-engine csnp parity check` runs.
@@ -15,6 +16,8 @@ from panther_engine.csnp import blast, hits, legacy, parity, psep
 GOLDEN = Path(__file__).parent / "golden" / "csnp"
 CASES = GOLDEN / "generated"
 LISTED = parity.read_cases(CASES)
+# The scoring form's example: the legacy site's human APOE, with its four substitutions.
+EXAMPLE = GOLDEN / "example"
 # The sample families whose .rst has no sequence list: their files are broken (DATA-1).
 NO_SEQUENCES = ("PTHR11711", "PTHR19241", "PTHR21493", "PTHR23125_2", "PTHR24073_10_1")
 
@@ -50,6 +53,18 @@ def test_step_2_on_each_generated_run_gives_the_references_snpparse(run: parity.
 @pytest.mark.data("csnp")
 def test_steps_2_and_3_give_the_spec_goldens(csnp_data: Path) -> None:
     assert parity.check_self(GOLDEN, CASES, csnp_data) == []
+
+
+@pytest.mark.data("csnp")
+def test_steps_2_and_3_on_the_forms_example_give_the_references_output(csnp_data: Path) -> None:
+    lines = legacy.lines_of(parity.read(GOLDEN / "blast" / "APOE.csv"))
+    snps = hits.read_snps(parity.read(EXAMPLE / "apoe.input"))
+
+    parsed = "".join(hits.parse(lines, snps, "HUMAN"))
+    result = "".join(psep.step3(legacy.lines_of(parsed), csnp_data))
+
+    assert parity.diff_records(parity.read(EXAMPLE / "apoe.snpparse"), parsed, "example") == []
+    assert parity.diff_records(parity.read(EXAMPLE / "apoe.out"), result, "example") == []
 
 
 @pytest.mark.data("csnp")
@@ -123,3 +138,14 @@ def test_step_1_gives_the_blast_golden_and_the_human_fixtures_best_hit(
     assert (best.sseqid, best.qstart, best.sstart, best.qseq, best.sseq) == tuple(
         fixture[field] for field in fields
     )
+
+
+@pytest.mark.tools("blastp")
+@pytest.mark.data("csnp")
+def test_step_1_on_the_forms_example_gives_its_blast_golden(csnp_data: Path) -> None:
+    # Its own test: the HUMAN fixture above has no APOE to compare the best hit with.
+    sequence = "".join(parity.read(EXAMPLE / "apoe.fasta").partition("\n")[2].split())
+
+    lines = blast.search(sequence, csnp_data)
+
+    assert "".join(lines) == parity.read(GOLDEN / "blast" / "APOE.csv")

@@ -75,6 +75,7 @@ openapi.json     the committed schema; a test fails when it's out of date
 
 ## More
 
+- [CLAUDE.md](CLAUDE.md): the API's rules and traps, for anyone, or any assistant, changing it.
 - [docs/testing/api.md](../docs/testing/api.md): every command, and how the tests are set up.
 - [docs/design/api-stack.md](../docs/design/api-stack.md): the tooling (Accepted). [docs/design/tech-stack.md](../docs/design/tech-stack.md): the API's architecture, such as jobs and worker processes (Proposed).
 - [openspec/specs/api-service/spec.md](../openspec/specs/api-service/spec.md): the behaviour every endpoint shares.

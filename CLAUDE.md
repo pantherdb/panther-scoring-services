@@ -23,7 +23,7 @@ PANTHER-PSEP (Tang & Thomas 2016, PMID 27193693) estimates how long a substitute
 
 ## Layout and Team
 
-Three developers, one per folder. Each folder covers all four services. `frontend/` has its conventions in `frontend/CLAUDE.md`. `api/` is the FastAPI app (`panther_api`), and imports the engine as a path dependency. `engine/` is the `panther_engine` package with its CLI. The root `Dockerfile` builds the pinned tools, then an `engine` stage for the engine's checks and an `api` stage that serves the API; `compose.yaml` runs both. How to run each is in `docs/testing/`.
+Three developers, one per folder. Each folder covers all four services. `frontend/` has its conventions in `frontend/CLAUDE.md`. `api/` is the FastAPI app (`panther_api`), with its conventions in `api/CLAUDE.md`, and imports the engine as a path dependency. `engine/` is the `panther_engine` package with its CLI. The root `Dockerfile` builds the pinned tools, then an `engine` stage for the engine's checks and an `api` stage that serves the API; `compose.yaml` runs both. How to run each is in `docs/testing/`.
 
 | Folder | Owner | Stack |
 | ------ | ----- | ----- |
@@ -57,6 +57,7 @@ Rules:
 
 - **OpenSpec is the only place for plans.** Don't create `.plans/`, TODO files or other task trackers.
 - **Claude drafts, the team decides.** Every artifact is reviewed and owned by a person before the next step.
+- **No AI attribution.** Don't add a `Co-Authored-By` line for an assistant, or a "Generated with …" footer, to commits, pull request descriptions, comments or docs (CONTRIBUTING.md, "AI-Written Code").
 - **OpenSpec doesn't approve science.** A change can propose a difference from a service's reference, but it ships only with an approved row in `docs/parity/divergences.md`.
 - **Pull requests and CI are the enforceable gates.** The `main` ruleset requires a pull request, a code owner's approval and a passing `ci-passed` check (`.github/workflows/ci.yml`). Instructions here and in `openspec/config.yaml` are guidance, not enforcement.
 
@@ -118,6 +119,7 @@ Data it needs: the PANTHER HMM library (`books/`, `globals/`, `binHmm`) and a FA
 | ---- | ---- |
 | `map_panther.pl` | CLI: maps each ID in a gene list to a PANTHER family, or `NOHIT` |
 | `genericMapping.cgi` | Web entry point: `organism`, `fileContents`; returns tab-delimited text |
+| `config.example.yaml` | `panther_classification_directory`, read by `genericMapping.cgi` on `master` |
 
 Data it needs: one tab-delimited classification file per organism (`panther_classification/`).
 
@@ -216,7 +218,7 @@ Don't read or reuse these:
 - **Fixed line numbers.** `.rst` parsing reads 0-based lines 11 (the branch list) and 14 (the tree), that is, the 12th and 15th lines (`SCORE-9`).
 - **The thresholds and the pDel bounds disagree with the docs.** `PANTHER_PSEP1.01.pl` classifies at 180 / 380 Mya. The help page (`tips_csnpScores_content.jsp`) and the PI's 2021 ticket say 200 / 450 (`SCORE-5`). pDel tests `age < bound`, but the PI's table has inclusive bounds, so for example age 91 gets 0.19 instead of 0.17 (`SCORE-6`). The port follows the code: 180 / 380 and `age < bound` (engine developer, 2026-10-29). The docs' values are proposed divergence rows 4 and 7, deferred until cSNP is live on production.
 - **The 2016 release's `sample.out` doesn't reproduce** against the current library (`DATA-4`). Use the goldens in spec §7.
-- **Hardcoded paths and versions elsewhere.** `alignOnTheFly.cgi` writes to `/usr/tmp/`. `treeGrafter.pl` hardcodes PANTHER 12 directory names. `genericMapping.cgi` reads `panther_classification/` relative to its working directory.
+- **Hardcoded paths and versions elsewhere.** `alignOnTheFly.cgi` writes to `/usr/tmp/`. `treeGrafter.pl` hardcodes PANTHER 12 directory names. On RefProteomeMapper's `master` (`649c85f`), `genericMapping.cgi` loads `config.yaml` from its working directory and reads `<panther_classification_directory>/panther_classification/<organism>`; `config.example.yaml` sets that directory to `panther_classification`, which doubles the folder. At `4fc6a09`, before the 2020 commits merged on 2026-10-27, it read `panther_classification/` relative to its working directory. Which version production ran needs team verification. `map_panther.pl`, the parity reference, is the same in both.
 - Each service's developer guide lists more under "Issues and Observations". For `csnp`, the full quirk catalog is §6 of the legacy behaviour spec.
 
 When something isn't clear from the legacy code, say "needs team verification" rather than guessing.

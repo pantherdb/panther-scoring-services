@@ -77,20 +77,47 @@ Then commit `engine/tests/golden/csnp/generated/`. CI checks the port against it
 
 ### The Step-1 Golden
 
-`blast/` holds the BLAST+ 2.17.0 output for the three sample proteins against the sample's database, with the query named `P0001` as the service names it. It doesn't come from the legacy: the legacy BLAST+ version is unknown. It guards against a later BLAST+ picking a different best hit. Regenerate it in the engine image, from the repository root:
+`blast/` holds the BLAST+ 2.17.0 output for the three sample proteins and the form's example against the sample's database, with the query named `P0001` as the service names it. It doesn't come from the legacy: the legacy BLAST+ version is unknown. It guards against a later BLAST+ picking a different best hit. Regenerate it in the engine image, from the repository root:
 
 ```sh
 docker compose run --rm -T engine python -c '
 from pathlib import Path
 from panther_engine.csnp import blast
 from panther_engine.csnp.parity import write
-release = Path("tests/golden/csnp/release/sample.fasta").read_text()
-for block in release.split(">")[1:]:
-    name, _, sequence = block.partition("\n")
-    lines = blast.search("".join(sequence.split()), Path("/data/csnp/9"))
-    write(Path(f"tests/golden/csnp/blast/{name.strip()}.csv"), "".join(lines))
+golden = Path("tests/golden/csnp")
+for fasta in ("release/sample.fasta", "example/apoe.fasta"):
+    for block in (golden / fasta).read_text().split(">")[1:]:
+        name, _, sequence = block.partition("\n")
+        lines = blast.search("".join(sequence.split()), Path("/data/csnp/9"))
+        write(golden / f"blast/{name.strip()}.csv", "".join(lines))
 '
 ```
+
+### The Form's Example
+
+`example/` holds the scoring form's example, human APOE with four substitutions, and the Perl's output for it: steps 2 and 3 on its step-1 golden, `blast/APOE.csv`. Why it's in the set is in [inputs.md](inputs.md#the-forms-example). Regenerate the output in the reference image, after the step-1 golden, from the repository root:
+
+```sh
+docker run --rm -v "$PWD/engine:/work/engine" -v "$PWD/.data:/data:ro" \
+  -e PANTHER_DATA_DIR=/data -e PYTHONDONTWRITEBYTECODE=1 --user "$(id -u):$(id -g)" \
+  panther-csnp-reference python -c '
+from pathlib import Path
+from panther_engine.csnp import parity
+golden, data = Path("tests/golden/csnp"), Path("/data/csnp/9")
+reference = parity.Reference.find()
+differences = parity.self_check(reference, golden, data, None)
+if differences:
+    raise SystemExit("\n".join(differences))
+example = golden / "example"
+blast, snps = parity.read(golden / "blast/APOE.csv"), parity.read(example / "apoe.input")
+snpparse = reference.step2(blast, snps, "HUMAN")
+parity.write(example / "apoe.snpparse", snpparse)
+parity.write(example / "apoe.out", reference.step3(snpparse, data))
+'
+```
+
+- **The self-check runs first,** as in `parity reference`: if the image doesn't reproduce spec §7.3 and §7.5, it writes nothing. It takes about a minute in all.
+- **It's a command, not a `parity` subcommand:** the example is one fixed input, and `parity reference` also serves the staging run, which mustn't write into the committed goldens (`add-apoe-to-csnp-sample`, design decision 4).
 
 ### The Staging Run on the Full Library
 

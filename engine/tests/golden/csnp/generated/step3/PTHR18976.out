@@ -1,0 +1,42 @@
+no-family,M18F,Not scored: No PANTHER family for input sequence
+unmapped,M15P,Not scored: Invalid substitution
+g1-start,T7G,PTHR18976,1,probably benign,0.02
+g1-end,P380S,PTHR18976,1,probably benign,0.02
+g1-past-end,P380C,Not scored: Invalid substitution
+g1-wrong-wt,M270S,Not scored: Invalid substitution
+g1-p31,F35W,PTHR18976,361,possibly damaging,0.50
+g1-p38,K38Y,PTHR18976,362,possibly damaging,0.50
+g1-p3,S10F,PTHR18976,1,probably benign,0.02
+g1-p156,V170C,PTHR18976,1,probably benign,0.02
+g2-start,M3H,PTHR18976,1,probably benign,0.02
+g2-end,N370R,PTHR18976,1,probably benign,0.02
+g2-past-end,N379Q,Not scored: Invalid substitution
+g2-wrong-wt,L234R,Not scored: Invalid substitution
+g2-p124,Q141W,PTHR18976,1,probably benign,0.02
+g2-p150,R164G,PTHR18976,1036,probably damaging,0.85
+g2-p220,M220D,PTHR18976,1036,probably damaging,0.85
+g2-p351,T366D,PTHR18976,1,probably benign,0.02
+g3-start,M4G,PTHR18976,362,possibly damaging,0.50
+g3-end,A275K,PTHR18976,1,probably benign,0.02
+g3-past-end,A282K,Not scored: Invalid substitution
+g3-wrong-wt,L104Q,Not scored: Invalid substitution
+g3-p103,E115N,PTHR18976,1,probably benign,0.02
+g3-p123,R133V,PTHR18976,1,probably benign,0.02
+g3-p138,L146Y,PTHR18976,1,probably benign,0.02
+g3-p211,Q213H,PTHR18976,1,probably benign,0.02
+g4-start,M9T,PTHR18976,220,possibly damaging,0.50
+g4-end,Q319C,PTHR18976,1,probably benign,0.02
+g4-past-end,Q328R,Not scored: Invalid substitution
+g4-wrong-wt,C118R,Not scored: Invalid substitution
+g4-p3,V11H,PTHR18976,176,probably benign,0.27
+g4-p115,Q122S,PTHR18976,176,probably benign,0.27
+g4-p254,E265Y,PTHR18976,2,probably benign,0.02
+g4-p270,Q286F,PTHR18976,176,probably benign,0.27
+g5-start,M20E,PTHR18976,308,possibly damaging,0.50
+g5-end,S269G,PTHR18976,307,possibly damaging,0.50
+g5-past-end,S268N,Not scored: Invalid substitution
+g5-wrong-wt,F230H,Not scored: Invalid substitution
+g5-p70,V82L,PTHR18976,307,possibly damaging,0.50
+g5-p95,I107G,PTHR18976,307,possibly damaging,0.50
+g5-p114,Q133P,PTHR18976,307,possibly damaging,0.50
+g5-p158,K163F,PTHR18976,307,possibly damaging,0.50

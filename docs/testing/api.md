@@ -135,7 +135,7 @@ uv run panther-engine csnp sample fetch --data-dir ../.data
 
 [engine.md](engine.md#the-csnp-data-sample) says what the sample holds, and how to fetch it through compose instead. Then start the API with `docker compose up --build api`. Without the sample, every `csnp` job fails with the generic `500` described below.
 
-The sample holds 15 of the library's families, but the whole PANTHER9 BLAST database. So a protein whose family isn't in the sample still gets its family, and each substitution gets "Not scored: No PANTHER family for input sequence", as the legacy service said for a family without its library files. The form's example, human APOE, is such a protein: against the sample, its job succeeds with family `PTHR18976` and four of those rows. Use a protein of the sample's families instead, such as the release sample's P26439 below.
+The sample holds 16 of the library's families, but the whole PANTHER9 BLAST database. So a protein whose family isn't in the sample still gets its family, and each substitution gets "Not scored: No PANTHER family for input sequence", as the legacy service said for a family without its library files. Use a protein of the sample's families, such as the release sample's P26439 below, or the form's example, human APOE (`PTHR18976`), whose scores from the legacy scripts are in `engine/tests/golden/csnp/example/apoe.out`.
 
 #### A Job That Succeeds
 

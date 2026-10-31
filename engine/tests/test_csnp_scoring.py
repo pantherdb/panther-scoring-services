@@ -216,6 +216,18 @@ def test_a_proteins_scores_dont_depend_on_the_calls_before_it() -> None:
 
 @pytest.mark.tools("blastp")
 @pytest.mark.data("csnp")
+def test_the_forms_example_gives_the_references_scores() -> None:
+    example = GOLDEN / "example"
+    sequence = "".join((example / "apoe.fasta").read_text().partition("\n")[2].split())
+    records = (example / "apoe.out").read_text().splitlines(keepends=True)
+
+    result = score(CsnpInput(sequence, ("L46P", "C130R", "R163C", "R176C"), "HUMAN"))
+
+    assert result == CsnpResult("PTHR18976", tuple(to_score(record) for record in records))
+
+
+@pytest.mark.tools("blastp")
+@pytest.mark.data("csnp")
 def test_a_leading_zero_is_kept_in_the_substitution_and_scored_as_the_position() -> None:
     result = score_protein("P26439", "A010E", "A10V")
 

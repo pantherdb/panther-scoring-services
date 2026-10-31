@@ -58,7 +58,8 @@ export interface paths {
          * @description Start a job for `service` with its `input`. The job runs after this request returns.
          *
          *     An input the job can't run with is a 422, and no job is created. A problem only the work can
-         *     find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`.
+         *     find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid
+         *     `refmap` request gets a 501 until its mapping is available; its input is still validated first.
          */
         post: operations["create_job_api_v1_jobs_post"];
         delete?: never;
@@ -217,6 +218,18 @@ export interface components {
             status: "ok";
         };
         /**
+         * IdMapping
+         * @description One ID and the PANTHER ID it maps to, such as `PTHR10078:SF1`.
+         *
+         *     `panther_id` is null for an ID with no PANTHER ID, where the legacy service said `NOHIT`.
+         */
+        IdMapping: {
+            /** Id */
+            id: string;
+            /** Panther Id */
+            panther_id: string | null;
+        };
+        /**
          * JobStatus
          * @description Where a job is. It only moves forward: queued, running, then succeeded or failed.
          * @enum {string}
@@ -238,6 +251,73 @@ export interface components {
             status: number;
             /** Detail */
             detail: string;
+        };
+        /**
+         * RefmapInput
+         * @description One organism, and the IDs to map to PANTHER IDs in it.
+         *
+         *     `organism` is a UniProt species code such as `HUMAN`. `ids` are the protein IDs, such as
+         *     UniProt accessions, each looked up exactly as given: not trimmed, not upper-cased, and
+         *     repeated IDs each get their own mapping, in order.
+         */
+        RefmapInput: {
+            /** Organism */
+            organism: string;
+            /** Ids */
+            ids: string[];
+        };
+        /**
+         * RefmapJob
+         * @description A `refmap` job, with the same fields as every job. `result` is its ID mappings.
+         *
+         *     None is created until the engine's mapping is wired in: a valid request gets a 501.
+         */
+        RefmapJob: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            service: "refmap";
+            status: components["schemas"]["JobStatus"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Started At */
+            started_at: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            result: components["schemas"]["RefmapResult"] | null;
+            error: components["schemas"]["Problem"] | null;
+            versions: components["schemas"]["Versions"];
+        };
+        /**
+         * RefmapJobRequest
+         * @description Start a `refmap` job: map protein IDs to PANTHER IDs for one organism.
+         *
+         *     Until the engine's refmap mapping is wired in, a valid request gets a 501, and no job.
+         */
+        RefmapJobRequest: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            service: "refmap";
+            input: components["schemas"]["RefmapInput"];
+        };
+        /**
+         * RefmapResult
+         * @description One mapping per submitted ID, in the order submitted, repeated IDs included.
+         */
+        RefmapResult: {
+            /** Mappings */
+            mappings: components["schemas"]["IdMapping"][];
         };
         /**
          * SubstitutionScore
@@ -464,7 +544,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ToolsJobRequest"] | components["schemas"]["CsnpJobRequest"];
+                "application/json": components["schemas"]["ToolsJobRequest"] | components["schemas"]["CsnpJobRequest"] | components["schemas"]["RefmapJobRequest"];
             };
         };
         responses: {
@@ -476,7 +556,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ToolsJob"] | components["schemas"]["CsnpJob"];
+                    "application/json": components["schemas"]["ToolsJob"] | components["schemas"]["CsnpJob"] | components["schemas"]["RefmapJob"];
                 };
             };
             /** @description Request validation failed */
@@ -490,6 +570,15 @@ export interface operations {
             };
             /** @description Unexpected error */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The service can't run jobs yet: `refmap`, until its mapping is ported. The request was valid, and no job was created. */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -525,7 +614,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ToolsJob"] | components["schemas"]["CsnpJob"];
+                    "application/json": components["schemas"]["ToolsJob"] | components["schemas"]["CsnpJob"] | components["schemas"]["RefmapJob"];
                 };
             };
             /** @description Request validation failed */

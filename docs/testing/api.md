@@ -72,7 +72,7 @@ docker compose down                    # remove the container
 
 ## Try the Jobs by Hand
 
-There are two jobs: the built-in `tools` job, and `csnp`, which scores coding SNPs ([below](#the-csnp-job)). In a `tools` job, a worker process runs the engine's tool report and returns each tool's version. It checks that the API, the worker pool, the engine and the tools work together. Start the API in the image, so the tools are there, from the repository root:
+There are two jobs: the built-in `tools` job, and `csnp`, which scores coding SNPs ([below](#the-csnp-job)). A `refmap` request is validated, then refused with a `501` until its mapping is ported ([The refmap Job](#the-refmap-job)). In a `tools` job, a worker process runs the engine's tool report and returns each tool's version. It checks that the API, the worker pool, the engine and the tools work together. Start the API in the image, so the tools are there, from the repository root:
 
 ```sh
 docker compose up --build api
@@ -228,6 +228,44 @@ curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
   "errors": [
     { "loc": ["body", "csnp", "input", "substitutions"], "msg": "List should have at least 1 item after validation, not 0", "type": "too_short" },
     { "loc": ["body", "csnp", "input", "species"], "msg": "The species must be a PANTHER species code of 1 to 5 upper-case letters or digits, such as HUMAN.", "type": "value_error" }
+  ]
+}
+```
+
+### The refmap Job
+
+A `refmap` job will map protein IDs, such as UniProt accessions, to PANTHER IDs for one organism. Its contract and input rules are proposed in `openspec/changes/add-refmap-job/`, and the engine doesn't map yet. So a valid request gets a `501` problem, and no job is created:
+
+```sh
+curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
+  -d '{"service": "refmap", "input": {"organism": "HUMAN", "ids": ["P04217", "P01023"]}}'
+```
+
+```json
+{
+  "type": "about:blank",
+  "title": "Not Implemented",
+  "status": 501,
+  "detail": "refmap ID mapping isn't available yet."
+}
+```
+
+An invalid request still gets the `422` validation problem first, without the submitted values. `organism` must be the shape of a UniProt species code, 1 to 5 upper-case letters or digits; whether the engine has the organism is checked once it exports its list. Each of `ids` must be 1 to 64 printable ASCII characters with no whitespace, and there can be up to 100,000. A `422` lists at most the first 100 failing fields, for any service; when there are more, its `detail` says how many there were in all, such as "Request validation failed: 100,000 fields are invalid, and the first 100 are listed." Here the organism is a long name and the second ID holds two:
+
+```sh
+curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
+  -d '{"service": "refmap", "input": {"organism": "Homo_sapiens_HUMAN", "ids": ["P04217", "P04217 P01023"]}}'
+```
+
+```json
+{
+  "type": "about:blank",
+  "title": "Unprocessable Content",
+  "status": 422,
+  "detail": "Request validation failed",
+  "errors": [
+    { "loc": ["body", "refmap", "input", "organism"], "msg": "The organism must be a UniProt species code of 1 to 5 upper-case letters or digits, such as HUMAN.", "type": "value_error" },
+    { "loc": ["body", "refmap", "input", "ids", 1], "msg": "Each ID must be 1 to 64 printable ASCII characters, with no spaces, such as P04217.", "type": "value_error" }
   ]
 }
 ```

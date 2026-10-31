@@ -35,10 +35,12 @@ from panther_engine.core.tools import ToolReport
 from pydantic import ValidationError
 
 from panther_api.jobs.csnp import CsnpInput, CsnpResult, SubstitutionScore, run_csnp
+from panther_api.jobs.refmap import MOST_IDS, RefmapInput
 from panther_api.jobs.runner import UNEXPECTED_JOB_DETAIL, WORKER_STOPPED_DETAIL, JobRunner
 from panther_api.jobs.tools import ToolsInput, run_tools
-from panther_api.jobs.work import CsnpJobRequest, ToolsJobRequest, run_job
+from panther_api.jobs.work import CsnpJobRequest, RefmapJobRequest, ToolsJobRequest, run_job
 from panther_api.main import create_app
+from panther_api.problems import MOST_FIELD_ERRORS
 
 # The directory in conftest's fake report paths. No job may contain it.
 FAKE_TOOLS_DIR = "fake-tools"
@@ -591,3 +593,91 @@ def test_a_csnp_job_succeeds_with_the_engines_scores(
         ],
     }
     assert job["versions"] == client.get("/api/v1/versions").json()
+
+
+# The refmap job: validated, then a 501 until the engine maps IDs. No mapping is made up.
+
+REFMAP_INPUT: dict[str, object] = {"organism": "HUMAN", "ids": ["P04217", "P01023"]}
+REFMAP_LOC = ["body", "refmap", "input"]
+
+
+def refmap_job(**changes: object) -> dict[str, object]:
+    return {"service": "refmap", "input": {**REFMAP_INPUT, **changes}}
+
+
+def test_an_invalid_organism_is_a_422_without_the_value(client: TestClient) -> None:
+    assert_rejected(client, refmap_job(organism="xyzzy|"), [[*REFMAP_LOC, "organism"]])
+
+
+@pytest.mark.parametrize(
+    ("changes", "loc"),
+    [
+        ({"organism": "../xyzzy"}, ["organism"]),
+        ({"organism": "Homo_sapiens_XYZZY"}, ["organism"]),
+        ({"ids": ["P04217", "xyzzy xyzzy"]}, ["ids", 1]),
+        ({"ids": ["xyzzy\tvalue"]}, ["ids", 0]),
+        ({"ids": ["P04217", "xyzzy" * 13]}, ["ids", 1]),
+        ({"ids": "xyzzy"}, ["ids"]),
+    ],
+    ids=["a path", "a long name", "two ids in one", "a tab", "too long", "ids not a list"],
+)
+def test_each_invalid_refmap_field_is_a_422_without_the_value(
+    client: TestClient, changes: dict[str, object], loc: list[str | int]
+) -> None:
+    assert_rejected(client, refmap_job(**changes), [[*REFMAP_LOC, *loc]])
+
+
+def test_every_invalid_refmap_field_is_listed(client: TestClient) -> None:
+    body: dict[str, object] = {"service": "refmap", "input": {"ids": []}}
+
+    assert_rejected(client, body, [[*REFMAP_LOC, "organism"], [*REFMAP_LOC, "ids"]])
+
+
+def test_a_422_for_every_id_lists_the_first_100(client: TestClient) -> None:
+    response = client.post("/api/v1/jobs", json=refmap_job(ids=[""] * MOST_IDS))
+
+    assert response.status_code == 422
+    body = response.json()
+    assert [error["loc"] for error in body["errors"]] == [
+        [*REFMAP_LOC, "ids", index] for index in range(MOST_FIELD_ERRORS)
+    ]
+    assert body["detail"] == (
+        "Request validation failed: 100,000 fields are invalid, and the first 100 are listed."
+    )
+    assert len(response.content) < 20_000
+    assert len(runner(client).store) == 0
+
+
+def test_a_field_the_refmap_input_doesnt_take_is_a_422(client: TestClient) -> None:
+    assert_rejected(client, refmap_job(fileContents="XYZZY"), [[*REFMAP_LOC, "fileContents"]])
+
+
+def test_a_valid_refmap_request_is_a_501_and_creates_no_job(client: TestClient) -> None:
+    response = client.post("/api/v1/jobs", json=refmap_job())
+
+    assert response.status_code == 501
+    assert response.headers["content-type"] == PROBLEM
+    assert "location" not in response.headers
+    assert response.json() == {
+        "type": "about:blank",
+        "title": "Not Implemented",
+        "status": 501,
+        "detail": "refmap ID mapping isn't available yet.",
+    }
+    assert len(runner(client).store) == 0
+
+
+def test_tools_jobs_still_run_after_a_refmap_501(client: TestClient) -> None:
+    assert client.post("/api/v1/jobs", json=refmap_job()).status_code == 501
+
+    job = poll(client, submit(client)["id"])[-1]
+
+    assert job["status"] == "succeeded"
+    assert len(runner(client).store) == 1
+
+
+def test_run_job_refuses_a_refmap_job() -> None:
+    request = RefmapJobRequest(service="refmap", input=RefmapInput.model_validate(REFMAP_INPUT))
+
+    with pytest.raises(NotImplementedError):
+        run_job(request)

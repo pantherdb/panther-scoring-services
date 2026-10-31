@@ -15,6 +15,8 @@ from typing import Annotated
 from panther_engine import csnp as engine
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
 
+from panther_api.jobs.fields import PRINTABLE, SPECIES_CODE
+
 LONGEST_SEQUENCE = 50_000
 """Residues, after normalising: the website's limit (`errors.sequence.too.long`)."""
 
@@ -30,9 +32,6 @@ _TRIMMED = "".join(chr(code) for code in range(0x21))
 _HEADER = re.compile(r"\A>[^\n]*")
 # Java's `\s`: space, tab, LF, VT, FF and CR.
 _WHITESPACE = re.compile(r"[ \t\n\x0b\x0c\r]+")
-# Printable ASCII, without space.
-_PRINTABLE = re.compile(r"[!-~]+")
-_SPECIES = re.compile(r"[A-Z0-9]{1,5}")
 # The legacy CGI's substitution form, after upper-casing: wild-type residue, position, residue.
 _SUBSTITUTION = re.compile(r"[A-Z][0-9]+[A-Z]")
 
@@ -48,7 +47,7 @@ def _normalise_sequence(value: str) -> str:
     residues = _WHITESPACE.sub("", _HEADER.sub("", value))
     if not residues:
         raise ValueError("The sequence has no residues.")
-    if not _PRINTABLE.fullmatch(residues):
+    if not PRINTABLE.fullmatch(residues):
         raise ValueError(
             "The sequence has a character that isn't printable ASCII. Use one-letter residue codes."
         )
@@ -65,7 +64,7 @@ def _normalise_substitution(value: str) -> str:
     loses no score. Decided with the engine developer on PR #19 (2026-10-30). The ASCII check
     comes first: str.upper() turns some other letters into ASCII ones (dotless i into I).
     """
-    if not _PRINTABLE.fullmatch(value) or not _SUBSTITUTION.fullmatch(value.upper()):
+    if not PRINTABLE.fullmatch(value) or not _SUBSTITUTION.fullmatch(value.upper()):
         raise ValueError(
             "Each substitution must be a residue letter, a position and a residue letter, "
             "such as L46P."
@@ -74,7 +73,7 @@ def _normalise_substitution(value: str) -> str:
 
 
 def _check_species(value: str) -> str:
-    if not _SPECIES.fullmatch(value):
+    if not SPECIES_CODE.fullmatch(value):
         raise ValueError(
             "The species must be a PANTHER species code of 1 to 5 upper-case letters or digits, "
             "such as HUMAN."

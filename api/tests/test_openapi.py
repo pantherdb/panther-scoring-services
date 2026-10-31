@@ -1,11 +1,13 @@
 import json
+import re
 from typing import Any
 
 import pytest
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
+from panther_api.jobs.refmap import RefmapInput
 from panther_api.main import create_app
 from panther_api.openapi import REGENERATE_COMMAND, SCHEMA_PATH, render
 
@@ -100,10 +102,15 @@ def test_job_request_is_a_union_tagged_by_service(client: TestClient) -> None:
     assert body["oneOf"] == [
         {"$ref": f"{SCHEMAS}ToolsJobRequest"},
         {"$ref": f"{SCHEMAS}CsnpJobRequest"},
+        {"$ref": f"{SCHEMAS}RefmapJobRequest"},
     ]
     assert body["discriminator"] == {
         "propertyName": "service",
-        "mapping": {"tools": f"{SCHEMAS}ToolsJobRequest", "csnp": f"{SCHEMAS}CsnpJobRequest"},
+        "mapping": {
+            "tools": f"{SCHEMAS}ToolsJobRequest",
+            "csnp": f"{SCHEMAS}CsnpJobRequest",
+            "refmap": f"{SCHEMAS}RefmapJobRequest",
+        },
     }
 
 
@@ -116,6 +123,7 @@ def test_submitting_documents_202_with_location(client: TestClient) -> None:
     assert job["discriminator"]["mapping"] == {
         "tools": f"{SCHEMAS}ToolsJob",
         "csnp": f"{SCHEMAS}CsnpJob",
+        "refmap": f"{SCHEMAS}RefmapJob",
     }
     assert list(responses["422"]["content"]) == [PROBLEM]
 
@@ -124,7 +132,11 @@ def test_polling_documents_the_job_and_problems(client: TestClient) -> None:
     responses = served_schema(client)["paths"]["/api/v1/jobs/{job_id}"]["get"]["responses"]
 
     job = responses["200"]["content"]["application/json"]["schema"]
-    assert job["oneOf"] == [{"$ref": f"{SCHEMAS}ToolsJob"}, {"$ref": f"{SCHEMAS}CsnpJob"}]
+    assert job["oneOf"] == [
+        {"$ref": f"{SCHEMAS}ToolsJob"},
+        {"$ref": f"{SCHEMAS}CsnpJob"},
+        {"$ref": f"{SCHEMAS}RefmapJob"},
+    ]
     assert responses["default"]["content"][PROBLEM]["schema"] == {"$ref": f"{SCHEMAS}Problem"}
 
 
@@ -135,7 +147,8 @@ def test_job_status_is_a_named_enum(client: TestClient) -> None:
 
 
 @pytest.mark.parametrize(
-    ("job_model", "result_model"), [("ToolsJob", "ToolsResult"), ("CsnpJob", "CsnpResult")]
+    ("job_model", "result_model"),
+    [("ToolsJob", "ToolsResult"), ("CsnpJob", "CsnpResult"), ("RefmapJob", "RefmapResult")],
 )
 def test_job_result_and_error_are_required_and_nullable(
     client: TestClient, job_model: str, result_model: str
@@ -198,10 +211,113 @@ def test_the_csnp_result_in_the_schema(client: TestClient) -> None:
     }
 
 
-def test_submitting_documents_no_501(client: TestClient) -> None:
+# The refmap job: its contract, and the 501 until the engine maps IDs.
+
+
+def test_the_refmap_501_is_documented_as_a_problem(client: TestClient) -> None:
     responses = served_schema(client)["paths"]["/api/v1/jobs"]["post"]["responses"]
 
-    assert "501" not in responses
+    assert list(responses["501"]["content"]) == [PROBLEM]
+    assert responses["501"]["content"][PROBLEM]["schema"] == {"$ref": f"{SCHEMAS}Problem"}
+    # Only refmap: csnp runs.
+    assert "`refmap`" in responses["501"]["description"]
+    assert "csnp" not in responses["501"]["description"]
+
+
+def test_the_refmap_request_and_input(client: TestClient) -> None:
+    schema = served_schema(client)
+    components = schema["components"]["schemas"]
+
+    assert properties(schema, "RefmapJobRequest") == {
+        "service": {"type": "string", "const": "refmap"},
+        "input": {"$ref": f"{SCHEMAS}RefmapInput"},
+    }
+    refmap_input = components["RefmapInput"]
+    assert sorted(refmap_input["required"]) == ["ids", "organism"]
+    assert refmap_input["additionalProperties"] is False
+    assert refmap_input["properties"]["organism"] == {
+        "type": "string",
+        "title": "Organism",
+        "pattern": "^[A-Z0-9]{1,5}$",
+        "maxLength": 5,
+    }
+    ids = refmap_input["properties"]["ids"]
+    assert ids["type"] == "array"
+    assert (ids["minItems"], ids["maxItems"]) == (1, 100_000)
+    assert ids["items"] == {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^[!-~]+$",
+    }
+
+
+def _schema_accepts(rules: dict[str, Any], value: str) -> bool:
+    """Whether a JSON Schema string with these rules accepts `value`, as a client checks it.
+
+    The pattern is ECMAScript's, where `$` is only the end of the string; Python's `$` also
+    matches before a final newline, so it's swapped for `\\Z`.
+    """
+    pattern = rules["pattern"].removesuffix("$") + r"\Z"
+    length_ok = rules.get("minLength", 0) <= len(value) <= rules["maxLength"]
+    return length_ok and re.search(pattern, value) is not None
+
+
+def _input_accepts(organism: str, an_id: str) -> tuple[bool, bool]:
+    """Whether RefmapInput accepts the organism, and the ID, each on its own."""
+    try:
+        RefmapInput.model_validate({"organism": organism, "ids": [an_id]})
+    except ValidationError as exc:
+        locs = [error["loc"] for error in exc.errors()]
+        return ("organism",) not in locs, ("ids", 0) not in locs
+    return True, True
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "HUMAN",
+        "9BACT",
+        "E",
+        "human",
+        "HUMANS",
+        "HUMAN\n",
+        "",
+        "HU MN",
+        "HUMÄN",
+        "P04217",
+        "P04217-2",
+        "A0A024R161.1",
+        "x" * 64,
+        "x" * 65,
+        "P04217 P01023",
+        "P04217\t",
+        "|;+,",
+        "P0421é",
+    ],
+)
+def test_the_refmap_schema_patterns_agree_with_validation(client: TestClient, value: str) -> None:
+    properties_ = served_schema(client)["components"]["schemas"]["RefmapInput"]["properties"]
+
+    organism_ok, id_ok = _input_accepts(value, value)
+
+    assert _schema_accepts(properties_["organism"], value) == organism_ok
+    assert _schema_accepts(properties_["ids"]["items"], value) == id_ok
+
+
+def test_the_refmap_result_in_the_schema(client: TestClient) -> None:
+    schema = served_schema(client)
+    components = schema["components"]["schemas"]
+
+    assert components["RefmapResult"]["required"] == ["mappings"]
+    assert properties(schema, "RefmapResult") == {
+        "mappings": {"type": "array", "items": {"$ref": f"{SCHEMAS}IdMapping"}},
+    }
+    assert sorted(components["IdMapping"]["required"]) == ["id", "panther_id"]
+    assert properties(schema, "IdMapping") == {
+        "id": {"type": "string"},
+        "panther_id": NULLABLE_STRING,
+    }
 
 
 def test_the_versions_name_each_services_data(client: TestClient) -> None:

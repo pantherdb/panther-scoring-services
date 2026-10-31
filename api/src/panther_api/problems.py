@@ -138,16 +138,34 @@ def _message(error: Mapping[str, Any]) -> str:
     return message
 
 
+MOST_FIELD_ERRORS = 100
+"""The most field errors a 422 lists. A list such as refmap's 100,000 IDs could otherwise give
+a problem body of megabytes, built and serialised on the event loop."""
+
+
+def _validation_detail(total: int) -> str:
+    if total <= MOST_FIELD_ERRORS:
+        return VALIDATION_DETAIL
+    return (
+        f"{VALIDATION_DETAIL}: {total:,} fields are invalid, and the first "
+        f"{MOST_FIELD_ERRORS} are listed."
+    )
+
+
 async def _validation_error(_request: Request, exc: RequestValidationError) -> JSONResponse:
+    all_errors = exc.errors()
     # Pydantic's errors also carry `input`, `ctx` and `url`; only these three are returned,
     # so a submitted value is never echoed back.
     errors = [
         FieldError(loc=list(error["loc"]), msg=_message(error), type=str(error["type"]))
-        for error in exc.errors()
+        for error in all_errors[:MOST_FIELD_ERRORS]
     ]
     status = HTTPStatus.UNPROCESSABLE_CONTENT
     problem = ValidationProblem(
-        title=status.phrase, status=status, detail=VALIDATION_DETAIL, errors=errors
+        title=status.phrase,
+        status=status,
+        detail=_validation_detail(len(all_errors)),
+        errors=errors,
     )
     return _respond(problem)
 

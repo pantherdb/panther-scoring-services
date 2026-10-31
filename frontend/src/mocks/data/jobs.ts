@@ -7,6 +7,8 @@ import { versions } from './versions'
 type ToolsJob = components['schemas']['ToolsJob']
 type CsnpJob = components['schemas']['CsnpJob']
 type CsnpResult = components['schemas']['CsnpResult']
+type RefmapJob = components['schemas']['RefmapJob']
+type RefmapResult = components['schemas']['RefmapResult']
 type JobStatus = components['schemas']['JobStatus']
 type Problem = components['schemas']['Problem']
 
@@ -84,5 +86,31 @@ export function csnpJob(id: string, status: JobStatus): CsnpJob {
     ...jobFields(id, status),
     service: 'csnp',
     result: status === 'succeeded' ? csnpResult : null,
+  }
+}
+
+// The made-up PANTHER ID for one ID: from the sum of its character codes, so the same ID
+// always gets the same answer, and about a third get none.
+function mockPantherId(id: string): string | null {
+  let sum = 0
+  for (let i = 0; i < id.length; i += 1) sum += id.charCodeAt(i)
+  return sum % 3 === 0 ? null : `PTHR00000:SF${sum % 10}`
+}
+
+/**
+ * MOCK DATA, not a mapping. No engine or classification file produced it: PTHR00000 is no
+ * PANTHER family, and whether an ID maps is decided by its characters alone. One mapping per
+ * ID, in order, repeats included, as the API returns them.
+ */
+export function refmapResult(ids: readonly string[]): RefmapResult {
+  return { mappings: ids.map(id => ({ id, panther_id: mockPantherId(id) })) }
+}
+
+/** A refmap job in the given status, mapping `ids` once it has succeeded. */
+export function refmapJob(id: string, status: JobStatus, ids: readonly string[] = []): RefmapJob {
+  return {
+    ...jobFields(id, status),
+    service: 'refmap',
+    result: status === 'succeeded' ? refmapResult(ids) : null,
   }
 }

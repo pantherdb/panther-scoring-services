@@ -12,7 +12,8 @@ test('shows the title on the home page', async ({ page }) => {
   await page.goto('/')
 
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toBeVisible()
+  // One heading per service's section.
+  await expect(page.getByRole('main').getByRole('heading', { level: 2 }).first()).toBeVisible()
   await expectNoBuildDetails(page)
 })
 

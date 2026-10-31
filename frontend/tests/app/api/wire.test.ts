@@ -100,6 +100,46 @@ describe('fromWireJob, for a csnp job', () => {
   })
 })
 
+describe('fromWireJob, for a refmap job', () => {
+  it('keeps its service and mappings, null PANTHER IDs and repeats included, unchanged', () => {
+    const refmapResult = {
+      mappings: [
+        { id: 'P04217', panther_id: 'PTHR00000:SF1' },
+        { id: 'P38398', panther_id: null },
+        { id: 'P04217', panther_id: 'PTHR00000:SF1' },
+      ],
+    }
+    const wire: WireJob = { ...succeeded, service: 'refmap', result: refmapResult }
+
+    const job = fromWireJob(wire)
+
+    expect(job.service).toBe('refmap')
+    expect(job.result).toEqual(refmapResult)
+    expect(job.finishedAt).toBe(Date.UTC(2026, 9, 30, 0, 32, 1, 540))
+  })
+})
+
+describe('inputErrors, for a refmap 422', () => {
+  it('puts each error on the refmap field its loc names, with the ID it is about', () => {
+    const refused: ValidationProblem = {
+      type: 'about:blank',
+      title: 'Unprocessable Content',
+      status: 422,
+      detail: 'Request validation failed',
+      errors: [
+        { loc: ['body', 'refmap', 'input', 'ids', 3], msg: 'Bad ID.', type: 'value_error' },
+        { loc: ['body', 'refmap', 'input', 'organism'], msg: 'Bad.', type: 'value_error' },
+        { loc: ['body', 'csnp', 'input', 'ids'], msg: 'Other service.', type: 'value_error' },
+      ],
+    }
+
+    expect(inputErrors(refused, 'refmap', ['ids', 'organism'])).toEqual({
+      fields: { ids: [{ msg: 'Bad ID.', item: 3 }], organism: [{ msg: 'Bad.', item: null }] },
+      other: ['Other service.'],
+    })
+  })
+})
+
 const problem: ValidationProblem = {
   type: 'about:blank',
   title: 'Unprocessable Content',

@@ -24,3 +24,13 @@ export function isUnreachable(error: unknown): boolean {
   if (typeof status !== 'number' || status < 500) return false
   return !isProblem('data' in error ? error.data : null)
 }
+
+/** A failed request's HTTP status, or RTK Query's name for the failure, such as `FETCH_ERROR`. */
+export function errorStatus(error: unknown): unknown {
+  return typeof error === 'object' && error !== null && 'status' in error ? error.status : null
+}
+
+/** A failed request's response body, as RTK Query parsed it. */
+export function errorData(error: unknown): unknown {
+  return typeof error === 'object' && error !== null && 'data' in error ? error.data : null
+}

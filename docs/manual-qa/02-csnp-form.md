@@ -86,7 +86,7 @@ npm run dev:api
 
 ## TC 2.4 Score a Protein With the Real API
 
-The data sample holds 15 PANTHER families. This test case uses a protein of one of them, P26439, from the PSEP release's sample, so its scores are real and known.
+The data sample holds 16 PANTHER families. This test case uses a protein of one of them, P26439, from the PSEP release's sample, so its scores are real and known.
 
 - [ ] Open `http://localhost:5173/csnp`. There is no **Mock data** banner at the top of the page.
 - [ ] Paste the second line of `engine/tests/golden/csnp/release/sample.fasta` (one line of residues starting `MGWSCLVTGA`) into **Protein sequence**. Type `A10E G15D S213G M1V` in **Substitutions**, and leave **Species** as `Homo sapiens (HUMAN)`. Click **Species** first: the list has 85 species, among them `Canis familiaris (CANFA)`.
@@ -95,7 +95,7 @@ The data sample holds 15 PANTHER families. This test case uses a protein of one 
 - [ ] The **Scores** table has four rows, in this order: `A10E`, `220`, "possibly damaging", `0.50`; `G15D`, `4200`, "probably damaging", `0.95`; `S213G`, `91`, "probably benign", `0.19`; `M1V`, an empty age, "Not scored: Invalid substitution", an empty pDel.
 - [ ] **Versions used** lists the API, the engine, the four tools and **csnp data** `PANTHER 9`, matching the footer.
 - [ ] Reload the page. It shows the same job and scores.
-- [ ] Go back to `/csnp`, click **Use an example**, then **Score substitutions**. The example is human APOE, whose family isn't in the sample: the job succeeds with **PANTHER family** `PTHR18976`, and each of its four rows reads "Not scored: No PANTHER family for input sequence", with its age and pDel empty.
+- [ ] Go back to `/csnp`, click **Use an example**, then **Score substitutions**. The example is human APOE, whose family the sample holds too: the job succeeds with **PANTHER family** `PTHR18976`, and the **Scores** table has four rows, in this order: `L46P`, `91`, "probably benign", `0.19`; `C130R`, `6`, "probably benign", `0.02`; `R163C`, `220`, "possibly damaging", `0.50`; `R176C`, `220`, "possibly damaging", `0.50`.
 - [ ] Go back to `/csnp`, type `1234567890` as the sequence, `A10E` as the substitution, and submit. The job page says the job failed, and that the sequence can't be read as a protein sequence. It shows no scores.
 - [ ] No page shows an error code, port number, file path or command.
 

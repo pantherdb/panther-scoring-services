@@ -96,7 +96,7 @@ The 95,639 entries without a `.paml` are of three kinds:
 
 ## The Sample
 
-One family for each check that found something, the smallest that shows it; the four families the spec names; the other two known broken `.paml` files; and the family with the largest `.paml`.
+One family for each check that found something, the smallest that shows it; the four families the spec names; the other two known broken `.paml` files; the family with the largest `.paml`; and, since `csnp-sample-3`, the family of the scoring form's example.
 
 | Family | Bytes | Stands for |
 | ------ | ----- | ---------- |
@@ -115,6 +115,7 @@ One family for each check that found something, the smallest that shows it; the 
 | `PTHR24073_7_3` | 142,857 | Smallest with `Ev=UNK` |
 | `PTHR17358` | 5,443 | Smallest with a taxon missing from the species tree (`DATA-3`) |
 | `PTHR11695` | 151,919,041 | The largest `.paml`, 136,336,728 bytes; unreconstructed cells |
+| `PTHR18976` | 1,884,798 | The scoring form's example: human APOE, the legacy site's (`tips_exampleCsnpInput_content.jsp`). Added in `csnp-sample-3` (`add-apoe-to-csnp-sample`) |
 
 Every check that found something in the full library also finds something in the sample, apart from the BLAST checks, which read the BLAST archive's FASTA. The sample holds the BLAST database since `csnp-sample-2`, but not the FASTA. `tests/test_csnp_sample_data.py` checks this.
 

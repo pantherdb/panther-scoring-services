@@ -11,6 +11,7 @@ import { JobStatus } from './JobStatus'
 const SERVICE_TITLES: Record<JobService, string> = {
   tools: 'Scoring tools check',
   csnp: 'Coding SNP impact scoring',
+  refmap: 'Protein ID mapping',
 }
 
 type Props = {

@@ -12,6 +12,14 @@ describe('the home page', () => {
     expect(main.getByRole('link', { name: /score coding snps/i })).toHaveAttribute('href', '/csnp')
   })
 
+  it('links to the refmap form from its protein ID mapping section', () => {
+    renderRoute('/')
+
+    const main = within(screen.getByRole('main'))
+    expect(main.getByRole('heading', { level: 2, name: /protein id mapping/i })).toBeInTheDocument()
+    expect(main.getByRole('link', { name: /map protein ids/i })).toHaveAttribute('href', '/refmap')
+  })
+
   it('keeps the scoring tools check', () => {
     renderRoute('/')
 

@@ -1,6 +1,7 @@
 import type { Job } from '@/app/api/wire'
 
 import { CsnpScores } from './CsnpScores'
+import { RefmapMappings } from './RefmapMappings'
 import { ToolsResult } from './ToolsResult'
 
 type Props = {
@@ -14,5 +15,7 @@ export function JobResult({ job }: Props) {
       return job.result && <ToolsResult result={job.result} />
     case 'csnp':
       return job.result && <CsnpScores result={job.result} />
+    case 'refmap':
+      return job.result && <RefmapMappings jobId={job.id} result={job.result} />
   }
 }

@@ -6,10 +6,11 @@ import type { components } from '@/app/api/schema'
 type Schemas = components['schemas']
 
 /** A job as the API sends it: one member per service, tagged by `service`. */
-export type WireJob = Schemas['ToolsJob'] | Schemas['CsnpJob']
+export type WireJob = Schemas['ToolsJob'] | Schemas['CsnpJob'] | Schemas['RefmapJob']
 
 /** The body of POST /jobs. Nothing in it needs renaming. */
-export type JobRequest = Schemas['ToolsJobRequest'] | Schemas['CsnpJobRequest']
+export type JobRequest =
+  Schemas['ToolsJobRequest'] | Schemas['CsnpJobRequest'] | Schemas['RefmapJobRequest']
 
 export type JobStatus = Schemas['JobStatus']
 export type JobService = WireJob['service']
@@ -18,6 +19,10 @@ export type CsnpInput = Schemas['CsnpInput']
 export type CsnpResult = Schemas['CsnpResult']
 /** A species cSNP scores against, as GET /csnp/species lists it. Nothing in it needs renaming. */
 export type CsnpSpecies = Schemas['CsnpSpecies']
+export type RefmapInput = Schemas['RefmapInput']
+export type RefmapResult = Schemas['RefmapResult']
+/** One submitted ID and its PANTHER ID; `panther_id` is null where the legacy said NOHIT. */
+export type IdMapping = Schemas['IdMapping']
 export type Problem = Schemas['Problem']
 export type ValidationProblem = Schemas['ValidationProblem']
 export type Versions = Schemas['Versions']
@@ -37,6 +42,7 @@ type JobBase = {
 export type Job =
   | (JobBase & { service: 'tools'; result: ToolsResult | null })
   | (JobBase & { service: 'csnp'; result: CsnpResult | null })
+  | (JobBase & { service: 'refmap'; result: RefmapResult | null })
 
 // Epoch milliseconds rather than a Date: the store keeps only serializable values.
 function toMillis(timestamp: string): number
@@ -63,6 +69,8 @@ export function fromWireJob(wire: WireJob): Job {
     case 'tools':
       return { ...fromWireBase(wire), service: wire.service, result: wire.result }
     case 'csnp':
+      return { ...fromWireBase(wire), service: wire.service, result: wire.result }
+    case 'refmap':
       return { ...fromWireBase(wire), service: wire.service, result: wire.result }
   }
 }

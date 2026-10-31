@@ -1,7 +1,7 @@
 import { type Dispatch, useState } from 'react'
 import { useNavigate } from 'react-router'
 
-import { isUnreachable } from '@/app/api/errors'
+import { errorData, errorStatus, isUnreachable } from '@/app/api/errors'
 import { inputErrors, isValidationProblem } from '@/app/api/wire'
 import { useStartJobMutation } from '@/features/jobs'
 
@@ -12,14 +12,6 @@ import { CSNP_FIELDS, type CsnpValues, type DraftAction, draftInput } from './dr
  * answer from the API at all; `failed` is anything else.
  */
 export type SubmitProblem = 'unreachable' | 'failed' | null
-
-function statusOf(error: unknown) {
-  return typeof error === 'object' && error !== null && 'status' in error ? error.status : null
-}
-
-function dataOf(error: unknown) {
-  return typeof error === 'object' && error !== null && 'data' in error ? error.data : null
-}
 
 /**
  * Starts a csnp job from the draft. A 202 opens the job's page; a 422's errors go to the
@@ -37,8 +29,8 @@ export function useSubmitCsnp(dispatch: Dispatch<DraftAction>) {
       const job = await startJob({ service: 'csnp', input }).unwrap()
       await navigate(`/jobs/${job.id}`)
     } catch (error) {
-      const status = statusOf(error)
-      const data = dataOf(error)
+      const status = errorStatus(error)
+      const data = errorData(error)
       if (status === 422 && isValidationProblem(data) && data.errors.length > 0) {
         dispatch({
           type: 'rejected',

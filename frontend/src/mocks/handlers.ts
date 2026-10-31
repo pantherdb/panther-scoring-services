@@ -7,6 +7,15 @@ import { createJob, pollJob } from '@/mocks/jobs'
 
 const PROBLEM = { 'Content-Type': 'application/problem+json' }
 
+// A refmap request's `input.ids`, or none when the body has no list of strings there.
+function submittedIds(body: unknown): string[] {
+  if (typeof body !== 'object' || body === null || !('input' in body)) return []
+  const { input } = body
+  if (typeof input !== 'object' || input === null || !('ids' in input)) return []
+  const { ids } = input
+  return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []
+}
+
 // Mock API handlers, shared by the dev server, the e2e build and Vitest.
 export const handlers: AnyHandler[] = [
   http.get('/api/v1/versions', () => HttpResponse.json(versions)),
@@ -17,9 +26,9 @@ export const handlers: AnyHandler[] = [
     const body: unknown = await request.json()
     const service =
       typeof body === 'object' && body !== null && 'service' in body ? body.service : undefined
-    // A csnp job is accepted as the API accepts it, and gets the mock result. Neither
-    // input is validated.
-    if (service !== 'tools' && service !== 'csnp') {
+    // A csnp or refmap job is accepted as the API accepts it, and gets a mock result: a refmap
+    // job maps the IDs it was sent. No input is validated, and refmap gets no 501.
+    if (service !== 'tools' && service !== 'csnp' && service !== 'refmap') {
       return HttpResponse.json(
         {
           type: 'about:blank',
@@ -29,7 +38,7 @@ export const handlers: AnyHandler[] = [
           errors: [
             {
               loc: ['body'],
-              msg: 'Only tools and csnp jobs are mocked',
+              msg: 'Only tools, csnp and refmap jobs are mocked',
               type: 'union_tag_invalid',
             },
           ],
@@ -37,7 +46,7 @@ export const handlers: AnyHandler[] = [
         { status: 422, headers: PROBLEM }
       )
     }
-    const job = createJob(service)
+    const job = createJob(service, submittedIds(body))
     return HttpResponse.json(job, { status: 202, headers: { Location: `/api/v1/jobs/${job.id}` } })
   }),
 

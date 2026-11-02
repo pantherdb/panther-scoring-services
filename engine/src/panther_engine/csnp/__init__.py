@@ -7,7 +7,13 @@ Reference: the legacy Perl in cSNP_analysis/ (`snpScore.cgi` and the three scrip
 
 from panther_engine.csnp.codes import SPECIES_CODES, SPECIES_NAMES
 from panther_engine.csnp.scoring import VERSION as DATA_VERSION
-from panther_engine.csnp.scoring import CsnpInput, CsnpResult, SubstitutionScore, score
+from panther_engine.csnp.scoring import (
+    CsnpInput,
+    CsnpResult,
+    SubstitutionScore,
+    check_data,
+    score,
+)
 
 __all__ = [
     "DATA_VERSION",
@@ -16,5 +22,6 @@ __all__ = [
     "CsnpInput",
     "CsnpResult",
     "SubstitutionScore",
+    "check_data",
     "score",
 ]

@@ -1,14 +1,36 @@
 """Step 2 on synthetic BLAST lines: the species filter, the ranking, the best hit and the mapping
 (design.md, decision 4). The goldens are in test_csnp_golden.py."""
 
-import pytest
+import random
+import shutil
+import tempfile
+from pathlib import Path
 
-from panther_engine.csnp.blast import BlastError
+import pytest
+from csnp_fixtures import FIXTURES
+
+from panther_engine.core.process import run_tool
+from panther_engine.csnp.blast import OPTIONS, OUTFMT, BlastError
 from panther_engine.csnp.hits import SnpRecord, best_hits, parse, read_snps
 from panther_engine.csnp.parity import blast_line
 
 HUMAN = "HUMAN|HGNC=1|UniProtKB=P00001:PTHR00001:SF1"
 MOUSE = "MOUSE|MGI=MGI=1|UniProtKB=P00003:PTHR00002:SF2"
+# Identity counts and alignment lengths at which BLAST+ 2.17.0's identity, n / L * 100, and
+# 100 * n / L differ at 3 decimals (the review at 64174c9, CSNP-1).
+TIE_PAIRS = [
+    (161, 320),
+    (199, 320),
+    (201, 320),
+    (402, 640),
+    (603, 960),
+    (804, 1280),
+    (1005, 1600),
+    (1021, 1600),
+]
+RESIDUES = "ACDEFGHIKLMNPQRSTVWY"
+# Residues at each end left unchanged, so BLAST+ aligns the whole length.
+EDGE = 8
 
 
 def snp(position: str, wt: str, *, protein: str = "P0001", mut: str = "V") -> SnpRecord:
@@ -18,6 +40,34 @@ def snp(position: str, wt: str, *, protein: str = "P0001", mut: str = "V") -> Sn
 def mapped(lines: list[str], *records: SnpRecord, species: str = "NA") -> list[str]:
     """Each record's mapped position, the sixth snpParse field."""
     return [row.split(",")[5] for row in parse(lines, records, species)]
+
+
+def tie_pair(identities: int, length: int) -> tuple[str, str]:
+    """A seeded random protein and a copy with `length - identities` substitutions, spread evenly
+    between the residues at each end, so their ungapped alignment has exactly `identities`."""
+    rng = random.Random(f"tie:{identities}/{length}")  # noqa: S311 (test data, not secrets)
+    query = "".join(rng.choice(RESIDUES) for _ in range(length))
+    mismatches = length - identities
+    inside = length - 2 * EDGE
+    subject = list(query)
+    for index in range(mismatches):
+        position = EDGE + index * inside // mismatches
+        subject[position] = rng.choice([r for r in RESIDUES if r != query[position]])
+    return query, "".join(subject)
+
+
+def align(query: str, subject: str) -> str:
+    """The first line `blastp -subject` writes for the two, in step 1's format and options."""
+    found = shutil.which("blastp")
+    assert found is not None
+    with tempfile.TemporaryDirectory() as folder:
+        query_file, subject_file = Path(folder, "query.fa"), Path(folder, "subject.fa")
+        query_file.write_text(f">P0001\n{query}\n", encoding="utf-8")
+        subject_file.write_text(f">S0001\n{subject}\n", encoding="utf-8")
+        args = ["-query", str(query_file), "-subject", str(subject_file), "-outfmt", OUTFMT]
+        result = run_tool(Path(found).absolute(), [*args, *OPTIONS], timeout=60)
+    assert result.returncode == 0, result.stderr
+    return result.stdout.splitlines()[0] + "\n"
 
 
 # The species filter (MAP-2)
@@ -104,6 +154,29 @@ def test_identity_is_recomputed_to_two_decimals() -> None:
     assert line.split(",")[2] == "93.801"
 
     assert best_hits([line], "NA")["P0001"].pident == "93.80"
+
+
+def test_a_real_blast_2_17_0_line_at_a_three_decimal_tie_is_read_and_ranked() -> None:
+    # 201 identities over 320 columns, as BLAST+ 2.17.0 wrote it: 201 / 320 * 100 is 62.813 to 3
+    # decimals, where 100 * 201 / 320 is 62.812.
+    line = (FIXTURES / "identity-tie.csv").read_text(encoding="utf-8")
+    assert line.split(",")[2:7] == ["62.813", "320", "119", "0", "0"]
+
+    assert best_hits([line], "NA")["P0001"].pident == "62.81"
+
+
+@pytest.mark.tools("blastp")
+@pytest.mark.parametrize(("identities", "length"), TIE_PAIRS)
+def test_blast_2_17_0s_own_lines_at_identity_ties_are_read(identities: int, length: int) -> None:
+    query, subject = tie_pair(identities, length)
+
+    line = align(query, subject)
+
+    fields = line.split(",")
+    aligned, mismatch, gaps = int(fields[3]), int(fields[4]), int(fields[6])
+    # The alignment is the one intended, so it really is at a tie.
+    assert (aligned, aligned - mismatch - gaps, gaps) == (length, identities, 0)
+    assert best_hits([line], "NA")["P0001"].pident == f"{identities / length * 100:.2f}"
 
 
 def test_an_identity_that_disagrees_with_the_counts_is_an_error() -> None:

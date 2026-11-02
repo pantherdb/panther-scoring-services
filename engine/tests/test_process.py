@@ -92,3 +92,25 @@ def test_the_tool_runs_in_cwd(make_tool: Callable[[str, str], Path], tmp_path: P
     result = run_tool(tool, [], timeout=10, cwd=folder)
 
     assert result.stdout == f"{folder.resolve()}\n"
+
+
+def test_blasts_usage_reports_are_off_even_when_the_caller_asks_for_them(
+    make_tool: Callable[[str, str], Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tool = make_tool("report", 'printf "%s" "${BLAST_USAGE_REPORT-unset}"')
+    monkeypatch.setenv("BLAST_USAGE_REPORT", "true")
+
+    result = run_tool(tool, [], timeout=10)
+
+    assert result.stdout == "false"
+
+
+def test_the_rest_of_the_callers_environment_reaches_the_tool(
+    make_tool: Callable[[str, str], Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tool = make_tool("environment", 'printf "%s|%s" "$PANTHER_TEST_VALUE" "$BLAST_USAGE_REPORT"')
+    monkeypatch.setenv("PANTHER_TEST_VALUE", "a value; with $(shell) characters")
+
+    result = run_tool(tool, [], timeout=10)
+
+    assert result.stdout == "a value; with $(shell) characters|false"

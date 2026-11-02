@@ -29,3 +29,11 @@ def data_root(folder: Path | str | None = None) -> Path:
 def service_folder(service: str, version: str, folder: Path | str | None = None) -> Path:
     """A service's data folder for one data version, such as `<root>/csnp/9`."""
     return data_root(folder) / service / version
+
+
+class MissingDataError(Exception):
+    """A service's data folder lacks a file or folder that every request needs.
+
+    Never an `InputError`: the job fails with the generic `500`, and the message, which names the
+    folder and what's missing, goes only to the log.
+    """

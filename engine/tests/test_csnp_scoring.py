@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from panther_engine.core.data import MissingDataError
 from panther_engine.core.errors import InputError
 from panther_engine.core.process import run_tool
 from panther_engine.csnp import (
@@ -19,9 +20,12 @@ from panther_engine.csnp import (
     CsnpInput,
     CsnpResult,
     SubstitutionScore,
+    blast,
+    check_data,
     score,
 )
 from panther_engine.csnp.blast import BlastError
+from panther_engine.csnp.psep import step3
 from panther_engine.csnp.scoring import reported_family, to_score
 
 GOLDEN = Path(__file__).parent / "golden" / "csnp"
@@ -193,6 +197,98 @@ def test_no_substitutions_give_no_family_and_nothing_is_searched(
     assert not never_searched.exists()
 
 
+# The data check (CSNP-3): before searching, the data folder must hold the BLAST database, a
+# library folder that isn't empty and the species tree.
+
+BLAST_FILES = ("blast/blast.phr", "blast/blast.pin", "blast/blast.psq")
+
+
+def data_folder(
+    root: Path, *, blast: bool = True, library: bool | None = True, species: bool = True
+) -> Path:
+    """A cSNP data folder under `root` with placeholder files: the BLAST database, `PAML_RST/`
+    holding one `.paml` (empty with `library=False`, missing with None), and the species tree."""
+    folder = root / "csnp" / "9"
+    folder.mkdir(parents=True)
+    if blast:
+        for name in BLAST_FILES:
+            (folder / name).parent.mkdir(exist_ok=True)
+            (folder / name).write_bytes(b"")
+    if library is not None:
+        (folder / "PAML_RST").mkdir()
+        if library:
+            (folder / "PAML_RST" / "PTHR00001.paml").write_bytes(b"")
+    if species:
+        (folder / "species_pthr8_time.nhx").write_bytes(b"")
+    return folder
+
+
+def missing_data(request_: CsnpInput, root: Path) -> str:
+    with pytest.raises(MissingDataError) as raised:
+        score(request_, data_dir=root)
+    assert not isinstance(raised.value, InputError)
+    return str(raised.value)
+
+
+def test_a_folder_with_only_the_blast_database_names_the_library_and_the_species_tree(
+    never_searched: Path, tmp_path: Path
+) -> None:
+    data_folder(tmp_path, library=None, species=False)
+
+    message = missing_data(CsnpInput(PROTEINS["P26439"], ("A10E",), "HUMAN"), tmp_path)
+
+    assert "PAML_RST" in message
+    assert "species_pthr8_time.nhx" in message
+    assert "blast.p" not in message
+    assert not never_searched.exists()
+
+
+def test_an_empty_library_folder_is_named(never_searched: Path, tmp_path: Path) -> None:
+    data_folder(tmp_path, library=False)
+
+    message = missing_data(CsnpInput("MKVL", ("K2E",), "HUMAN"), tmp_path)
+
+    assert "PAML_RST" in message
+    assert "species_pthr8_time.nhx" not in message
+    assert not never_searched.exists()
+
+
+def test_an_empty_data_folder_names_the_database_the_library_and_the_species_tree(
+    never_searched: Path, tmp_path: Path
+) -> None:
+    message = missing_data(CsnpInput("MKVL", ("K2E",), "HUMAN"), tmp_path)
+
+    for name in (*BLAST_FILES, "PAML_RST", "species_pthr8_time.nhx"):
+        assert name in message
+    assert str(tmp_path) in message
+    assert not never_searched.exists()
+
+
+def test_a_complete_folder_passes_the_check(tmp_path: Path) -> None:
+    check_data(data_folder(tmp_path).parent.parent)
+
+
+@pytest.mark.data("csnp")
+def test_a_family_the_library_doesnt_have_still_isnt_scored(csnp_data: Path) -> None:
+    # Thousands of families have no .paml. The check passes, and step 3 says so as the Perl did.
+    check_data(csnp_data.parent.parent)
+    assert not (csnp_data / "PAML_RST" / "PTHR99999.paml").exists()
+    rows = ["SNP_1,P0001,PTHR99999,HUMAN|HGNC=1|UniProtKB=P00001,10,10,A,E\n"]
+
+    assert step3(rows, csnp_data) == [
+        "SNP_1,A10E,Not scored: No PANTHER family for input sequence\n"
+    ]
+
+
+def test_the_missing_data_error_comes_back_from_a_worker_process(tmp_path: Path) -> None:
+    request_ = CsnpInput("MKVL", ("K2E",), "HUMAN")
+    with ProcessPoolExecutor(1, mp_context=multiprocessing.get_context("spawn")) as pool:
+        future = pool.submit(score, request_, data_dir=tmp_path)
+
+        with pytest.raises(MissingDataError, match="PAML_RST"):
+            future.result(timeout=60)
+
+
 # With blastp and the data sample
 
 
@@ -222,6 +318,25 @@ def test_the_forms_example_gives_the_references_scores() -> None:
     records = (example / "apoe.out").read_text().splitlines(keepends=True)
 
     result = score(CsnpInput(sequence, ("L46P", "C130R", "R163C", "R176C"), "HUMAN"))
+
+    assert result == CsnpResult("PTHR18976", tuple(to_score(record) for record in records))
+
+
+@pytest.mark.tools("blastp")
+@pytest.mark.data("csnp")
+@pytest.mark.parametrize("name", ["my data", 'a "quoted" folder'])
+def test_a_data_folder_path_with_a_space_or_a_quote_gives_the_same_scores(
+    csnp_data: Path, tmp_path: Path, name: str
+) -> None:
+    # BLAST+ splits -db on spaces (CSNP-6), and a double quote breaks its quoting.
+    root = tmp_path / name
+    (root / "csnp").mkdir(parents=True)
+    (root / "csnp" / "9").symlink_to(csnp_data.resolve(), target_is_directory=True)
+    example = GOLDEN / "example"
+    sequence = "".join((example / "apoe.fasta").read_text().partition("\n")[2].split())
+    records = (example / "apoe.out").read_text().splitlines(keepends=True)
+
+    result = score(CsnpInput(sequence, ("L46P", "C130R", "R163C", "R176C"), "HUMAN"), data_dir=root)
 
     assert result == CsnpResult("PTHR18976", tuple(to_score(record) for record in records))
 
@@ -280,13 +395,27 @@ def test_a_query_blastp_cant_read_is_an_input_error() -> None:
 
 @pytest.mark.tools("blastp")
 @pytest.mark.data("csnp")
-def test_a_data_folder_without_the_database_is_a_failure_not_an_input_error(
-    tmp_path: Path,
+def test_an_option_the_real_blastp_rejects_is_a_failure_naming_it_not_an_input_error(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    with pytest.raises(BlastError) as raised:
-        score(CsnpInput(PROTEINS["P26439"], ("A10E",), "HUMAN"), data_dir=tmp_path)
+    # blastp 2.17.0 exits with status 1 here too, as for a query it can't read (CSNP-5).
+    monkeypatch.setattr(blast, "OPTIONS", ("-best_hit_overhang", "0.9"))
+
+    with pytest.raises(BlastError, match="best_hit_overhang") as raised:
+        score(CsnpInput(PROTEINS["P26439"], ("A10E",), "HUMAN"))
 
     assert not isinstance(raised.value, InputError)
+
+
+def test_a_data_folder_without_the_database_is_a_failure_not_an_input_error(
+    never_searched: Path, tmp_path: Path
+) -> None:
+    data_folder(tmp_path, blast=False)
+
+    message = missing_data(CsnpInput(PROTEINS["P26439"], ("A10E",), "HUMAN"), tmp_path)
+
+    assert all(name in message for name in BLAST_FILES)
+    assert not never_searched.exists()
 
 
 @pytest.mark.tools("blastp")

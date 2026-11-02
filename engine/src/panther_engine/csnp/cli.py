@@ -1,5 +1,5 @@
-"""The `panther-engine csnp` subcommands: scoring, the library survey, the data sample, and parity
-with the legacy scripts."""
+"""The `panther-engine csnp` subcommands: scoring, the library survey, the data sample, the full
+data's manifest, and parity with the legacy scripts."""
 
 import argparse
 import dataclasses
@@ -10,8 +10,8 @@ from pathlib import Path
 
 from panther_engine.core.data import DATA_DIR_VARIABLE, DataFolderError, service_folder
 from panther_engine.core.errors import InputError
-from panther_engine.core.manifest import ManifestError
-from panther_engine.csnp import parity, sample
+from panther_engine.core.manifest import ManifestError, checksums, read_manifest
+from panther_engine.csnp import full, parity, sample
 from panther_engine.csnp.blast import BlastError
 from panther_engine.csnp.library import LibraryFormatError
 from panther_engine.csnp.scoring import SUBSTITUTION, CsnpInput, CsnpResult, score
@@ -22,6 +22,8 @@ from panther_engine.csnp.survey import SurveyError, report_json, report_text, su
 TRIMMED = "".join(chr(code) for code in range(0x21))
 HEADER = re.compile(r"\A>[^\n]*")
 WHITESPACE = re.compile(r"[ \t\n\x0b\x0c\r]+")
+# How many paths `csnp data verify` names, of each kind.
+LISTED = 20
 
 
 def configure(parser: argparse.ArgumentParser) -> None:
@@ -184,6 +186,82 @@ def configure(parser: argparse.ArgumentParser) -> None:
     )
     add_data_options(verify)
 
+    data_parser = commands.add_parser(
+        "data",
+        help="build the full cSNP data's manifest, or check a data folder against it",
+        description="The full cSNP data: the whole PAML_RST library, the PANTHER9 BLAST "
+        "database, the species tree and the PSEP copyright statement, under the data folder at "
+        "csnp/9/. The engine's full.json lists every file with its sha256.",
+    )
+    data_commands = data_parser.add_subparsers(
+        dest="data_command", metavar="COMMAND", required=True
+    )
+    manifest = data_commands.add_parser(
+        "manifest",
+        help="build the full data's manifest from the archives",
+        description="Build the full data's manifest from PAML_RST.tar.gz, PANTHER9.blast.tar.gz, "
+        "the species tree and the PSEP README, reading each archive as a stream. The same inputs "
+        "give the same bytes. Refuses an input whose sha256 isn't the pinned one, and then writes "
+        "nothing.",
+    )
+    manifest.add_argument("archive", type=Path, metavar="ARCHIVE", help="PAML_RST.tar.gz")
+    manifest.add_argument(
+        "--blast-archive", type=Path, metavar="FILE", required=True, help="PANTHER9.blast.tar.gz"
+    )
+    manifest.add_argument(
+        "--species", type=Path, metavar="FILE", required=True, help="species_pthr8_time.nhx"
+    )
+    manifest.add_argument(
+        "--readme",
+        type=Path,
+        metavar="FILE",
+        required=True,
+        help="the PSEP 1.01 release's README.txt, for its copyright statement",
+    )
+    manifest.add_argument(
+        "--manifest",
+        type=Path,
+        metavar="FILE",
+        default=full.MANIFEST,
+        help="the manifest to write (default: the engine's full.json)",
+    )
+    for name, default, what in (
+        ("archive", sample.PINNED_ARCHIVE, "the archive's"),
+        ("blast", sample.PINNED_BLAST, "the BLAST archive's"),
+        ("species", sample.PINNED_SPECIES, "the species tree's"),
+    ):
+        manifest.add_argument(
+            f"--{name}-sha256",
+            metavar="HEX",
+            default=default,
+            help=f"{what} expected sha256 (default: the pin in the legacy behaviour spec)",
+        )
+    manifest.add_argument(
+        "--copyright-sha256",
+        metavar="HEX",
+        help="the copyright statement's expected sha256 (default: the sample's pin)",
+    )
+    data_verify = data_commands.add_parser(
+        "verify",
+        help="check the data folder against the full data's manifest",
+        description="Check the data folder against the full data's manifest. Prints how many "
+        f"listed files are missing and how many differ, names the first {LISTED} of each, and "
+        "exits with status 1 if there is any. Files the manifest doesn't list are ignored.",
+    )
+    data_verify.add_argument(
+        "--data-dir",
+        type=Path,
+        metavar="DIR",
+        help=f"the data folder (default: ${DATA_DIR_VARIABLE})",
+    )
+    data_verify.add_argument(
+        "--manifest",
+        type=Path,
+        metavar="FILE",
+        default=full.MANIFEST,
+        help="the manifest (default: the engine's full.json)",
+    )
+
     parity_parser = commands.add_parser(
         "parity",
         help="generate parity cases, run them through the legacy scripts, check the port",
@@ -306,6 +384,8 @@ def run(args: argparse.Namespace) -> int:
             return run_survey(args.archive, args.species, args.blast_archive, args.json)
         case "sample":
             return run_sample(args)
+        case "data":
+            return run_data(args)
         case "parity":
             return run_parity(args)
         case _:
@@ -351,6 +431,55 @@ def run_sample(args: argparse.Namespace) -> int:
             case _:
                 raise AssertionError(f"unhandled command: {command}")
     except (sample.SampleError, DataFolderError, ManifestError, OSError) as error:
+        print(f"{command}: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def run_data(args: argparse.Namespace) -> int:
+    command = f"panther-engine csnp data {args.data_command}"
+    try:
+        match args.data_command:
+            case "manifest":
+                built = full.build(
+                    args.archive,
+                    blast=args.blast_archive,
+                    species=args.species,
+                    readme=args.readme,
+                    manifest=args.manifest,
+                    archive_sha256=args.archive_sha256,
+                    blast_sha256=args.blast_sha256,
+                    species_sha256=args.species_sha256,
+                    copyright_sha256=args.copyright_sha256,
+                )
+                print(f"wrote {args.manifest}: {len(checksums(built)):,} files")
+            case "verify":
+                listed = len(checksums(read_manifest(args.manifest)))
+                mismatches = sample.verify_folder(args.data_dir, manifest=args.manifest)
+                print(
+                    f"{len(mismatches.missing):,} missing and {len(mismatches.differing):,} "
+                    f"differing, of {listed:,} listed files"
+                )
+                for kind, paths in (
+                    ("missing", mismatches.missing),
+                    ("differs", mismatches.differing),
+                ):
+                    for path in paths[:LISTED]:
+                        print(f"{kind}: {path}")
+                    if len(paths) > LISTED:
+                        print(f"{kind}: and {len(paths) - LISTED:,} more")
+                if not mismatches.ok:
+                    return 1
+                print("every file matches the full data's manifest")
+            case _:
+                raise AssertionError(f"unhandled command: {command}")
+    except (
+        full.FullDataError,
+        sample.SampleError,
+        DataFolderError,
+        ManifestError,
+        OSError,
+    ) as error:
         print(f"{command}: {error}", file=sys.stderr)
         return 1
     return 0

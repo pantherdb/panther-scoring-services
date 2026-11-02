@@ -68,6 +68,8 @@ def test_blastp_finds_the_family() -> None: ...
 
 Every external tool is started through `run_tool()` in `src/panther_engine/core/process.py`: an absolute program path, a list of arguments and no shell. Ruff's `S603` reports any other `subprocess` call in the engine whose arguments include a variable. It doesn't report a call made only of string literals, such as `subprocess.run(["/bin/echo", "x"])`, so don't take a clean lint as proof that no such call exists.
 
+**BLAST+'s usage reports are off.** BLAST+ 2.17.0 otherwise sends NCBI a usage report on every run, `-version` included, and where that traffic is dropped it waits about 10 seconds first. `run_tool()` sets `BLAST_USAGE_REPORT=false` for every tool, over whatever the caller's environment has, and the `Dockerfile`'s `tools` stage sets it too, so a `blastp` run by hand in any image doesn't report either.
+
 In tests, the `make_tool` fixture (`tests/conftest.py`) writes a fake tool: a small shell script in a temporary folder. `tests/test_process.py` and `tests/test_tools.py` show how to use it.
 
 ## Scoring From the Command Line
@@ -94,6 +96,31 @@ G15D          4200  probably damaging  0.95
 - **`--species`** is a code of the PANTHER9 BLAST database, such as `HUMAN`.
 - **`--json`** prints the result as `score()` returns it. **`--data-dir`** overrides `PANTHER_DATA_DIR`.
 - **Exit status 1** for input it can't score, with the reason on standard error.
+
+## The BLAST+ Time Limit
+
+Each search's time limit grows with the sequence: 60 s, plus 21 ms a residue, times `PANTHER_CSNP_BLAST_TIME_SCALE` (`csnp/blast.py`). A search past its limit fails the job with a `500`.
+
+| Sequence | Residues | Slowest of three searches | Limit | Headroom |
+| -------- | -------- | ------------------------- | ----- | -------- |
+| A typical protein | 400 | 4 to 6 s | 68.4 s | over 10 times |
+| Titin (Q8WZ42) | 34,350 | 274.6 s (267.2, 273.9, 274.6) | 781.4 s | 2.85 times |
+| The API's longest accepted sequence: titin, then its first 15,650 residues | 50,000 | 436.9 s (424.0, 427.1, 436.9) | 1,110 s | 2.54 times |
+
+- **Measured on 2026-11-02,** in the arm64 engine image on an Apple M1 Pro, one search at a time. `blastp` runs on one thread, as the legacy did, so each job uses one core. The rate was set so each long query gets at least 2.5 times its slowest search; `tests/test_csnp_blast.py` checks the limit against these times.
+- **On a slower machine,** time titin there with the command below, then set `PANTHER_CSNP_BLAST_TIME_SCALE` so its search takes at most 40% of its limit. For example, `2` doubles every limit. Unset or empty, the scale is 1; anything but a positive number fails each job before BLAST+ runs, naming the variable.
+- **To time a search,** without a limit that might cut it off, from the repository root, with the sequence alone in `titin.seq`:
+
+  ```sh
+  docker compose run --rm -T -v "$PWD/titin.seq:/tmp/titin.seq:ro" engine python -c '
+  import time
+  from pathlib import Path
+  from panther_engine.csnp import blast
+  sequence = Path("/tmp/titin.seq").read_text().strip()
+  start = time.monotonic()
+  blast.search(sequence, Path("/data/csnp/9"), timeout=3600)
+  print(f"{len(sequence)} residues: {time.monotonic() - start:.1f} s")'
+  ```
 
 ## Parity Tests
 
@@ -178,9 +205,22 @@ tar -xzf panther_build/PAML_RST.tar.gz -C ~/panther-data/csnp/9
 tar -xzf PANTHER_PSEP1.01/PANTHER9.blast.tar.gz -C ~/panther-data/csnp/9
 cp panther-workspace/legacy/cSNP_analysis/species_pthr8_time.nhx ~/panther-data/csnp/9/
 (cd panther-scoring-services/engine && uv run panther-engine csnp sample fetch --data-dir ~/panther-data)
+(cd panther-scoring-services/engine && uv run panther-engine csnp data verify --data-dir ~/panther-data)
 ```
 
-The BLAST archive unpacks to `csnp/9/blast/`, with the `blast.fasta` the sample leaves out; it's harmless. The last line adds the copyright statement and checks the sample's files, which the full data also holds. Then set `PANTHER_DATA_DIR=~/panther-data`. It needs 19.9 GB free.
+The BLAST archive unpacks to `csnp/9/blast/`, with the `blast.fasta` the sample leaves out; it's harmless. The `fetch` line adds the copyright statement and checks the sample's files, which the full data also holds. Then set `PANTHER_DATA_DIR=~/panther-data`. It needs 19.9 GB free. On an Apple M1 Pro, the steps took 43 s.
+
+**The last line checks every file of the full data** against `engine/src/panther_engine/csnp/full.json`: 25,826 files, each by its sha256. It prints how many are missing and how many differ, names the first 20 of each, and exits with status 1 if there is any. Files it doesn't list, such as `blast.fasta`, are ignored. It took 21 s natively, and 68 s in the engine image with the folder bind-mounted on macOS. A deploy runs it before the API takes traffic; scoring itself checks only that the library, the database and the species tree are there (`check_data()`), so a copy that stopped halfway would otherwise answer "No PANTHER family" for the families it lacks.
+
+`full.json` is generated, from the same pinned inputs as the sample, reading each archive as a stream. The data is frozen, so it shouldn't need rebuilding. To check it, rebuild it from `engine/`; this takes about 30 s, and must give the same bytes:
+
+```sh
+uv run panther-engine csnp data manifest ../../panther_build/PAML_RST.tar.gz \
+  --blast-archive ../../PANTHER_PSEP1.01/PANTHER9.blast.tar.gz \
+  --species ../../panther-workspace/legacy/cSNP_analysis/species_pthr8_time.nhx \
+  --readme ../../PANTHER_PSEP1.01/README.txt
+git diff --exit-code src/panther_engine/csnp/full.json
+```
 
 ### Publishing a New Sample
 

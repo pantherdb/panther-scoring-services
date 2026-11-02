@@ -10,7 +10,7 @@ import { createMemoryRouter, RouterProvider, type RouteObject } from 'react-rout
 
 import { routes as appRoutes } from '@/app/router'
 import { makeStore } from '@/app/store'
-import { theme } from '@/app/theme'
+import { cssVariablesResolver, theme } from '@/app/theme'
 
 type Options = {
   /** Defaults to the app's own route table. */
@@ -27,7 +27,7 @@ export function renderRoute(path: string, { routes = appRoutes }: Options = {}) 
     <Provider store={store}>
       {/* env="test": no transitions or portals, and a Select's dropdown isn't hidden for
           having no layout, which jsdom never has. */}
-      <MantineProvider theme={theme} env="test">
+      <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver} env="test">
         <RouterProvider router={router} />
       </MantineProvider>
     </Provider>

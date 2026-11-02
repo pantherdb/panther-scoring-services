@@ -85,6 +85,37 @@ describe('versions on every page', () => {
     expect(shown).toContainEqual(['hmmsearch', '3.4'])
   })
 
+  it('shows the API and engine, and the page still works, when the API leaves out tools and data', async () => {
+    // An older API, such as one mid-rollout, may answer 200 without the lists.
+    server.use(
+      http.get('/api/v1/versions', () => HttpResponse.json({ api: '1.2.3', engine: '4.5.6' }))
+    )
+    renderRoute('/csnp')
+
+    expect(await shownVersions()).toEqual([
+      ['API', '1.2.3'],
+      ['Engine', '4.5.6'],
+    ])
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
+    expect(screen.getByLabelText(/protein sequence/i)).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /went wrong/i })).not.toBeInTheDocument()
+  })
+
+  it('shows the API, engine and data when the API leaves out only the tools', async () => {
+    server.use(
+      http.get('/api/v1/versions', () =>
+        HttpResponse.json({ api: '1.2.3', engine: '4.5.6', data: reported.data })
+      )
+    )
+    renderRoute('/')
+
+    expect(await shownVersions()).toEqual([
+      ['API', '1.2.3'],
+      ['Engine', '4.5.6'],
+      ['csnp data', 'PANTHER 9'],
+    ])
+  })
+
   it('says the versions are unavailable when the request fails, and the page still works', async () => {
     server.use(
       http.get('/api/v1/versions', () =>

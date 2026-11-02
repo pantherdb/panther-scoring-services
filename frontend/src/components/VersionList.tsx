@@ -9,12 +9,14 @@ type Props = {
 // The API, the engine, each tool, then each service's data, in the order the API reports
 // them. Shared by the footer (what the service runs now) and the job page (what a job ran
 // with). A data version is the PANTHER release the API names, never one written here.
+// The schema requires `tools` and `data`, but an older API, such as one mid-rollout, may
+// leave either out; show what there is rather than fail the whole page.
 export function VersionList({ versions }: Props) {
   const entries = [
     { label: 'API', version: versions.api },
     { label: 'Engine', version: versions.engine },
-    ...versions.tools.map(tool => ({ label: tool.name, version: tool.version })),
-    ...versions.data.map(data => ({
+    ...(versions.tools ?? []).map(tool => ({ label: tool.name, version: tool.version })),
+    ...(versions.data ?? []).map(data => ({
       label: `${data.service} data`,
       version: `PANTHER ${data.panther}`,
     })),

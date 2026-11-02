@@ -95,7 +95,7 @@
           "jobs"
         ],
         "summary": "Start a job",
-        "description": "Start a job for `service` with its `input`. The job runs after this request returns.\n\nAn input the job can't run with is a 422, and no job is created. A problem only the work can\nfind, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid\n`refmap` request gets a 501 until its mapping is available; its input is still validated first.",
+        "description": "Start a job for `service` with its `input`. The job runs after this request returns.\n\nAn input the job can't run with is a 422, and no job is created. A problem only the work can\nfind, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid\n`refmap` request gets a 501 until its mapping is available; its input is still validated first.\nA valid request is a 503 when too many jobs are already waiting for a worker.",
         "operationId": "create_job_api_v1_jobs_post",
         "requestBody": {
           "content": {
@@ -184,6 +184,24 @@
               }
             }
           },
+          "503": {
+            "description": "As many jobs are waiting for a worker as the API allows (`PANTHER_API_MAX_QUEUED_JOBS`). The request was valid, and no job was created.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before submitting again",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
           "501": {
             "description": "The service can't run jobs yet: `refmap`, until its mapping is ported. The request was valid, and no job was created.",
             "content": {
@@ -200,6 +218,16 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body is over the API's limit (`PANTHER_API_MAX_BODY_BYTES`, 16 MiB by default). It was refused before it was processed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
                 }
               }
             }

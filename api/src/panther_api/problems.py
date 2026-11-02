@@ -52,8 +52,9 @@ _SCHEMA_REF = "#/components/schemas/{model}"
 def document_problems(schema: dict[str, Any]) -> dict[str, Any]:
     """Finish the generated OpenAPI schema so it matches what the handlers return.
 
-    Every operation that takes input documents a 422 with `ValidationProblem`, and every error
-    response's body is listed under `application/problem+json`. Changes `schema` in place.
+    Every operation that takes input documents a 422 with `ValidationProblem`, one with a body
+    documents the 413 for a body over the limit (limits.py), and every error response's body is
+    listed under `application/problem+json`. Changes `schema` in place.
     """
     components = schema.setdefault("components", {}).setdefault("schemas", {})
     _, definitions = models_json_schema(
@@ -68,12 +69,22 @@ def document_problems(schema: dict[str, Any]) -> dict[str, Any]:
             }
         },
     }
+    too_large_response = {
+        "description": "The request body is over the API's limit "
+        "(`PANTHER_API_MAX_BODY_BYTES`, 16 MiB by default). "
+        "It was refused before it was processed.",
+        "content": {
+            PROBLEM_MEDIA_TYPE: {"schema": {"$ref": _SCHEMA_REF.format(model=Problem.__name__)}}
+        },
+    }
 
     for path_item in schema.get("paths", {}).values():
         for operation in path_item.values():
             responses = operation.setdefault("responses", {})
             if "parameters" in operation or "requestBody" in operation:
                 responses["422"] = validation_response
+            if "requestBody" in operation:
+                responses["413"] = too_large_response
             for status, response in responses.items():
                 content = response.get("content", {})
                 if (status == "default" or status[0] in "45") and "application/json" in content:
@@ -99,7 +110,7 @@ def _title(status: int) -> str:
         return "Error"
 
 
-def _respond(problem: Problem, headers: Mapping[str, str] | None = None) -> JSONResponse:
+def problem_response(problem: Problem, headers: Mapping[str, str] | None = None) -> JSONResponse:
     return JSONResponse(
         problem.model_dump(),
         status_code=problem.status,
@@ -115,7 +126,7 @@ async def _http_error(_request: Request, exc: StarletteHTTPException) -> JSONRes
     detail = raw_detail if isinstance(raw_detail, str) else title
     problem = Problem(title=title, status=exc.status_code, detail=detail)
     # Keeps headers such as Allow on a 405.
-    return _respond(problem, exc.headers)
+    return problem_response(problem, exc.headers)
 
 
 VALUE_ERROR_PREFIX = "Value error, "
@@ -167,11 +178,11 @@ async def _validation_error(_request: Request, exc: RequestValidationError) -> J
         detail=_validation_detail(len(all_errors)),
         errors=errors,
     )
-    return _respond(problem)
+    return problem_response(problem)
 
 
 async def _unexpected_error(_request: Request, _exc: Exception) -> JSONResponse:
     # Nothing about the exception goes in the response. Starlette re-raises it after this
     # handler, so the server logs it with its traceback.
     status = HTTPStatus.INTERNAL_SERVER_ERROR
-    return _respond(Problem(title=status.phrase, status=status, detail=UNEXPECTED_DETAIL))
+    return problem_response(Problem(title=status.phrase, status=status, detail=UNEXPECTED_DETAIL))

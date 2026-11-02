@@ -44,6 +44,10 @@ If the schema changed, also run `npm run api:types` in `frontend/` and commit `s
   - Any other exception fails the job with the generic `500` detail, and its details go only to the log.
   - A problem with one item, such as one substitution that can't be mapped, isn't an error: it belongs in the result.
 - **Jobs are kept in memory** until they expire (`PANTHER_API_JOB_EXPIRY_SECONDS`), so a restart loses them. Mind the size of what a job keeps: a result of 100,000 items is tens of megabytes.
+- **The limits** (`harden-api-for-hosting`):
+  - `limits.BodyLimit` refuses a body over `PANTHER_API_MAX_BODY_BYTES` with a `413`, before FastAPI reads it. A new service's largest valid request must fit under it; `refmap`'s, about 13 MB, sets the 16 MiB default.
+  - `JobRunner.submit()` raises `QueueFullError`, and stores nothing, when `PANTHER_API_MAX_QUEUED_JOBS` jobs already wait; the router answers `503` with `Retry-After`. It counts unfinished jobs past one per worker, not jobs whose status is `queued`, which lags a loop turn behind.
+- **The startup checks the cSNP data** with `panther_engine.csnp.check_data()`, and only logs an error if it's missing. Don't make it stop the API: natively, developers run without the data.
 
 ## The Engine
 

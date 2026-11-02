@@ -60,6 +60,7 @@ export interface paths {
          *     An input the job can't run with is a 422, and no job is created. A problem only the work can
          *     find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid
          *     `refmap` request gets a 501 until its mapping is available; its input is still validated first.
+         *     A valid request is a 503 when too many jobs are already waiting for a worker.
          */
         post: operations["create_job_api_v1_jobs_post"];
         delete?: never;
@@ -559,6 +560,15 @@ export interface operations {
                     "application/json": components["schemas"]["ToolsJob"] | components["schemas"]["CsnpJob"] | components["schemas"]["RefmapJob"];
                 };
             };
+            /** @description The request body is over the API's limit (`PANTHER_API_MAX_BODY_BYTES`, 16 MiB by default). It was refused before it was processed. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Request validation failed */
             422: {
                 headers: {
@@ -580,6 +590,17 @@ export interface operations {
             /** @description The service can't run jobs yet: `refmap`, until its mapping is ported. The request was valid, and no job was created. */
             501: {
                 headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description As many jobs are waiting for a worker as the API allows (`PANTHER_API_MAX_QUEUED_JOBS`). The request was valid, and no job was created. */
+            503: {
+                headers: {
+                    /** @description Seconds to wait before submitting again */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {

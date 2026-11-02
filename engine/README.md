@@ -63,7 +63,11 @@ result.scores[0]  # SubstitutionScore("A10E", 220, "possibly damaging", "0.50")
 
 - **The pipeline is the legacy one,** step for step: `blastp` against the PANTHER9 database, the best hit and the mapped positions, then the trace-back through the family tree to an age, a message and pDel. Its defects are kept, such as `SCORE-2` and `MAP-4`, until a divergence row is approved.
 - **`InputError`** means the input as a whole can't be scored: today, a sequence BLAST+ can't read (divergence row 8). The API reports it as `422`, with the message as it is.
-- **Anything else is a `500`:** `ValueError` for input the API should have rejected, such as a species not in `SPECIES_CODES`, and `BlastError` when BLAST+ fails.
+- **Anything else is a `500`:**
+  - `ValueError` for input the API should have rejected, such as a species not in `SPECIES_CODES`;
+  - `MissingDataError` when the data folder lacks the BLAST database, the `PAML_RST/` library or the species tree. `check_data()` runs the same check on its own, for a readiness check;
+  - `BlastError` when BLAST+ fails, with the end of its standard error in the message, for the log.
+- **The search's time limit** grows with the sequence: 60 s plus 21 ms a residue, which is 781 s for titin. On a slower machine, multiply it with `PANTHER_CSNP_BLAST_TIME_SCALE`, such as `2`. The measurements behind it are in [engine.md](../docs/testing/engine.md#the-blast-time-limit).
 - **A substitution that can't be scored is a row of the result,** with the legacy "Not scored: …" message, not an error.
 
 ## Layout
@@ -89,6 +93,7 @@ src/panther_engine/
     legacy.py     the Perl's own readings of the same files, where they differ
     survey.py     the PAML_RST library survey
     sample.py     the data sample: build, fetch, verify. sample.json pins the current one
+    full.py       the full data's manifest, full.json, built from the pinned archives
     parity.py     the parity cases, the run through the Perl, and the comparison
     cli.py        the csnp subcommands
   hmmscore/, refmap/, treegrafter/
@@ -109,6 +114,7 @@ tools-env/        EPA-ng's Bioconda lock, per architecture, for the image
 | `panther-engine tools` | Each external tool's version and path. Exits with 1 if one is missing or its version can't be read |
 | `panther-engine csnp score FASTA A10E … --species HUMAN` | Scores one protein as the API's `csnp` job does. Needs `blastp`, so run it in the image |
 | `panther-engine csnp sample fetch` / `verify` / `build` | Fetches the cSNP data sample into the data folder, checks it, or builds a new one |
+| `panther-engine csnp data verify` / `manifest` | Checks the full cSNP data in the data folder against `full.json`, or builds `full.json` from the pinned archives |
 | `panther-engine csnp survey ARCHIVE` | Checks every family of the PAML_RST library, streaming the archive |
 | `panther-engine csnp parity cases` / `reference` / `check` | Generates parity cases, runs them through the Perl in the `csnp-reference` image, and checks the port against its output |
 

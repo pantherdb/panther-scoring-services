@@ -84,7 +84,8 @@ RUN set -eux; \
 FROM ${UV_IMAGE} AS uv
 
 # The tools image: the Python base, the three tools at the paths their stages installed them to,
-# and uv. uv uses the base image's Python 3.13 and never downloads one.
+# and uv. uv uses the base image's Python 3.13 and never downloads one. BLAST+ sends NCBI no usage
+# reports, even when run by hand; the engine's run_tool sets the same variable for every tool.
 FROM ${PYTHON_IMAGE} AS tools
 RUN set -eux; \
     apt-get update; \
@@ -95,7 +96,8 @@ COPY --from=hmmer /opt/tools/hmmer /opt/tools/hmmer
 COPY --from=epang /opt/tools/conda /opt/tools/conda
 COPY --from=uv /uv /uvx /usr/local/bin/
 ENV PATH="/opt/tools/blast/bin:/opt/tools/hmmer/bin:/opt/tools/conda/bin:${PATH}" \
-    UV_PYTHON_DOWNLOADS=never
+    UV_PYTHON_DOWNLOADS=never \
+    BLAST_USAGE_REPORT=false
 RUN useradd --create-home --uid 1000 --user-group panther
 USER panther
 

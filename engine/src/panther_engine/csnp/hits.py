@@ -151,23 +151,33 @@ def ranked(lines: Iterable[str]) -> list[str]:
 
 
 def two_decimals(fields: Sequence[str]) -> str:
-    """The identity, `100 * (length - mismatch - gaps) / length`, written with 2 decimals as the
-    legacy BLAST+ wrote it. Raises BlastError if it doesn't round to the line's own value."""
+    """The identity, `(length - mismatch - gaps) / length * 100`, written with 2 decimals as the
+    legacy BLAST+ wrote it. Raises BlastError if it doesn't round to the line's own value.
+
+    The operations are BLAST+ 2.17.0's, in its order: at a tie, such as 201 identities over 320
+    columns, `100 * 201 / 320` rounds to 62.812 where BLAST+ writes 62.813. The legacy BLAST+ is
+    assumed to have computed it the same way, with fewer decimals (`fix-csnp-blast-handling`).
+    """
     try:
         length, mismatch, gaps = (int(fields[index]) for index in (LENGTH, MISMATCH, GAPS))
     except ValueError as error:
         raise BlastError(f"not a BLAST line: {_preview(','.join(fields))}") from error
     if length <= 0:
         raise BlastError(f"an alignment of length {length}: {_preview(','.join(fields))}")
-    value = 100 * (length - mismatch - gaps) / length
+    value = identity(length - mismatch - gaps, length)
     written = fields[PIDENT]
     decimals = len(written.partition(".")[2])
     if f"{value:.{decimals}f}" != written:
         raise BlastError(
-            f"the identity {written} isn't 100 * (length - mismatch - gaps) / length = "
+            f"the identity {written} isn't (length - mismatch - gaps) / length * 100 = "
             f"{value:.{decimals + 2}f}: {_preview(','.join(fields))}"
         )
     return f"{value:.2f}"
+
+
+def identity(identities: int, length: int) -> float:
+    """Percent identity as BLAST+ 2.17.0 computes it: `identities / length * 100`, in that order."""
+    return identities / length * 100
 
 
 def map_position(hit: Hit | None, position: str, wt: str) -> str | None:

@@ -161,7 +161,7 @@ def blast_line(
     gapopen = len(re.findall("-+", qseq)) + len(re.findall("-+", sseq))
     qend = qstart + len(qseq) - qseq.count("-") - 1
     send = sstart + len(sseq) - sseq.count("-") - 1
-    identity = pident or f"{100 * (len(qseq) - mismatch - gaps) / len(qseq):.{decimals}f}"
+    identity = pident or f"{hits.identity(len(qseq) - mismatch - gaps, len(qseq)):.{decimals}f}"
     fields = (
         qseqid,
         sseqid,

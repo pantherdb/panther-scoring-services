@@ -11,12 +11,14 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from panther_engine.core.data import service_folder
+from panther_engine.core.data import MissingDataError, service_folder
 from panther_engine.csnp import blast, hits, psep
 from panther_engine.csnp.codes import SPECIES_CODES
 
 SERVICE = "csnp"
 VERSION = "9"
+# The BLAST database's files under the cSNP data folder, as `blastp -db blast/blast` reads them.
+BLAST_FILES = tuple(f"{blast.DATABASE}.{suffix}" for suffix in ("phr", "pin", "psq"))
 # The API's rules (`scoring-input`): printable ASCII without whitespace, and the legacy CGI's
 # substitution form.
 SEQUENCE = re.compile(r"[!-~]+")
@@ -65,9 +67,10 @@ def score(request: CsnpInput, *, data_dir: Path | str | None = None) -> CsnpResu
 
     The data folder is `PANTHER_DATA_DIR`, or `data_dir` in tests. Raises ValueError, before
     anything is searched, for input the API rejects: an unknown species, a sequence that isn't
-    printable ASCII without whitespace, or a substitution not in the form `A10E`. Raises
-    InputError when BLAST+ can't read the sequence (divergence 8), and BlastError when it fails
-    otherwise.
+    printable ASCII without whitespace, or a substitution not in the form `A10E`. Then, before
+    searching, raises MissingDataError when the data folder lacks what every search needs
+    (`check_data`). Raises InputError when BLAST+ can't read the sequence (divergence 8), and
+    BlastError when it fails otherwise. A broken library file raises LibraryFormatError.
     """
     if request.species not in SPECIES_CODES:
         raise ValueError(f"not a species in the PANTHER9 BLAST database: {request.species!r}")
@@ -79,6 +82,10 @@ def score(request: CsnpInput, *, data_dir: Path | str | None = None) -> CsnpResu
     if not request.substitutions:
         # snpScore.cgi ran the steps on no records, and showed no family.
         return CsnpResult(None, ())
+    # The input's fault comes first: a sequence BLAST+ would read as a comment is refused whatever
+    # the data folder holds.
+    blast.refuse_comment(request.sequence)
+    check_data(data_dir)
     data = service_folder(SERVICE, VERSION, data_dir)
     lines = blast.search(request.sequence, data)
     records = [
@@ -106,3 +113,24 @@ def to_score(record: str) -> SubstitutionScore:
         return SubstitutionScore(fields[1], None, fields[2], None)
     _, substitution, _, age, message, pdel = fields
     return SubstitutionScore(substitution, int(age) if age else None, message, pdel)
+
+
+def check_data(data_dir: Path | str | None = None) -> None:
+    """Check that the cSNP data folder holds what every search needs: the BLAST database's files,
+    a library folder that isn't empty, and the species tree. Raises MissingDataError, naming the
+    folder and each missing part, if it doesn't.
+
+    It's cheap: a few `stat`s and one directory read. It can't tell a partial library from a full
+    one, since thousands of families legitimately have no `.paml`; `csnp data verify` checks that.
+    """
+    data = service_folder(SERVICE, VERSION, data_dir)
+    missing = [name for name in BLAST_FILES if not (data / name).is_file()]
+    library = data / psep.LIBRARY
+    if not library.is_dir():
+        missing.append(f"{psep.LIBRARY}/")
+    elif next(library.iterdir(), None) is None:
+        missing.append(f"{psep.LIBRARY}/ (it's empty)")
+    if not (data / psep.SPECIES).is_file():
+        missing.append(psep.SPECIES)
+    if missing:
+        raise MissingDataError(f"the cSNP data folder {data} lacks: {', '.join(missing)}")

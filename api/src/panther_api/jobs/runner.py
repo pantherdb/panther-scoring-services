@@ -31,16 +31,48 @@ def _job_problem(detail: str, status: HTTPStatus = HTTPStatus.INTERNAL_SERVER_ER
     return Problem(title=status.phrase, status=status, detail=detail)
 
 
+class QueueFullError(Exception):
+    """As many jobs are waiting for a worker as the cap allows. No job was stored."""
+
+
 class JobRunner:
     """The job store, the worker pool, and a task per job that waits for its work."""
 
-    def __init__(self, *, workers: int, expiry: timedelta, versions: Versions) -> None:
+    def __init__(
+        self, *, workers: int, max_queued: int, expiry: timedelta, versions: Versions
+    ) -> None:
         self.store = JobStore(expiry)
         self._versions = versions
         self._workers = workers
+        self._max_queued = max_queued
         self._pool = self._new_pool()
         self._slots = asyncio.Semaphore(workers)
         self._tasks: set[asyncio.Task[None]] = set()
+        # Jobs submitted and not yet finished, running or waiting.
+        self._unfinished = 0
+
+    def submit(self, request: JobRequest) -> JobRecord:
+        """Store a new job and start its task. Call it on the event loop.
+
+        Raises QueueFullError, and stores nothing, when the job would have to wait for a worker
+        and `max_queued` jobs already are.
+        """
+        # The jobs waiting are those unfinished past one per worker. They're counted this way,
+        # not by status, because a job becomes `running` only when its task next gets the loop:
+        # jobs submitted back to back while a worker is free would otherwise count as waiting.
+        if self._unfinished >= self._workers + self._max_queued:
+            raise QueueFullError
+        job = self.store.add(request, self._versions)
+        self._unfinished += 1
+        task = asyncio.create_task(self._run(job))
+        # The loop keeps only a weak reference to a task: keep it alive until it's done.
+        self._tasks.add(task)
+        task.add_done_callback(self._finished)
+        return job
+
+    def _finished(self, task: asyncio.Task[None]) -> None:
+        self._tasks.discard(task)
+        self._unfinished -= 1
 
     def _new_pool(self) -> ProcessPoolExecutor:
         # spawn on every platform (docs/design/tech-stack.md, API recommendation 1). Processes
@@ -48,15 +80,6 @@ class JobRunner:
         return ProcessPoolExecutor(
             max_workers=self._workers, mp_context=multiprocessing.get_context("spawn")
         )
-
-    def submit(self, request: JobRequest) -> JobRecord:
-        """Store a new job and start its task. Call it on the event loop."""
-        job = self.store.add(request, self._versions)
-        task = asyncio.create_task(self._run(job))
-        # The loop keeps only a weak reference to a task: keep it alive until it's done.
-        self._tasks.add(task)
-        task.add_done_callback(self._tasks.discard)
-        return job
 
     async def _run(self, job: JobRecord) -> None:
         # The pool gets at most one job per worker, so a job it has been given is running, not

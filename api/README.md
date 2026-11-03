@@ -34,6 +34,8 @@ Everything is under `/api/v1`. The current, complete list is the schema in [`ope
 
 Every error is an RFC 9457 problem-details body (`application/problem+json`).
 
+Two limits protect a public API: a request body over 16 MiB gets a `413` before it's parsed, and a job that would wait behind 50 others gets a `503` with `Retry-After`. Both are settings. At startup, the API logs an error if the cSNP data is missing, and starts anyway.
+
 Jobs run in a pool of worker processes and are kept in memory, so a restart loses them. There are two:
 
 - **`csnp`** (`{"sequence", "substitutions", "species"}`) scores coding SNPs in one protein with the engine's PANTHER-PSEP port. It needs `blastp` and the cSNP data, in the folder `PANTHER_DATA_DIR` names; the compose `api` service mounts `.data/` there. A sequence the engine can't read fails the job with a `422` and the engine's message; any other error fails it with a generic `500`.
@@ -47,9 +49,11 @@ To try them, and to get the data sample, see "Try the Jobs by Hand" in [docs/tes
 
 ```text
 src/panther_api/
-  main.py        create_app(): the /api/v1 router, the error handlers, and the startup that reads
-                 the settings and versions and starts the job runner
+  main.py        create_app(): the /api/v1 router, the error handlers, the body limit, and the
+                 startup that reads the settings and versions, checks the cSNP data, and starts
+                 the job runner
   settings.py    the PANTHER_API_* settings, read once at startup
+  limits.py      the middleware that refuses a body over the limit with a 413
   problems.py    problem-details errors, and how the schema documents them. A 422 lists at
                  most the first 100 field errors
   versions.py    the Versions model, read from the engine

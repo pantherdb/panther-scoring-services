@@ -52,8 +52,28 @@ The API reads its settings from environment variables when it starts. An invalid
 | -------- | ------- | ----- | ------------ |
 | `PANTHER_API_JOB_WORKERS` | `2` | an integer ≥ 1 | Worker processes that run jobs. Jobs beyond that wait as `queued` |
 | `PANTHER_API_JOB_EXPIRY_SECONDS` | `86400` (24 hours) | an integer ≥ 1 | How long a finished job is kept. After that, polling it gets a 404 |
+| `PANTHER_API_MAX_QUEUED_JOBS` | `50` | an integer ≥ 0 | Jobs that may wait for a worker. Past that, a submission gets a `503` and no job is created. See [Limits](#limits) |
+| `PANTHER_API_MAX_BODY_BYTES` | `16777216` (16 MiB) | an integer ≥ 1 | The largest request body accepted. A larger one gets a `413`. See [Limits](#limits) |
 
 Set one for the native dev server with, for example, `PANTHER_API_JOB_WORKERS=1 uv run fastapi dev --port 8000`, and for the image with `docker run -e PANTHER_API_JOB_WORKERS=1 …`. The compose `api` service sets none, so it uses the defaults. Jobs are kept in memory, and are lost when the API restarts.
+
+At startup, the API checks the cSNP data folder with the engine's `check_data()`. If `PANTHER_DATA_DIR` isn't set, or the folder lacks part of the data, it logs an error such as `csnp jobs will fail until the cSNP data is in place: the cSNP data folder … lacks: …`, and starts anyway: everything but a `csnp` job works without the data. Natively without the data, expect that line.
+
+### Limits
+
+Two limits protect the API's memory and its queue. Both answer with problem details, in fixed text that never repeats the request:
+
+- **A body over `PANTHER_API_MAX_BODY_BYTES` gets a `413`,** "The request body is larger than the API accepts, 16,777,216 bytes.", before it's parsed. A `Content-Length` over the limit is refused without reading the body; a body without one is refused as soon as it passes the limit. The default fits the largest valid request, a `refmap` job of 100,000 IDs of 64 characters, about 13 MB of JSON.
+- **A job that would wait past `PANTHER_API_MAX_QUEUED_JOBS` gets a `503`,** "Too many jobs are waiting to run. Try again later.", with `Retry-After: 30`, and no job is created. Up to `PANTHER_API_JOB_WORKERS` jobs run, and up to the cap wait. A request is validated first, so an invalid one is still a `422`.
+
+To see the `503`, start the dev server with one worker and no waiting allowed, then submit two `tools` jobs at once:
+
+```sh
+PANTHER_API_JOB_WORKERS=1 PANTHER_API_MAX_QUEUED_JOBS=0 uv run fastapi dev --port 8000
+for i in 1 2; do curl -s -o /dev/null -w '%{http_code}\n' localhost:8000/api/v1/jobs -H 'Content-Type: application/json' -d '{"service": "tools", "input": {}}'; done
+```
+
+The first gets `202`; the second gets `503` if it arrives while the first is still running, as it does while the first job starts the worker. To see the `413`, send a body over the limit with `PANTHER_API_MAX_BODY_BYTES=100`.
 
 ## Running the API in the Image
 

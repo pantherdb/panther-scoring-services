@@ -9,7 +9,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Body, HTTPException, Request, Response, status
 
 from panther_api.jobs.models import JOB_ADAPTER, Job
-from panther_api.jobs.runner import JobRunner
+from panther_api.jobs.runner import JobRunner, QueueFullError
 from panther_api.jobs.store import JobRecord
 from panther_api.jobs.work import UNAVAILABLE, JobRequest
 from panther_api.problems import Problem
@@ -17,6 +17,9 @@ from panther_api.problems import Problem
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 JOB_NOT_FOUND = "There is no job with this id. A finished job expires after a time."
+QUEUE_FULL_DETAIL = "Too many jobs are waiting to run. Try again later."
+RETRY_AFTER_SECONDS = 30
+"""What a 503's `Retry-After` asks for: about how long a typical `csnp` job takes."""
 
 _CREATE_RESPONSES: dict[int | str, dict[str, Any]] = {
     status.HTTP_202_ACCEPTED: {
@@ -25,6 +28,17 @@ _CREATE_RESPONSES: dict[int | str, dict[str, Any]] = {
             "Location": {
                 "description": "The job's path, `/api/v1/jobs/{job_id}`",
                 "schema": {"type": "string"},
+            }
+        },
+    },
+    status.HTTP_503_SERVICE_UNAVAILABLE: {
+        "model": Problem,
+        "description": "As many jobs are waiting for a worker as the API allows "
+        "(`PANTHER_API_MAX_QUEUED_JOBS`). The request was valid, and no job was created.",
+        "headers": {
+            "Retry-After": {
+                "description": "Seconds to wait before submitting again",
+                "schema": {"type": "integer"},
             }
         },
     },
@@ -71,11 +85,19 @@ async def create_job(
     An input the job can't run with is a 422, and no job is created. A problem only the work can
     find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid
     `refmap` request gets a 501 until its mapping is available; its input is still validated first.
+    A valid request is a 503 when too many jobs are already waiting for a worker.
     """
     unavailable = UNAVAILABLE.get(job_request.service)
     if unavailable is not None:
         raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, detail=unavailable.detail)
-    record = _runner(request).submit(job_request)
+    try:
+        record = _runner(request).submit(job_request)
+    except QueueFullError:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=QUEUE_FULL_DETAIL,
+            headers={"Retry-After": str(RETRY_AFTER_SECONDS)},
+        ) from None
     response.headers["Location"] = request.app.url_path_for("get_job", job_id=str(record.id))
     return _job(record)
 

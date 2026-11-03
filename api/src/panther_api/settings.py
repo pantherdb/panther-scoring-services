@@ -4,8 +4,11 @@ The lifespan reads them once, when the app starts, so an invalid value stops the
 takes a request. There is no `.env` file. docs/testing/api.md lists the variables.
 """
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+import re
+from typing import Annotated
+
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 MAX_BODY_BYTES = 16 * 1024 * 1024
 """The default limit on a request body. It fits the largest valid request: a `refmap` job of
@@ -14,6 +17,9 @@ MAX_BODY_BYTES = 16 * 1024 * 1024
 MAX_QUEUED_JOBS = 50
 """The default cap on jobs waiting for a worker. Why 50: openspec harden-api-for-hosting,
 design.md, decision 3."""
+
+ORIGIN = re.compile(r"https?://[^/\s*?#@]+")
+"""A browser origin: a scheme and a host, with any port, and no path, wildcard or trailing `/`."""
 
 
 class Settings(BaseSettings):
@@ -33,3 +39,27 @@ class Settings(BaseSettings):
         ge=1,
         description="The largest request body accepted, in bytes; a larger one is a 413",
     )
+    # NoDecode: the variable is a comma-separated list, not JSON.
+    cors_origins: Annotated[tuple[str, ...], NoDecode] = Field(
+        default=(),
+        description=(
+            "Browser origins allowed to call the API from another site, comma-separated, such as "
+            "https://pantherdb.github.io; empty allows none, and adds no CORS headers"
+        ),
+    )
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _split_origins(cls, value: object) -> object:
+        """Split the comma-separated list, and refuse anything that isn't an exact origin."""
+        if not isinstance(value, str):
+            return value
+        origins = tuple(origin.strip() for origin in value.split(",") if origin.strip())
+        for origin in origins:
+            if not ORIGIN.fullmatch(origin):
+                # The value is configuration, not request data, so it may be named.
+                raise ValueError(
+                    f"{origin!r} isn't an origin: give the scheme and host only, such as "
+                    "https://pantherdb.github.io, with no path, no trailing / and no *"
+                )
+        return origins

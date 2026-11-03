@@ -11,6 +11,7 @@ import panther_engine.csnp
 from fastapi import APIRouter, FastAPI
 from fastapi.concurrency import run_in_threadpool
 
+from panther_api.cors import Cors
 from panther_api.jobs.runner import JobRunner
 from panther_api.limits import BodyLimit
 from panther_api.problems import PROBLEM_RESPONSES, add_problem_handlers, document_problems
@@ -84,8 +85,11 @@ def create_app(*routers: APIRouter) -> FastAPI:
         lifespan=lifespan,
     )
     add_problem_handlers(app)
-    # Before anything reads a body, so the limit holds however the route reads it.
+    # Each middleware added wraps the ones before it. BodyLimit runs before anything reads a body,
+    # so the limit holds however the route reads it. Cors wraps it, so a preflight is answered
+    # before the limit, and a 413 still gets the CORS headers a browser needs to read it.
     app.add_middleware(BodyLimit)
+    app.add_middleware(Cors)
 
     api = APIRouter(prefix=API_PREFIX, responses=PROBLEM_RESPONSES)
     api.include_router(health.router)

@@ -144,10 +144,30 @@ Tag a spec with `test('...', { tag: '@api' }, async ({ page }) => { ... })`.
 - **`e2e/contrast.spec.ts` measures WCAG contrast** of a field's description and error against the canvas, painting each colour on a canvas to read it as sRGB, since the tokens are `oklch()`.
 - **One `@mock` refmap spec loads a file of 100,000 IDs** and pages through the mocked mappings, on both projects. It takes about 10 seconds a project.
 
+## Build Settings
+
+A build reads two settings from the environment, both empty by default. GitHub Pages' workflow sets both ([runbook-pages.md](../deployment/runbook-pages.md)).
+
+| Variable | Default | What it sets |
+| -------- | ------- | ------------ |
+| `VITE_API_BASE_URL` | empty: the relative `/api/v1` | The API's URL, without `/api/v1`, such as `https://api.example.org`. Every call, and the footer's API docs link, goes to `<url>/api/v1`. Read only in `src/app/apiBaseUrl.ts` |
+| `BASE_PATH` | `/` | The path the site is served under, such as `/panther-scoring-services/`. Vite's `base`, and the router's `basename` |
+
+- **Every build writes `404.html`,** a copy of `index.html`, so a reload of a deep link on Pages starts the app.
+- **A build with mocking on and `VITE_API_BASE_URL` set fails:** MSW only answers the relative `/api/v1`.
+- **To try a Pages build locally,** in Git Bash, where `MSYS_NO_PATHCONV=1` stops `BASE_PATH` being rewritten into a Windows path:
+
+  ```bash
+  MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=https://api.example.org BASE_PATH=/panther-scoring-services/ npm run build
+  MSYS_NO_PATHCONV=1 BASE_PATH=/panther-scoring-services/ npm run preview   # http://localhost:4173/panther-scoring-services/
+  ```
+
+  The asset URLs in `dist/index.html` then start with `/panther-scoring-services/`, and `dist/404.html` is the same file.
+
 ## Mocking in the Dev Server
 
 `npm run dev` starts MSW and logs `[MSW] Mocking enabled.` in the browser console. Every page then shows a **Mock data** banner at the top, so a screenshot of mock results can't pass for real ones. Mocked jobs live in the page, so reloading a job's page in mock mode shows "Job not found"; against a real API, the job is still there. To develop against a real API instead, run `npm run dev:api`.
 
 - **Which modes mock** is set in the `.env.*` files in `frontend/` (`VITE_API_MOCKING=on` or `off`): `dev` and `build:e2e` mock; `dev:api` and `build` don't.
 - **One function reads it,** `isApiMocked()` in `src/app/mocking.ts`. Both MSW's start-up in `src/main.tsx` and the banner in `src/layout/AppLayout.tsx` ask it, so they can't disagree. In a Vitest test, turn it on with `vi.stubEnv('VITE_API_MOCKING', 'on')` and off again with `vi.unstubAllEnvs()` (see `tests/layout/AppLayout.test.tsx`).
-- **A build without mocking ships nothing of MSW:** its JavaScript leaves out MSW and the banner, and `vite.config.ts` removes `mockServiceWorker.js`, which Vite copies from `public/`, from its `dist/`. After `npm run build`, `grep -rli -e msw -e "mock data" dist` finds nothing.
+- **A build without mocking ships nothing of MSW:** its JavaScript leaves out MSW and the banner, and `vite.config.ts` removes `mockServiceWorker.js`, which Vite copies from `public/`, from its `dist/`. After `npm run build`, `grep -rli -e msw -e "mock data" dist` finds nothing. The Pages workflow checks the same, for `mockServiceWorker` and "mock data", before it deploys.

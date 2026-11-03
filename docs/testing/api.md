@@ -54,10 +54,20 @@ The API reads its settings from environment variables when it starts. An invalid
 | `PANTHER_API_JOB_EXPIRY_SECONDS` | `86400` (24 hours) | an integer ≥ 1 | How long a finished job is kept. After that, polling it gets a 404 |
 | `PANTHER_API_MAX_QUEUED_JOBS` | `50` | an integer ≥ 0 | Jobs that may wait for a worker. Past that, a submission gets a `503` and no job is created. See [Limits](#limits) |
 | `PANTHER_API_MAX_BODY_BYTES` | `16777216` (16 MiB) | an integer ≥ 1 | The largest request body accepted. A larger one gets a `413`. See [Limits](#limits) |
+| `PANTHER_API_CORS_ORIGINS` | empty | comma-separated origins, such as `https://pantherdb.github.io`: a scheme and host, with no path, `*` or trailing `/` | The browser origins allowed to call the API from another site. Empty adds no CORS headers. See [CORS](#cors) |
 
 Set one for the native dev server with, for example, `PANTHER_API_JOB_WORKERS=1 uv run fastapi dev --port 8000`, and for the image with `docker run -e PANTHER_API_JOB_WORKERS=1 …`. The compose `api` service sets none, so it uses the defaults. Jobs are kept in memory, and are lost when the API restarts.
 
 At startup, the API checks the cSNP data folder with the engine's `check_data()`. If `PANTHER_DATA_DIR` isn't set, or the folder lacks part of the data, it logs an error such as `csnp jobs will fail until the cSNP data is in place: the cSNP data folder … lacks: …`, and starts anyway: everything but a `csnp` job works without the data. Natively without the data, expect that line.
+
+### CORS
+
+A frontend on another origin, such as the GitHub Pages site, needs `PANTHER_API_CORS_ORIGINS` set to its origin. Set, a request or preflight from a listed origin gets `Access-Control-Allow-Origin`, with `GET`, `POST` and `Content-Type` allowed and `Location` and `Retry-After` exposed; other origins get none, and no credentials are ever allowed. A `413` carries the headers too. To see it:
+
+```bash
+PANTHER_API_CORS_ORIGINS=https://pantherdb.github.io uv run fastapi dev --port 8000
+curl -si -X OPTIONS http://localhost:8000/api/v1/jobs -H 'Origin: https://pantherdb.github.io' -H 'Access-Control-Request-Method: POST' | grep -i access-control
+```
 
 ### Limits
 

@@ -15,13 +15,15 @@ import { cssVariablesResolver, theme } from '@/app/theme'
 type Options = {
   /** Defaults to the app's own route table. */
   routes?: RouteObject[]
+  /** The base path, as main.tsx passes it; `path` then starts with it. */
+  basename?: string
 }
 
 // Renders a URL with the same providers as main.tsx: a fresh store, the theme
 // and a memory router.
-export function renderRoute(path: string, { routes = appRoutes }: Options = {}) {
+export function renderRoute(path: string, { routes = appRoutes, basename }: Options = {}) {
   const store = makeStore()
-  const router = createMemoryRouter(routes, { initialEntries: [path] })
+  const router = createMemoryRouter(routes, { initialEntries: [path], basename })
   const user = userEvent.setup()
   const result = render(
     <Provider store={store}>

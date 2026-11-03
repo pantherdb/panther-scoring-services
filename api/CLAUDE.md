@@ -47,6 +47,7 @@ If the schema changed, also run `npm run api:types` in `frontend/` and commit `s
 - **The limits** (`harden-api-for-hosting`):
   - `limits.BodyLimit` refuses a body over `PANTHER_API_MAX_BODY_BYTES` with a `413`, before FastAPI reads it. A new service's largest valid request must fit under it; `refmap`'s, about 13 MB, sets the 16 MiB default.
   - `JobRunner.submit()` raises `QueueFullError`, and stores nothing, when `PANTHER_API_MAX_QUEUED_JOBS` jobs already wait; the router answers `503` with `Retry-After`. It counts unfinished jobs past one per worker, not jobs whose status is `queued`, which lags a loop turn behind.
+- **CORS** (`deploy-frontend-to-pages`): `cors.Cors` wraps Starlette's `CORSMiddleware` for the origins in `PANTHER_API_CORS_ORIGINS`, and adds nothing when it's empty. It's added after `BodyLimit`, so it runs outside it: a preflight is answered before the limit, and a `413` still carries the CORS headers. Keep that order. A new response header a browser must read goes in `cors.EXPOSED_HEADERS`.
 - **The startup checks the cSNP data** with `panther_engine.csnp.check_data()`, and only logs an error if it's missing. Don't make it stop the API: natively, developers run without the data.
 
 ## The Engine

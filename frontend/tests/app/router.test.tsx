@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { renderRoute } from '../utils/render'
@@ -20,13 +20,13 @@ describe('routes', () => {
 
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 2, name: /not found/i })).toBeInTheDocument()
-    expect(screen.getByRole('link')).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: /back to home/i })).toHaveAttribute('href', '/')
   })
 
   it('goes back home from the not-found page', async () => {
     const { user, router } = renderRoute('/does-not-exist')
 
-    await user.click(screen.getByRole('link'))
+    await user.click(screen.getByRole('link', { name: /back to home/i }))
 
     expect(router.state.location.pathname).toBe('/')
     expect(screen.getByRole('heading', { level: 2, name: /coding snp/i })).toBeInTheDocument()
@@ -54,5 +54,36 @@ describe('routes', () => {
     expect(screen.getByRole('main').textContent).not.toMatch(
       /localhost|:\d{4,5}\b|VITE_|API_PROXY|npm |npx /
     )
+  })
+
+  describe('under a base path, as on a GitHub project page', () => {
+    const basename = '/panther-scoring-services/'
+
+    it('shows the home page at the base path', () => {
+      renderRoute(basename, { basename })
+
+      expect(screen.getByRole('heading', { level: 2, name: /coding snp/i })).toBeInTheDocument()
+    })
+
+    it('shows the page for a deep link under the base path', () => {
+      renderRoute(`${basename}csnp`, { basename })
+
+      expect(within(screen.getByRole('main')).getByLabelText(/protein sequence/i)).toBeVisible()
+      expect(
+        screen.queryByRole('heading', { level: 2, name: /not found/i })
+      ).not.toBeInTheDocument()
+    })
+
+    it('links the not-found page back to the base path, and goes there', async () => {
+      const { user, router } = renderRoute(`${basename}does-not-exist`, { basename })
+
+      expect(screen.getByRole('heading', { level: 2, name: /not found/i })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /back to home/i })).toHaveAttribute('href', basename)
+
+      await user.click(screen.getByRole('link', { name: /back to home/i }))
+
+      expect(router.state.location.pathname).toBe(basename)
+      expect(screen.getByRole('heading', { level: 2, name: /coding snp/i })).toBeInTheDocument()
+    })
   })
 })

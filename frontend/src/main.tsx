@@ -16,11 +16,17 @@ async function startMocking() {
   // A constant in a build, so builds without mocking drop MSW entirely.
   if (!isApiMocked()) return
   const { worker } = await import('@/mocks/browser')
-  await worker.start({ onUnhandledFrame: 'bypass' })
+  await worker.start({
+    onUnhandledFrame: 'bypass',
+    // Under the base path, where Vite copied it from public/.
+    serviceWorker: { url: `${import.meta.env.BASE_URL}mockServiceWorker.js` },
+  })
 }
 
 const store = makeStore()
-const router = createBrowserRouter(routes)
+// The base path the site was built for (BASE_PATH in vite.config.ts), so routes and links work
+// under a project page such as /panther-scoring-services/.
+const router = createBrowserRouter(routes, { basename: import.meta.env.BASE_URL })
 
 await startMocking()
 

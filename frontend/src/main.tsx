@@ -10,7 +10,7 @@ import { RouterProvider } from 'react-router/dom'
 import { isApiMocked } from '@/app/mocking'
 import { routes } from '@/app/router'
 import { makeStore } from '@/app/store'
-import { theme } from '@/app/theme'
+import { cssVariablesResolver, theme } from '@/app/theme'
 
 async function startMocking() {
   // A constant in a build, so builds without mocking drop MSW entirely.
@@ -27,7 +27,7 @@ await startMocking()
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Provider store={store}>
-      <MantineProvider theme={theme}>
+      <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
         <RouterProvider router={router} />
       </MantineProvider>
     </Provider>

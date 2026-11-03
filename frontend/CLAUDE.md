@@ -71,6 +71,7 @@ The app builds with the React Compiler, and `react-hooks` 7 fails the lint on wh
 - **Use the scale and the tokens.** Tailwind's steps and the tokens in the `@theme` block are the vocabulary: `text-sm`, not `text-[13px]`. If you need a value twice, add a token.
 - **Name colours by their job, not their hue.** `text-primary-700` or `text-danger`, not `text-blue-700`. Every colour is defined once, in `@theme`.
 - **Colour Mantine through the theme** (`src/app/theme.ts`), not through stylesheet overrides or `!important`. The theme reads the `@theme` colours as CSS variables (`var(--color-primary-600)`). `@theme static` makes Tailwind emit every token, even ones no class uses. Mantine can't compute contrast for `var()` colours, so don't rely on `autoContrast`.
+- **Mantine's own text colours go through `cssVariablesResolver`** in `src/app/theme.ts`: a field's error is `--color-danger` and its description `--color-ink-muted`, since Mantine's defaults fail WCAG AA. Pass it to every `MantineProvider`, as `src/main.tsx` and `tests/utils/render.tsx` do. `e2e/contrast.spec.ts` measures the contrast in a browser.
 - **No inline `style={{}}`** except for values computed at runtime.
 
 ## State and Data
@@ -92,6 +93,7 @@ The app builds with the React Compiler, and `react-hooks` 7 fails the lint on wh
 - **A job's results have their own URL** (`/jobs/:id`), so a reload or a shared link shows the same results.
 - **Show the versions the API reports** (PANTHER library, BLAST+, engine) with the results, so a score can be traced to the data behind it.
 - **No build details on screen.** No ports, environment variables or commands in anything a user reads, error pages included. Log them with `console.warn` behind `import.meta.env.DEV`.
+- **Every route in `src/app/router.tsx` has an `errorElement`.** A page route gets `ErrorPage` (`src/components/`), so the header and footer stay; the root route gets `RootError` (`src/layout/`), which redraws the header. Without one, a render error shows React Router's developer screen, stack trace included, and it ships in the production bundle. A new route gets `errorElement: <ErrorPage />`.
 
 ## TypeScript
 

@@ -70,6 +70,7 @@ Tests live in `tests/`, mirroring `src/`. Vitest collects only `tests/**/*.test.
 - **The job page polls once a second,** with real timers. A test that waits for a status change raises its `findBy*` or `waitFor` timeout to a few seconds (see `tests/features/jobs/JobPage.test.tsx`).
 - **MSW 3 renamed `onUnhandledRequest` to `onUnhandledFrame`.** The behaviour is the same, but examples written for MSW 2 won't type-check. `tests/setup.ts` uses `onUnhandledFrame: 'error'`.
 - **To render a page**, use `renderRoute(path)` from `tests/utils/render.tsx`. It wraps the page in the same store, theme and routes as the app.
+- **To test what a render error shows,** make a component throw with `vi.mock` on its feature's `index.ts`, keeping the real route table, as `tests/app/routeErrors.test.tsx` does. Silence `console.error` there: React and React Router both log a caught render error.
 
 Run one file, or one test by name:
 
@@ -139,6 +140,8 @@ Tag a spec with `test('...', { tag: '@api' }, async ({ page }) => { ... })`.
 - **One `@api` cSNP spec creates a real `csnp` job,** in site mode too. It submits the release sample's first protein, P26439, with three substitutions, and checks the scores the legacy service gave them. The form's example, human APOE, scores against the sample too since `csnp-sample-3`, which holds its family, `PTHR18976`; the legacy scripts' scores for it are in `engine/tests/golden/csnp/example/apoe.out`.
 - **The other `@api` cSNP specs create no job:** the API answers each with a `422`. One of them rewrites the request in flight with `page.route`, so the real API's `422` reaches the form; the form's own checks would otherwise stop the request.
 - **The `@api` refmap specs create no job** while the API answers a valid `refmap` request with a `501`: one submits the form's example and expects the "isn't available yet" message, one rewrites an ID in flight with `page.route` so the real API's `422` is named on the IDs field, and one posts an invalid request directly. They need no data. When the API maps IDs, the first must wait for a `succeeded` job instead.
+- **`page.route` can't change an answer in mock mode:** MSW's service worker answers first. To serve a body the mocks don't, in every mode, replace `window.fetch` with `page.addInitScript`, as the versions spec without `tools` or `data` does (`e2e/versions.spec.ts`).
+- **`e2e/contrast.spec.ts` measures WCAG contrast** of a field's description and error against the canvas, painting each colour on a canvas to read it as sRGB, since the tokens are `oklch()`.
 - **One `@mock` refmap spec loads a file of 100,000 IDs** and pages through the mocked mappings, on both projects. It takes about 10 seconds a project.
 
 ## Mocking in the Dev Server

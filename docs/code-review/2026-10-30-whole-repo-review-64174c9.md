@@ -1,6 +1,6 @@
 # Whole-Repository Review at `64174c9`, 2026-10-30
 
-**Reviewed:** the whole repository. That's `engine/`, `api/` and `frontend/`; the images, compose and CI; the repository's gates as GitHub enforces them; and the specs, the divergence log and the docs, checked against the code.
+**Reviewed:** the whole repository. That's `engine/`, `api/` and `frontend/`; the images, compose and CI; and the specs, the divergence log and the docs, checked against the code.
 
 **Commit:** `main` at `64174c9` (#49). Since the earlier draft review at `13d97b3`, `main` has gained:
 
@@ -18,7 +18,7 @@
 - the engine's core and data tooling;
 - the API, and the contracts between areas;
 - the frontend;
-- the images, CI, gates and docs;
+- the images, CI and docs;
 - the specs, against the code and tests.
 
 Every finding was then checked again against the code at `64174c9`, and each one says how:
@@ -40,8 +40,6 @@ The code is in good shape for where the project is.
 - **The form against the API:** the form's checks agree with the API's own validators on 20,001 random drafts, except for one contrived case (FE-13).
 - **Specs:** no requirement in the seven main specs is unimplemented.
 
-The most serious finding is still outside the code. The live `main` ruleset lets two developers merge without review or CI. 11 merges up to this commit used that bypass, and 2 more since (REPO-1).
-
 The Medium findings:
 
 - **cSNP (CSNP-1 to CSNP-4):**
@@ -58,7 +56,6 @@ The Medium findings:
 
 Decisions the team owes, each of which blocks work:
 
-- the ruleset bypass: remove it, or record it (REPO-1);
 - refmap's divergence rows 9 and 10, which merged without an approver (SPEC-1);
 - refmap's data layout, and whether it runs as a job or synchronously (SPEC-5);
 - for the science owner: the species filter (CSNP-2), and who approves divergence rows, row 1 included (SPEC-4).
@@ -72,13 +69,12 @@ Several Medium findings take a line or two to fix:
 
 | Severity | Repository, images and CI | API | cSNP port | Engine core and tooling | Frontend | Specs and process | Total |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| High | 1 | 0 | 0 | 0 | 0 | 0 | 1 |
 | Medium | 1 | 2 | 4 | 1 | 2 | 0 | 10 |
 | Low | 8 | 7 | 3 | 10 | 10 | 6 | 44 |
 | Nit | 2 | 6 | 4 | 12 | 5 | 0 | 29 |
-| Total | 12 | 15 | 11 | 23 | 17 | 6 | 84 |
+| Total | 11 | 15 | 11 | 23 | 17 | 6 | 83 |
 
-Of the 84 findings, 36 are new, and 48 carry over the earlier draft's findings.
+Of the 83 findings, 36 are new, and 47 carry over the earlier draft's findings.
 
 ## Checks Run
 
@@ -108,36 +104,6 @@ Most severe first. Each ID names an area:
 - **SPEC:** specs and process.
 
 "Earlier" gives the draft's ID for a finding it already had.
-
-### High
-
-#### REPO-1. The live `main` ruleset lets two developers merge without review or CI, and 13 merges have
-
-- **Files:**
-  - `.github/rulesets/main.json:11`;
-  - `CONTRIBUTING.md:133`;
-  - `CLAUDE.md:62`;
-  - `openspec/changes/add-quality-gates/proposal.md:76` and `design.md:132`;
-  - the live ruleset, id 26046081.
-- **Checked:** reproduced, with `gh api` (the ruleset, its history and the team) and `gh pr view` (each pull request's reviews and checks). **Earlier:** H1.
-- **What's wrong:**
-  - The live ruleset lets the team `scoring-services-maintainers` bypass it on pull requests (`bypass_mode: pull_request`). That team is two of the three developers.
-  - The ruleset's history shows when this happened. The version of 2026-10-28 13:59 UTC had no bypass. The version of 2026-10-29 17:59 UTC added it.
-  - Four places say otherwise:
-    - `main.json` has `"bypass_actors": []`;
-    - CONTRIBUTING.md says the ruleset "applies to admins too";
-    - CLAUDE.md calls review and `ci-passed` "the enforceable gates";
-    - `add-quality-gates` decided "No bypass actors". That change is still open, with tasks 6.2 and 6.3 unticked.
-- **What could go wrong:** it already has.
-  - These pull requests were merged by their own authors with no approving review: #13, #15, #16, #18, #19, #22, #23 (its one review was dismissed), #31, #32, #47 and #49. Since this commit, #50 and #35 have joined them.
-  - #16 changed `ci.yml`, the `Dockerfile`, `compose.yaml`, `api/` and `frontend/` (+4,122 lines). #35 added the whole refmap form.
-  - The bypass also lifts the required `ci-passed`. So either developer can merge a red pull request, or an unreviewed `ci.yml` that weakens `ci-passed`.
-  - Re-applying `main.json` with CONTRIBUTING.md's command would silently remove the bypass, and with it the way the team merges today.
-- **Fix:** decide as a team. Either:
-  - remove the bypass by re-applying `main.json`; or
-  - keep it, and record it in `main.json`, CONTRIBUTING.md, CLAUDE.md and `add-quality-gates`, so the files match what GitHub enforces.
-
-  Then finish and archive `add-quality-gates` (SPEC-6).
 
 ### Medium
 
@@ -447,14 +413,12 @@ Grouped by area, so each owner can find theirs.
   - `git push origin +feat/x`, a real force push, which GitHub allows on every branch but `main`;
   - `git push -uf origin feat/x`;
   - `git -C . push --force`;
-  - `gh pr merge N --admin`, which uses REPO-1's bypass;
-  - `gh api --method DELETE` on the ruleset; all three developers are admins;
   - any shell write into `panther-workspace`, since `Edit(…)` covers only the edit tools.
 
   CONTRIBUTING.md says the file stops force-pushing.
 - **What could go wrong:** an assistant denied `git push --force` retries with a `+` refspec, and overwrites a teammate's commits on a shared branch.
 - **Fix:**
-  - add deny rules for `+` refspecs, `git -C … push`, combined short flags, `gh pr merge` with `--admin`, and `gh api` on rulesets;
+  - add deny rules for `+` refspecs, `git -C … push`, and combined short flags;
   - say in CONTRIBUTING.md what the file doesn't cover.
 
 #### Low: API
@@ -1006,7 +970,6 @@ Grouped by area, so each owner can find theirs.
 - **Checked:** traced, with `gh api`. New.
 - **What's wrong:**
   - **`add-quality-gates`:**
-    - it decided "No bypass actors", which the live ruleset contradicts (REPO-1);
     - tasks 6.2 and 6.3 are unticked;
     - its Blocker, "needs this change merged", is stale;
     - its CODEOWNERS follow-up isn't done.
@@ -1016,7 +979,7 @@ Grouped by area, so each owner can find theirs.
   - **`add-apoe-to-csnp-sample`** is ready to archive (SPEC-2).
 - **Fix:**
   - update the Notes;
-  - reconcile the ruleset, then finish and archive `add-quality-gates`.
+  - finish and archive `add-quality-gates`.
 
 ### Nits
 
@@ -1028,7 +991,7 @@ Grouped by area, so each owner can find theirs.
   Add an `[engine/tests/{fixtures,golden}/**]` section that unsets all three rules. New.
 - **REPO-12.** Docs that disagree with the code, or with each other. **Earlier:** N14, with more found.
   - `CLAUDE.md:31-34` and `openspec/config.yaml:16` call the API stack Proposed, and don't mention `docs/design/api-stack.md`, which has been Accepted since 2026-10-28.
-  - `CONTRIBUTING.md:133` and `CLAUDE.md:62` describe gates that two developers bypass (REPO-1). `CONTRIBUTING.md:137` says `.claude/settings.json` stops force-pushing (REPO-10).
+  - `CONTRIBUTING.md:137` says `.claude/settings.json` stops force-pushing (REPO-10).
   - `docs/testing/README.md` has four drifts:
     - line 7 lists `strategy.md`, which doesn't exist;
     - line 22 doesn't say `ci-passed` also fails on a cancelled job;
@@ -1196,7 +1159,6 @@ Every finding of the earlier draft still holds. None was fixed: `engine/` and `f
 
 | Earlier | Here | Status at `64174c9` | New evidence |
 | --- | --- | --- | --- |
-| H1 | REPO-1 | Holds | Two more self-merges (#47, #49), and two after this commit |
 | M1 | CSNP-1 | Holds | Eight crafted BLAST+ lines; exposure measured |
 | M2 | CSNP-4 | Holds | Titin took 272 s |
 | M3 | CSNP-3 | Holds | Now reproduced |
@@ -1375,7 +1337,7 @@ During this review, `origin/main` moved to `46410f1`. Two pull requests merged a
   - Its mock now accepts refmap jobs and maps the IDs, while the API answers 501.
   - It adds no `errorElement` (FE-1), and `useSubmitCsnp` still navigates after its `await` (FE-6).
 
-Both were merged by their author with no review (REPO-1). #35's run cancelled #50's (REPO-2).
+Pull request #35's CI run cancelled #50's (REPO-2).
 
 Pull request #35 is now reviewed in `2026-11-02-refmap-form.md`, untracked.
 
@@ -1385,7 +1347,7 @@ None of these has an OpenSpec change yet. The change names are suggestions for t
 
 | Follow-up | Covers | Owner | OpenSpec change |
 | --- | --- | --- | --- |
-| Decide the ruleset bypass. Make GitHub, `main.json`, CONTRIBUTING.md and CLAUDE.md agree, then close `add-quality-gates` | REPO-1, REPO-10, SPEC-6 | All three developers | None for the decision, which is a GitHub setting and docs. Then `add-quality-gates` tasks 6.2 and 6.3 |
+| Finish and archive `add-quality-gates`, and add the missing deny rules to `.claude/settings.json` | REPO-10, SPEC-6 | All three developers | `add-quality-gates`'s remaining tasks |
 | The science owner on the species filter, on who approves divergences, and on row 1 | CSNP-2, SPEC-4 | Science owner, engine developer | None until decided. A changed score then needs a divergence row and a change |
 | refmap: approve or reject rows 9 and 10; record the data layout and jobs or synchronous; a MODIFIED "Submit a job"; rows for cSNP's refusals; archive `add-apoe-to-csnp-sample` | SPEC-1, SPEC-2, SPEC-3, SPEC-5 | Engine developer, API developer | [`add-refmap-job`](../../openspec/changes/add-refmap-job/), before it's archived |
 | cSNP: the identity formula, BLAST+'s time limit, a library check, telling status 1 apart, path quoting, tests and nits | CSNP-1, CSNP-3 to CSNP-11 | Engine | [`fix-csnp-blast-handling`](../../openspec/changes/fix-csnp-blast-handling/) covers CSNP-1 and CSNP-3 to CSNP-6, and CSNP-7's tie line. CSNP-7 to CSNP-11 have none yet |
@@ -1395,4 +1357,4 @@ None of these has an OpenSpec change yet. The change names are suggestions for t
 | Engine core and data tooling | ENG-2 to ENG-23 | Engine | None yet: to propose, such as `harden-engine-tooling`. ENG-4 together with the API |
 | Frontend robustness and accessibility | FE-1 to FE-17 | Frontend | None yet: to propose. FE-8 changes `scoring-ui` first |
 | Doc drift | REPO-11, REPO-12 | Each doc's owner | None needed: docs only |
-| Review #50, which merged after this commit. #35 is reviewed in `2026-11-02-refmap-form.md`, untracked | FE-4, REPO-1 | Frontend, API | None needed: a review, not a change |
+| Review #50, which merged after this commit. #35 is reviewed in `2026-11-02-refmap-form.md`, untracked | FE-4 | Frontend, API | None needed: a review, not a change |

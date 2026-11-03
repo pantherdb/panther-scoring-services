@@ -1,0 +1,110 @@
+# Builds the frontend and deploys it to GitHub Pages, calling the API on its own origin.
+#
+# Everything the server decides is a repository variable (Settings → Secrets and variables →
+# Actions → Variables), so going live means setting a value, not changing code:
+#   PANTHER_API_URL   the API's public URL, without /api/v1, e.g. https://api.example.org
+#   PAGES_BASE_PATH   the path the site is served under; default /panther-scoring-services/
+# While PANTHER_API_URL is empty, nothing is built or deployed, and the run's summary says why.
+# The one-time setup and the checks are in docs/deployment/runbook-pages.md.
+#
+# Actions are pinned to commit SHAs; Dependabot keeps them current.
+
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time, and a running one is never cancelled halfway.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  configured:
+    name: configured
+    runs-on: ubuntu-latest
+    outputs:
+      api-url: ${{ steps.check.outputs.api-url }}
+    steps:
+      - name: Check the API's URL is set
+        id: check
+        env:
+          API_URL: ${{ vars.PANTHER_API_URL }}
+        run: |
+          if [ -z "$API_URL" ]; then
+            {
+              echo "### Not deployed: the repository variable PANTHER_API_URL isn't set"
+              echo
+              echo "Set it to the API's public URL, such as https://api.example.org, and run this"
+              echo "workflow again. See docs/deployment/runbook-pages.md."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice::Not deployed: the repository variable PANTHER_API_URL isn't set."
+            exit 0
+          fi
+          # A Pages site is HTTPS, and browsers block its calls to an HTTP API (mixed content).
+          case "$API_URL" in
+            https://*) ;;
+            *)
+              echo "::error::PANTHER_API_URL must start with https://"
+              exit 1
+              ;;
+          esac
+          echo "api-url=$API_URL" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: build
+    needs: configured
+    if: needs.configured.outputs.api-url != ''
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      # The production build: VITE_API_MOCKING is off (.env.production), so no MSW.
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ needs.configured.outputs.api-url }}
+          BASE_PATH: ${{ vars.PAGES_BASE_PATH || '/panther-scoring-services/' }}
+      # MSW's worker and its start-up both name mockServiceWorker. Not a bare "msw", which a
+      # minified name could be by chance.
+      - name: No mock data in the build
+        run: |
+          if grep -rli -e mockServiceWorker -e "mock data" dist; then
+            echo "::error::The build contains the API mocking library or the mock data banner."
+            exit 1
+          fi
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: frontend/dist
+
+  deploy:
+    name: deploy
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # Fails, naming the setting, if the repository's Pages source isn't GitHub Actions.
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        id: deployment

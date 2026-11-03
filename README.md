@@ -30,6 +30,10 @@ docker compose up --build api          # the API on localhost:8000
 
 The native setup for each folder, and every command, is in [docs/testing/](docs/testing/README.md).
 
+## Hosting
+
+The frontend is published to GitHub Pages, and calls the API on the team's server over HTTPS ([docs/design/hosting.md](docs/design/hosting.md)). Going live is a matter of settings, not code: the API's address as the repository variable `PANTHER_API_URL`, and the Pages origin in the API's `PANTHER_API_CORS_ORIGINS`. The steps are in [docs/deployment/runbook-pages.md](docs/deployment/runbook-pages.md).
+
 ## Legacy Reference
 
 The legacy code and its Phase 1 docs live in `panther-workspace`, a sibling of this repo (`../panther-workspace`). Only the parts for these four services are relevant here; [CLAUDE.md](CLAUDE.md) lists exactly which files.

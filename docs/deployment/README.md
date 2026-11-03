@@ -9,6 +9,12 @@ How the service gets deployed, and a record of each deployment.
 | `runbook-<topic>.md` | Steps that repeat, such as `runbook-deploy.md`, `runbook-rollback.md` or `runbook-new-panther-release.md`. Not dated: keep them current |
 | `YYYY-MM-DD-<environment>.md` | A record of one deployment, for example `2026-12-01-staging.md` |
 
+## Runbooks
+
+| Runbook | What it covers |
+| ------- | -------------- |
+| [runbook-pages.md](runbook-pages.md) | Publishing the frontend to GitHub Pages, pointed at the API |
+
 ## What a Deployment Record Includes
 
 - Environment, date, and who deployed.

@@ -34,7 +34,7 @@ Everything is under `/api/v1`. The current, complete list is the schema in [`ope
 
 Every error is an RFC 9457 problem-details body (`application/problem+json`).
 
-Two limits protect a public API: a request body over 16 MiB gets a `413` before it's parsed, and a job that would wait behind 50 others gets a `503` with `Retry-After`. Both are settings. At startup, the API logs an error if the cSNP data is missing, and starts anyway.
+Two limits protect a public API: a request body over 16 MiB gets a `413` before it's parsed, and a job that would wait behind 50 others gets a `503` with `Retry-After`. Both are settings. A frontend on another origin, such as GitHub Pages, needs `PANTHER_API_CORS_ORIGINS`, empty by default, which adds no CORS. At startup, the API logs an error if the cSNP data is missing, and starts anyway.
 
 Jobs run in a pool of worker processes and are kept in memory, so a restart loses them. There are two:
 
@@ -49,11 +49,12 @@ To try them, and to get the data sample, see "Try the Jobs by Hand" in [docs/tes
 
 ```text
 src/panther_api/
-  main.py        create_app(): the /api/v1 router, the error handlers, the body limit, and the
+  main.py        create_app(): the /api/v1 router, the error handlers, CORS, the body limit, and the
                  startup that reads the settings and versions, checks the cSNP data, and starts
                  the job runner
   settings.py    the PANTHER_API_* settings, read once at startup
   limits.py      the middleware that refuses a body over the limit with a 413
+  cors.py        CORS for the origins in PANTHER_API_CORS_ORIGINS, or none
   problems.py    problem-details errors, and how the schema documents them. A 422 lists at
                  most the first 100 field errors
   versions.py    the Versions model, read from the engine

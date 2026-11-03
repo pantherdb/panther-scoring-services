@@ -11,6 +11,27 @@ def test_defaults() -> None:
     assert settings.job_expiry_seconds == 24 * 60 * 60
     assert settings.max_queued_jobs == 50
     assert settings.max_body_bytes == 16 * 1024 * 1024
+    assert settings.cors_origins == ()
+
+
+@pytest.mark.parametrize(
+    ("value", "origins"),
+    [
+        ("", ()),
+        ("  ", ()),
+        ("https://pantherdb.github.io", ("https://pantherdb.github.io",)),
+        (
+            " https://pantherdb.github.io , http://localhost:4173,",
+            ("https://pantherdb.github.io", "http://localhost:4173"),
+        ),
+    ],
+)
+def test_cors_origins_are_a_comma_separated_list(
+    monkeypatch: pytest.MonkeyPatch, value: str, origins: tuple[str, ...]
+) -> None:
+    monkeypatch.setenv("PANTHER_API_CORS_ORIGINS", value)
+
+    assert Settings().cors_origins == origins
 
 
 def test_environment_overrides_the_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -38,6 +59,13 @@ def test_environment_overrides_the_defaults(monkeypatch: pytest.MonkeyPatch) -> 
         ("PANTHER_API_MAX_QUEUED_JOBS", "many"),
         ("PANTHER_API_MAX_BODY_BYTES", "0"),
         ("PANTHER_API_MAX_BODY_BYTES", "16MB"),
+        # CORS takes origins: no wildcard, no path, no trailing slash, no bare host.
+        ("PANTHER_API_CORS_ORIGINS", "*"),
+        ("PANTHER_API_CORS_ORIGINS", "https://*.github.io"),
+        ("PANTHER_API_CORS_ORIGINS", "https://pantherdb.github.io/panther-scoring-services/"),
+        ("PANTHER_API_CORS_ORIGINS", "https://pantherdb.github.io/"),
+        ("PANTHER_API_CORS_ORIGINS", "pantherdb.github.io"),
+        ("PANTHER_API_CORS_ORIGINS", "https://pantherdb.github.io,ftp://example.org"),
     ],
 )
 def test_invalid_values_are_rejected(

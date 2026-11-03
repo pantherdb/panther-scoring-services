@@ -48,6 +48,12 @@ These are tracked as an OpenSpec change, separate from the server work. The two 
   - a workflow that builds the site and deploys it to Pages, never in mock mode.
 - **API:** CORS allowing the Pages origin, as a setting.
 
+The OpenSpec change `deploy-frontend-to-pages` (#39) adds these. Every value the server decides is a setting, so going live is setting them, not changing code ([runbook-pages.md](../deployment/runbook-pages.md)):
+
+- `PANTHER_API_URL`, a repository variable: the API's URL, built into the site;
+- `PAGES_BASE_PATH`, a repository variable: `/panther-scoring-services/` unless set, `/` for a custom domain;
+- `PANTHER_API_CORS_ORIGINS`, on the server: the Pages origin, such as `https://pantherdb.github.io`.
+
 ## Getting the Image to the Server
 
 - **For now:** built on the server from a tagged commit of `main` (`docker build --target api`).
@@ -60,14 +66,14 @@ These are tracked as an OpenSpec change, separate from the server work. The two 
 
 ## Records
 
-Deployments are recorded in `docs/deployment/`: a `runbook-deploy.md` and a dated record for each deployment, as [its README](../deployment/README.md) says. This repository is public, so they hold no secrets, IP addresses or private hostnames.
+Deployments are recorded in `docs/deployment/`: [runbook-pages.md](../deployment/runbook-pages.md) for the frontend, a `runbook-deploy.md` for the API, and a dated record for each deployment, as [its README](../deployment/README.md) says. This repository is public, so they hold no secrets, IP addresses or private hostnames.
 
 ## Open Questions
 
 Each needs team verification.
 
 - **The API's public hostname,** and who manages its DNS.
-- **The Pages address:** `https://pantherdb.github.io/panther-scoring-services/`, or a custom domain.
+- **The Pages address:** `https://pantherdb.github.io/panther-scoring-services/`, or a custom domain. Either is a setting now (`PAGES_BASE_PATH`).
 - **How the API fits beside what already runs on the server.**
 - **Limits for a public API,** as above.
 - **When CI should start publishing the image.**

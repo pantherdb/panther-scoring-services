@@ -170,3 +170,14 @@ def test_a_field_the_input_doesnt_take_is_rejected() -> None:
 
 def test_every_invalid_field_is_listed() -> None:
     assert sorted(rejected("XYZZY", organism="xyzzy", ids=[])) == [("ids",), ("organism",)]
+
+
+# The log's summary (openspec change add-api-logging; scoring-jobs: The size of a job's input).
+
+
+def test_the_log_summary_gives_the_organism_and_a_count_not_the_ids() -> None:
+    summary = RefmapInput.model_validate(VALID).log_summary()
+
+    assert summary == "HUMAN, 2 IDs"
+    for value in VALID["ids"]:
+        assert value not in summary

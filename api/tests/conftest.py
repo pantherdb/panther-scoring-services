@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -44,6 +45,30 @@ def fake_tools(monkeypatch: pytest.MonkeyPatch) -> tuple[ToolReport, ...]:
     monkeypatch.setattr("panther_api.jobs.tools.report_tools", lambda: list(FAKE_REPORTS))
     monkeypatch.setattr("panther_api.jobs.runner.run_job", report_fake_tools)
     return FAKE_REPORTS
+
+
+@pytest.fixture(autouse=True)
+def restore_logging() -> Iterator[None]:
+    """Undo what the app's start did to the logging setup (panther_api.logs), so a test's log
+    level or handler doesn't carry over to the next test."""
+    root = logging.getLogger()
+    uvicorn = [logging.getLogger(name) for name in ("uvicorn", "uvicorn.error", "uvicorn.access")]
+    saved_root = (list(root.handlers), root.level)
+    saved = [
+        (list(logger.handlers), list(logger.filters), logger.level, logger.propagate)
+        for logger in uvicorn
+    ]
+    yield
+    # Only the handlers the app added go: pytest adds and removes its own around each phase.
+    for handler in list(root.handlers):
+        if handler not in saved_root[0] and type(handler).__module__ == "panther_api.logs":
+            root.removeHandler(handler)
+    root.setLevel(saved_root[1])
+    for logger, (handlers, filters, level, propagate) in zip(uvicorn, saved, strict=True):
+        logger.handlers[:] = handlers
+        logger.filters[:] = filters
+        logger.setLevel(level)
+        logger.propagate = propagate
 
 
 @pytest.fixture

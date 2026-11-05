@@ -12,6 +12,18 @@ def test_defaults() -> None:
     assert settings.max_queued_jobs == 50
     assert settings.max_body_bytes == 16 * 1024 * 1024
     assert settings.cors_origins == ()
+    assert settings.log_level == "INFO"
+
+
+@pytest.mark.parametrize(
+    ("value", "level"), [("debug", "DEBUG"), ("Warning", "WARNING"), (" ERROR ", "ERROR")]
+)
+def test_the_log_level_is_read_in_any_case(
+    monkeypatch: pytest.MonkeyPatch, value: str, level: str
+) -> None:
+    monkeypatch.setenv("PANTHER_API_LOG_LEVEL", value)
+
+    assert Settings().log_level == level
 
 
 @pytest.mark.parametrize(
@@ -59,6 +71,9 @@ def test_environment_overrides_the_defaults(monkeypatch: pytest.MonkeyPatch) -> 
         ("PANTHER_API_MAX_QUEUED_JOBS", "many"),
         ("PANTHER_API_MAX_BODY_BYTES", "0"),
         ("PANTHER_API_MAX_BODY_BYTES", "16MB"),
+        ("PANTHER_API_LOG_LEVEL", "LOUD"),
+        ("PANTHER_API_LOG_LEVEL", "CRITICAL"),
+        ("PANTHER_API_LOG_LEVEL", ""),
         # CORS takes origins: no wildcard, no path, no trailing slash, no bare host.
         ("PANTHER_API_CORS_ORIGINS", "*"),
         ("PANTHER_API_CORS_ORIGINS", "https://*.github.io"),

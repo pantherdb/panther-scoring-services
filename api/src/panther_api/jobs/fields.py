@@ -19,3 +19,8 @@ LONGEST_SPECIES_CODE = 5
 def schema_pattern(shape: re.Pattern[str]) -> str:
     """The shape as a JSON Schema `pattern`, which matches anywhere unless it's anchored."""
     return f"^{shape.pattern}$"
+
+
+def count(number: int, noun: str) -> str:
+    """`1 substitution`, `3 substitutions`: a count for the log, with its noun."""
+    return f"{number} {noun}" + ("" if number == 1 else "s")

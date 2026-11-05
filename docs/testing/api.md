@@ -55,6 +55,7 @@ The API reads its settings from environment variables when it starts. An invalid
 | `PANTHER_API_MAX_QUEUED_JOBS` | `50` | an integer ≥ 0 | Jobs that may wait for a worker. Past that, a submission gets a `503` and no job is created. See [Limits](#limits) |
 | `PANTHER_API_MAX_BODY_BYTES` | `16777216` (16 MiB) | an integer ≥ 1 | The largest request body accepted. A larger one gets a `413`. See [Limits](#limits) |
 | `PANTHER_API_CORS_ORIGINS` | empty | comma-separated origins, such as `https://pantherdb.github.io`: a scheme and host, with no path, `*` or trailing `/` | The browser origins allowed to call the API from another site. Empty adds no CORS headers. See [CORS](#cors) |
+| `PANTHER_API_LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING` or `ERROR`, in any case | The lowest level logged. See [Logs](#logs) |
 
 Set one for the native dev server with, for example, `PANTHER_API_JOB_WORKERS=1 uv run fastapi dev --port 8000`, and for the image with `docker run -e PANTHER_API_JOB_WORKERS=1 …`. The compose `api` service sets none, so it uses the defaults. Jobs are kept in memory, and are lost when the API restarts.
 
@@ -84,6 +85,30 @@ for i in 1 2; do curl -s -o /dev/null -w '%{http_code}\n' localhost:8000/api/v1/
 ```
 
 The first gets `202`; the second gets `503` if it arrives while the first is still running, as it does while the first job starts the worker. To see the `413`, send a body over the limit with `PANTHER_API_MAX_BODY_BYTES=100`.
+
+### Logs
+
+The API writes its log to standard error, one line per record: a UTC timestamp, the level, the logger, and the message. Its own lines and Uvicorn's request lines share the format, from the time the app has started; Uvicorn's first two lines, before that, keep Uvicorn's format. Read it with `docker compose logs api`, or `docker logs <container>`. A job's run, at `INFO`:
+
+```text
+2026-11-04T17:02:54.611Z INFO panther_api.jobs.runner: Job 9c1e2f4a-… csnp, HUMAN, 347 residues, 3 substitutions: succeeded, waited 0.0 s, ran 41.2 s
+2026-11-04T17:03:10.002Z INFO uvicorn.access: 172.18.0.1:51234 - "POST /api/v1/jobs HTTP/1.1" 422
+```
+
+What each level writes:
+
+| Level | What's logged |
+| ----- | ------------- |
+| `DEBUG` | Everything below, plus a line when each job is submitted, and every request |
+| `INFO` | One line per job when it finishes, with its service, the size of its input, its status, its wait and its run time. Every request except the routine ones below |
+| `WARNING` | A submission refused because the queue is full, with the number of jobs and the cap |
+| `ERROR` | A job that failed unexpectedly or whose worker died, and a startup without the cSNP data |
+
+- **Routine requests are left out below `DEBUG`:** `GET /api/v1/health`, a poll (`GET /api/v1/jobs/{id}`) answered with a 2xx, and a submission answered with `202`, whose job gets its own line. A poll that gets a `404`, and a submission that gets a `422`, `413`, `501` or `503`, are logged.
+- **An unexpected error's traceback is logged once in ten minutes.** While every job fails the same way, such as while the data is missing, the first job's line has the traceback, and each repeat ends `(same error as job <id>, seen <n> times since <time>)`. An error is the same when its type and message are.
+- **No submitted values.** A job's line gives sizes and the species or organism code, never a sequence, a substitution or an ID. A rejected value isn't logged either.
+- **How much:** about 200 bytes a job at `INFO`. `DEBUG` adds a line for every poll, about one a second for each job a browser is waiting on; use it to look into something, then set it back.
+- **Its size on a server:** Docker keeps a container's log until the container is removed. Cap it with the `json-file` driver's options, such as `--log-opt max-size=10m --log-opt max-file=5` on `docker run`, or `logging:` in a compose file. That's the server's setting, not the API's.
 
 ## Running the API in the Image
 
@@ -212,13 +237,13 @@ A request the API accepts can still fail in its worker, in one of two ways:
   }
   ```
 
-- **Anything else: `500`.** A bug, missing data or a `blastp` failure. The job says only "The job hit an unexpected error and could not complete.", and the API's log has the exception with its traceback (`docker compose logs api`). To see one, run a second container without the data, on another port, and submit the P26439 job above to port 8001:
+- **Anything else: `500`.** A bug, missing data or a `blastp` failure. The job says only "The job hit an unexpected error and could not complete.", and the API's log has the job's line with the exception's traceback (`docker compose logs api`). To see one, run a second container without the data, on another port, and submit the P26439 job above to port 8001:
 
   ```sh
   docker compose run --rm -p 8001:8000 -e PANTHER_DATA_DIR=/nowhere api
   ```
 
-An input error is logged at `INFO`, without a traceback. Uvicorn's logging shows only its own loggers, so it doesn't appear in `docker compose logs api` as the image is configured now.
+Both are logged as the job's one line ([Logs](#logs)): an input error at `INFO`, with the engine's message and no traceback; anything else at `ERROR`, with the traceback the first time in ten minutes.
 
 #### The Species List
 

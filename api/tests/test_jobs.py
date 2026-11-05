@@ -328,7 +328,11 @@ def test_an_input_error_fails_the_job_with_a_422_and_its_message(
     }
     assert "Traceback" not in str(job)
     assert "InputError" not in str(job)
-    [record] = [record for record in caplog.records if job["id"] in record.getMessage()]
+    [record] = [
+        record
+        for record in caplog.records
+        if record.name == "panther_api.jobs.runner" and job["id"] in record.getMessage()
+    ]
     assert record.levelno == logging.INFO
     assert INPUT_ERROR_MESSAGE in record.getMessage()
     assert record.exc_info is None

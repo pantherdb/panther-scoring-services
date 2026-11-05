@@ -19,6 +19,7 @@ from panther_api.jobs.fields import (
     LONGEST_SPECIES_CODE,
     PRINTABLE,
     SPECIES_CODE,
+    count,
     schema_pattern,
 )
 
@@ -80,6 +81,10 @@ class RefmapInput(BaseModel):
 
     organism: Organism
     ids: Annotated[list[ProteinId], Field(min_length=1, max_length=MOST_IDS)]
+
+    def log_summary(self) -> str:
+        """The input's size for the log: the organism and a count, never the IDs."""
+        return f"{self.organism}, {count(len(self.ids), 'ID')}"
 
 
 class IdMapping(BaseModel):

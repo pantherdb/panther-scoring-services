@@ -136,3 +136,27 @@ def test_a_sequence_blast_cant_read_fails_the_job_with_a_422(client: TestClient)
     assert job["error"]["detail"].startswith("The sequence can't be read as a protein sequence.")
     assert "BLAST" not in job["error"]["detail"]
     assert "/" not in job["error"]["detail"]
+
+
+def test_the_log_has_the_jobs_size_and_none_of_its_input(
+    client: TestClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    # openspec add-api-logging; api-service: No user data in the log, A cSNP job.
+    rows = EXPECTED["P26439"]
+    substitutions = [row["score"]["substitution"] for row in rows]
+    residues = "".join(PROTEINS["P26439"].splitlines()[1:])
+
+    job = run(client, PROTEINS["P26439"], substitutions)
+
+    assert job["status"] == "succeeded", job["error"]
+    [line] = [
+        record.getMessage()
+        for record in caplog.records
+        if record.name == "panther_api.jobs.runner" and job["id"] in record.getMessage()
+    ]
+    assert f"csnp, HUMAN, {len(residues)} residues, {len(substitutions)} substitutions" in line
+    text = caplog.text
+    assert residues[:20] not in text
+    assert residues[-20:] not in text
+    for substitution in substitutions:
+        assert substitution not in text

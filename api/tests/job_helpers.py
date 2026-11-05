@@ -44,6 +44,11 @@ def fail(_request: JobRequest) -> ToolsResult:
     raise RuntimeError(f"failed reading {INTERNAL_PATH}")
 
 
+def fail_differently(_request: JobRequest) -> ToolsResult:
+    """Fail as fail() does, with another message: another error to the log."""
+    raise RuntimeError("another failure")
+
+
 def exit_worker(_request: JobRequest) -> ToolsResult:
     """End the worker process at once, as a crash would, past the pool's exception handling."""
     os._exit(1)

@@ -15,6 +15,10 @@ class ToolsInput(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    def log_summary(self) -> str:
+        """Nothing to say: the job takes no input."""
+        return ""
+
 
 class ToolsResult(BaseModel):
     """Each external tool the engine uses, in the engine's order. Never where it was found."""

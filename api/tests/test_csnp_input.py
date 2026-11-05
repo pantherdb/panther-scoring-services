@@ -272,3 +272,25 @@ def test_every_invalid_field_is_listed() -> None:
 
 def test_a_field_the_input_doesnt_take_is_rejected() -> None:
     assert rejected("xyzzy", organism="xyzzy") == [("organism",)]
+
+
+# The log's summary (openspec change add-api-logging; scoring-jobs: The size of a job's input).
+
+
+def test_the_log_summary_gives_the_species_and_sizes_not_the_values() -> None:
+    sequence = ">sp|header\nMKVLW AALLV\nQWERT"
+    tokens = ["L4P", "w5r", "Q11E"]
+
+    summary = CsnpInput.model_validate(
+        {"sequence": sequence, "substitutions": tokens, "species": "HUMAN"}
+    ).log_summary()
+
+    assert summary == "HUMAN, 15 residues, 3 substitutions"
+    for value in ("MKVLW", "QWERT", "header", "L4P", "W5R", "Q11E"):
+        assert value not in summary
+
+
+def test_the_log_summary_says_one_in_the_singular() -> None:
+    summary = CsnpInput.model_validate(VALID).log_summary()
+
+    assert summary == "HUMAN, 10 residues, 1 substitution"

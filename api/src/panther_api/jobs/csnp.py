@@ -15,7 +15,7 @@ from typing import Annotated
 from panther_engine import csnp as engine
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
 
-from panther_api.jobs.fields import PRINTABLE, SPECIES_CODE
+from panther_api.jobs.fields import PRINTABLE, SPECIES_CODE, count
 
 LONGEST_SEQUENCE = 50_000
 """Residues, after normalising: the website's limit (`errors.sequence.too.long`)."""
@@ -120,6 +120,13 @@ class CsnpInput(BaseModel):
     substitutions: Annotated[list[Substitution], Field(min_length=1, max_length=MOST_SUBSTITUTIONS)]
     # Validators run in order, and the second only if the first passed: one error per species.
     species: Annotated[str, AfterValidator(_check_species), AfterValidator(_check_species_scored)]
+
+    def log_summary(self) -> str:
+        """The input's size for the log: the species and counts, never the residues or tokens."""
+        return (
+            f"{self.species}, {count(len(self.sequence), 'residue')}, "
+            f"{count(len(self.substitutions), 'substitution')}"
+        )
 
 
 class SubstitutionScore(BaseModel):

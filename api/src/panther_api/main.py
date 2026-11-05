@@ -14,12 +14,12 @@ from fastapi.concurrency import run_in_threadpool
 from panther_api.cors import Cors
 from panther_api.jobs.runner import JobRunner
 from panther_api.limits import BodyLimit
+from panther_api.logs import configure_logging
+from panther_api.prefix import API_PREFIX
 from panther_api.problems import PROBLEM_RESPONSES, add_problem_handlers, document_problems
 from panther_api.routers import csnp, health, jobs, versions
 from panther_api.settings import Settings
 from panther_api.versions import read_versions
-
-API_PREFIX = "/api/v1"
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +49,14 @@ def check_csnp_data() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
-    """Before the app takes requests: read the settings and the versions, and start the jobs.
+    """Before the app takes requests: read the settings, set up the log, read the versions, and
+    start the jobs.
 
     An invalid setting stops the app here. The tools and the data check run off the event loop.
     On shutdown, the jobs still queued are dropped, and the running ones finish first.
     """
     settings = Settings()
+    configure_logging(settings.log_level)
     app.state.settings = settings
     app.state.versions = await run_in_threadpool(read_versions)
     await run_in_threadpool(check_csnp_data)

@@ -10,6 +10,7 @@ starts.
 import os
 import time
 from pathlib import Path
+from uuid import uuid4
 
 import panther_engine.csnp
 from panther_engine.core.errors import InputError
@@ -41,6 +42,22 @@ def report_fake_tools(_request: JobRequest) -> ToolsResult:
 
 
 def fail(_request: JobRequest) -> ToolsResult:
+    raise RuntimeError(f"failed reading {INTERNAL_PATH}")
+
+
+def fail_differently(_request: JobRequest) -> ToolsResult:
+    """Fail as fail() does, with another message: another error to the log."""
+    raise RuntimeError("another failure")
+
+
+def fail_with_a_new_message(_request: JobRequest) -> ToolsResult:
+    """Fail from one place with a message that differs every time, as a time limit that scales
+    with the input does: the same error to the log."""
+    raise RuntimeError(f"ran past its time limit of {uuid4().hex} s")
+
+
+def fail_elsewhere(_request: JobRequest) -> ToolsResult:
+    """Fail with fail()'s message, raised from another place: another error to the log."""
     raise RuntimeError(f"failed reading {INTERNAL_PATH}")
 
 

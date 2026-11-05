@@ -36,6 +36,8 @@ Every error is an RFC 9457 problem-details body (`application/problem+json`).
 
 Two limits protect a public API: a request body over 16 MiB gets a `413` before it's parsed, and a job that would wait behind 50 others gets a `503` with `Retry-After`. Both are settings. A frontend on another origin, such as GitHub Pages, needs `PANTHER_API_CORS_ORIGINS`, empty by default, which adds no CORS. At startup, the API logs an error if the cSNP data is missing, and starts anyway.
 
+The log goes to standard error, one line per record with a UTC timestamp, at the level `PANTHER_API_LOG_LEVEL` sets, `INFO` by default. Each job gets one line when it finishes, with its size, status and times, never what was submitted. Health checks, successful polls and accepted submissions are left out of the request log below `DEBUG`.
+
 Jobs run in a pool of worker processes and are kept in memory, so a restart loses them. There are two:
 
 - **`csnp`** (`{"sequence", "substitutions", "species"}`) scores coding SNPs in one protein with the engine's PANTHER-PSEP port. It needs `blastp` and the cSNP data, in the folder `PANTHER_DATA_DIR` names; the compose `api` service mounts `.data/` there. A sequence the engine can't read fails the job with a `422` and the engine's message; any other error fails it with a generic `500`.
@@ -50,9 +52,12 @@ To try them, and to get the data sample, see "Try the Jobs by Hand" in [docs/tes
 ```text
 src/panther_api/
   main.py        create_app(): the /api/v1 router, the error handlers, CORS, the body limit, and the
-                 startup that reads the settings and versions, checks the cSNP data, and starts
-                 the job runner
+                 startup that reads the settings, sets up the log, reads the versions, checks
+                 the cSNP data, and starts the job runner
+  prefix.py      API_PREFIX, /api/v1
   settings.py    the PANTHER_API_* settings, read once at startup
+  logs.py        the log's format and level, for the API's records and Uvicorn's, and the
+                 filter that leaves routine requests out of the access log
   limits.py      the middleware that refuses a body over the limit with a 413
   cors.py        CORS for the origins in PANTHER_API_CORS_ORIGINS, or none
   problems.py    problem-details errors, and how the schema documents them. A 422 lists at

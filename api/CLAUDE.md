@@ -28,6 +28,7 @@ If the schema changed, also run `npm run api:types` in `frontend/` and commit `s
   - A `422` lists each failing field by its `loc`, with a message written for a person; `problems.py` drops Pydantic's "Value error, " prefix.
   - **A `422` lists at most the first 100 field errors** (`MOST_FIELD_ERRORS`), with the total in `detail`, so a list such as `refmap`'s 100,000 IDs can't produce a body of megabytes.
   - **Never echo a submitted value in an error.** Some Pydantic messages quote the input; `problems.py` rewrites the ones found so far. Test every new request model with a distinctive invalid value, and assert it isn't in the body.
+- **Never log a submitted value** either: a sequence, a substitution or an ID. Log its size, as `log_summary()` does, and short codes the API has validated, such as a species.
 - **Everything is a job.** `POST /api/v1/jobs` starts one, and `GET /api/v1/jobs/{id}` polls it. Don't add a synchronous scoring endpoint without a team decision; whether `refmap` gets one is an open question in `add-refmap-job`.
 
 ## Jobs
@@ -49,6 +50,13 @@ If the schema changed, also run `npm run api:types` in `frontend/` and commit `s
   - `JobRunner.submit()` raises `QueueFullError`, and stores nothing, when `PANTHER_API_MAX_QUEUED_JOBS` jobs already wait; the router answers `503` with `Retry-After`. It counts unfinished jobs past one per worker, not jobs whose status is `queued`, which lags a loop turn behind.
 - **CORS** (`deploy-frontend-to-pages`): `cors.Cors` wraps Starlette's `CORSMiddleware` for the origins in `PANTHER_API_CORS_ORIGINS`, and adds nothing when it's empty. It's added after `BodyLimit`, so it runs outside it: a preflight is answered before the limit, and a `413` still carries the CORS headers. Keep that order. A new response header a browser must read goes in `cors.EXPOSED_HEADERS`.
 - **The startup checks the cSNP data** with `panther_engine.csnp.check_data()`, and only logs an error if it's missing. Don't make it stop the API: natively, developers run without the data.
+- **The log** (`add-api-logging`):
+  - `logs.configure_logging()` runs first in the lifespan. It puts one handler on the root logger and routes Uvicorn's loggers through it, so log with `logging.getLogger(__name__)` and nothing else; don't add handlers.
+  - `JobRunner` writes each job's one line when it finishes, and a `DEBUG` line when it's submitted. Each service's input model has a `log_summary()` giving its size, such as `HUMAN, 347 residues, 3 substitutions`; basedpyright fails if a new service's input lacks it.
+  - An unexpected error's traceback is logged once in ten minutes, keyed by its type and where it was raised, not its message (`_RecentErrors`); the times are the jobs' own, so a test moves them with `store.utcnow`.
+  - A job that fails on its input is logged with a fixed outcome, not the engine's message, which is written for the user and could quote the input.
+  - A refused submission is logged at most once a minute (`_Refusals`); the next line counts the rest.
+  - Log after the work a line describes, never between storing a job and starting its task, or a failure while logging can strand the job. Guard a `DEBUG` line's arguments with `logger.isEnabledFor`.
 
 ## The Engine
 
@@ -79,6 +87,8 @@ The setup is in [docs/testing/api.md](../docs/testing/api.md), "Tests (pytest)".
 - **`tests/` has no `__init__.py`.** Import shared helpers by their bare name (`from job_helpers import ...`); a test can't import from `conftest.py`.
 - **`TestClient` is built on `httpx2`, not `httpx`,** so type a response as `httpx2.Response`.
 - **The autouse `fake_tools` fixture** fakes the engine's tool report, so tests pass with or without the tools installed.
+- **`TestClient` doesn't go through Uvicorn,** so there's no access log. A test of the request log serves the app with a real Uvicorn server on a free port (`tests/serving.py`).
+- **The root logger is at `INFO` once an app has started,** so `caplog` also captures the test client's own request lines, which contain job ids. Select records by `record.name`. The autouse `restore_logging` fixture undoes each app's logging setup after the test.
 - **Real jobs** (`tests/test_csnp_scoring.py`) are marked `tools` and `data`, and skipped where `blastp` or the data sample is missing, as natively on Windows. Run them in the API image, by the command in the testing doc.
 - **Keep a success test beside every failure test.** A test that expects an error also passes when everything fails for another reason.
 

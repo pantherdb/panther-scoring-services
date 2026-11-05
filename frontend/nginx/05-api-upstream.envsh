@@ -1,0 +1,6 @@
+#!/bin/sh
+# Sourced by nginx's entrypoint before it fills the templates. API_UPSTREAM is the API's address
+# without a path. A trailing slash would make the template's proxy_pass send every request to the
+# API's "/", so it's dropped: http://api:8000/ works as http://api:8000.
+API_UPSTREAM="${API_UPSTREAM%/}"
+export API_UPSTREAM

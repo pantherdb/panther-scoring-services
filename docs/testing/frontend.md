@@ -164,10 +164,26 @@ A build reads two settings from the environment, both empty by default. GitHub P
 
   The asset URLs in `dist/index.html` then start with `/panther-scoring-services/`, and `dist/404.html` is the same file.
 
+## The Site in Docker
+
+`frontend/Dockerfile` builds the production site with Node in a container, and serves it with nginx on port 8080, forwarding `/api/` to the API. To run it with the API image, from the repository root:
+
+```bash
+docker compose up --build web    # the site on http://localhost:8080, the API behind it
+```
+
+- **It's the production build:** no mock data, no dev server, no reload. Rebuild with `--build` after a change. Develop with `npm run dev` instead.
+- **The build settings** above are build arguments: `docker build --build-arg BASE_PATH=/scoring/ frontend`.
+- **The built files alone,** for another web server: `docker build --target site --output type=local,dest=<folder> frontend`.
+- **CI's `web-image` job** builds it and checks the site, a deep link, caching, and `/api/` forwarded to a stand-in API.
+- **Behind a network that re-signs TLS,** `npm ci` in the build fails until it trusts the network's CA: `docker build --secret id=ca,src=<the CA's .pem> frontend`.
+
+How the server uses it is in [runbook-server.md](../deployment/runbook-server.md).
+
 ## Mocking in the Dev Server
 
 `npm run dev` starts MSW and logs `[MSW] Mocking enabled.` in the browser console. Every page then shows a **Mock data** banner at the top, so a screenshot of mock results can't pass for real ones. Mocked jobs live in the page, so reloading a job's page in mock mode shows "Job not found"; against a real API, the job is still there. To develop against a real API instead, run `npm run dev:api`.
 
 - **Which modes mock** is set in the `.env.*` files in `frontend/` (`VITE_API_MOCKING=on` or `off`): `dev` and `build:e2e` mock; `dev:api` and `build` don't.
 - **One function reads it,** `isApiMocked()` in `src/app/mocking.ts`. Both MSW's start-up in `src/main.tsx` and the banner in `src/layout/AppLayout.tsx` ask it, so they can't disagree. In a Vitest test, turn it on with `vi.stubEnv('VITE_API_MOCKING', 'on')` and off again with `vi.unstubAllEnvs()` (see `tests/layout/AppLayout.test.tsx`).
-- **A build without mocking ships nothing of MSW:** its JavaScript leaves out MSW and the banner, and `vite.config.ts` removes `mockServiceWorker.js`, which Vite copies from `public/`, from its `dist/`. After `npm run build`, `grep -rli -e msw -e "mock data" dist` finds nothing. The Pages workflow checks the same, for `mockServiceWorker` and "mock data", before it deploys.
+- **A build without mocking ships nothing of MSW:** its JavaScript leaves out MSW and the banner, and `vite.config.ts` removes `mockServiceWorker.js`, which Vite copies from `public/`, from its `dist/`. After `npm run build`, `grep -rli -e msw -e "mock data" dist` finds nothing. `npm run check:no-mocks` checks a build for `mockServiceWorker` and "mock data"; the Pages workflow and `frontend/Dockerfile` run it before they publish or serve one.

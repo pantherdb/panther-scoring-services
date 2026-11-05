@@ -66,20 +66,32 @@ git pull
 docker build -t panther-web frontend
 ```
 
+### Put it on the API's network, once
+
+The `web` container finds the API by its container name. Docker resolves names only on a network someone created, not on its default one. If the API container isn't on one yet:
+
+```bash
+docker network create panther
+docker network connect panther <the API container's name>
+```
+
+`docker inspect -f '{{json .NetworkSettings.Networks}}' <the API container's name>` shows the networks it's on: `bridge` alone is the default one. Connecting doesn't restart the API, and its published ports keep working.
+
 ### Start it
 
-On the same Docker network as the API container, telling it the API container's name. `<image>` is `ghcr.io/pantherdb/panther-web:main` if pulled, `panther-web` if built:
+`<image>` is `ghcr.io/pantherdb/panther-web:main` if pulled, `panther-web` if built:
 
 ```bash
 docker run -d --name panther-web --restart unless-stopped \
-  --network <the API's network> \
+  --network panther \
   -e API_UPSTREAM=http://<the API container's name>:8000 \
-  -p <host port>:8080 <image>
+  -p 127.0.0.1:<host port>:8080 <image>
 ```
 
 - **Start the API first.** nginx looks up `API_UPSTREAM` when it starts, and stops if the name doesn't exist yet.
-- **`API_UPSTREAM`** is `http://api:8000` unless set: the API's service name in `compose.yaml`.
-- **The server's front end** then forwards the site's address to `<host port>`. Which port, and whether it's open only to the front end, is the server's choice.
+- **`API_UPSTREAM`** is `http://api:8000` unless set: the API's service name in `compose.yaml`. It's the API's port inside its container, 8000, whatever port the API has on the server.
+- **`<host port>`** is any free port on the server. The container always listens on 8080 inside; only the host side changes, with no rebuild. `127.0.0.1:` makes it reachable from the server alone, so the public reaches the site only through the server's front end.
+- **The server's front end** then forwards the site's address to `http://127.0.0.1:<host port>`. Requests to `/api/` can go that way too: the container forwards them to the API.
 - **With compose,** `docker compose up -d --build web` builds and starts the API and the site together, the site on port 8080. The API then needs the data mount the `api` service names.
 
 ### Update it
@@ -139,7 +151,7 @@ Pulling replaces `docker build --target api` on the server. Nothing else about r
 docker pull ghcr.io/pantherdb/panther-api:main
 ```
 
-Then remove the API's container and start it again with `ghcr.io/pantherdb/panther-api:main` as its image, and the same settings as before: the data mount, `PANTHER_DATA_DIR` and `PANTHER_API_JOB_WORKERS` ([hosting.md](../design/hosting.md#what-the-server-provides)). Keep the container's name, so `API_UPSTREAM` still finds it. **To roll back,** start it with an earlier commit's tag.
+Then remove the API's container and start it again with `ghcr.io/pantherdb/panther-api:main` as its image, and the same settings as before: the data mount, `PANTHER_DATA_DIR` and `PANTHER_API_JOB_WORKERS` ([hosting.md](../design/hosting.md#what-the-server-provides)). If the site's `web` container runs, keep the API container's name and start it with `--network panther`, so `API_UPSTREAM` still finds it: a new container isn't on the network the old one was connected to. **To roll back,** start it with an earlier commit's tag.
 
 The API image appears on the registry after the first merge that changes it; until then, build it on the server as before.
 

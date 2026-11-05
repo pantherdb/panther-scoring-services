@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 
 import { errorData, errorStatus, isUnreachable } from '@/app/api/errors'
 import { inputErrors, isValidationProblem } from '@/app/api/wire'
-import { useStartJobMutation } from '@/features/jobs'
+import { keepInput, useStartJobMutation } from '@/features/jobs'
 
 import { CSNP_FIELDS, type CsnpValues, type DraftAction, draftInput } from './draft'
 
@@ -14,7 +14,8 @@ import { CSNP_FIELDS, type CsnpValues, type DraftAction, draftInput } from './dr
 export type SubmitProblem = 'unreachable' | 'failed' | null
 
 /**
- * Starts a csnp job from the draft. A 202 opens the job's page; a 422's errors go to the
+ * Starts a csnp job from the draft. A 202 keeps the input as typed, for "Edit and
+ * resubmit", and opens the job's page; a 422's errors go to the
  * draft, on their fields; any other failure is the returned `problem`.
  */
 export function useSubmitCsnp(dispatch: Dispatch<DraftAction>) {
@@ -27,6 +28,7 @@ export function useSubmitCsnp(dispatch: Dispatch<DraftAction>) {
     const input = draftInput(values)
     try {
       const job = await startJob({ service: 'csnp', input }).unwrap()
+      keepInput(job.id, 'csnp', values)
       await navigate(`/jobs/${job.id}`)
     } catch (error) {
       const status = errorStatus(error)

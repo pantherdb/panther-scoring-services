@@ -1,3 +1,4 @@
+import { REFMAP_FIELDS } from '@/app/formFields'
 import type { InputError, RefmapInput } from '@/app/api/wire'
 
 import { example } from './example'
@@ -6,7 +7,7 @@ import { shownId, type SplitIds } from './ids'
 // The refmap form's draft: what's in each box, and what's wrong with it. A reducer, as cSNP's
 // is: editing a box clears what was said about it, and a file read fills a box.
 
-export const REFMAP_FIELDS = ['ids', 'organism'] as const
+export { REFMAP_FIELDS }
 export type RefmapField = (typeof REFMAP_FIELDS)[number]
 
 /** Each box's text, as typed. */
@@ -19,7 +20,12 @@ export type DraftErrors = {
   form: string[]
 }
 
-export type Draft = { values: RefmapValues; errors: DraftErrors }
+export type Draft = {
+  values: RefmapValues
+  errors: DraftErrors
+  /** Filled in by "Edit and resubmit", until the example replaces it. */
+  filledFromJob: boolean
+}
 
 export type DraftAction =
   | { type: 'edited'; field: RefmapField; value: string }
@@ -41,6 +47,7 @@ const NO_ERRORS: DraftErrors = { fields: {}, form: [] }
 export const initialDraft: Draft = {
   values: { ids: '', organism: '' },
   errors: NO_ERRORS,
+  filledFromJob: false,
 }
 
 const number = new Intl.NumberFormat('en-US')
@@ -62,12 +69,13 @@ export function draftReducer(draft: Draft, action: DraftAction): Draft {
     case 'edited': {
       const { [action.field]: _cleared, ...fields } = draft.errors.fields
       return {
+        ...draft,
         values: { ...draft.values, [action.field]: action.value },
         errors: { fields, form: [] },
       }
     }
     case 'exampleUsed':
-      return { values: example, errors: NO_ERRORS }
+      return { values: example, errors: NO_ERRORS, filledFromJob: false }
     case 'fileRefused':
       return {
         ...draft,
@@ -84,6 +92,14 @@ export function draftReducer(draft: Draft, action: DraftAction): Draft {
       return { ...draft, errors: { fields, form: action.other } }
     }
   }
+}
+
+/**
+ * The draft a form starts from: the earlier job's input as typed, from "Edit and resubmit",
+ * already checked to have every box (features/jobs/keptInput.ts); otherwise empty.
+ */
+export function startingDraft(kept: RefmapValues | undefined): Draft {
+  return kept ? { values: kept, errors: NO_ERRORS, filledFromJob: true } : initialDraft
 }
 
 /** The request's input: the organism trimmed, the IDs as split. */

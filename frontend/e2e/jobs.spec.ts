@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 import type { components } from '../src/app/api/schema'
 import { toolsResult } from '../src/mocks/data/jobs'
 import { versions as mockedVersions } from '../src/mocks/data/versions'
+import { expectNoSidewaysScroll } from './layout'
 
 type ToolVersion = components['schemas']['ToolVersion']
 type Versions = components['schemas']['Versions']
@@ -73,10 +74,7 @@ test(
     await expectJobVersionsShown(page, mockedVersions)
     await expectNoBuildDetails(page)
 
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth
-    )
-    expect(overflow).toBe(0)
+    await expectNoSidewaysScroll(page)
   }
 )
 

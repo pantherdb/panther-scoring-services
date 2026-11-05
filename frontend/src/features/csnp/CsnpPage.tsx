@@ -1,7 +1,10 @@
+import { useLocation } from 'react-router'
+
 import { CsnpForm } from './CsnpForm'
 
 // /csnp: PANTHER-PSEP coding SNP scoring, one protein at a time.
 export function CsnpPage() {
+  const { key } = useLocation()
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
@@ -12,7 +15,9 @@ export function CsnpPage() {
           substitution has a functional impact on the protein.
         </p>
       </div>
-      <CsnpForm />
+      {/* Remounted on each visit, such as its tab clicked while it's open, so the form starts
+          afresh: empty, or filled by "Edit and resubmit". */}
+      <CsnpForm key={key} />
     </section>
   )
 }

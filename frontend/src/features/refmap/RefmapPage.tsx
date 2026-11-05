@@ -1,7 +1,10 @@
+import { useLocation } from 'react-router'
+
 import { RefmapForm } from './RefmapForm'
 
 // /refmap: protein IDs mapped to PANTHER families and subfamilies, for one organism.
 export function RefmapPage() {
+  const { key } = useLocation()
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
@@ -12,7 +15,9 @@ export function RefmapPage() {
           enrichment or overrepresentation analysis.
         </p>
       </div>
-      <RefmapForm />
+      {/* Remounted on each visit, such as its tab clicked while it's open, so the form starts
+          afresh: empty, or filled by "Edit and resubmit". */}
+      <RefmapForm key={key} />
     </section>
   )
 }

@@ -22,7 +22,7 @@ export function StartToolsCheck() {
 
   return (
     <section className="flex flex-col items-start gap-2 border-t border-hairline pt-6">
-      <h3 className="font-semibold">Scoring tools</h3>
+      <h2 className="font-semibold">Scoring tools</h2>
       <p className="text-sm text-ink-muted">
         Run a quick job that reports the version of each tool the scoring services use.
       </p>

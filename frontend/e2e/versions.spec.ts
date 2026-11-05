@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 import type { components } from '../src/app/api/schema'
 import { versions as mocked } from '../src/mocks/data/versions'
+import { expectNoSidewaysScroll } from './layout'
 
 type Versions = components['schemas']['Versions']
 
@@ -27,10 +28,7 @@ test('shows the mocked versions without scrolling sideways', { tag: '@mock' }, a
   await page.goto('/')
 
   await expectVersionsShown(page, mocked)
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
-  )
-  expect(overflow).toBe(0)
+  await expectNoSidewaysScroll(page)
 })
 
 // Untagged: the versions answer is replaced in the page before any API sees the request, so

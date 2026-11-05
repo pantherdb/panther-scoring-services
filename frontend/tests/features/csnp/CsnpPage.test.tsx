@@ -625,3 +625,84 @@ describe('when the species list can’t be loaded', () => {
     expect(bodies).toEqual([])
   })
 })
+
+describe('after submitting', () => {
+  // Submits a valid input with the species PLAF7, and waits for the job's page.
+  async function submitted() {
+    const bodies = serveStart()
+    const rendered = renderRoute('/csnp')
+    await fillValid(rendered.user)
+    await chooseSpecies(rendered.user, 'plas', 'Plasmodium falciparum (PLAF7)')
+    await rendered.user.click(submitButton())
+    expect(await main().findByRole('status')).toHaveTextContent(/queued/i)
+    return { ...rendered, bodies }
+  }
+
+  it('reopens the form filled in as typed from "Edit and resubmit", and says so', async () => {
+    const { user, router } = await submitted()
+
+    await user.click(main().getByRole('link', { name: /edit and resubmit/i }))
+
+    expect(router.state.location.pathname).toBe('/csnp')
+    expect(main().getByText(/filled in from your earlier job/i)).toBeInTheDocument()
+    expect(sequenceBox()).toHaveValue(SEQUENCE)
+    expect(substitutionsBox()).toHaveValue('L4P c13r\nG12V')
+    await waitFor(() => expect(speciesBox()).toHaveValue('Plasmodium falciparum (PLAF7)'))
+  })
+
+  it('starts a new job from the edited input', async () => {
+    const { user, router, bodies } = await submitted()
+    const first = router.state.location.pathname
+
+    await user.click(main().getByRole('link', { name: /edit and resubmit/i }))
+    await user.clear(substitutionsBox())
+    await user.type(substitutionsBox(), 'K9A')
+    await user.click(submitButton())
+
+    await waitFor(() => expect(router.state.location.pathname).toMatch(JOB_PATH))
+    expect(router.state.location.pathname).not.toBe(first)
+    expect(bodies).toHaveLength(2)
+    expect(bodies[1]).toEqual({
+      service: 'csnp',
+      input: { sequence: SEQUENCE, substitutions: ['K9A'], species: 'PLAF7' },
+    })
+  })
+
+  it('starts an empty form, without the note, from the cSNP tab on an edited form', async () => {
+    const { user, router } = await submitted()
+    await user.click(main().getByRole('link', { name: /edit and resubmit/i }))
+    expect(main().getByText(/filled in from your earlier job/i)).toBeInTheDocument()
+
+    await user.click(
+      within(screen.getByRole('navigation', { name: /services/i })).getByRole('link', {
+        name: /csnp scoring/i,
+      })
+    )
+
+    expect(router.state.location.pathname).toBe('/csnp')
+    expect(main().queryByText(/filled in from your earlier job/i)).not.toBeInTheDocument()
+    expect(sequenceBox()).toHaveValue('')
+    expect(substitutionsBox()).toHaveValue('')
+  })
+
+  it('drops the note when the example replaces the edited input', async () => {
+    const { user } = await submitted()
+    await user.click(main().getByRole('link', { name: /edit and resubmit/i }))
+
+    await user.click(main().getByRole('button', { name: /use an example/i }))
+
+    expect(main().queryByText(/filled in from your earlier job/i)).not.toBeInTheDocument()
+    expect(sequenceBox()).not.toHaveValue(SEQUENCE)
+  })
+
+  it('opens an empty form from "New cSNP search"', async () => {
+    const { user, router } = await submitted()
+
+    await user.click(main().getByRole('link', { name: /new csnp search/i }))
+
+    expect(router.state.location.pathname).toBe('/csnp')
+    expect(sequenceBox()).toHaveValue('')
+    expect(substitutionsBox()).toHaveValue('')
+    expect(main().queryByText(/filled in from your earlier job/i)).not.toBeInTheDocument()
+  })
+})

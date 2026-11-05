@@ -1,12 +1,19 @@
 import { describe, expect, it } from 'vitest'
 
-import { type Draft, draftInput, draftReducer, initialDraft } from '@/features/refmap/draft'
+import {
+  type Draft,
+  draftInput,
+  draftReducer,
+  initialDraft,
+  startingDraft,
+} from '@/features/refmap/draft'
 import { example } from '@/features/refmap/example'
 import { splitIds } from '@/features/refmap/ids'
 
 const withErrors: Draft = {
   values: { ids: 'P04217', organism: 'human' },
   errors: { fields: { ids: ['Bad ID.'], organism: ['Bad organism.'] }, form: ['Other.'] },
+  filledFromJob: false,
 }
 
 describe('the refmap draft', () => {
@@ -87,5 +94,28 @@ describe('the refmap draft', () => {
       organism: 'HUMAN',
       ids: ['P04217', 'p04217'],
     })
+  })
+})
+
+describe('the starting draft', () => {
+  const kept = { ids: 'P04217\nQ9H2F3', organism: 'MOUSE' }
+
+  it('starts from a kept input, as typed, and says it was filled from a job', () => {
+    expect(startingDraft(kept)).toEqual({
+      values: kept,
+      errors: { fields: {}, form: [] },
+      filledFromJob: true,
+    })
+  })
+
+  it('starts empty without one', () => {
+    expect(startingDraft(undefined)).toBe(initialDraft)
+  })
+
+  it('is no longer filled from the job once the example replaces it', () => {
+    const next = draftReducer(startingDraft(kept), { type: 'exampleUsed' })
+
+    expect(next.values).toEqual(example)
+    expect(next.filledFromJob).toBe(false)
   })
 })

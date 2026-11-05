@@ -8,9 +8,11 @@ import {
   csnpResult,
   jobError,
   jobNotFound,
+  refmapJob,
   toolsJob,
   toolsResult,
 } from '@/mocks/data/jobs'
+import { keepInput } from '@/features/jobs'
 import { versions } from '@/mocks/data/versions'
 import { createJob } from '@/mocks/jobs'
 
@@ -328,5 +330,70 @@ describe('a csnp job on the job page', () => {
 
     expect(await shownStatus()).toMatch(/running/i)
     expect(main().queryByRole('table')).not.toBeInTheDocument()
+  })
+})
+
+describe("a job page's next step", () => {
+  it.each(['running', 'succeeded'] as const)(
+    'offers a new cSNP search while a csnp job is %s',
+    async status => {
+      serveJob(csnpJob(ID, status))
+      renderRoute(`/jobs/${ID}`)
+
+      expect(await shownStatus()).toMatch(new RegExp(status, 'i'))
+      expect(main().getByRole('link', { name: /new csnp search/i })).toHaveAttribute(
+        'href',
+        '/csnp'
+      )
+    }
+  )
+
+  it('offers a new ID mapping for a refmap job', async () => {
+    serveJob(refmapJob(ID, 'succeeded'))
+    renderRoute(`/jobs/${ID}`)
+
+    expect(await shownStatus()).toMatch(/succeeded/i)
+    expect(main().getByRole('link', { name: /new id mapping/i })).toHaveAttribute('href', '/refmap')
+  })
+
+  it('links home from the tools check', async () => {
+    serveJob(toolsJob(ID, 'succeeded'))
+    renderRoute(`/jobs/${ID}`)
+
+    expect(await shownStatus()).toMatch(/succeeded/i)
+    expect(main().getByRole('link', { name: /back to home/i })).toHaveAttribute('href', '/')
+  })
+
+  it('offers "Edit and resubmit" for a job whose input this tab kept', async () => {
+    keepInput(ID, 'csnp', { sequence: 'MKV', substitutions: 'K2A', species: 'HUMAN' })
+    serveJob(csnpJob(ID, 'succeeded'))
+    renderRoute(`/jobs/${ID}`)
+
+    expect(await shownStatus()).toMatch(/succeeded/i)
+    expect(main().getByRole('link', { name: /edit and resubmit/i })).toHaveAttribute(
+      'href',
+      '/csnp'
+    )
+  })
+
+  it('offers no "Edit and resubmit" for an input kept before the form had a box it has now', async () => {
+    window.sessionStorage.setItem(
+      `panther-scoring:input:${ID}`,
+      JSON.stringify({ service: 'csnp', values: { sequence: 'MKV', substitutions: 'K2A' } })
+    )
+    serveJob(csnpJob(ID, 'succeeded'))
+    renderRoute(`/jobs/${ID}`)
+
+    expect(await shownStatus()).toMatch(/succeeded/i)
+    expect(main().queryByRole('link', { name: /edit and resubmit/i })).not.toBeInTheDocument()
+  })
+
+  it('offers no "Edit and resubmit" for a job opened from a link', async () => {
+    serveJob(csnpJob(ID, 'succeeded'))
+    renderRoute(`/jobs/${ID}`)
+
+    expect(await shownStatus()).toMatch(/succeeded/i)
+    expect(main().getByRole('link', { name: /new csnp search/i })).toBeInTheDocument()
+    expect(main().queryByRole('link', { name: /edit and resubmit/i })).not.toBeInTheDocument()
   })
 })

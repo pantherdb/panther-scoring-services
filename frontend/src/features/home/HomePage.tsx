@@ -1,32 +1,47 @@
 import { Button } from '@mantine/core'
 import { Link } from 'react-router'
 
+import { SERVICES, type Service } from '@/app/services'
+import { ComingSoonBadge } from '@/components/ComingSoonPage'
 import { StartToolsCheck } from '@/features/jobs'
 
+// The four services, in priority order, then the scoring tools check.
 export function HomePage() {
   return (
     <div className="flex flex-col gap-8">
-      <section className="flex flex-col items-start gap-2">
-        <h2 className="text-lg font-semibold">Coding SNP impact scoring</h2>
-        <p className="text-ink-muted">
-          Estimates how long an amino-acid position has been preserved in evolution, to predict
-          whether a substitution there is likely to be damaging.
-        </p>
-        <Button component={Link} to="/csnp" className="mt-2">
-          Score coding SNPs
-        </Button>
-      </section>
-      <section className="flex flex-col items-start gap-2">
-        <h2 className="text-lg font-semibold">Protein ID mapping</h2>
-        <p className="text-ink-muted">
-          Maps protein IDs, such as UniProt accessions, to their PANTHER families and subfamilies in
-          one organism.
-        </p>
-        <Button component={Link} to="/refmap" className="mt-2">
-          Map protein IDs
-        </Button>
-      </section>
+      <ul className="grid gap-4 sm:grid-cols-2">
+        {SERVICES.map(service => (
+          <li key={service.id} className="flex">
+            <ServiceCard service={service} />
+          </li>
+        ))}
+      </ul>
       <StartToolsCheck />
     </div>
+  )
+}
+
+type Props = {
+  service: Service
+}
+
+function ServiceCard({ service }: Props) {
+  return (
+    <section className="flex w-full flex-col items-start gap-2 rounded-xl bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-lg font-semibold">{service.title}</h2>
+        {service.comingSoon && <ComingSoonBadge />}
+      </div>
+      <p className="flex-1 text-ink-muted">{service.summary}</p>
+      {service.action ? (
+        <Button component={Link} to={service.path} className="mt-2">
+          {service.action}
+        </Button>
+      ) : (
+        <Button component={Link} to={service.path} variant="default" className="mt-2">
+          Find out more
+        </Button>
+      )}
+    </section>
   )
 }

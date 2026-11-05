@@ -441,3 +441,67 @@ describe('when the job is not started', () => {
     }
   )
 })
+
+describe('after submitting', () => {
+  it('reopens the form filled in as typed from "Edit and resubmit", and says so', async () => {
+    serveStart()
+    const { user, router } = renderRoute('/refmap')
+    await fillValid(user)
+    await user.click(submitButton())
+    expect(await main().findByRole('status')).toHaveTextContent(/queued/i)
+
+    await user.click(main().getByRole('link', { name: /edit and resubmit/i }))
+
+    expect(router.state.location.pathname).toBe('/refmap')
+    expect(main().getByText(/filled in from your earlier job/i)).toBeInTheDocument()
+    expect(idsBox()).toHaveValue(IDS)
+    expect(organismBox()).toHaveValue('HUMAN')
+  })
+
+  it('starts an empty form, without the note, from the ID mapping tab on an edited form', async () => {
+    serveStart()
+    const { user } = renderRoute('/refmap')
+    await fillValid(user)
+    await user.click(submitButton())
+    expect(await main().findByRole('status')).toHaveTextContent(/queued/i)
+    await user.click(main().getByRole('link', { name: /edit and resubmit/i }))
+    expect(main().getByText(/filled in from your earlier job/i)).toBeInTheDocument()
+
+    await user.click(
+      within(screen.getByRole('navigation', { name: /services/i })).getByRole('link', {
+        name: /id mapping/i,
+      })
+    )
+
+    expect(main().queryByText(/filled in from your earlier job/i)).not.toBeInTheDocument()
+    expect(idsBox()).toHaveValue('')
+    expect(organismBox()).toHaveValue('')
+  })
+
+  it('drops the note when the example replaces the edited input', async () => {
+    serveStart()
+    const { user } = renderRoute('/refmap')
+    await fillValid(user)
+    await user.click(submitButton())
+    expect(await main().findByRole('status')).toHaveTextContent(/queued/i)
+    await user.click(main().getByRole('link', { name: /edit and resubmit/i }))
+
+    await user.click(exampleButton())
+
+    expect(main().queryByText(/filled in from your earlier job/i)).not.toBeInTheDocument()
+    expect(idsBox()).not.toHaveValue(IDS)
+  })
+
+  it('opens an empty form from "New ID mapping"', async () => {
+    serveStart()
+    const { user } = renderRoute('/refmap')
+    await fillValid(user)
+    await user.click(submitButton())
+    expect(await main().findByRole('status')).toHaveTextContent(/queued/i)
+
+    await user.click(main().getByRole('link', { name: /new id mapping/i }))
+
+    expect(idsBox()).toHaveValue('')
+    expect(organismBox()).toHaveValue('')
+  })
+})

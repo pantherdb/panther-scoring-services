@@ -93,10 +93,22 @@ def test_a_higher_level_leaves_out_info_and_requests(
     assert "WARNING panther_api.example: shown" in err
 
 
+def test_no_access_log_stays_off(capsys: pytest.CaptureFixture[str]) -> None:
+    """Uvicorn's `--no-access-log` (here `access_log=False`) leaves the access logger with no
+    handler; taking it over would turn the request lines back on."""
+    with serve(access_log=False) as server:
+        assert server.request("GET", "/api/v1/versions")[0] == 200
+        logging.getLogger("panther_api.example").info("still logged")
+
+    err = capsys.readouterr().err
+    assert request_lines(err, "GET /api/v1/versions") == []
+    assert "INFO panther_api.example: still logged" in err
+
+
 # Routine requests.
 
 
-def test_a_successful_poll_and_an_accepted_job_write_no_request_line(
+def test_a_successful_poll_writes_no_request_line_and_the_submission_one(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     with serve() as server:
@@ -105,7 +117,10 @@ def test_a_successful_poll_and_an_accepted_job_write_no_request_line(
     err = capsys.readouterr().err
     assert job["status"] == "succeeded"
     assert request_lines(err, f"GET /api/v1/jobs/{job['id']}") == []
-    assert request_lines(err, "POST /api/v1/jobs") == []
+    # The submission's line is the one at INFO with the client's address.
+    [line] = request_lines(err, "POST /api/v1/jobs")
+    assert line.endswith(" 202")
+    assert " 127.0.0.1:" in line
 
 
 def test_a_poll_for_an_unknown_job_writes_a_request_line(
@@ -160,12 +175,17 @@ def test_every_request_is_logged_at_debug(
         ("GET", "/api/v1/health", 200, False),
         ("GET", "/api/v1/health?x=1", 200, False),
         ("GET", "/panther/api/v1/health", 200, False),
+        ("GET", "/api/v1/health", 503, True),
+        ("GET", "/api/v1/health", 500, True),
         ("GET", "/api/v1/jobs/abc", 200, False),
         ("GET", "/api/v1/jobs/abc", 404, True),
-        ("POST", "/api/v1/jobs", 202, False),
+        ("POST", "/api/v1/jobs", 202, True),
         ("POST", "/api/v1/jobs", 503, True),
         ("GET", "/api/v1/versions", 200, True),
+        ("GET", "/api/v1/jobs", 200, True),
+        ("GET", "/api/v1/jobs/", 200, True),
         ("GET", "/api/v1/jobs/abc/more", 200, True),
+        ("GET", "/api/v2/health", 200, True),
     ],
 )
 def test_the_filter(method: str, path: str, status: int, kept: bool) -> None:

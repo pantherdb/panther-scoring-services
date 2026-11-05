@@ -53,7 +53,10 @@ If the schema changed, also run `npm run api:types` in `frontend/` and commit `s
 - **The log** (`add-api-logging`):
   - `logs.configure_logging()` runs first in the lifespan. It puts one handler on the root logger and routes Uvicorn's loggers through it, so log with `logging.getLogger(__name__)` and nothing else; don't add handlers.
   - `JobRunner` writes each job's one line when it finishes, and a `DEBUG` line when it's submitted. Each service's input model has a `log_summary()` giving its size, such as `HUMAN, 347 residues, 3 substitutions`; basedpyright fails if a new service's input lacks it.
-  - An unexpected error's traceback is logged once in ten minutes, keyed by type and message (`_RecentErrors`); the times are the jobs' own, so a test moves them with `store.utcnow`.
+  - An unexpected error's traceback is logged once in ten minutes, keyed by its type and where it was raised, not its message (`_RecentErrors`); the times are the jobs' own, so a test moves them with `store.utcnow`.
+  - A job that fails on its input is logged with a fixed outcome, not the engine's message, which is written for the user and could quote the input.
+  - A refused submission is logged at most once a minute (`_Refusals`); the next line counts the rest.
+  - Log after the work a line describes, never between storing a job and starting its task, or a failure while logging can strand the job. Guard a `DEBUG` line's arguments with `logger.isEnabledFor`.
 
 ## The Engine
 

@@ -54,6 +54,7 @@ src/panther_api/
   main.py        create_app(): the /api/v1 router, the error handlers, CORS, the body limit, and the
                  startup that reads the settings, sets up the log, reads the versions, checks
                  the cSNP data, and starts the job runner
+  prefix.py      API_PREFIX, /api/v1
   settings.py    the PANTHER_API_* settings, read once at startup
   logs.py        the log's format and level, for the API's records and Uvicorn's, and the
                  filter that leaves routine requests out of the access log

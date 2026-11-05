@@ -41,11 +41,21 @@
 - [x] 5.1 In `api/`: `uv sync --locked`, `uv run ruff check`, `uv run ruff format --check`, `uv run basedpyright`, `uv run pytest`, and `uv run python -m panther_api.openapi` leaves `openapi.json` unchanged. At the root: `npx markdownlint-cli2`, `npx openspec validate --all --no-interactive`. All pass
 - [x] 5.2 Build the API image and run it on port 8001 with `MSYS_NO_PATHCONV=1 docker run` (not the compose project). Submit the cSNP example, poll it to the end, and check `docker logs`: Uvicorn's startup lines, then the job's one line in the new format, and no poll or `202` lines
 
+## 6. Review on #58
+
+- [x] 6.1 Key the recent errors by the exception's type and where it was raised, not its message (design.md, decision 7). Verify in `tests/test_job_logs.py`: a message that varies from one place is the same error, and fail()'s message raised from another place is another (spec, A message that varies; A different error)
+- [x] 6.2 Replace a broken pool before logging the dead worker's line, and log the submission at the end of `submit()`, only when `DEBUG` is on (decision 4). Verify that the existing dead-worker and submission tests pass
+- [x] 6.3 Log a job that fails on its input with a fixed outcome, without the engine's message (decision 4). Verify in `tests/test_job_logs.py` and `tests/test_jobs.py` that the job has the message and the log doesn't (spec, A job that fails on its input)
+- [x] 6.4 Log refused submissions at most once a minute, counting the rest (`_Refusals`, decision 4). Verify with the `Clock` in `tests/test_job_logs.py`: three refusals in a minute, then one more, give two lines, the second counting three (spec, A client retrying against a full queue)
+- [x] 6.5 In the access filter, drop only a successful health check, keep the `202`, build the paths from `API_PREFIX` (moved to `prefix.py`), and leave Uvicorn's access logger alone when `--no-access-log` turned it off (decision 3). Verify with the filter's table in `tests/test_logs.py`, the `202` line with the client's address against a real Uvicorn server, and `serve(access_log=False)` writing no request line (spec, A failed health check; An accepted submission; The request log turned off)
+- [x] 6.6 Start every test from the settings' defaults: an autouse fixture in `conftest.py` removes every exported `PANTHER_API_*`. Verify by running the suite with `PANTHER_API_LOG_LEVEL=WARNING` exported. Also: `conftest` uses `logs.UVICORN_LOGGERS`, `_seconds()` tests `is not None`, and one `tests/polling.py` replaces the polling helpers of `test_jobs.py`, `test_csnp_scoring.py` and `test_job_logs.py`
+- [x] 6.7 Update `docs/testing/api.md`, Logs, `api/CLAUDE.md`, `api/README.md`'s layout, the proposal, the design and both spec deltas. Final check as in 5.1, the suite in the API image as in 3.4, and the image's log as in 5.2
+
 ## Notes
 
 ### Next action
 
-Review: commit, and open the pull request against `main` with this change's artifacts and code, for the API owner's approval. Then archive.
+The pull request, #58, is open and in review. The engine developer's review (2026-11-05) is answered by section 6. Next: their approval, then merge and archive. Don't open another pull request for this change.
 
 ### Blockers
 
@@ -63,6 +73,13 @@ None.
 - **A handler that keeps `sys.stderr` from when it was made** can write to a stream a test's capture has closed. `_Handler` looks up `sys.stderr` on each record.
 - **In the image, fastapi-cli prints its own banner before Uvicorn starts.** It isn't a logger, so it keeps its format, as do Uvicorn's first two lines.
 
+- **Review on #58 (2026-11-05).** The first version keyed repeated errors by message, which misses `blastp`'s time-limit message, since the limit scales with the sequence, and merges different bugs with a generic message. It also logged the dead worker before replacing the pool, logged the submission between storing the job and starting it, put the engine's input-error message in the log, dropped failed health checks and the `202` with the client's address, turned `--no-access-log` back on, and let an exported `PANTHER_API_LOG_LEVEL` fail 11 tests. All fixed in section 6.
+- **Uvicorn writes access lines whenever `uvicorn.access` has a handler, its ancestors' included** (`h11_impl.py`, `self.access_log = self.access_logger.hasHandlers()`). `--no-access-log` works only by leaving it with none and not propagating.
+- **A worker's exception reaches the parent with the worker's traceback as text,** chained as its `__cause__` (`_RemoteTraceback`). Its frames are read from that text.
+- **Final check, after the review (6.7, 2026-11-05).** `ruff check`, `ruff format --check`, `basedpyright`, and `pytest` (339 passed, 6 skipped without the tools; the same with `PANTHER_API_LOG_LEVEL=WARNING` exported) pass natively; `openapi.json` is unchanged. In the API image, all 345 pass. The image's log shows the `202` line with the client's address and the job's line, and no health or successful poll lines.
+
 ### Open questions
+
+- **Engine error messages that quote the input,** such as the BLAST-line previews in `csnp/hits.py`, which carry the aligned query. They reach the log in a traceback. The engine developer offered to forbid it in the engine's error contract (#58); it's engine-side, not this change.
 
 - **Log retention on the server:** a log collector, or Docker's `max-size` and `max-file` for the `api` container. For the engine developer, with #34. It doesn't change this change's code; `docs/testing/api.md`, Logs, gives the options.

@@ -50,10 +50,13 @@ class Server:
 
 
 @contextmanager
-def serve() -> Generator[Server]:
+def serve(*, access_log: bool = True) -> Generator[Server]:
     """A new app on a free local port, with Uvicorn's own logging config, as `fastapi run` starts
-    it. Stopped, and its jobs' workers with it, at the end."""
-    config = uvicorn.Config(create_app(), host="127.0.0.1", port=0, lifespan="on")
+    it; `access_log=False` as `--no-access-log` does. Stopped, and its jobs' workers with it, at
+    the end."""
+    config = uvicorn.Config(
+        create_app(), host="127.0.0.1", port=0, lifespan="on", access_log=access_log
+    )
     server = uvicorn.Server(config)
     # Not the main thread, so Uvicorn installs no signal handlers.
     thread = threading.Thread(target=server.run, daemon=True)

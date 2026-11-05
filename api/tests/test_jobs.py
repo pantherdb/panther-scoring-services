@@ -32,11 +32,17 @@ from job_helpers import (
 )
 from panther_engine.core.errors import InputError
 from panther_engine.core.tools import ToolReport
+from polling import poll
 from pydantic import ValidationError
 
 from panther_api.jobs.csnp import CsnpInput, CsnpResult, SubstitutionScore, run_csnp
 from panther_api.jobs.refmap import MOST_IDS, RefmapInput
-from panther_api.jobs.runner import UNEXPECTED_JOB_DETAIL, WORKER_STOPPED_DETAIL, JobRunner
+from panther_api.jobs.runner import (
+    INPUT_ERROR_OUTCOME,
+    UNEXPECTED_JOB_DETAIL,
+    WORKER_STOPPED_DETAIL,
+    JobRunner,
+)
 from panther_api.jobs.tools import ToolsInput, run_tools
 from panther_api.jobs.work import CsnpJobRequest, RefmapJobRequest, ToolsJobRequest, run_job
 from panther_api.main import create_app
@@ -47,9 +53,6 @@ FAKE_TOOLS_DIR = "fake-tools"
 PROBLEM = "application/problem+json"
 TOOLS_JOB: dict[str, object] = {"service": "tools", "input": {}}
 STATUS_ORDER = ["queued", "running", "succeeded"]
-FINISHED = ("succeeded", "failed")
-# A worker's first start under spawn imports pydantic and the engine: about a second.
-POLL_TIMEOUT = 60.0
 
 Job = dict[str, Any]
 
@@ -58,20 +61,6 @@ def submit(client: TestClient, body: object = TOOLS_JOB) -> Job:
     response = client.post("/api/v1/jobs", json=body)
     assert response.status_code == 202, response.text
     return response.json()
-
-
-def poll(client: TestClient, job_id: str, until: tuple[str, ...] = FINISHED) -> list[Job]:
-    """Poll the job, as the frontend does, until its status is one of `until`. Every answer."""
-    deadline = time.monotonic() + POLL_TIMEOUT
-    answers: list[Job] = []
-    while True:
-        response = client.get(f"/api/v1/jobs/{job_id}")
-        assert response.status_code == 200, response.text
-        answers.append(response.json())
-        if answers[-1]["status"] in until:
-            return answers
-        assert time.monotonic() < deadline, f"job still {answers[-1]['status']}"
-        time.sleep(0.05)
 
 
 def runner(client: TestClient) -> JobRunner:
@@ -334,7 +323,9 @@ def test_an_input_error_fails_the_job_with_a_422_and_its_message(
         if record.name == "panther_api.jobs.runner" and job["id"] in record.getMessage()
     ]
     assert record.levelno == logging.INFO
-    assert INPUT_ERROR_MESSAGE in record.getMessage()
+    # The message is for the user: the job has it, the log has a fixed outcome instead.
+    assert INPUT_ERROR_OUTCOME in record.getMessage()
+    assert INPUT_ERROR_MESSAGE not in caplog.text
     assert record.exc_info is None
 
 

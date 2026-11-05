@@ -5,13 +5,13 @@ the API image (docs/testing/api.md, "Tests With the Tools and Data"). The expect
 engine's goldens: the release sample's proteins and substitutions, scored as spec §7.3 gives them.
 """
 
-import time
 from collections.abc import Iterator
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
 from markers import REPO_ROOT, data_folder
+from polling import poll
 
 from panther_api.jobs.work import run_job
 from panther_api.main import create_app
@@ -85,14 +85,7 @@ def run(
         },
     )
     assert response.status_code == 202, response.text
-    job_id = response.json()["id"]
-    deadline = time.monotonic() + POLL_TIMEOUT
-    while True:
-        job: dict[str, Any] = client.get(f"/api/v1/jobs/{job_id}").json()
-        if job["status"] in ("succeeded", "failed"):
-            return job
-        assert time.monotonic() < deadline, f"job still {job['status']}"
-        time.sleep(0.2)
+    return poll(client, response.json()["id"], timeout=POLL_TIMEOUT, interval=0.2)[-1]
 
 
 @pytest.mark.parametrize("protein", ["P26439", "Q9H2F3", "P78314"])

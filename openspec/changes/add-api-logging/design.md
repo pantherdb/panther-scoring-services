@@ -62,11 +62,12 @@ Alternatives:
 
 ### 3. Leave routine requests out of the access log
 
-A `logging.Filter` on `uvicorn.access` drops a record for `GET /api/v1/health`; for `GET /api/v1/jobs/{id}` with a 2xx status; and for `POST /api/v1/jobs` with `202`. It reads the record's `args` tuple, ignores a query string, and keeps any record whose `args` isn't the 5-tuple it expects, so a change in Uvicorn's record logs too much, not too little.
+A `logging.Filter` on `uvicorn.access` drops a record for `GET /api/v1/health` or `GET /api/v1/jobs/{id}` with a 2xx status. The paths are built from `API_PREFIX`, which moves to `prefix.py` so `logs.py` can import it without importing the app, and compared as strings. It reads the record's `args` tuple, ignores a query string, and keeps any record whose `args` isn't the 5-tuple it expects, so a change in Uvicorn's record logs too much, not too little.
 
-- **A 404 poll stays:** a client polling an expired or wrong id is worth seeing. So does a `422`, `413`, `501` or `503` submission.
-- **An accepted submission goes:** its job's finish line says more.
-- **Health checks go,** since a proxy or Docker health check may call it every few seconds.
+- **A 404 poll stays:** a client polling an expired or wrong id is worth seeing.
+- **Every submission stays,** the `202` too: it's the only line at `INFO` with the client's address, so a client flooding the API with large jobs can be found without switching to `DEBUG`. Adding the address to the job's line instead would mean passing it into the runner; Uvicorn already writes it, behind a proxy too once the proxy's headers are trusted. (Review on #58; at first the `202` was dropped.)
+- **A successful health check goes,** since a proxy or Docker health check may call it every few seconds. A failed one stays: it's the one worth seeing.
+- **`--no-access-log` stays off.** Uvicorn turns the access log off by giving `uvicorn.access` no handlers and no propagation, and writes access lines only when `hasHandlers()` is true. Routing it through the root would turn them back on, so `configure_logging` leaves that logger alone when it has no handlers and doesn't propagate. After the first call it propagates, so a second call still takes it over.
 - **At `DEBUG` nothing is dropped,** for following one client's polls.
 
 Alternative: **an access log middleware of our own,** with Uvicorn's turned off. It would control the line fully, but duplicates what Uvicorn does, and `fastapi run` would need `--no-access-log`, which it doesn't take.
@@ -76,8 +77,10 @@ Alternative: **an access log middleware of our own,** with Uvicorn's turned off.
 `JobRunner` logs, so every route that submits a job gets them:
 
 - **Finished,** once, at the end of `_run()`, from the job's own timestamps, with `request.input.log_summary()`: `INFO` for a success or an `InputError`, `ERROR` for anything else, with the traceback when decision 7 says so. This replaces the three failure lines `_run()` has now, so each job has exactly one line at `INFO`.
-- **Submitted,** in `submit()` after the job is stored, at `DEBUG`: the id, the service and the summary.
-- **Refused,** in `submit()` before raising `QueueFullError`: `WARNING`, with the service, the number of unfinished jobs and the cap. The router doesn't log it again.
+- **Submitted,** at the end of `submit()`, after the job's task has started, at `DEBUG`: the id, the service and the summary. Last, so a failure in `log_summary()` can't leave a job stored but never run; and only when `DEBUG` is on, so the summary isn't built for a line that's dropped.
+- **Refused,** in `submit()` before raising `QueueFullError`: `WARNING`, with the service, the number of unfinished jobs and the cap, at most once a minute (`_Refusals`). The first refusal after a quiet minute is logged at once; the next line, once a minute has passed, counts the refusals since the last. A client retrying in a loop against a full queue would otherwise write a line per attempt. Refusals in the last minute before the queue clears are counted but never logged, if none follows. The router doesn't log it again.
+- **Failed on its input:** `failed 422, the engine couldn't process the input`, without the engine's message. The message is written for the user and goes to them in the job; a future service's message could quote the submitted value, or hold a newline that forges a log line.
+- **A dead worker:** the broken pool is replaced before the line is logged, so a failure while logging can't leave every later job failing.
 
 One line per job, written at the end, means a job that never finishes leaves no line at `INFO`. Jobs only stop finishing if workers hang, and then the queue-full warnings show it; `DEBUG` shows each submission while that's looked into.
 
@@ -97,15 +100,15 @@ Alternative: **a `match` on the request in the runner.** It puts every service's
 
 ### 7. A repeated error's traceback once in ten minutes
 
-`jobs/runner.py` keeps a small table of the unexpected errors seen recently, keyed by the exception's type and message. For a job that fails unexpectedly:
+`jobs/runner.py` keeps a small table of the unexpected errors seen recently, keyed by the exception's type and where it was raised: the innermost frame of the worker's traceback, which `concurrent.futures` chains to the exception as text, or of the exception's own traceback when there's no worker's, as for `BrokenProcessPool`. Not the message: a message can vary per job, such as `blastp`'s time limit, which scales with the sequence, and different bugs can share a generic message such as a bare `KeyError`. (Review on #58; at first the key was the type and message.) For a job that fails unexpectedly:
 
 - **A new key, or one first seen more than ten minutes ago:** the finish line has the traceback (`exc_info`), and the table records this job's id, the time and a count of 1.
 - **A key seen within ten minutes:** the line has no traceback, and ends "same error as job 9c1e…, seen 12 times since 17:02:13Z".
 - Entries older than ten minutes are dropped whenever one is added, so the table stays small.
 
-A dead worker is keyed like any other error, by `BrokenProcessPool` and its message.
+A dead worker is keyed like any other error, by `BrokenProcessPool` and where the pool raised it.
 
-The table lives on the event loop, like the rest of the runner's state, so needs no lock. Its times are the jobs' own `finished_at`, from `store.utcnow`, so a test steps past ten minutes with the `Clock` it already patches there.
+The table lives on the event loop, like the rest of the runner's state, so needs no lock. Its times are the jobs' own `finished_at`, from `store.utcnow`, so a test steps past ten minutes with the `Clock` it already patches there. That's the wall clock: if it steps back, an entry is kept longer, and a repeat goes without its traceback longer than ten minutes. `time.monotonic()` behind a clock tests can patch would avoid it; the cost, a second clock to patch, isn't worth it for a traceback that's at most delayed.
 
 Alternatives:
 
@@ -115,6 +118,7 @@ Alternatives:
 ## Risks / Trade-offs
 
 - **[A future log line includes user data]** → `api/CLAUDE.md` gets the rule, next to "Never echo a submitted value in an error", and a test runs a job with distinctive values and asserts none is in the captured log.
+- **[A traceback carries an engine message that quotes the input]** → the API logs an exception's message as raised; it can't redact a traceback reliably. Keeping submitted values out of the engine's exception messages, and changing the BLAST-line previews in `csnp/hits.py`, is the engine's side: the engine developer offered on #58.
 - **[A Uvicorn upgrade changes the access record]** → the filter keeps records it doesn't recognise, and the tests of the access log serve the app with a real Uvicorn server (`TestClient` bypasses Uvicorn), so they fail if Uvicorn's record changes and nothing is dropped.
 - **[The log grows without bound on the server]** → Docker's `json-file` driver keeps everything by default. Rotation (`max-size`, `max-file`) is a server setting, raised as an open question in the proposal for #34.
 - **[Tests start the app many times]** → `configure_logging` replaces its own handler and filter instead of adding more (decision 1).

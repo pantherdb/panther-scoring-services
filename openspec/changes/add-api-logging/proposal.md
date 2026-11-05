@@ -17,15 +17,15 @@ The API is about to run on the team's server ([hosting.md](../../../docs/design/
 - **`PANTHER_API_LOG_LEVEL`,** `INFO` by default; `DEBUG`, `INFO`, `WARNING` or `ERROR`. An invalid value stops the API from starting, as for the other settings.
 - **One line for each job,** when it finishes: its service, the size of its input, its status, how long it waited and how long it ran. `INFO`, or `ERROR` for an unexpected failure. The submission gets a line of its own only at `DEBUG`.
 - **An unexpected error's traceback once in ten minutes.** When every job fails the same way, such as while the data is missing, the first job's line has the traceback, and the repeats name that job instead of repeating 30 lines each.
-- **A `WARNING` when the queue is full** and a submission gets a `503`, since that means the server needs more workers or is being flooded.
-- **Quieter access log:** at `INFO` and above, a successful `GET /api/v1/jobs/{id}` poll, `GET /api/v1/health`, and a `POST /api/v1/jobs` answered with `202` aren't logged; the job's own line covers the last. Every other request is, including a poll that gets a `404` and a submission that gets a `422`. At `DEBUG`, every request is logged.
-- **No user data in the log.** A job's line gives sizes and codes, such as a sequence's length, how many substitutions and the species code, never the sequence, a substitution or an ID.
+- **A `WARNING` when the queue is full** and a submission gets a `503`, since that means the server needs more workers or is being flooded. At most one a minute, counting the refusals since the last.
+- **Quieter access log:** at `INFO` and above, a successful `GET /api/v1/jobs/{id}` poll and a successful `GET /api/v1/health` aren't logged. Every other request is, including a failed health check, a poll that gets a `404`, and every submission, whose line has the client's address. At `DEBUG`, every request is logged. Uvicorn's `--no-access-log` still turns the access log off.
+- **No user data in the log.** A job's line gives sizes and codes, such as a sequence's length, how many substitutions and the species code, never the sequence, a substitution or an ID. A job that fails on its input is logged without the engine's message.
 - **Docs:** the setting in `docs/testing/api.md`, what the log shows and how to read it, and `api/CLAUDE.md`'s rule about user data.
 
 Not in this change:
 
 - **JSON logs, a log file or a log shipper.** Plain lines on standard error suit `docker logs`. If the server gets a log collector, a JSON format can be added then.
-- **Request ids** tying an access line to a job. An accepted submission has no access line at `INFO`, and at `DEBUG` the submission line follows it.
+- **Request ids** tying an access line to a job. At `DEBUG`, the submission line follows the submission's access line.
 - **The client's address behind a proxy.** The access log shows the address the API sees, the proxy's unless the proxy's forwarded headers are trusted. That's part of the server setup (#34).
 - **Logging in the worker processes.** The engine doesn't log, and an exception in a worker reaches the API's log with its traceback already.
 

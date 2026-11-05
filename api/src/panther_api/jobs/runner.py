@@ -11,6 +11,7 @@ give the size of the input (`log_summary()`), never what was submitted.
 import asyncio
 import logging
 import multiprocessing
+import re
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
@@ -20,6 +21,7 @@ from http import HTTPStatus
 from fastapi.concurrency import run_in_threadpool
 from panther_engine.core.errors import InputError
 
+from panther_api.jobs import store as job_store
 from panther_api.jobs.store import JobRecord, JobStore
 from panther_api.jobs.work import JobRequest, run_job
 from panther_api.problems import Problem
@@ -33,6 +35,16 @@ WORKER_STOPPED_DETAIL = "The worker running the job stopped unexpectedly."
 TRACEBACK_INTERVAL = timedelta(minutes=10)
 """An unexpected error's traceback is logged once in this time; repeats name that job instead."""
 
+REFUSAL_INTERVAL = timedelta(minutes=1)
+"""Refused submissions are logged at most once in this time; the next line counts them."""
+
+INPUT_ERROR_OUTCOME = "failed 422, the engine couldn't process the input"
+"""The line for a job that failed on its input. Not the engine's message: it's written for the
+person who submitted the input, and may one day quote it."""
+
+# A frame in a formatted traceback: `  File "/path/x.py", line 12, in name`.
+_FRAME = re.compile(r'^\s*File "([^"]*)", line (\d+), in (\S+)', re.MULTILINE)
+
 
 def _job_problem(detail: str, status: HTTPStatus = HTTPStatus.INTERNAL_SERVER_ERROR) -> Problem:
     return Problem(title=status.phrase, status=status, detail=detail)
@@ -43,7 +55,27 @@ class QueueFullError(Exception):
 
 
 def _seconds(start: datetime | None, end: datetime | None) -> float:
-    return (end - start).total_seconds() if start and end else 0.0
+    return (end - start).total_seconds() if start is not None and end is not None else 0.0
+
+
+def _raised_at(error: BaseException) -> str:
+    """Where the error was raised: the innermost frame, `file:line in function`.
+
+    An error from a worker comes back with the worker's traceback as text, chained as its cause
+    by concurrent.futures, so its innermost frame is read from that text. Any other error, such as
+    BrokenProcessPool, has its frames here.
+    """
+    cause = error.__cause__
+    if cause is not None and (frames := _FRAME.findall(str(cause))):
+        file, line, function = frames[-1]
+        return f"{file}:{line} in {function}"
+    frames_here = error.__traceback__
+    if frames_here is None:
+        return ""
+    while frames_here.tb_next is not None:
+        frames_here = frames_here.tb_next
+    code = frames_here.tb_frame.f_code
+    return f"{code.co_filename}:{frames_here.tb_lineno} in {code.co_name}"
 
 
 def _describe(job: JobRecord) -> str:
@@ -60,11 +92,15 @@ class _ErrorSeen:
 
 
 class _RecentErrors:
-    """The unexpected errors seen in the last TRACEBACK_INTERVAL, by type and message, so that a
-    traceback is logged once while every job fails the same way (openspec add-api-logging,
-    design.md, decision 7).
+    """The unexpected errors seen in the last TRACEBACK_INTERVAL, by type and where they were
+    raised, so that a traceback is logged once while every job fails the same way (openspec
+    add-api-logging, design.md, decision 7).
 
-    The times are the jobs' own `finished_at`, so a test moves them with store.utcnow.
+    Not by message: a message can vary from job to job, such as a time limit that scales with the
+    input, and two bugs can share a generic one.
+
+    The times are the jobs' own `finished_at`, so a test moves them with store.utcnow. A clock
+    stepped back keeps an entry longer, so a repeat goes without its traceback a little longer.
     """
 
     def __init__(self) -> None:
@@ -75,13 +111,44 @@ class _RecentErrors:
         self._seen = {
             key: seen for key, seen in self._seen.items() if now - seen.first < TRACEBACK_INTERVAL
         }
-        key = (type(error).__qualname__, str(error))
+        key = (type(error).__qualname__, _raised_at(error))
         seen = self._seen.get(key)
         if seen is None:
             self._seen[key] = _ErrorSeen(job_id, now)
             return None
         seen.count += 1
         return seen
+
+
+class _Refusals:
+    """Refused submissions, logged at most once in REFUSAL_INTERVAL, so a client retrying in a
+    loop against a full queue can't fill the log. The first refusal after a quiet interval is
+    logged at once; the ones in the interval after a line are counted, and the next line, once
+    the interval has passed, gives the count since the previous line."""
+
+    def __init__(self) -> None:
+        self._last_line: datetime | None = None
+        self._since_last_line = 0
+
+    def refused(self, service: str, unfinished: int, max_queued: int) -> None:
+        now = job_store.utcnow()
+        self._since_last_line += 1
+        if self._last_line is not None and now - self._last_line < REFUSAL_INTERVAL:
+            return
+        if self._last_line is None or self._since_last_line == 1:
+            what = f"a {service} job"
+        else:
+            since = self._last_line.strftime("%Y-%m-%dT%H:%M:%SZ")
+            what = f"{self._since_last_line} jobs since {since}, the last a {service} job"
+        logger.warning(
+            "Refused %s: the queue is full, with %d jobs running or waiting and a cap of %d "
+            "waiting",
+            what,
+            unfinished,
+            max_queued,
+        )
+        self._last_line = now
+        self._since_last_line = 0
 
 
 class JobRunner:
@@ -100,6 +167,7 @@ class JobRunner:
         # Jobs submitted and not yet finished, running or waiting.
         self._unfinished = 0
         self._errors = _RecentErrors()
+        self._refusals = _Refusals()
 
     def submit(self, request: JobRequest) -> JobRecord:
         """Store a new job and start its task. Call it on the event loop.
@@ -111,21 +179,17 @@ class JobRunner:
         # not by status, because a job becomes `running` only when its task next gets the loop:
         # jobs submitted back to back while a worker is free would otherwise count as waiting.
         if self._unfinished >= self._workers + self._max_queued:
-            logger.warning(
-                "Refused a %s job: the queue is full, with %d jobs running or waiting and a cap "
-                "of %d waiting",
-                request.service,
-                self._unfinished,
-                self._max_queued,
-            )
+            self._refusals.refused(request.service, self._unfinished, self._max_queued)
             raise QueueFullError
         job = self.store.add(request, self._versions)
-        logger.debug("%s: submitted", _describe(job))
         self._unfinished += 1
         task = asyncio.create_task(self._run(job))
         # The loop keeps only a weak reference to a task: keep it alive until it's done.
         self._tasks.add(task)
         task.add_done_callback(self._finished)
+        # Last, once the job is running, so a failure here can't leave it stored but never run.
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("%s: submitted", _describe(job))
         return job
 
     def _finished(self, task: asyncio.Task[None]) -> None:
@@ -151,15 +215,17 @@ class JobRunner:
             except BrokenProcessPool as error:
                 # A worker died. The pool fails every job it holds and takes no more, so replace
                 # it; jobs still queued here then run on the new one.
+                # The pool first, so a failure while logging can't leave it broken for every
+                # later job.
                 job.fail(_job_problem(WORKER_STOPPED_DETAIL))
-                self._log_unexpected(job, error, "failed 500, the worker stopped")
                 self._replace_pool(pool)
+                self._log_unexpected(job, error, "failed 500, the worker stopped")
             except InputError as error:
                 # The user's input, not a fault: the engine writes the message for the user, with
-                # no paths or tool output (engine-core, "Input errors"). Shown as given, and
-                # logged without a traceback.
+                # no paths or tool output (engine-core, "Input errors"). Shown to the user as
+                # given; logged as a fixed outcome without the message or a traceback.
                 job.fail(_job_problem(str(error), HTTPStatus.UNPROCESSABLE_CONTENT))
-                logger.info("%s", self._finish_line(job, f"failed 422 ({error})"))
+                logger.info("%s", self._finish_line(job, INPUT_ERROR_OUTCOME))
             except Exception as error:
                 # As for a 500 (problems.py), nothing about the exception goes in the job. The
                 # log gets it, with the worker's traceback: concurrent.futures chains it as the

@@ -15,12 +15,11 @@ from panther_api.cors import Cors
 from panther_api.jobs.runner import JobRunner
 from panther_api.limits import BodyLimit
 from panther_api.logs import configure_logging
+from panther_api.prefix import API_PREFIX
 from panther_api.problems import PROBLEM_RESPONSES, add_problem_handlers, document_problems
 from panther_api.routers import csnp, health, jobs, versions
 from panther_api.settings import Settings
 from panther_api.versions import read_versions
-
-API_PREFIX = "/api/v1"
 
 logger = logging.getLogger(__name__)
 

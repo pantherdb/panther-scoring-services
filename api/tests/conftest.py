@@ -1,4 +1,5 @@
 import logging
+import os
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -8,6 +9,7 @@ from job_helpers import report_fake_tools
 from markers import fail_if_missing, skip_if_missing
 from panther_engine.core.tools import ToolReport
 
+from panther_api.logs import UVICORN_LOGGERS
 from panther_api.main import create_app
 
 
@@ -27,6 +29,14 @@ FAKE_REPORTS = (
     ToolReport("hmmsearch", Path("/opt/fake-tools/bin/hmmsearch"), "3.4"),
     ToolReport("epa-ng", Path("/opt/fake-tools/bin/epa-ng"), "0.3.8"),
 )
+
+
+@pytest.fixture(autouse=True)
+def default_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Start every test from the settings' defaults, whatever the shell exports, such as
+    `PANTHER_API_LOG_LEVEL=WARNING`. A test that needs a setting sets it after this runs."""
+    for name in [name for name in os.environ if name.startswith("PANTHER_API_")]:
+        monkeypatch.delenv(name)
 
 
 @pytest.fixture(autouse=True)
@@ -52,7 +62,7 @@ def restore_logging() -> Iterator[None]:
     """Undo what the app's start did to the logging setup (panther_api.logs), so a test's log
     level or handler doesn't carry over to the next test."""
     root = logging.getLogger()
-    uvicorn = [logging.getLogger(name) for name in ("uvicorn", "uvicorn.error", "uvicorn.access")]
+    uvicorn = [logging.getLogger(name) for name in UVICORN_LOGGERS]
     saved_root = (list(root.handlers), root.level)
     saved = [
         (list(logger.handlers), list(logger.filters), logger.level, logger.propagate)

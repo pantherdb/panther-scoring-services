@@ -3,11 +3,9 @@ finished job, The size of a job's input, A job's submission is logged at DEBUG, 
 error's traceback is logged once in ten minutes, A refused submission is logged)."""
 
 import logging
-import time
 from collections.abc import Iterator
 from datetime import timedelta
 from pathlib import Path
-from typing import Any
 
 import pytest
 from clock import Clock
@@ -18,17 +16,19 @@ from job_helpers import (
     exit_worker,
     fail,
     fail_differently,
+    fail_elsewhere,
+    fail_with_a_new_message,
     raise_input_error,
     score_with_a_fake_engine,
     wait_for_gate,
 )
+from polling import Job, submit_and_wait
 
-from panther_api.jobs.runner import TRACEBACK_INTERVAL
+from panther_api.jobs.runner import INPUT_ERROR_OUTCOME, REFUSAL_INTERVAL, TRACEBACK_INTERVAL
 from panther_api.main import create_app
 
 RUNNER = "panther_api.jobs.runner"
 TOOLS_JOB: dict[str, object] = {"service": "tools", "input": {}}
-POLL_TIMEOUT = 60.0
 # 347 residues and 3 substitutions; none of them may reach the log.
 SEQUENCE = ("ACDEFGHIKLMNPQRSTVWY" * 18)[:347]
 SUBSTITUTIONS = ["A1C", "C2D", "D3E"]
@@ -36,8 +36,6 @@ CSNP_JOB: dict[str, object] = {
     "service": "csnp",
     "input": {"sequence": SEQUENCE, "substitutions": SUBSTITUTIONS, "species": "HUMAN"},
 }
-
-Job = dict[str, Any]
 
 
 @pytest.fixture
@@ -48,16 +46,7 @@ def debug_client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
 
 
 def run(client: TestClient, body: object = TOOLS_JOB) -> Job:
-    response = client.post("/api/v1/jobs", json=body)
-    assert response.status_code == 202, response.text
-    job_id = response.json()["id"]
-    deadline = time.monotonic() + POLL_TIMEOUT
-    while True:
-        job: Job = client.get(f"/api/v1/jobs/{job_id}").json()
-        if job["status"] in ("succeeded", "failed"):
-            return job
-        assert time.monotonic() < deadline, f"job still {job['status']}"
-        time.sleep(0.05)
+    return submit_and_wait(client, body)
 
 
 def job_records(caplog: pytest.LogCaptureFixture, job: Job) -> list[logging.LogRecord]:
@@ -115,8 +104,11 @@ def test_a_job_that_fails_on_its_input_has_one_info_line_without_a_traceback(
 
     [record] = job_records(caplog, job)
     assert record.levelno == logging.INFO
-    assert f"tools: failed 422 ({INPUT_ERROR_MESSAGE}), waited " in record.getMessage()
+    assert f"tools: {INPUT_ERROR_OUTCOME}, waited " in record.getMessage()
     assert record.exc_info is None
+    # The message is the user's; the job has it, the log doesn't.
+    assert job["error"]["detail"] == INPUT_ERROR_MESSAGE
+    assert INPUT_ERROR_MESSAGE not in caplog.text
 
 
 def test_a_job_that_fails_unexpectedly_has_one_error_line_with_the_traceback(
@@ -210,6 +202,30 @@ def test_a_full_queue_logs_a_warning_and_no_submission(
     )
 
 
+def test_refusals_are_logged_at_most_once_a_minute(
+    monkeypatch: pytest.MonkeyPatch, gate: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    clock = Clock()
+    monkeypatch.setattr("panther_api.jobs.store.utcnow", clock)
+    monkeypatch.setenv("PANTHER_API_JOB_WORKERS", "1")
+    monkeypatch.setenv("PANTHER_API_MAX_QUEUED_JOBS", "0")
+    with TestClient(create_app()) as client:
+        accepted = client.post("/api/v1/jobs", json=TOOLS_JOB)
+        refused = [client.post("/api/v1/jobs", json=TOOLS_JOB).status_code for _ in range(3)]
+        clock.advance(REFUSAL_INTERVAL)
+        refused.append(client.post("/api/v1/jobs", json=TOOLS_JOB).status_code)
+        gate.touch()
+
+    assert accepted.status_code == 202
+    assert refused == [503] * 4
+    queue = "the queue is full, with 1 jobs running or waiting and a cap of 0 waiting"
+    warnings = [r.getMessage() for r in runner_records(caplog) if r.levelno == logging.WARNING]
+    assert warnings == [
+        f"Refused a tools job: {queue}",
+        f"Refused 3 jobs since 2026-10-29T12:00:00Z, the last a tools job: {queue}",
+    ]
+
+
 # A traceback once in ten minutes.
 
 
@@ -239,6 +255,37 @@ def test_a_different_error_gets_its_own_traceback(
     monkeypatch.setattr("panther_api.jobs.runner.run_job", fail)
     first = run(client)
     monkeypatch.setattr("panther_api.jobs.runner.run_job", fail_differently)
+
+    second = run(client)
+
+    [first_line] = job_records(caplog, first)
+    [second_line] = job_records(caplog, second)
+    assert first_line.exc_info is not None
+    assert second_line.exc_info is not None
+    assert "same error" not in second_line.getMessage()
+
+
+def test_an_error_whose_message_varies_is_the_same_error(
+    monkeypatch: pytest.MonkeyPatch, client: TestClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", fail_with_a_new_message)
+
+    first = run(client)
+    second = run(client)
+
+    [first_line] = job_records(caplog, first)
+    [second_line] = job_records(caplog, second)
+    assert first_line.exc_info is not None
+    assert second_line.exc_info is None
+    assert f"(same error as job {first['id']}, seen 2 times since " in second_line.getMessage()
+
+
+def test_the_same_message_raised_elsewhere_is_another_error(
+    monkeypatch: pytest.MonkeyPatch, client: TestClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", fail)
+    first = run(client)
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", fail_elsewhere)
 
     second = run(client)
 

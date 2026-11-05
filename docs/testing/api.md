@@ -91,6 +91,7 @@ The first gets `202`; the second gets `503` if it arrives while the first is sti
 The API writes its log to standard error, one line per record: a UTC timestamp, the level, the logger, and the message. Its own lines and Uvicorn's request lines share the format, from the time the app has started; Uvicorn's first two lines, before that, keep Uvicorn's format. Read it with `docker compose logs api`, or `docker logs <container>`. A job's run, at `INFO`:
 
 ```text
+2026-11-04T17:02:13.415Z INFO uvicorn.access: 172.18.0.1:51230 - "POST /api/v1/jobs HTTP/1.1" 202
 2026-11-04T17:02:54.611Z INFO panther_api.jobs.runner: Job 9c1e2f4a-… csnp, HUMAN, 347 residues, 3 substitutions: succeeded, waited 0.0 s, ran 41.2 s
 2026-11-04T17:03:10.002Z INFO uvicorn.access: 172.18.0.1:51234 - "POST /api/v1/jobs HTTP/1.1" 422
 ```
@@ -101,12 +102,15 @@ What each level writes:
 | ----- | ------------- |
 | `DEBUG` | Everything below, plus a line when each job is submitted, and every request |
 | `INFO` | One line per job when it finishes, with its service, the size of its input, its status, its wait and its run time. Every request except the routine ones below |
-| `WARNING` | A submission refused because the queue is full, with the number of jobs and the cap |
+| `WARNING` | Submissions refused because the queue is full, with the number of jobs and the cap, at most once a minute |
 | `ERROR` | A job that failed unexpectedly or whose worker died, and a startup without the cSNP data |
 
-- **Routine requests are left out below `DEBUG`:** `GET /api/v1/health`, a poll (`GET /api/v1/jobs/{id}`) answered with a 2xx, and a submission answered with `202`, whose job gets its own line. A poll that gets a `404`, and a submission that gets a `422`, `413`, `501` or `503`, are logged.
-- **An unexpected error's traceback is logged once in ten minutes.** While every job fails the same way, such as while the data is missing, the first job's line has the traceback, and each repeat ends `(same error as job <id>, seen <n> times since <time>)`. An error is the same when its type and message are.
-- **No submitted values.** A job's line gives sizes and the species or organism code, never a sequence, a substitution or an ID. A rejected value isn't logged either.
+- **Routine requests are left out below `DEBUG`:** a health check (`GET /api/v1/health`) or a poll (`GET /api/v1/jobs/{id}`) answered with a 2xx. A failed health check, a poll that gets a `404`, and every submission are logged. A submission's line is the only one at `INFO` with the client's address.
+- **The client's address is the one the API sees:** behind a proxy, the proxy's, unless Uvicorn trusts the proxy's forwarded headers. `fastapi run` trusts them from `127.0.0.1` only; set `FORWARDED_ALLOW_IPS` to the proxy's address to trust it. That's the server's setting (#34).
+- **Uvicorn's `--no-access-log` is respected:** if Uvicorn starts without an access log, the API leaves it off.
+- **An unexpected error's traceback is logged once in ten minutes.** While every job fails the same way, such as while the data is missing, the first job's line has the traceback, and each repeat ends `(same error as job <id>, seen <n> times since <time>)`. An error is the same when its type and the place it was raised are, whatever its message: a time limit's message names the limit, which differs from job to job.
+- **Refusals at most once a minute.** While the queue stays full, the first refused submission is logged, and the next line, a minute or more later, counts the ones since: `Refused 37 jobs since <time>, the last a csnp job: …`.
+- **No submitted values.** A job's line gives sizes and the species or organism code, never a sequence, a substitution or an ID. A rejected value isn't logged either, nor is the engine's message for an input error: the line says `failed 422, the engine couldn't process the input`, and the job has the message. A traceback has the exception's message as the engine raised it; keeping submitted values out of those is the engine's rule.
 - **How much:** about 200 bytes a job at `INFO`. `DEBUG` adds a line for every poll, about one a second for each job a browser is waiting on; use it to look into something, then set it back.
 - **Its size on a server:** Docker keeps a container's log until the container is removed. Cap it with the `json-file` driver's options, such as `--log-opt max-size=10m --log-opt max-file=5` on `docker run`, or `logging:` in a compose file. That's the server's setting, not the API's.
 
@@ -243,7 +247,7 @@ A request the API accepts can still fail in its worker, in one of two ways:
   docker compose run --rm -p 8001:8000 -e PANTHER_DATA_DIR=/nowhere api
   ```
 
-Both are logged as the job's one line ([Logs](#logs)): an input error at `INFO`, with the engine's message and no traceback; anything else at `ERROR`, with the traceback the first time in ten minutes.
+Both are logged as the job's one line ([Logs](#logs)): an input error at `INFO`, as `failed 422, the engine couldn't process the input`, without the engine's message or a traceback; anything else at `ERROR`, with the traceback the first time in ten minutes.
 
 #### The Species List
 

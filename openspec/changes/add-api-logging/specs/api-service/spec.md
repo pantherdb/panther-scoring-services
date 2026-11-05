@@ -37,7 +37,7 @@ The API SHALL read its log level from `PANTHER_API_LOG_LEVEL` when it starts: `D
 
 ### Requirement: Routine requests are left out of the request log
 
-At `INFO` and above, the API SHALL leave out of its request log a `GET /api/v1/health`, a `GET /api/v1/jobs/{id}` answered with a 2xx status, and a `POST /api/v1/jobs` answered with `202`, whose job gets its own line. Every other request MUST be logged. At `DEBUG`, every request MUST be logged.
+At `INFO` and above, the API SHALL leave out of its request log a `GET /api/v1/health` and a `GET /api/v1/jobs/{id}` answered with a 2xx status. Every other request MUST be logged, including every `POST /api/v1/jobs`, with the client's address. At `DEBUG`, every request MUST be logged. If the server is started without a request log, the API MUST NOT turn it on.
 
 #### Scenario: A successful poll
 
@@ -51,18 +51,28 @@ At `INFO` and above, the API SHALL leave out of its request log a `GET /api/v1/h
 
 #### Scenario: A health check
 
-- **WHEN** the log level is `INFO` and a client sends `GET /api/v1/health`
+- **WHEN** the log level is `INFO` and a client sends `GET /api/v1/health`, and it's answered with `200`
 - **THEN** no request line is written
+
+#### Scenario: A failed health check
+
+- **WHEN** the log level is `INFO` and `GET /api/v1/health` is answered with a `5xx` status
+- **THEN** a request line is written with that status
 
 #### Scenario: An accepted submission
 
 - **WHEN** the log level is `INFO` and a client submits a valid job
-- **THEN** no request line is written for the `202`
+- **THEN** a request line is written with the client's address, `POST /api/v1/jobs` and the status `202`
 
 #### Scenario: A refused submission
 
 - **WHEN** the log level is `INFO` and a client submits a job request that fails validation
 - **THEN** a request line is written with `POST /api/v1/jobs` and the status `422`
+
+#### Scenario: The request log turned off
+
+- **WHEN** Uvicorn is started without its access log and a client sends `GET /api/v1/versions`
+- **THEN** no request line is written, and the API's own lines still are
 
 #### Scenario: Every request at DEBUG
 
@@ -82,3 +92,12 @@ The API's log MUST NOT contain the data a user submits: a protein sequence, a su
 
 - **WHEN** a client submits a request that fails validation and contains a distinctive value
 - **THEN** the log does not contain that value
+
+### Requirement: The engine's messages in the log
+
+A job that fails on its input MUST be logged without the engine's message, which is written for the user. An unexpected error's traceback MAY carry the exception's message as the engine raised it; keeping submitted values out of those messages is the engine's contract.
+
+#### Scenario: A job that fails on its input
+
+- **WHEN** a job fails because the engine can't process its input, with a message for the user
+- **THEN** the job's `detail` has the message, and the log does not

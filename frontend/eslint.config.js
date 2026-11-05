@@ -54,5 +54,10 @@ export default defineConfig([
     files: ['*.config.{js,ts}', 'e2e/**/*.ts'],
     languageOptions: { globals: globals.node },
   },
+  {
+    files: ['scripts/**/*.mjs'],
+    extends: [js.configs.recommended],
+    languageOptions: { globals: globals.node },
+  },
   prettier,
 ])

@@ -14,7 +14,7 @@ How the service gets deployed, and a record of each deployment.
 | Runbook | What it covers |
 | ------- | -------------- |
 | [runbook-pages.md](runbook-pages.md) | Publishing the frontend to GitHub Pages, pointed at the API |
-| [runbook-server.md](runbook-server.md) | The site and API images on our server, pulled from GitHub's container registry or built there, and the site served beside the API |
+| [runbook-server.md](runbook-server.md) | Building the frontend on our server with Docker, and serving it beside the API |
 
 ## What a Deployment Record Includes
 

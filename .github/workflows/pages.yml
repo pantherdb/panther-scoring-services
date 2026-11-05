@@ -81,14 +81,9 @@ jobs:
         env:
           VITE_API_BASE_URL: ${{ needs.configured.outputs.api-url }}
           BASE_PATH: ${{ vars.PAGES_BASE_PATH || '/panther-scoring-services/' }}
-      # MSW's worker and its start-up both name mockServiceWorker. Not a bare "msw", which a
-      # minified name could be by chance.
+      # The same check as frontend/Dockerfile's (scripts/check-no-mocks.mjs).
       - name: No mock data in the build
-        run: |
-          if grep -rli -e mockServiceWorker -e "mock data" dist; then
-            echo "::error::The build contains the API mocking library or the mock data banner."
-            exit 1
-          fi
+        run: npm run check:no-mocks
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: frontend/dist

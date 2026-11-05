@@ -11,6 +11,7 @@
     "dev:api": "vite --mode api",
     "build": "tsc -b && vite build",
     "build:e2e": "vite build --mode e2e",
+    "check:no-mocks": "node scripts/check-no-mocks.mjs",
     "preview": "vite preview",
     "type-check": "tsc -b",
     "lint": "eslint .",

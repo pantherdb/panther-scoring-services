@@ -4,12 +4,17 @@
 
 ### Requirement: The site built in a container
 
-The repository SHALL build the site in a container from `frontend/` alone, on any machine with Docker and no Node. It MUST be the production build, and the build MUST fail if the result contains the API mocking library or the mock data banner. The base path and the API's URL MUST be build arguments with the same defaults as `npm run build`.
+The repository SHALL build the site in a container from `frontend/` alone, on any machine with Docker and no Node. It MUST be the production build, and the build MUST fail if the result contains the API mocking library or the mock data banner. The base path and the API's URL MUST be build arguments with the same defaults as `npm run build`. A CA certificate MAY be given to the build, for a network that re-signs TLS, and MUST NOT be kept in the image.
 
 #### Scenario: The defaults
 
 - **WHEN** the image is built with no build arguments
 - **THEN** the site is served at `/`, and calls the relative `/api/v1`
+
+#### Scenario: Behind a network that re-signs TLS
+
+- **WHEN** the image is built on a network that re-signs TLS, with that network's CA certificate given to the build
+- **THEN** the dependencies install, and the image holds no copy of the certificate
 
 #### Scenario: A base path
 
@@ -27,7 +32,7 @@ The build SHALL be able to write the built files to a folder on the host, for a 
 
 ### Requirement: The web image serves the site and forwards the API
 
-The web image SHALL serve the site on port 8080 as a user other than root. A path that isn't a file MUST get `index.html`. Requests under `/api/` MUST be forwarded to the API at an address set when the container starts, `http://api:8000` by default, with bodies up to the API's own limit. Assets MUST be cached for a long time, and `index.html` revalidated on each load.
+The web image SHALL serve the site on port 8080 as a user other than root. A path that isn't a file MUST get `index.html`. Requests under `/api/` MUST be forwarded to the API at an address set when the container starts, `http://api:8000` by default, with bodies up to the API's own limit, and with the host and scheme the request came with. A replaced API container MUST be reached without restarting the web image. Assets MUST be cached for a long time, and `index.html` revalidated on each load.
 
 #### Scenario: A deep link
 
@@ -38,6 +43,16 @@ The web image SHALL serve the site on port 8080 as a user other than root. A pat
 
 - **WHEN** a client requests `/api/v1/health` from the web image
 - **THEN** the request reaches the API, and the API's answer comes back
+
+#### Scenario: The API's container replaced
+
+- **WHEN** the API's container is replaced by one with the same name and a new address, while the web image runs
+- **THEN** within seconds, requests to `/api/` reach the new container, with no restart of the web image
+
+#### Scenario: Forwarded by a front end
+
+- **WHEN** a front end that ended HTTPS forwards a request under `/api/` with `X-Forwarded-Proto: https`
+- **THEN** the API receives `X-Forwarded-Proto: https` and the request's own `Host`
 
 #### Scenario: Caching
 
@@ -52,22 +67,3 @@ A developer or the server SHALL be able to start the web image with the API imag
 
 - **WHEN** the documented command is run from a fresh clone
 - **THEN** `http://localhost:8080/` serves the site, and `http://localhost:8080/api/v1/health` returns status 200
-
-### Requirement: The web image published after each change
-
-After a push to `main` that changes `frontend/`, and once the web image's checks pass, CI SHALL publish the web image to GitHub's container registry for `linux/amd64`, tagged `main` and with the commit's SHA. A pull request MUST NOT publish. The files in the published image MUST be the same as the ones the documented command writes to a folder.
-
-#### Scenario: A merge that changes the site
-
-- **WHEN** a pull request that changes `frontend/` merges, and the checks pass on `main`
-- **THEN** `ghcr.io/pantherdb/panther-web:main` and the tag with the merge's SHA are that commit's image
-
-#### Scenario: A merge that doesn't
-
-- **WHEN** a push to `main` changes nothing in `frontend/`
-- **THEN** nothing is published, and the `main` tag stays where it was
-
-#### Scenario: A pull request
-
-- **WHEN** CI runs on a pull request
-- **THEN** the web image is built and checked, and nothing is published

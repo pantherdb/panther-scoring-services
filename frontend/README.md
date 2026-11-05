@@ -31,7 +31,7 @@ e2e/            Playwright, in mock, api and site modes
 - **Read [CLAUDE.md](CLAUDE.md) before writing code.** It has the conventions: where state goes, how to mock, and what's outside the stack.
 - **API types come from the OpenAPI schema,** never by hand. After `api/openapi.json` changes, run `npm run api:types` and commit `src/app/api/schema.d.ts`. CI fails while they differ.
 - **Before a pull request:** `npm run type-check && npm run lint && npm test`, then `npm run test:e2e`.
-- **Deploying:** a build reads the API's address from `VITE_API_BASE_URL`, empty for the relative `/api/v1`, and its base path from `BASE_PATH`. `.github/workflows/pages.yml` publishes it to GitHub Pages; the steps are in [runbook-pages.md](../docs/deployment/runbook-pages.md). `Dockerfile` builds it in an image that serves it with nginx beside the API; CI publishes that image after each merge that changes `frontend/`, and the server pulls it or builds it without Node ([runbook-server.md](../docs/deployment/runbook-server.md)).
+- **Deploying:** a build reads the API's address from `VITE_API_BASE_URL`, empty for the relative `/api/v1`, and its base path from `BASE_PATH`. `.github/workflows/pages.yml` publishes it to GitHub Pages; the steps are in [runbook-pages.md](../docs/deployment/runbook-pages.md). `Dockerfile` builds it on a server without Node, and serves it with nginx beside the API ([runbook-server.md](../docs/deployment/runbook-server.md)).
 
 ## More
 

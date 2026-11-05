@@ -1,46 +1,39 @@
-# Runbook: Images on Our Server
+# Runbook: the Frontend on Our Server
 
-How to get the site and the API onto the server as Docker images, and serve the site beside the API at one address, so its calls to `/api/v1` need no CORS. The site's way is an alternative to [GitHub Pages](runbook-pages.md), using the same build. The images are `frontend/Dockerfile` and the root `Dockerfile`; the change that added the site's image and publishing is `add-frontend-image`.
+How to build the site on the server with Docker, and serve it beside the API at one address, so its calls to `/api/v1` need no CORS. It's an alternative to [GitHub Pages](runbook-pages.md), using the same build. The image is `frontend/Dockerfile`; the change that added it is `add-frontend-image`.
 
-HTTPS, the hostname and which ports are open are the server's front end, as [hosting.md](../design/hosting.md) says; this runbook covers what runs behind it.
+The server needs Docker and a checkout of this repository, but no Node. HTTPS, the hostname and which ports are open are the server's front end, as [hosting.md](../design/hosting.md) says; this runbook covers what runs behind it, and what the front end must pass on.
 
-## Getting the Images
+## Two Ways, One Build
 
-Each image comes one of two ways. Both give the same image.
-
-| | Pulled from GitHub's container registry | Built on the server |
-| --- | --- | --- |
-| The server needs | Docker | Docker and a checkout of this repository |
-| What it runs | The image CI built and checked | A build of the same commit |
-| How long it takes | Seconds: a download | Minutes for the site; longer for the API |
-
-**Published by CI.** After a merge to `main` that changes what's in an image, and once that image's checks pass, CI pushes it:
-
-| Image | Published when these change |
-| ----- | --------------------------- |
-| `ghcr.io/pantherdb/panther-web` | `frontend/` |
-| `ghcr.io/pantherdb/panther-api` | `api/`, the engine's source, `pyproject.toml` or tools, the root `Dockerfile` or `.dockerignore` |
-
-- **Tags:** `main`, the latest, and the commit's full SHA, which never moves and is what rolling back uses. A commit's SHA is on its page on GitHub, or from `git log`.
-- **`linux/amd64` only.** A machine on `arm64` builds the image itself.
-- **Kept until someone deletes them,** on the package's page on GitHub. Storage is free for a public image.
-- **Pull requests never publish.** They only build and check.
-
-**Once, after the first publish:** an organization owner makes each package public (the package's page → Package settings → Change visibility). Until then, pulling needs a GitHub login with `read:packages`.
-
-## The Site: Two Ways
+Both run `npm ci` and `npm run build` in a container. The build fails if it contains the API mocking library or the mock data banner (`npm run check:no-mocks`).
 
 | | A: the `web` container | B: the built files |
 | --- | --- | --- |
 | What runs | nginx in a container, on port 8080, serving the site and forwarding `/api/` to the API | Nothing new: the server's web server serves a folder |
 | The server's web server | Forwards the site's address to the container | Serves the folder, and forwards `/api/` to the API itself |
-| Updating | Like the API: pull or build the image, restart the container | Copy the files into a new folder, swap it in |
+| Updating | Like the API: rebuild the image, restart the container | Build into a new folder, swap it in |
+| A path such as `/scoring/` | Only if the front end strips it (below) | Yes |
 
-Pick one. The server keeps working as it does today until someone switches. Every build fails if it contains the API mocking library or the mock data banner.
+Pick one. The server keeps working as it does today until someone switches.
 
-## Build Settings
+## Building on the Server
 
-The defaults suit a site at the root of its address, with the API at `/api/` on the same address. The published image uses them. If that isn't so, build on the server with `--build-arg`.
+### The server's CA certificate
+
+The server re-signs TLS, so a download during the build fails unless it trusts the server's CA: `npm ci` stops with `SELF_SIGNED_CERT_IN_CHAIN` or "unable to get local issuer certificate". Node doesn't use the system's certificates, so pass the CA to the build as a secret, on every build command below:
+
+```bash
+docker build --secret id=ca,src=<the CA certificate, .pem> ...
+```
+
+The certificate is used only by `npm ci`, and isn't kept in the image or its layers. Without the secret, the build is the same as anywhere else.
+
+The API image, from the root `Dockerfile`, doesn't take the CA yet: its downloads fail the same way. That's an open question in [hosting.md](../design/hosting.md#getting-the-image-to-the-server).
+
+### Build settings
+
+The defaults suit a site at the root of its address, with the API at `/api/` on the same address. Change them with `--build-arg` only if that isn't so.
 
 | Build argument | Default | What it sets |
 | -------------- | ------- | ------------ |
@@ -50,21 +43,6 @@ The defaults suit a site at the root of its address, with the API at `/api/` on 
 More on both in [frontend.md, Build Settings](../testing/frontend.md#build-settings).
 
 ## A: The `web` Container
-
-### Get the image
-
-Pull it:
-
-```bash
-docker pull ghcr.io/pantherdb/panther-web:main
-```
-
-Or build it, from the repository's root, on the commit to deploy:
-
-```bash
-git pull
-docker build -t panther-web frontend
-```
 
 ### Put it on the API's network, once
 
@@ -77,54 +55,57 @@ docker network connect panther <the API container's name>
 
 `docker inspect -f '{{json .NetworkSettings.Networks}}' <the API container's name>` shows the networks it's on: `bridge` alone is the default one. Connecting doesn't restart the API, and its published ports keep working.
 
-### Start it
+### Build and start it
 
-`<image>` is `ghcr.io/pantherdb/panther-web:main` if pulled, `panther-web` if built:
+From the repository's root, on the commit to deploy:
 
 ```bash
+git pull
+docker build --secret id=ca,src=<the CA certificate> -t panther-web frontend
 docker run -d --name panther-web --restart unless-stopped \
   --network panther \
   -e API_UPSTREAM=http://<the API container's name>:8000 \
-  -p 127.0.0.1:<host port>:8080 <image>
+  -p 127.0.0.1:<host port>:8080 panther-web
 ```
 
-- **Start the API first.** nginx looks up `API_UPSTREAM` when it starts, and stops if the name doesn't exist yet.
-- **`API_UPSTREAM`** is `http://api:8000` unless set: the API's service name in `compose.yaml`. It's the API's port inside its container, 8000, whatever port the API has on the server.
+- **`API_UPSTREAM`** is the API's address on the network, without a path: `http://api:8000` unless set, the API's service name in `compose.yaml`. The port is the API's inside its container, 8000, whatever port the API has on the server. A trailing slash is dropped.
+- **nginx looks the API's name up again** every 10 seconds, so the site keeps working when the API's container is replaced. The API must be running when `panther-web` starts.
 - **`<host port>`** is any free port on the server. The container always listens on 8080 inside; only the host side changes, with no rebuild. `127.0.0.1:` makes it reachable from the server alone, so the public reaches the site only through the server's front end.
-- **The server's front end** then forwards the site's address to `http://127.0.0.1:<host port>`. Requests to `/api/` can go that way too: the container forwards them to the API.
-- **With compose,** `docker compose up -d --build web` builds and starts the API and the site together, the site on port 8080. The API then needs the data mount the `api` service names.
+
+### What the server's front end needs
+
+- **Forward the site's address to `http://127.0.0.1:<host port>`,** `/api/` included: the container forwards that to the API.
+- **A body limit of at least 17 MiB** for it, such as nginx's `client_max_body_size 17m;`. nginx's default is 1 MiB: a larger job, such as a long `refmap` list, would get the front end's own `413` page before it reaches the API's 16 MiB limit and its error message.
+- **Its forwarded headers:** the container passes on the `Host` and `X-Forwarded-Proto` it receives, so the API sees the address and the `https` the user used. The front end should set `X-Forwarded-Proto` when it ends HTTPS, as nginx does with `proxy_set_header X-Forwarded-Proto $scheme;`.
+- **A path such as `/scoring/`:** build with `--build-arg BASE_PATH=/scoring/`, and have the front end strip the path when it forwards, as nginx does with `location /scoring/ { proxy_pass http://127.0.0.1:<host port>/; }`, the trailing slash included. The container serves the site at its own `/`; forwarded with the path, its pages load blank. Or use B, which serves a path directly.
 
 ### Update it
 
 ```bash
-docker pull ghcr.io/pantherdb/panther-web:main    # or: git pull, then the docker build above
+git pull
+docker tag panther-web panther-web:previous      # keep the running build, to roll back
+docker build --secret id=ca,src=<the CA certificate> -t panther-web frontend
 docker rm -f panther-web
 docker run ...                                     # the same command as above
 ```
 
-**To roll back,** remove the container and run the same command with an earlier commit's tag, `ghcr.io/pantherdb/panther-web:<commit SHA>`. If you build on the server, `docker tag panther-web panther-web:previous` before each build, and roll back to that.
+**To roll back,** remove the container and run the same command with `panther-web:previous`.
+
+**When the API's container is replaced,** start the new one with `--network panther` and the same name. `panther-web` finds it without a restart.
 
 ## B: The Built Files
 
-### Get them
+### Build them
 
-Write them to a new folder next to the one the web server serves. From the pulled image:
-
-```bash
-docker pull ghcr.io/pantherdb/panther-web:main
-docker create --name panther-web-files ghcr.io/pantherdb/panther-web:main
-docker cp panther-web-files:/srv/site <web root>.new
-docker rm panther-web-files
-```
-
-Or built, from the repository's root, on the commit to deploy:
+From the repository's root, write the files to a new folder next to the one the web server serves:
 
 ```bash
 git pull
-docker build --target site --output type=local,dest=<web root>.new frontend
+docker build --secret id=ca,src=<the CA certificate> \
+  --target site --output type=local,dest=<web root>.new frontend
 ```
 
-Either way, the folder holds `index.html`, `404.html` and `assets/`.
+The folder holds `index.html`, `404.html` and `assets/`.
 
 ### Swap them in
 
@@ -140,29 +121,17 @@ mv <web root>.new <web root>
 The same as the `web` image's nginx config, `frontend/nginx/default.conf.template`:
 
 - **Deep links:** a path that isn't a file gets `index.html`, such as nginx's `try_files $uri $uri/ /index.html;`. Without it, reloading `/jobs/<id>` gives a 404.
-- **`/api/` forwarded to the API,** with a body limit a little over the API's 16 MiB.
+- **`/api/` forwarded to the API,** with a body limit of at least 17 MiB, a little over the API's 16 MiB: nginx's default is 1 MiB.
 - **Caching:** files under `/assets/` can be cached for a year; `index.html` should be revalidated (`Cache-Control: no-cache`), so a new build shows at once.
-
-## The API Image
-
-Pulling replaces `docker build --target api` on the server. Nothing else about running the API changes:
-
-```bash
-docker pull ghcr.io/pantherdb/panther-api:main
-```
-
-Then remove the API's container and start it again with `ghcr.io/pantherdb/panther-api:main` as its image, and the same settings as before: the data mount, `PANTHER_DATA_DIR` and `PANTHER_API_JOB_WORKERS` ([hosting.md](../design/hosting.md#what-the-server-provides)). If the site's `web` container runs, keep the API container's name and start it with `--network panther`, so `API_UPSTREAM` still finds it: a new container isn't on the network the old one was connected to. **To roll back,** start it with an earlier commit's tag.
-
-The API image appears on the registry after the first merge that changes it; until then, build it on the server as before.
 
 ## Checking It Works
 
-After any of these, against the site's address:
+After either way, against the site's address:
 
 - [ ] `/` shows the home page, with the four services.
 - [ ] Reloading a job's page, `/jobs/<id>`, shows the job, not the web server's 404.
 - [ ] `/api/v1/health` returns `{"status":"ok"}` through the site.
-- [ ] The footer shows the API's versions, not "unavailable".
+- [ ] The footer shows the API's versions, not "unavailable". If it says "unavailable" while `/` works, check `API_UPSTREAM`.
 - [ ] A cSNP job, such as the form's example, runs to **Succeeded**.
 - [ ] The page has no **Mock data** banner.
 
@@ -170,5 +139,4 @@ After any of these, against the site's address:
 
 - **A new Node or nginx version:** a pull request that changes the pinned digest in `frontend/Dockerfile`. Dependabot doesn't update it.
 - **The API moves to another container name or network:** restart `panther-web` with the new `API_UPSTREAM` and network. No rebuild needed.
-- **The site moves under a path:** build on the server with `--build-arg BASE_PATH=/<path>/`, and serve it there. The published image is for `/` only.
-- **Old images:** delete versions on the package's page. Keep the one running, and one or two before it to roll back to.
+- **The site moves under a path:** rebuild with `--build-arg BASE_PATH=/<path>/`, and serve it there, as above.

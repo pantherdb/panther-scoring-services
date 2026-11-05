@@ -1,5 +1,4 @@
-# CI for every pull request and every push to main. A push to main also publishes the API and web
-# images to GitHub's container registry, when what's in them changed (web-publish, api-publish).
+# CI for every pull request and every push to main.
 #
 # The main ruleset requires only `ci-passed`. It sums up the other jobs, so an area's
 # job can be skipped (nothing in that folder changed) without blocking the pull request.
@@ -21,10 +20,8 @@ on:
 permissions:
   contents: read
 
-# A new push to a pull request cancels its older run. Runs on main never cancel each other: a
-# cancelled run would skip publishing what its own push changed.
 concurrency:
-  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -39,8 +36,6 @@ jobs:
       api: ${{ steps.filter.outputs.api }}
       engine: ${{ steps.filter.outputs.engine }}
       web: ${{ steps.filter.outputs.web }}
-      web-publish: ${{ steps.filter.outputs.web-publish }}
-      api-publish: ${{ steps.filter.outputs.api-publish }}
       code: ${{ steps.filter.outputs.code }}
       openspec-change: ${{ steps.filter.outputs.openspec-change }}
     steps:
@@ -75,17 +70,6 @@ jobs:
               - 'frontend/**'
               - 'compose.yaml'
               - '.github/workflows/ci.yml'
-            # What's in each published image, so a push to main publishes only an image that
-            # changed. Narrower than web and api, which also run for compose.yaml and ci.yml.
-            web-publish:
-              - 'frontend/**'
-            api-publish:
-              - 'api/**'
-              - 'engine/src/**'
-              - 'engine/pyproject.toml'
-              - 'engine/tools-env/**'
-              - 'Dockerfile'
-              - '.dockerignore'
             code:
               - 'frontend/**'
               - 'api/**'
@@ -381,8 +365,9 @@ jobs:
           target: web
           tags: panther-web:ci
           load: true
+          # mode=max, so the build stage's npm ci layer is cached too, not only the final image's.
           cache-from: type=gha,scope=web
-          cache-to: type=gha,mode=min,scope=web
+          cache-to: type=gha,mode=max,scope=web
       - name: Start a stand-in API and the web image
         run: |
           mkdir -p stub/api/v1
@@ -392,8 +377,12 @@ jobs:
           docker run -d --name api --network web-ci -v "$PWD/stub:/srv:ro" "$python_image" \
             python -m http.server 8000 -d /srv
           docker run -d --name web --network web-ci -p 8080:8080 panther-web:ci
-      - name: Wait for the site
-        run: curl -fsS --retry 30 --retry-all-errors --retry-delay 1 -o /dev/null http://localhost:8080/
+      # Both: nginx first, then the stand-in through it, which answers 502 until it listens.
+      - name: Wait for the site and the stand-in API
+        run: |
+          curl -fsS --retry 30 --retry-all-errors --retry-delay 1 -o /dev/null http://localhost:8080/
+          curl -fsS --retry 30 --retry-all-errors --retry-delay 1 -o /dev/null \
+            http://localhost:8080/api/v1/health
       - name: The site, a deep link, caching and the API through the site
         run: |
           curl -fsS http://localhost:8080/ > index.html
@@ -412,93 +401,10 @@ jobs:
           docker logs web
       - name: The built files, written to a folder
         run: |
-          docker buildx build --target site --output type=local,dest=site \
-            --cache-from type=gha,scope=web frontend
+          docker buildx build --target site --output type=local,dest=site frontend
           test -f site/index.html
           test -f site/404.html
           ls site/assets/*.js
-      # The way a server with its own web server gets the files from a pulled image.
-      - name: The same files, copied out of the image
-        run: |
-          docker create --name files panther-web:ci
-          docker cp files:/srv/site copied
-          diff -r site copied
-
-  # On a push to main that changed the site, after its checks pass: builds the web image again,
-  # from web-image's cache, and pushes it to GitHub's container registry, tagged `main` and with
-  # the commit's SHA. The server pulls it (docs/deployment/runbook-server.md). Never on a pull
-  # request. Its needs run whenever web-publish is set, so neither is ever skipped.
-  web-publish:
-    name: web-publish
-    needs: [changes, frontend, web-image]
-    if: github.event_name == 'push' && needs.changes.outputs.web-publish == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    # One push at a time, so the `main` tag can't go back to an older build.
-    concurrency:
-      group: publish-web
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - name: Log in to GitHub's container registry
-        env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ACTOR: ${{ github.actor }}
-        run: echo "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
-      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-        with:
-          context: frontend
-          target: web
-          platforms: linux/amd64
-          push: true
-          tags: |
-            ghcr.io/pantherdb/panther-web:main
-            ghcr.io/pantherdb/panther-web:${{ github.sha }}
-          labels: |
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
-          cache-from: type=gha,scope=web
-
-  # The same for the API image, after the API's checks and api-image pass on both architectures.
-  # It publishes linux/amd64 only, from engine-image's and api-image's amd64 caches: a machine on
-  # arm64 builds the image itself.
-  api-publish:
-    name: api-publish
-    needs: [changes, api, api-image]
-    if: github.event_name == 'push' && needs.changes.outputs.api-publish == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    concurrency:
-      group: publish-api
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - name: Log in to GitHub's container registry
-        env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ACTOR: ${{ github.actor }}
-        run: echo "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
-      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-        with:
-          context: .
-          target: api
-          platforms: linux/amd64
-          push: true
-          tags: |
-            ghcr.io/pantherdb/panther-api:main
-            ghcr.io/pantherdb/panther-api:${{ github.sha }}
-          labels: |
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
-          cache-from: |
-            type=gha,scope=engine-amd64
-            type=gha,scope=api-amd64
 
   repo:
     name: repo

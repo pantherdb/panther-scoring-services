@@ -176,7 +176,7 @@ docker compose up --build web    # the site on http://localhost:8080, the API be
 - **The build settings** above are build arguments: `docker build --build-arg BASE_PATH=/scoring/ frontend`.
 - **The built files alone,** for another web server: `docker build --target site --output type=local,dest=<folder> frontend`.
 - **CI's `web-image` job** builds it and checks the site, a deep link, caching, and `/api/` forwarded to a stand-in API.
-- **CI's `web-publish` job,** after a merge to `main` that changes `frontend/`, pushes it to `ghcr.io/pantherdb/panther-web`, tagged `main` and with the commit's SHA. Pull requests never publish.
+- **Behind a network that re-signs TLS,** `npm ci` in the build fails until it trusts the network's CA: `docker build --secret id=ca,src=<the CA's .pem> frontend`.
 
 How the server uses it is in [runbook-server.md](../deployment/runbook-server.md).
 
@@ -186,4 +186,4 @@ How the server uses it is in [runbook-server.md](../deployment/runbook-server.md
 
 - **Which modes mock** is set in the `.env.*` files in `frontend/` (`VITE_API_MOCKING=on` or `off`): `dev` and `build:e2e` mock; `dev:api` and `build` don't.
 - **One function reads it,** `isApiMocked()` in `src/app/mocking.ts`. Both MSW's start-up in `src/main.tsx` and the banner in `src/layout/AppLayout.tsx` ask it, so they can't disagree. In a Vitest test, turn it on with `vi.stubEnv('VITE_API_MOCKING', 'on')` and off again with `vi.unstubAllEnvs()` (see `tests/layout/AppLayout.test.tsx`).
-- **A build without mocking ships nothing of MSW:** its JavaScript leaves out MSW and the banner, and `vite.config.ts` removes `mockServiceWorker.js`, which Vite copies from `public/`, from its `dist/`. After `npm run build`, `grep -rli -e msw -e "mock data" dist` finds nothing. The Pages workflow checks the same, for `mockServiceWorker` and "mock data", before it deploys.
+- **A build without mocking ships nothing of MSW:** its JavaScript leaves out MSW and the banner, and `vite.config.ts` removes `mockServiceWorker.js`, which Vite copies from `public/`, from its `dist/`. After `npm run build`, `grep -rli -e msw -e "mock data" dist` finds nothing. `npm run check:no-mocks` checks a build for `mockServiceWorker` and "mock data"; the Pages workflow and `frontend/Dockerfile` run it before they publish or serve one.

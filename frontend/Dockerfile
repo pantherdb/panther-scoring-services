@@ -14,32 +14,35 @@ ARG NGINX_IMAGE=nginxinc/nginx-unprivileged:1.30.1-alpine@sha256:acc3239879a65d9
 # The built files are the same on every platform, so build on the machine's own.
 FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS build
 WORKDIR /work
-# The dependencies first, so a change to the source alone doesn't reinstall them.
+# The dependencies first, so a change to the source alone doesn't reinstall them. A network that
+# re-signs TLS needs its CA certificate, which Node doesn't otherwise trust: pass it as a build
+# secret, `--secret id=ca,src=<the CA's .pem>`. Without one, nothing changes. A secret isn't kept
+# in any layer, and doesn't change the cache.
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN --mount=type=secret,id=ca \
+    if [ -f /run/secrets/ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/ca; fi; \
+    npm ci --no-audit --no-fund
 COPY . .
 # The build settings (docs/testing/frontend.md, "Build Settings"). The defaults serve the site at
-# the root of its address, calling the API at /api/v1 on that same address.
+# the root of its address, calling the API at /api/v1 on that same address. .env.production keeps
+# mocking off, and check:no-mocks fails the build if it isn't, as in the Pages workflow.
 ARG BASE_PATH=/
 ARG VITE_API_BASE_URL=
-# .env.production keeps mocking off. MSW's worker and its start-up both name mockServiceWorker;
-# the check is the same as the Pages workflow's.
-RUN npm run build \
-    && if grep -rli -e mockServiceWorker -e "mock data" dist; then \
-        echo "The build contains the API mocking library or the mock data banner." >&2; \
-        exit 1; \
-    fi
+RUN npm run build && npm run check:no-mocks
 
 FROM scratch AS site
 COPY --from=build /work/dist/ /
 
 # nginx as a user other than root, on port 8080. Its entrypoint fills templates/*.template from
 # the environment, replacing only the variables that are set, so nginx's own $host and the like
-# stay. API_UPSTREAM is where /api/ goes: compose's api service by default. The site has a folder
-# of its own, not nginx's html/ with its sample pages, so copying /srv/site out of the image gives
-# exactly the build.
+# stay. API_UPSTREAM is where /api/ goes: compose's api service by default. With
+# NGINX_ENTRYPOINT_LOCAL_RESOLVERS set, the entrypoint also sets NGINX_LOCAL_RESOLVERS from the
+# container's DNS, which the template uses to look the API's name up again (see the template).
+# The site has a folder of its own, not nginx's html/ with its sample pages.
 FROM ${NGINX_IMAGE} AS web
-ENV API_UPSTREAM=http://api:8000
+ENV API_UPSTREAM=http://api:8000 \
+    NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
+COPY --chmod=0755 nginx/05-api-upstream.envsh /docker-entrypoint.d/05-api-upstream.envsh
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /work/dist/ /srv/site/
 EXPOSE 8080

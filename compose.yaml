@@ -1,12 +1,13 @@
-# The engine's checks and CLI, and the API, in images with the pinned tools, on any machine with
+# The engine's checks and CLI, the API, and the site, in images with the pinned tools, on any machine with
 # Docker. From the repository root:
 #
 #   docker compose run --rm engine                          # lint, format, types and tests
 #   docker compose run --rm engine uv run pytest -k name    # one test
 #   docker compose run --rm engine panther-engine tools     # the CLI
 #   docker compose up --build api                           # the API on localhost:8000
+#   docker compose up --build web                           # the site and the API on localhost:8080
 #
-# See docs/testing/engine.md and docs/testing/api.md.
+# See docs/testing/engine.md, docs/testing/api.md and docs/testing/frontend.md.
 
 services:
   engine:
@@ -50,3 +51,14 @@ services:
       - ./.data:/data:ro
     environment:
       PANTHER_DATA_DIR: /data
+
+  # The site as a server serves it: the production build, by nginx on port 8080, with /api/ sent to
+  # the api service, which starts first. Rebuild with --build after a change. To work on the
+  # frontend, use its dev server instead (docs/testing/frontend.md).
+  web:
+    build:
+      context: ./frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api

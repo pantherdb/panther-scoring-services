@@ -56,8 +56,15 @@ The OpenSpec change `deploy-frontend-to-pages` (#39) adds these. Every value the
 
 ## Getting the Image to the Server
 
-- **For now:** built on the server from a tagged commit of `main` (`docker build --target api`).
-- **Later:** CI publishes the image to GitHub's container registry, and the server pulls a tag. That keeps the image the server runs the same as the one CI tested.
+CI publishes the image to GitHub's container registry, `ghcr.io/pantherdb/panther-api`, after each merge to `main` that changes it, and the server pulls a tag. That keeps the image the server runs the same as the one CI tested. Building it on the server (`docker build --target api`) still works. The tags, and the one-time step that makes the package public, are in [runbook-server.md](../deployment/runbook-server.md).
+
+## The Frontend on Our Server Instead
+
+The server can also serve the frontend, beside the API at one address: `frontend/Dockerfile` builds it with Docker, as a `web` container or as files for the server's own web server ([runbook-server.md](../deployment/runbook-server.md)).
+
+- **One origin:** the site calls the relative `/api/v1`, so no CORS, and no mixed content while the API has no trusted HTTPS certificate.
+- **The same build as Pages:** which one users get is a team decision. Both can exist.
+- **The same routine as the API:** pulled from the registry, `ghcr.io/pantherdb/panther-web`, or built on the server from the repository, with no Node there.
 
 ## A Public API
 
@@ -76,7 +83,6 @@ Each needs team verification.
 - **The Pages address:** `https://pantherdb.github.io/panther-scoring-services/`, or a custom domain. Either is a setting now (`PAGES_BASE_PATH`).
 - **How the API fits beside what already runs on the server.**
 - **Limits for a public API,** as above.
-- **When CI should start publishing the image.**
 
 ## Review
 

@@ -164,6 +164,22 @@ A build reads two settings from the environment, both empty by default. GitHub P
 
   The asset URLs in `dist/index.html` then start with `/panther-scoring-services/`, and `dist/404.html` is the same file.
 
+## The Site in Docker
+
+`frontend/Dockerfile` builds the production site with Node in a container, and serves it with nginx on port 8080, forwarding `/api/` to the API. To run it with the API image, from the repository root:
+
+```bash
+docker compose up --build web    # the site on http://localhost:8080, the API behind it
+```
+
+- **It's the production build:** no mock data, no dev server, no reload. Rebuild with `--build` after a change. Develop with `npm run dev` instead.
+- **The build settings** above are build arguments: `docker build --build-arg BASE_PATH=/scoring/ frontend`.
+- **The built files alone,** for another web server: `docker build --target site --output type=local,dest=<folder> frontend`.
+- **CI's `web-image` job** builds it and checks the site, a deep link, caching, and `/api/` forwarded to a stand-in API.
+- **CI's `web-publish` job,** after a merge to `main` that changes `frontend/`, pushes it to `ghcr.io/pantherdb/panther-web`, tagged `main` and with the commit's SHA. Pull requests never publish.
+
+How the server uses it is in [runbook-server.md](../deployment/runbook-server.md).
+
 ## Mocking in the Dev Server
 
 `npm run dev` starts MSW and logs `[MSW] Mocking enabled.` in the browser console. Every page then shows a **Mock data** banner at the top, so a screenshot of mock results can't pass for real ones. Mocked jobs live in the page, so reloading a job's page in mock mode shows "Job not found"; against a real API, the job is still there. To develop against a real API instead, run `npm run dev:api`.

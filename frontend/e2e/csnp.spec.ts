@@ -6,6 +6,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { csnpResult } from '../src/mocks/data/jobs'
 import { species as mockedSpecies } from '../src/mocks/data/species'
 import { versions as mockedVersions } from '../src/mocks/data/versions'
+import { expectNoSidewaysScroll } from './layout'
 
 const BUILD_DETAILS = /localhost|127\.0\.0\.1|:\d{4,5}\b|VITE_|API_PROXY|npm |npx /
 const JOB_URL = /\/jobs\/[0-9a-f-]{36}$/
@@ -13,13 +14,6 @@ const FORM_URL = /\/csnp$/
 
 async function expectNoBuildDetails(page: Page) {
   await expect(page.locator('body')).not.toHaveText(BUILD_DETAILS)
-}
-
-async function expectNoSidewaysScroll(page: Page) {
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
-  )
-  expect(overflow).toBe(0)
 }
 
 function fields(page: Page) {

@@ -4,7 +4,7 @@ import { type FormEvent, useReducer } from 'react'
 import { FilledFromJob, useEditedInput } from '@/features/jobs'
 
 import { checkDraft } from './checks'
-import { type CsnpField, draftReducer, keptValues, startingDraft } from './draft'
+import { type CsnpField, draftReducer, startingDraft } from './draft'
 import { SpeciesField } from './SpeciesField'
 import { SubmitAlert } from './SubmitAlert'
 import { useCsnpSpecies } from './useCsnpSpecies'
@@ -13,9 +13,9 @@ import { useSubmitCsnp } from './useSubmitCsnp'
 // The cSNP form: the three fields, the example, and submitting. The client checks run
 // first; the API's errors then land on the same fields.
 export function CsnpForm() {
-  // From "Edit and resubmit", the earlier job's input; the reducer reads it once, on mount.
+  // From "Edit and resubmit", the earlier job's input; the reducer reads it once, on mount. The
+  // page remounts the form when it's opened again, so a new visit starts from its own state.
   const edited = useEditedInput('csnp')
-  const filled = edited !== undefined && keptValues(edited) !== undefined
   const [draft, dispatch] = useReducer(draftReducer, edited, startingDraft)
   const { submit, isSubmitting, problem } = useSubmitCsnp(dispatch)
   const species = useCsnpSpecies()
@@ -44,7 +44,7 @@ export function CsnpForm() {
 
   return (
     <form noValidate onSubmit={onSubmit} className="flex flex-col gap-4">
-      {filled && <FilledFromJob />}
+      {draft.filledFromJob && <FilledFromJob />}
       <div>
         <Button variant="subtle" onClick={() => dispatch({ type: 'exampleUsed' })}>
           Use an example

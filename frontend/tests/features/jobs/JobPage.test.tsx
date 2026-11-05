@@ -376,6 +376,18 @@ describe("a job page's next step", () => {
     )
   })
 
+  it('offers no "Edit and resubmit" for an input kept before the form had a box it has now', async () => {
+    window.sessionStorage.setItem(
+      `panther-scoring:input:${ID}`,
+      JSON.stringify({ service: 'csnp', values: { sequence: 'MKV', substitutions: 'K2A' } })
+    )
+    serveJob(csnpJob(ID, 'succeeded'))
+    renderRoute(`/jobs/${ID}`)
+
+    expect(await shownStatus()).toMatch(/succeeded/i)
+    expect(main().queryByRole('link', { name: /edit and resubmit/i })).not.toBeInTheDocument()
+  })
+
   it('offers no "Edit and resubmit" for a job opened from a link', async () => {
     serveJob(csnpJob(ID, 'succeeded'))
     renderRoute(`/jobs/${ID}`)

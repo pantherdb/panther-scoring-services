@@ -1,18 +1,13 @@
 import { expect, test, type Page } from '@playwright/test'
 
+import { expectNoSidewaysScroll } from './layout'
+
 // Untagged: these specs need nothing specific from the API, so they run in every mode.
 
 const BUILD_DETAILS = /localhost|127\.0\.0\.1|:\d{4,5}\b|VITE_|API_PROXY|npm |npx /
 
 async function expectNoBuildDetails(page: Page) {
   await expect(page.locator('body')).not.toHaveText(BUILD_DETAILS)
-}
-
-async function expectNoSidewaysScroll(page: Page) {
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
-  )
-  expect(overflow).toBe(0)
 }
 
 test('shows the title on the home page', async ({ page }) => {
@@ -46,10 +41,7 @@ test('does not scroll sideways', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
 
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
-  )
-  expect(overflow).toBe(0)
+  await expectNoSidewaysScroll(page)
 })
 
 test('goes home from the title', async ({ page }) => {
@@ -58,7 +50,9 @@ test('goes home from the title', async ({ page }) => {
   await page.getByRole('heading', { level: 1 }).getByRole('link').click()
 
   await expect(page).toHaveURL(/\/$/)
-  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveCount(4)
+  await expect(
+    page.getByRole('main').getByRole('heading', { level: 2, name: /coding snp impact scoring/i })
+  ).toBeVisible()
 })
 
 test('opens each service from its tab, and marks it current', async ({ page }) => {

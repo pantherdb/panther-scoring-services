@@ -1,3 +1,4 @@
+import { CSNP_FIELDS } from '@/app/formFields'
 import type { CsnpInput, InputError } from '@/app/api/wire'
 
 import { example } from './example'
@@ -6,7 +7,7 @@ import { splitSubstitutions } from './substitutions'
 // The cSNP form's draft: what's in each box, and what's wrong with it. A reducer, because
 // the values and errors depend on each other: editing a box clears what was said about it.
 
-export const CSNP_FIELDS = ['sequence', 'substitutions', 'species'] as const
+export { CSNP_FIELDS }
 export type CsnpField = (typeof CSNP_FIELDS)[number]
 
 /** Each box's text, as typed. */
@@ -19,7 +20,12 @@ export type DraftErrors = {
   form: string[]
 }
 
-export type Draft = { values: CsnpValues; errors: DraftErrors }
+export type Draft = {
+  values: CsnpValues
+  errors: DraftErrors
+  /** Filled in by "Edit and resubmit", until the example replaces it. */
+  filledFromJob: boolean
+}
 
 export type DraftAction =
   | { type: 'edited'; field: CsnpField; value: string }
@@ -38,6 +44,7 @@ const NO_ERRORS: DraftErrors = { fields: {}, form: [] }
 export const initialDraft: Draft = {
   values: { sequence: '', substitutions: '', species: 'HUMAN' },
   errors: NO_ERRORS,
+  filledFromJob: false,
 }
 
 // An API message about one substitution names it by its place, counted from 1, and by
@@ -56,12 +63,13 @@ export function draftReducer(draft: Draft, action: DraftAction): Draft {
     case 'edited': {
       const { [action.field]: _cleared, ...fields } = draft.errors.fields
       return {
+        ...draft,
         values: { ...draft.values, [action.field]: action.value },
         errors: { fields, form: [] },
       }
     }
     case 'exampleUsed':
-      return { values: example, errors: NO_ERRORS }
+      return { values: example, errors: NO_ERRORS, filledFromJob: false }
     case 'checked':
       return { ...draft, errors: { fields: action.fields, form: [] } }
     case 'rejected': {
@@ -77,20 +85,10 @@ export function draftReducer(draft: Draft, action: DraftAction): Draft {
 
 /**
  * The draft a form starts from: the earlier job's input as typed, from "Edit and resubmit",
- * when it has every box; otherwise empty.
+ * already checked to have every box (features/jobs/keptInput.ts); otherwise empty.
  */
-export function startingDraft(kept: Record<string, string> | undefined): Draft {
-  const values = kept && keptValues(kept)
-  return values ? { values, errors: NO_ERRORS } : initialDraft
-}
-
-/** The cSNP boxes from a kept input, or none if one is missing. */
-export function keptValues(kept: Record<string, string>): CsnpValues | undefined {
-  const { sequence, substitutions, species } = kept
-  if (sequence === undefined || substitutions === undefined || species === undefined) {
-    return undefined
-  }
-  return { sequence, substitutions, species }
+export function startingDraft(kept: CsnpValues | undefined): Draft {
+  return kept ? { values: kept, errors: NO_ERRORS, filledFromJob: true } : initialDraft
 }
 
 /** The request's input: the sequence as typed, the substitutions split, the species trimmed. */

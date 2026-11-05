@@ -1,7 +1,8 @@
 import { screen, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
+import { RootError } from '@/layout/RootError'
 import { csnpJob, refmapJob } from '@/mocks/data/jobs'
 
 import { server } from '../mocks/server'
@@ -19,8 +20,13 @@ function tabs() {
   return within(screen.getByRole('navigation', { name: /services/i })).getAllByRole('link')
 }
 
-function currentTabs() {
-  return tabs().filter(tab => tab.getAttribute('aria-current') === 'page')
+// The tabs marked current: `page` on a service's own page, `true` on one of its jobs' pages.
+function currentTabs(kind = 'page') {
+  return tabs().filter(tab => tab.getAttribute('aria-current') === kind)
+}
+
+function Broken(): never {
+  throw new Error('the layout failed')
 }
 
 describe('the header', () => {
@@ -66,6 +72,13 @@ describe('the header', () => {
     expect(currentTabs()[0]).toHaveAccessibleName(name)
   })
 
+  it.each(['/csnp/', '/CSNP'])('marks the cSNP tab on %s, as the router matches it', path => {
+    renderRoute(path)
+
+    expect(currentTabs()).toHaveLength(1)
+    expect(currentTabs()[0]).toHaveAccessibleName(/cSNP scoring/)
+  })
+
   it('opens a service from its tab, and marks it current', async () => {
     const { user } = renderRoute('/')
 
@@ -85,8 +98,10 @@ describe('the header', () => {
     renderRoute(`/jobs/${ID}`)
 
     expect(await screen.findByRole('status')).toBeInTheDocument()
-    expect(currentTabs()).toHaveLength(1)
-    expect(currentTabs()[0]).toHaveAccessibleName(name)
+    // Current in the set, not the page: the tab leads to the form, not this page.
+    expect(currentTabs()).toEqual([])
+    expect(currentTabs('true')).toHaveLength(1)
+    expect(currentTabs('true')[0]).toHaveAccessibleName(name)
   })
 
   it("marks no tab on a job's page until the job has loaded", () => {
@@ -94,6 +109,16 @@ describe('the header', () => {
     renderRoute(`/jobs/${ID}`)
 
     expect(screen.getByText(/loading the job/i)).toBeInTheDocument()
-    expect(currentTabs()).toEqual([])
+    expect(tabs().filter(tab => tab.hasAttribute('aria-current'))).toEqual([])
+  })
+
+  it('leaves the tabs out of the root error page, which may be drawn because they failed', () => {
+    // React reports the thrown error; the test expects it.
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    renderRoute('/', { routes: [{ path: '/', element: <Broken />, errorElement: <RootError /> }] })
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('PANTHER Scoring')
+    expect(screen.queryByRole('navigation', { name: /services/i })).not.toBeInTheDocument()
+    vi.restoreAllMocks()
   })
 })

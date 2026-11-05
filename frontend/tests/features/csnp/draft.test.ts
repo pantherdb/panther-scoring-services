@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { draftInput, draftReducer, initialDraft, type Draft } from '@/features/csnp/draft'
+import {
+  draftInput,
+  draftReducer,
+  initialDraft,
+  startingDraft,
+  type Draft,
+} from '@/features/csnp/draft'
 import { example } from '@/features/csnp/example'
 
 const withErrors: Draft = {
@@ -9,6 +15,7 @@ const withErrors: Draft = {
     fields: { sequence: ['seq error'], substitutions: ['sub error'], species: ['species error'] },
     form: ['form error'],
   },
+  filledFromJob: false,
 }
 
 describe('initialDraft', () => {
@@ -16,7 +23,41 @@ describe('initialDraft', () => {
     expect(initialDraft).toEqual({
       values: { sequence: '', substitutions: '', species: 'HUMAN' },
       errors: { fields: {}, form: [] },
+      filledFromJob: false,
     })
+  })
+})
+
+describe('startingDraft', () => {
+  const kept = { sequence: 'MKVLW', substitutions: 'L4P', species: 'MOUSE' }
+
+  it('starts from a kept input, as typed, and says it was filled from a job', () => {
+    expect(startingDraft(kept)).toEqual({
+      values: kept,
+      errors: { fields: {}, form: [] },
+      filledFromJob: true,
+    })
+  })
+
+  it('starts empty without one', () => {
+    expect(startingDraft(undefined)).toBe(initialDraft)
+  })
+
+  it('stays filled from the job while a box is edited', () => {
+    const next = draftReducer(startingDraft(kept), {
+      type: 'edited',
+      field: 'substitutions',
+      value: 'K9A',
+    })
+
+    expect(next.filledFromJob).toBe(true)
+  })
+
+  it('is no longer filled from the job once the example replaces it', () => {
+    const next = draftReducer(startingDraft(kept), { type: 'exampleUsed' })
+
+    expect(next.values).toEqual(example)
+    expect(next.filledFromJob).toBe(false)
   })
 })
 
@@ -44,7 +85,11 @@ describe('draftReducer', () => {
   it('replaces every value with the example, and clears every error', () => {
     const next = draftReducer(withErrors, { type: 'exampleUsed' })
 
-    expect(next).toEqual({ values: example, errors: { fields: {}, form: [] } })
+    expect(next).toEqual({
+      values: example,
+      errors: { fields: {}, form: [] },
+      filledFromJob: false,
+    })
   })
 
   it("replaces the errors with the client checks' errors", () => {

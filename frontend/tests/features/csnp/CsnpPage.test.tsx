@@ -668,6 +668,33 @@ describe('after submitting', () => {
     })
   })
 
+  it('starts an empty form, without the note, from the cSNP tab on an edited form', async () => {
+    const { user, router } = await submitted()
+    await user.click(main().getByRole('link', { name: /edit and resubmit/i }))
+    expect(main().getByText(/filled in from your earlier job/i)).toBeInTheDocument()
+
+    await user.click(
+      within(screen.getByRole('navigation', { name: /services/i })).getByRole('link', {
+        name: /csnp scoring/i,
+      })
+    )
+
+    expect(router.state.location.pathname).toBe('/csnp')
+    expect(main().queryByText(/filled in from your earlier job/i)).not.toBeInTheDocument()
+    expect(sequenceBox()).toHaveValue('')
+    expect(substitutionsBox()).toHaveValue('')
+  })
+
+  it('drops the note when the example replaces the edited input', async () => {
+    const { user } = await submitted()
+    await user.click(main().getByRole('link', { name: /edit and resubmit/i }))
+
+    await user.click(main().getByRole('button', { name: /use an example/i }))
+
+    expect(main().queryByText(/filled in from your earlier job/i)).not.toBeInTheDocument()
+    expect(sequenceBox()).not.toHaveValue(SEQUENCE)
+  })
+
   it('opens an empty form from "New cSNP search"', async () => {
     const { user, router } = await submitted()
 

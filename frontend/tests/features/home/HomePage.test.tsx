@@ -13,14 +13,21 @@ function card(name: RegExp) {
 }
 
 describe('the home page', () => {
-  it('shows the four services in priority order', () => {
+  it('shows the four services in priority order, then the tools check, each its own section', () => {
     renderRoute('/')
 
+    // All at one level, so the tools check isn't heard as part of the last service.
     expect(
       main()
         .getAllByRole('heading', { level: 2 })
         .map(heading => heading.textContent)
-    ).toEqual(['Coding SNP impact scoring', 'Protein ID mapping', 'HMM scoring', 'Tree grafting'])
+    ).toEqual([
+      'Coding SNP impact scoring',
+      'Protein ID mapping',
+      'HMM scoring',
+      'Tree grafting',
+      'Scoring tools',
+    ])
   })
 
   it('links to the cSNP form, with no coming-soon mark', () => {

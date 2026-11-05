@@ -41,9 +41,11 @@ It sits in `app/`, not a feature, because the layout, the home page and the rout
 
 ### 2. The tabs are links, not Mantine `Tabs`
 
-Mantine's `Tabs` is ARIA's tablist, for switching panels on one page. These change the page, so they're router `Link`s in a `<nav aria-label="Services">`, with `aria-current="page"` on the current one, which a screen reader announces.
+Mantine's `Tabs` is ARIA's tablist, for switching panels on one page. These change the page, so they're router `Link`s in a `<nav aria-label="Services">`, with `aria-current` on the current one, which a screen reader announces.
 
-- **Current tab:** the path is the service's path; or, on `/jobs/:id`, the job's service. The job is read from RTK Query's cache, with the same `useQueryState` that `useJob` uses, so the header sends no request of its own. Until the job has loaded, no tab is marked.
+- **Current tab:** `aria-current="page"` when the router matches the service's path, with `useMatch`, so `/csnp/` and `/CSNP` count. On `/jobs/:id`, the job's service gets `aria-current="true"`: current in the set, but its link leads to the form, not this page. The job is read from RTK Query's cache, with the same `useQueryState` that `useJob` uses, selecting only the service, so the header sends no request of its own and doesn't re-render on each poll. Until the job has loaded, no tab is marked.
+- **Not on the root error page:** the tabs read the route and the job cache, so they may be what failed. `RootError` draws `AppHeader` with `tabs={false}`, as it leaves out the footer.
+- **Focus ring inside the tab:** the strip scrolls sideways, which clips anything drawn outside it, so the outline is inset.
 - **On a phone:** the list scrolls sideways inside the header (`overflow-x-auto`, no wrapping).
 - **"Coming soon" in a tab:** a short visible "Soon", and an `aria-label` of the label followed by "(coming soon)", so the name starts with what the tab shows. Visually hidden text was tried first; see the Notes in tasks.md.
 - **The current tab scrolls into view** when it's off the edge of a phone's screen.
@@ -62,17 +64,18 @@ The header is white on `primary-700`, like the title, so the text keeps its cont
 - "Back to home" for the tools check;
 - "Edit and resubmit", when the input is kept (decision 5).
 
-The labels per service sit in `JobDetails` beside the existing `SERVICE_TITLES`.
+The labels per service sit in `JobNextSteps`; the paths come from `services.ts`.
 
 ### 5. The input is kept in the tab's session storage
 
 On a successful submit, the form stores its values as typed under the job's id, in `sessionStorage`, before opening the job's page. The job's page offers "Edit and resubmit" only when an entry exists for its id and service.
 
-- **Why session storage:** it survives a reload of the job's page, which an in-memory store doesn't. It belongs to one tab and is cleared when the tab closes, so the input isn't kept on the machine afterwards or shared with other tabs.
-- **Bounded:** at most 20 jobs' inputs. The oldest is dropped when a new one is stored. A `refmap` list can be about 13 MB, more than session storage holds, so a failed write is ignored: that job just doesn't offer "Edit and resubmit".
+- **Why session storage:** it survives a reload of the job's page, which an in-memory store doesn't, and is cleared when the tab closes. It's not strictly the tab's alone: "Duplicate tab" copies it into the new tab, and a browser's session restore may write it to disk. Enforcing more, such as a per-tab id kept in memory, isn't worth it for a convenience whose input never leaves the browser (review on #59).
+- **Bounded:** at most 20 jobs' inputs, and none over 1,000,000 characters, such as a list of 100,000 IDs: writing it would hold up the page right after submitting. When the storage is full, the oldest inputs are dropped until the new one fits; one that never fits isn't kept, and that job just doesn't offer "Edit and resubmit".
 - **Read defensively:** a missing, malformed or other-service entry reads as nothing. Storage that throws, as in some private modes, reads as nothing too.
-- **To the form:** the link passes `{ editJob: <id> }` as router state, not in the URL, so the address stays `/csnp`. The form's reducer starts from the kept values when that state names a kept job, and from empty otherwise. A short note above the form says it was filled in from the earlier job.
-- **Where it lives:** `src/features/jobs/keptInput.ts`, exported through the jobs feature's `index.ts`, which `csnp` and `refmap` already import from. It stores plain strings; each form checks the keys it needs.
+- **One check for every box:** `keptInput` returns an input only when it has every box the form has now, from `src/app/formFields.ts`, which the forms' drafts use too. The job's page and the form make the same check, so the button never opens an empty form, as it could after a deploy adds or renames a box while a tab stays open.
+- **To the form:** the link passes `{ editJob: <id> }` as router state, not in the URL, so the address stays `/csnp`. The form's reducer starts from the kept values when that state names a kept job, and from empty otherwise. The draft's `filledFromJob` says so, shown as a short note above the form; the example clears it. The page keys the form on the location, so following the service's tab remounts it empty.
+- **Where it lives:** `src/features/jobs/keptInput.ts`, exported through the jobs feature's `index.ts`, which `csnp` and `refmap` already import from.
 
 Alternatives:
 

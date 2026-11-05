@@ -13,7 +13,7 @@ The application title in the header SHALL be a link to the home page, on every p
 
 ### Requirement: Service tabs
 
-The header SHALL list the four services on every page, in this order: cSNP scoring, ID mapping, HMM scoring, TreeGrafter. Each MUST link to its service's page. The tab of the page being shown MUST be marked as current, and on a job's page the tab of that job's service. On a phone-width screen the tabs MUST NOT make the page scroll sideways.
+The header SHALL list the four services on every page but the root error page, in this order: cSNP scoring, ID mapping, HMM scoring, TreeGrafter. Each MUST link to its service's page. The tab of the page being shown MUST be marked as the current page, however the router matches its path. On a phone-width screen the tabs MUST NOT make the page scroll sideways.
 
 #### Scenario: On a form
 
@@ -23,7 +23,17 @@ The header SHALL list the four services on every page, in this order: cSNP scori
 #### Scenario: On a job's page
 
 - **WHEN** the user opens the page of a `csnp` job
-- **THEN** cSNP scoring is marked as current
+- **THEN** cSNP scoring is marked as current, but not as the current page, since its link leads to the form
+
+#### Scenario: A path the router matches loosely
+
+- **WHEN** the user opens `/csnp/` or `/CSNP`
+- **THEN** cSNP scoring is marked as the current page
+
+#### Scenario: The root error page
+
+- **WHEN** the layout fails to render and the root error page is shown
+- **THEN** its header has the title and no service tabs
 
 #### Scenario: Following a tab
 
@@ -69,12 +79,22 @@ A job's page SHALL offer the next step, whatever the job's status: for a `csnp` 
 
 ### Requirement: Edit and resubmit
 
-When a job was submitted from the same browser tab, its page SHALL offer to edit and resubmit it: the service's form opens filled in with the input as it was typed, says so, and starts a new job when submitted. The input MUST be kept only in that tab, and a job opened from a shared link or another tab MUST NOT offer it.
+When a job was submitted from the same browser tab, its page SHALL offer to edit and resubmit it: the service's form opens filled in with the input as it was typed, says so, and starts a new job when submitted. The input MUST be kept in that tab's session storage and nowhere else; a job opened from a shared link or a new tab MUST NOT offer it. The offer MUST appear only when the kept input fills every box of the form. The note MUST show only while the form holds that input.
 
 #### Scenario: Edit a cSNP job
 
 - **WHEN** the user submits the cSNP form, then follows "Edit and resubmit" on the job's page
 - **THEN** the cSNP form shows the same sequence, substitutions and species as typed, and says it was filled in from the earlier job
+
+#### Scenario: The tab or the example after editing
+
+- **WHEN** the user follows "Edit and resubmit", then follows the service's tab, or uses the example
+- **THEN** from the tab, the form is empty, with no note; from the example, the form holds the example, with no note
+
+#### Scenario: An input kept before a box was added
+
+- **WHEN** the kept input lacks a box the form has now
+- **THEN** the job's page offers no "Edit and resubmit"
 
 #### Scenario: A shared link
 

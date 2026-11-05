@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link, useMatch } from 'react-router'
 
 import { SERVICES, type Service } from '@/app/services'
 import { useShownJobService } from '@/features/jobs'
@@ -7,19 +7,14 @@ import { useShownJobService } from '@/features/jobs'
 // One link per service, in priority order. Links, not Mantine's Tabs, which are ARIA tabs
 // for panels on one page; these change the page, and the current one has aria-current.
 export function ServiceTabs() {
-  const { pathname } = useLocation()
   const jobService = useShownJobService()
-
-  function isCurrent(service: Service) {
-    return pathname === service.path || jobService === service.id
-  }
 
   return (
     <nav aria-label="Services" className="-mx-4 mt-2 overflow-x-auto px-2 sm:px-1">
       <ul className="flex gap-1 whitespace-nowrap">
         {SERVICES.map(service => (
           <li key={service.id}>
-            <ServiceTab service={service} current={isCurrent(service)} />
+            <ServiceTab service={service} jobShown={jobService === service.id} />
           </li>
         ))}
       </ul>
@@ -29,11 +24,17 @@ export function ServiceTabs() {
 
 type Props = {
   service: Service
-  current: boolean
+  /** The page shows one of this service's jobs. */
+  jobShown: boolean
 }
 
-function ServiceTab({ service, current }: Props) {
+function ServiceTab({ service, jobShown }: Props) {
   const link = useRef<HTMLAnchorElement>(null)
+  // As the router matches it: in any case, with or without a trailing slash.
+  const onPage = useMatch({ path: service.path, end: true }) !== null
+  // "page" only on the service's own page, which the link leads to. On one of its jobs' pages,
+  // the link leads elsewhere, so the tab is current in the set, not the page.
+  const current = onPage ? 'page' : jobShown ? 'true' : undefined
 
   // On a phone the tabs can be wider than the screen: bring the current one into view.
   useEffect(() => {
@@ -44,10 +45,12 @@ function ServiceTab({ service, current }: Props) {
     <Link
       ref={link}
       to={service.path}
-      aria-current={current ? 'page' : undefined}
+      aria-current={current}
       // The name keeps the visible label first, so voice control finds it by what it shows.
       aria-label={service.comingSoon ? `${service.label} (coming soon)` : undefined}
-      className={`flex items-center gap-1.5 rounded-t-md border-b-2 px-2 py-2 text-sm hover:bg-primary-800 focus-visible:outline-2 sm:px-3 ${
+      // The focus ring is drawn inside the link: the strip scrolls sideways, so it would clip
+      // a ring drawn outside.
+      className={`flex items-center gap-1.5 rounded-t-md border-b-2 px-2 py-2 text-sm hover:bg-primary-800 focus-visible:outline-2 focus-visible:-outline-offset-2 sm:px-3 ${
         current ? 'border-white font-semibold' : 'border-transparent'
       }`}
     >

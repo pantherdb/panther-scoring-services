@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
+import { expectNoSidewaysScroll } from './layout'
+
 // The mock data banner: on every page in mock mode, on none against the real API.
 
 const BUILD_DETAILS = /localhost|127\.0\.0\.1|:\d{4,5}\b|VITE_|API_PROXY|MSW|npm |npx /
@@ -7,13 +9,6 @@ const JOB_URL = /\/jobs\/[0-9a-f-]{36}$/
 
 function banner(page: Page) {
   return page.getByRole('region', { name: /mock data/i })
-}
-
-async function expectNoSidewaysScroll(page: Page) {
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
-  )
-  expect(overflow).toBe(0)
 }
 
 async function expectBanner(page: Page) {

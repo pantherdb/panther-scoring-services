@@ -27,7 +27,9 @@ The versions below are the ones pinned in the API image today. If the image chan
 
 ## TC 1.1 The Home Page
 
-- [ ] The header reads **PANTHER Scoring**.
+- [ ] The header reads **PANTHER Scoring**. Under it, four tabs: **cSNP scoring**, **ID mapping**, **HMM scoring** and **TreeGrafter**. The last three say **Soon**.
+- [ ] The page shows the same four services as cards. **Protein ID mapping**, **HMM scoring** and **Tree grafting** are marked **Coming soon**.
+- [ ] Click **HMM scoring** in the tabs. A page says it's coming soon, and the tab is underlined. Click **PANTHER Scoring** in the header: you're back on the home page.
 - [ ] The footer lists **API**, **Engine**, `blastp` 2.17.0, `hmmscan` 3.4, `hmmsearch` 3.4 and `epa-ng` 0.3.8.
 - [ ] Below the page's main text, a **Scoring tools** section has a plain (not coloured) **Check the scoring tools** button.
 

@@ -3,6 +3,7 @@ import { Alert } from '@mantine/core'
 import type { Job, JobService } from '@/app/api/wire'
 import { VersionList } from '@/components/VersionList'
 
+import { JobNextSteps } from './JobNextSteps'
 import { isFinished } from './jobsApi'
 import { JobResult } from './JobResult'
 import { JobStatus } from './JobStatus'
@@ -18,7 +19,7 @@ type Props = {
   job: Job
 }
 
-// A job: its status, then, once it has finished, its outcome and the versions it ran with.
+// A job: its status and the next step, then, once it has finished, its outcome and the versions it ran with.
 export function JobDetails({ job }: Props) {
   return (
     <section className="flex flex-col gap-6">
@@ -26,6 +27,8 @@ export function JobDetails({ job }: Props) {
         <h2 className="text-lg font-semibold">{SERVICE_TITLES[job.service]}</h2>
         <JobStatus job={job} />
       </div>
+
+      <JobNextSteps job={job} />
 
       {job.status === 'succeeded' && <JobResult job={job} />}
 

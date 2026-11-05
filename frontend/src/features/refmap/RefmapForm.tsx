@@ -1,8 +1,10 @@
 import { Alert, Button, TextInput } from '@mantine/core'
 import { type FormEvent, useDeferredValue, useReducer } from 'react'
 
+import { FilledFromJob, useEditedInput } from '@/features/jobs'
+
 import { checkDraft } from './checks'
-import { draftReducer, initialDraft } from './draft'
+import { draftReducer, keptValues, startingDraft } from './draft'
 import { IdsField } from './IdsField'
 import { splitIds } from './ids'
 import { readIdsFile } from './idsFile'
@@ -12,7 +14,10 @@ import { useSubmitRefmap } from './useSubmitRefmap'
 // The refmap form: the IDs, the organism, the example, and submitting. The client checks run
 // first; the API's errors then land on the same fields.
 export function RefmapForm() {
-  const [draft, dispatch] = useReducer(draftReducer, initialDraft)
+  // From "Edit and resubmit", the earlier job's input; the reducer reads it once, on mount.
+  const edited = useEditedInput('refmap')
+  const filled = edited !== undefined && keptValues(edited) !== undefined
+  const [draft, dispatch] = useReducer(draftReducer, edited, startingDraft)
   const { submit, isSubmitting, problem } = useSubmitRefmap(dispatch)
   const { values, errors } = draft
   // The count follows the box a render behind, so typing in a list of 100,000 IDs isn't held
@@ -35,6 +40,7 @@ export function RefmapForm() {
 
   return (
     <form noValidate onSubmit={onSubmit} className="flex flex-col gap-4">
+      {filled && <FilledFromJob />}
       <div>
         <Button variant="subtle" onClick={() => dispatch({ type: 'exampleUsed' })}>
           Use an example

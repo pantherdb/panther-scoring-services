@@ -63,6 +63,9 @@ Next, the species list. With mock data it has only 8 species; against the real A
 - [ ] A **Scores** table has four rows, in the order you typed: `L46P`, `C130R`, `R163C`, `R176C`, with columns **Substitution**, **Age (Mya)**, **Prediction or message** and **pDel**.
 - [ ] The `R176C` row reads "Not scored: Invalid substitution", with its age and pDel empty.
 - [ ] **Versions used** lists the API, the engine, the four tools and **csnp data** `PANTHER 9`, matching the footer.
+- [ ] The **cSNP scoring** tab is underlined while the job's page is shown.
+- [ ] Click **Edit and resubmit**. The form opens filled in with the example, and says it was filled in from your earlier job. Change a substitution and submit: a new job opens, at a different address.
+- [ ] On that job's page, click **New cSNP search**. The form opens empty.
 - [ ] A dark banner at the very top says **Mock data**, and that nothing on the page comes from the scoring service. Scroll to the end of the page: the banner is still at the top of the window.
 - [ ] On a phone, or with the browser window narrowed to phone width, the page doesn't scroll sideways, every column is visible, and the banner's text wraps without being cut off.
 

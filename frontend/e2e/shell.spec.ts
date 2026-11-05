@@ -8,6 +8,13 @@ async function expectNoBuildDetails(page: Page) {
   await expect(page.locator('body')).not.toHaveText(BUILD_DETAILS)
 }
 
+async function expectNoSidewaysScroll(page: Page) {
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+  )
+  expect(overflow).toBe(0)
+}
+
 test('shows the title on the home page', async ({ page }) => {
   await page.goto('/')
 
@@ -43,4 +50,43 @@ test('does not scroll sideways', async ({ page }) => {
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth
   )
   expect(overflow).toBe(0)
+})
+
+test('goes home from the title', async ({ page }) => {
+  await page.goto('/csnp')
+
+  await page.getByRole('heading', { level: 1 }).getByRole('link').click()
+
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveCount(4)
+})
+
+test('opens each service from its tab, and marks it current', async ({ page }) => {
+  await page.goto('/')
+  const tabs = page.getByRole('navigation', { name: /services/i }).getByRole('link')
+  await expect(tabs).toHaveCount(4)
+
+  for (const [name, url] of [
+    [/csnp/i, /\/csnp$/],
+    [/id mapping/i, /\/refmap$/],
+    [/hmm scoring/i, /\/hmmscore$/],
+    [/treegrafter/i, /\/treegrafter$/],
+  ] as const) {
+    const tab = tabs.filter({ hasText: name })
+    await tab.click()
+    await expect(page).toHaveURL(url)
+    await expect(tab).toHaveAttribute('aria-current', 'page')
+    await expect(page.getByRole('main').getByRole('heading', { level: 2 }).first()).toBeVisible()
+    await expectNoSidewaysScroll(page)
+  }
+})
+
+test('says a service without a form is coming soon', async ({ page }) => {
+  await page.goto('/hmmscore')
+
+  const main = page.getByRole('main')
+  await expect(main.getByRole('heading', { level: 2 })).toBeVisible()
+  await expect(main.getByText(/coming soon/i).first()).toBeVisible()
+  await expect(main.getByRole('link', { name: /back to home/i })).toHaveAttribute('href', '/')
+  await expectNoBuildDetails(page)
 })

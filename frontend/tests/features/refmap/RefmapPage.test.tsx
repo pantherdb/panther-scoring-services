@@ -441,3 +441,33 @@ describe('when the job is not started', () => {
     }
   )
 })
+
+describe('after submitting', () => {
+  it('reopens the form filled in as typed from "Edit and resubmit", and says so', async () => {
+    serveStart()
+    const { user, router } = renderRoute('/refmap')
+    await fillValid(user)
+    await user.click(submitButton())
+    expect(await main().findByRole('status')).toHaveTextContent(/queued/i)
+
+    await user.click(main().getByRole('link', { name: /edit and resubmit/i }))
+
+    expect(router.state.location.pathname).toBe('/refmap')
+    expect(main().getByText(/filled in from your earlier job/i)).toBeInTheDocument()
+    expect(idsBox()).toHaveValue(IDS)
+    expect(organismBox()).toHaveValue('HUMAN')
+  })
+
+  it('opens an empty form from "New ID mapping"', async () => {
+    serveStart()
+    const { user } = renderRoute('/refmap')
+    await fillValid(user)
+    await user.click(submitButton())
+    expect(await main().findByRole('status')).toHaveTextContent(/queued/i)
+
+    await user.click(main().getByRole('link', { name: /new id mapping/i }))
+
+    expect(idsBox()).toHaveValue('')
+    expect(organismBox()).toHaveValue('')
+  })
+})

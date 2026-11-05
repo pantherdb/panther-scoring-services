@@ -86,6 +86,22 @@ export function draftReducer(draft: Draft, action: DraftAction): Draft {
   }
 }
 
+/**
+ * The draft a form starts from: the earlier job's input as typed, from "Edit and resubmit",
+ * when it has every box; otherwise empty.
+ */
+export function startingDraft(kept: Record<string, string> | undefined): Draft {
+  const values = kept && keptValues(kept)
+  return values ? { values, errors: NO_ERRORS } : initialDraft
+}
+
+/** The refmap boxes from a kept input, or none if one is missing. */
+export function keptValues(kept: Record<string, string>): RefmapValues | undefined {
+  const { ids, organism } = kept
+  if (ids === undefined || organism === undefined) return undefined
+  return { ids, organism }
+}
+
 /** The request's input: the organism trimmed, the IDs as split. */
 export function draftInput(values: RefmapValues, split: SplitIds): RefmapInput {
   return { organism: values.organism.trim(), ids: split.ids }

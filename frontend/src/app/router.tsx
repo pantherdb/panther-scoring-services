@@ -1,5 +1,6 @@
 import type { RouteObject } from 'react-router'
 
+import { ComingSoonPage } from '@/components/ComingSoonPage'
 import { ErrorPage } from '@/components/ErrorPage'
 import { NotFoundPage } from '@/components/NotFoundPage'
 import { CsnpPage } from '@/features/csnp'
@@ -24,6 +25,16 @@ export const routes: RouteObject[] = [
       { index: true, element: <HomePage />, errorElement: <ErrorPage /> },
       { path: 'csnp', element: <CsnpPage />, errorElement: <ErrorPage /> },
       { path: 'refmap', element: <RefmapPage />, errorElement: <ErrorPage /> },
+      {
+        path: 'hmmscore',
+        element: <ComingSoonPage id="hmmscore" />,
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: 'treegrafter',
+        element: <ComingSoonPage id="treegrafter" />,
+        errorElement: <ErrorPage />,
+      },
       { path: 'jobs/:id', element: <JobPage />, errorElement: <ErrorPage /> },
       { path: '*', element: <NotFoundPage />, errorElement: <ErrorPage /> },
     ],

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 
 import { errorData, errorStatus, isUnreachable } from '@/app/api/errors'
 import { inputErrors, isValidationProblem } from '@/app/api/wire'
-import { useStartJobMutation } from '@/features/jobs'
+import { keepInput, useStartJobMutation } from '@/features/jobs'
 
 import { type DraftAction, draftInput, REFMAP_FIELDS, type RefmapValues } from './draft'
 import type { SplitIds } from './ids'
@@ -16,7 +16,8 @@ import type { SplitIds } from './ids'
 export type SubmitProblem = 'unavailable' | 'unreachable' | 'failed' | null
 
 /**
- * Starts a refmap job from the draft and its IDs as split. A 202 opens the job's page; a
+ * Starts a refmap job from the draft and its IDs as split. A 202 keeps the input as typed, for "Edit and
+ * resubmit", and opens the job's page; a
  * 422's errors go to the draft, on their fields; a 501 or any other failure is the returned
  * `problem`.
  */
@@ -30,6 +31,7 @@ export function useSubmitRefmap(dispatch: Dispatch<DraftAction>) {
     const input = draftInput(values, split)
     try {
       const job = await startJob({ service: 'refmap', input }).unwrap()
+      keepInput(job.id, 'refmap', values)
       await navigate(`/jobs/${job.id}`)
     } catch (error) {
       const status = errorStatus(error)

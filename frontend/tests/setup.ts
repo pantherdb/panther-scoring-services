@@ -49,5 +49,7 @@ afterEach(() => {
   cleanup()
   server.resetHandlers()
   resetJobs()
+  // "Edit and resubmit" keeps input here; each test starts with none.
+  window.sessionStorage.clear()
 })
 afterAll(() => server.close())

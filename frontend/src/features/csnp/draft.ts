@@ -75,6 +75,24 @@ export function draftReducer(draft: Draft, action: DraftAction): Draft {
   }
 }
 
+/**
+ * The draft a form starts from: the earlier job's input as typed, from "Edit and resubmit",
+ * when it has every box; otherwise empty.
+ */
+export function startingDraft(kept: Record<string, string> | undefined): Draft {
+  const values = kept && keptValues(kept)
+  return values ? { values, errors: NO_ERRORS } : initialDraft
+}
+
+/** The cSNP boxes from a kept input, or none if one is missing. */
+export function keptValues(kept: Record<string, string>): CsnpValues | undefined {
+  const { sequence, substitutions, species } = kept
+  if (sequence === undefined || substitutions === undefined || species === undefined) {
+    return undefined
+  }
+  return { sequence, substitutions, species }
+}
+
 /** The request's input: the sequence as typed, the substitutions split, the species trimmed. */
 export function draftInput(values: CsnpValues): CsnpInput {
   return {

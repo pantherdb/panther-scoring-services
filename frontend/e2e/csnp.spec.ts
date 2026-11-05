@@ -275,3 +275,31 @@ test(
     ])
   }
 )
+
+test(
+  'edits and resubmits a job from its page, or starts a new search',
+  { tag: '@mock' },
+  async ({ page }) => {
+    await openFormWithExample(page)
+    const typed = await fields(page).sequence.inputValue()
+    await fields(page).submit.click()
+    await expect(page).toHaveURL(JOB_URL)
+    const main = page.getByRole('main')
+    await expect(main.getByRole('status')).toHaveText(/succeeded/i)
+
+    await main.getByRole('link', { name: /edit and resubmit/i }).click()
+
+    await expect(page).toHaveURL(FORM_URL)
+    await expect(fields(page).sequence).toHaveValue(typed)
+    await expect(fields(page).substitutions).toHaveValue(/L46P/)
+    await fields(page).submit.click()
+    await expect(page).toHaveURL(JOB_URL)
+    await expect(main.getByRole('status')).toHaveText(/succeeded/i)
+
+    await main.getByRole('link', { name: /new csnp search/i }).click()
+
+    await expect(page).toHaveURL(FORM_URL)
+    await expect(fields(page).sequence).toHaveValue('')
+    await expectNoSidewaysScroll(page)
+  }
+)

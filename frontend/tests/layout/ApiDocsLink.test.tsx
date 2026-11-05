@@ -38,6 +38,16 @@ describe('the API docs link in the footer', () => {
     )
   })
 
+  it('opens in a new tab, with no way back to this page, and says so', () => {
+    vi.stubEnv('VITE_API_MOCKING', 'off')
+    renderRoute('/', { routes })
+
+    const link = footer().getByRole('link', { name: /api docs/i })
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', expect.stringMatching(/\bnoopener\b/))
+    expect(link).toHaveAccessibleName('API docs (opens in a new tab)')
+  })
+
   it('is hidden on mocked API answers', () => {
     vi.stubEnv('VITE_API_MOCKING', 'on')
     renderRoute('/', { routes })

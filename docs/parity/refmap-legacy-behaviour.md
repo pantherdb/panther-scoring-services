@@ -67,7 +67,7 @@ The port pins the dated copy in `archive/2024-06-20/` (#52, question 2). The fol
 | The tarball | `https://data.pantherdb.org/ftp/generic_mapping/archive/2024-06-20/panther_classifications.tar.gz` | 156,535,594 | `74821b948aaae9482a36dea76595fd0233b3bdfc981fbf39890e0d9f515637af` |
 | `stats` | `https://data.pantherdb.org/ftp/generic_mapping/archive/2024-06-20/stats` | 59,577 | `c48ae2f57cd2ea1d31467dd0516e55b764ff5a327ff5187265ba95c87e4b612e` |
 
-- **Counts:** 1,533 organisms in `stats`, and 1,533 classification files in the tarball, with the same names and counts. 22,961,201 lines, and 523,291,643 bytes unpacked. The largest file, `Araneus_ventricosus_ARAVE`, has 246,021 lines. The README's 1,531 is out of date.
+- **Counts:** 1,533 organisms in `stats`, and 1,533 classification files in the tarball, with the same names and counts. 22,961,201 lines, and 523,291,643 bytes unpacked. The largest file, `Araneus_ventricosus_ARAVE`, has 246,021 lines. No file repeats an ID (checked 2026-11-06), so each line is one gene. The README's 1,531 is out of date.
 - **Format,** from #52's survey of every file:
   - every line is `ID<TAB>value`: two fields, ASCII, ending in LF, with no header and no blank lines;
   - every ID is a UniProt accession of 6 or 10 characters;
@@ -91,6 +91,7 @@ The port pins the dated copy in `archive/2024-06-20/` (#52, question 2). The fol
   Windows can't use `:` in a file name. So the port saves each classification file under its organism's code, as `refmap/19/panther_classification/ECO57` (#52, update to question 4). `stats` and the engine's organism list keep the long names as published.
 - **The codes:** the last `_` part of each long name. All 1,533 are unique, and match `[A-Z0-9]{1,5}`. All but `Pisum_sativum_PEA` have five characters.
 - **`stats` isn't sorted.** Its first line is `Cephalotus_follicularis_CEPFO`. Each line is `<long name>\t<genes>\t<genes with a PANTHER ID>`, ending in LF.
+- **The website kept the counts but showed neither.** `getMappingOrgs` stores both in each `MapOrganism` (`getNumGenes`, `getNumPantherHits`), but no Java class or JSP in `panther-site-java` calls either. The engine still publishes them, as `ORGANISM_GENES`, for the overrepresentation and enrichment tests on a generic mapping file (#63's review).
 - **How the website listed the organisms:** sorted by long name (`OrganismHelper.java` 223, with Java's `String.compareTo`), shown as "name (code)" (`MapOrganism.java` 29 to 49), with the first selected by default (`OrganismConstants.java` 187 to 196). With the pinned `stats`, the first is Abrus precatorius (ABRPR).
 
 ## Quirks

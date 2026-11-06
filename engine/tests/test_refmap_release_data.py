@@ -7,7 +7,7 @@ import pytest
 from panther_engine.core.manifest import checksums, read_manifest, verify
 from panther_engine.refmap import ORGANISM_CODES
 from panther_engine.refmap.data import MANIFEST, code_problems, read_stats
-from panther_engine.refmap.organisms import Organism, code_of, read_organisms
+from panther_engine.refmap.organisms import GeneCounts, Organism, code_of, read_organisms
 
 pytestmark = pytest.mark.data("refmap")
 
@@ -24,6 +24,13 @@ def test_the_organism_list_is_the_one_the_data_folders_stats_gives(refmap_data: 
 
     assert problems == []
     assert code_problems(entries) == []
-    names = sorted(entry.long_name for entry in entries)
-    assert tuple(Organism(code_of(name), name) for name in names) == read_organisms()
+    generated = tuple(
+        Organism(
+            code_of(entry.long_name),
+            entry.long_name,
+            GeneCounts(entry.genes, entry.genes_with_panther_id),
+        )
+        for entry in sorted(entries, key=lambda entry: entry.long_name)
+    )
+    assert generated == read_organisms()
     assert len(ORGANISM_CODES) == len(entries) == 1533

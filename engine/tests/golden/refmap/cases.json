@@ -96,6 +96,7 @@
       "organism": "ENDPU",
       "list": "cases/empty-line.list",
       "refused": "ValueError",
+      "message": "ID 2 isn't 1 to 64 printable ASCII characters with no whitespace",
       "divergence": 10
     },
     {
@@ -104,6 +105,7 @@
       "organism": "ENDPU",
       "list": "cases/space-in-id.list",
       "refused": "ValueError",
+      "message": "ID 1 isn't 1 to 64 printable ASCII characters with no whitespace",
       "divergence": 10
     },
     {
@@ -112,6 +114,7 @@
       "organism": "ENDPU",
       "list": "cases/id-too-long.list",
       "refused": "ValueError",
+      "message": "ID 1 isn't 1 to 64 printable ASCII characters with no whitespace",
       "divergence": 10
     },
     {
@@ -120,6 +123,7 @@
       "organism": "ENDPU",
       "list": "cases/non-ascii-id.list",
       "refused": "ValueError",
+      "message": "ID 1 isn't 1 to 64 printable ASCII characters with no whitespace",
       "divergence": 10
     },
     {
@@ -128,6 +132,7 @@
       "organism": "HUMAN",
       "list": "cases/unknown-organism.list",
       "refused": "ValueError",
+      "message": "not an organism refmap maps for: 'HUMAN'",
       "divergence": 9
     },
     {
@@ -136,6 +141,7 @@
       "file": "cases/missing.classification",
       "list": "cases/missing-file.list",
       "refused": "MissingDataError",
+      "message": "can't read the classification file",
       "divergence": 9
     }
   ]

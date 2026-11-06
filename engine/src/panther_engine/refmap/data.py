@@ -84,7 +84,7 @@ class StatsLine:
 
     long_name: str
     genes: int
-    mapped: int
+    genes_with_panther_id: int
 
 
 def joined(problems: list[str]) -> str:
@@ -225,11 +225,14 @@ def build(
         found = members.get(entry.long_name)
         if found is None:
             problems.append(f"{entry.long_name} is in {stats.name}, but has no file")
-        elif (found.lines, found.lines - found.nohit) != (entry.genes, entry.mapped):
+        elif (found.lines, found.lines - found.nohit) != (
+            entry.genes,
+            entry.genes_with_panther_id,
+        ):
             problems.append(
                 f"{entry.long_name} has {found.lines:,} lines, {found.lines - found.nohit:,} of "
                 f"them with a PANTHER ID, but {stats.name} says {entry.genes:,} and "
-                f"{entry.mapped:,}"
+                f"{entry.genes_with_panther_id:,}"
             )
     for long_name in sorted(members.keys() - listed.keys()):
         problems.append(f"{long_name} has a file, but no line in {stats.name}")
@@ -250,8 +253,13 @@ def build(
         "files": dict(sorted(files.items())),
     }
     listing = [
-        {"code": code_of(name), "long_name": name}
-        for name in sorted(entry.long_name for entry in entries)
+        {
+            "code": code_of(entry.long_name),
+            "long_name": entry.long_name,
+            "genes": entry.genes,
+            "genes_with_panther_id": entry.genes_with_panther_id,
+        }
+        for entry in sorted(entries, key=lambda entry: entry.long_name)
     ]
     write_together({manifest: as_json(result), organisms: as_json(listing)})
     return result

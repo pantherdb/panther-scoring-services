@@ -113,7 +113,7 @@ U1GLV9  PTHR28011
 U1HQ27  NOHIT
 ```
 
-- **`--organism`** is the organism's code, such as `ENDPU`: the last part of its long name. The engine's list is `src/panther_engine/refmap/organisms.json`. It holds no organism in PANTHER's own 143 genomes, such as `HUMAN`.
+- **`--organism`** is the organism's code, such as `ENDPU`: the last part of its long name. The engine's list is `src/panther_engine/refmap/organisms.json`, with each organism's genes and those with a PANTHER ID, from `stats`. It holds no organism in PANTHER's own 143 genomes, such as `HUMAN`.
 - **The IDs** come from the arguments, or from a file with `--file FILE`, read as `map_panther.pl` read its list: the text before the first tab of each line, with every carriage return removed. `--file ../.data/refmap/19/panther_classification/ARAVE` maps the largest genome, 246,021 IDs, in about half a second.
 - **The lookup is exact,** as the legacy's was: case-sensitive, with no isoform or version stripped (`REFMAP-1`). A repeated ID is mapped each time.
 - **`--json`** prints the result as `map_ids()` returns it, with `null` for `NOHIT`. **`--data-dir`** overrides `PANTHER_DATA_DIR`.
@@ -169,7 +169,7 @@ For `refmap`, `tests/test_refmap_golden.py` reads `tests/golden/refmap/`. Each m
 | Test | Needs | Checks |
 | ---- | ----- | ------ |
 | The made-up files | Nothing | Small classification files for what the release never holds: a repeated ID, CRLF endings, a line with no value, more fields |
-| The divergences | Nothing | The port refuses what rows 9 and 10 of [divergences.md](../parity/divergences.md) say it refuses, where the Perl answered `NOHIT` |
+| The divergences | Nothing | The port refuses what rows 9 and 10 of [divergences.md](../parity/divergences.md) say it refuses, where the Perl answered `NOHIT`, with the error and the part of its message each case names |
 | The cases on ENDPU | `data("refmap")` | The data server's two test lists, every ENDPU ID among them, and the hand-made lists |
 
 `panther-engine refmap parity check` runs the same comparisons and lists every line that differs, by case and line. From `engine/`, with the refmap data:
@@ -247,7 +247,7 @@ docker compose run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" engine
 
 **Why the files are named by code.** The tarball names each file by its organism's long name, as `Escherichia_coli_O157:H7_ECO57`. Ten long names contain `:`, which Windows can't use in a file name, so `fetch` saves each file under its code, as `ECO57`. The code comes from the engine's organism list, never from the member's name, so no member of the tarball can write outside the folder. The published names don't change: `stats` and the organism list keep them (#52, the update to question 4).
 
-**Pinning a new release.** `data.json` and the engine's organism list, `src/panther_engine/refmap/organisms.json`, are generated from a release's tarball and `stats`, never edited by hand. Download both, then run from `engine/`:
+**Pinning a new release.** `data.json` and the engine's organism list, `src/panther_engine/refmap/organisms.json`, are generated from a release's tarball and `stats`, never edited by hand. The engine reads the organism list when it's imported, so a change to that file's format needs the new file in place before `panther-engine` runs: write it once from `stats` with a short script, then regenerate both files with the command below. Download both, then run from `engine/`:
 
 ```sh
 uv run panther-engine refmap data manifest panther_classifications.tar.gz stats \

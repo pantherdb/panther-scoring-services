@@ -33,8 +33,8 @@ All three developers own those.
   - It raises `ValueError` for input the API rejects.
   - A missing or unreadable file raises an error, rather than giving `NOHIT` for every ID (divergence 9).
 - **The organisms:**
-  - **`organisms.json`,** committed in the package and generated from the pinned `stats` (#52, question 3). It lists each organism's code and long name, in the website's order.
-  - **The engine exports `ORGANISM_CODES` and `ORGANISM_NAMES`.** The names are what the website showed before the code, such as "Escherichia coli O157:H7" for `ECO57`, as `SPECIES_NAMES` does for cSNP.
+  - **`organisms.json`,** committed in the package and generated from the pinned `stats` (#52, question 3). It lists each organism's code, long name and gene counts, in the website's order.
+  - **The engine exports `ORGANISM_CODES`, `ORGANISM_NAMES` and `ORGANISM_GENES`.** The names are what the website showed before the code, such as "Escherichia coli O157:H7" for `ECO57`, as `SPECIES_NAMES` does for cSNP. The gene counts are each organism's genes and those with a PANTHER ID, from `stats`.
 - **The data:**
   - **A committed manifest** pins the 2024-06-20 release on `data.pantherdb.org`: the tarball, `stats`, and every file's sha256.
   - **`panther-engine refmap data fetch`** downloads the release and checks it. It saves each classification file under its organism code, as `refmap/19/panther_classification/ECO57` (#52, update to question 4), because ten long names contain `:`, which Windows can't use in a file name.
@@ -118,7 +118,7 @@ Needs team verification:
 For review, proposed but not yet confirmed by the engine developer:
 
 - **The engine doesn't cap the number of IDs.** The API's 100,000 is a limit on a job's work. The engine maps any number, so the full run can pass a whole genome. `ValueError` covers the API's other rules.
-- **`organisms.json` holds only the code and the long name.** The display name is derived as the website did (`MapOrganism.java`). The gene counts in `stats` aren't kept, because nothing shows them.
+- **`organisms.json` holds the code, the long name and the gene counts.** The display name is derived as the website did (`MapOrganism.java`). The counts were left out at first, since nothing shows them; #63's review asked for them, for the overrepresentation and enrichment tests on a generic mapping file. Those tests run outside refmap, and the website read the counts from refmap's deployment (`/mapping19/stats`, `OrganismHelper.java`). They stay in refmap, beside the files they count.
 - **The test lists from the data server,** `test_geneList` and `test_geneList_values`, are committed as golden inputs, with their source and sha256.
 - **The reference image downloads `map_panther.pl` from GitHub when it's built.** That needs the network at build time, and the extra CA wherever a proxy re-signs TLS (`build-with-extra-ca`).
 - **CI downloads the release from `data.pantherdb.org` on a cache miss,** with no mirror. If that server is down, the engine job fails until it's back, or until someone mirrors the release as a GitHub release asset.

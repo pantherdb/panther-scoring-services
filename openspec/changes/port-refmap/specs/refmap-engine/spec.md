@@ -116,7 +116,8 @@ When the organism is one the engine publishes, but its classification file is mi
 The engine SHALL publish each organism it maps for, without needing the data folder:
 
 - its code;
-- its name as the website showed it, before the code in brackets: the long name's parts but the last, joined with spaces.
+- its name as the website showed it, before the code in brackets: the long name's parts but the last, joined with spaces;
+- its gene counts, as the pinned `stats` gives them: its genes, and how many of them have a PANTHER ID.
 
 It SHALL list them in the order of their long names, as the website did.
 
@@ -129,6 +130,11 @@ It SHALL list them in the order of their long names, as the website did.
 
 - **WHEN** the names of `ECO57`, `PEA` and `CAMJE` are read
 - **THEN** they are "Escherichia coli O157:H7", "Pisum sativum" and "Campylobacter jejuni subsp jejuni serotype O:2"
+
+#### Scenario: Gene counts
+
+- **WHEN** the gene counts of `ENDPU` and `ARAVE` are read
+- **THEN** `ENDPU` has 9,228 genes, 7,665 of them with a PANTHER ID, and `ARAVE` 246,021 and 126,890
 
 #### Scenario: Order
 

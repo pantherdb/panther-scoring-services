@@ -5,7 +5,13 @@ from pathlib import Path
 import pytest
 
 from panther_engine.core.process import run_tool
-from panther_engine.refmap import DATA_VERSION, ORGANISM_CODES, ORGANISM_NAMES
+from panther_engine.refmap import (
+    DATA_VERSION,
+    ORGANISM_CODES,
+    ORGANISM_GENES,
+    ORGANISM_NAMES,
+    GeneCounts,
+)
 from panther_engine.refmap.organisms import read_organisms
 
 
@@ -37,6 +43,18 @@ def test_the_names_are_read_only() -> None:
         ORGANISM_NAMES["HUMAN"] = "Homo sapiens"  # pyright: ignore[reportIndexIssue]
 
 
+def test_each_organism_has_its_gene_counts_from_stats() -> None:
+    assert ORGANISM_GENES["ENDPU"] == GeneCounts(genes=9228, genes_with_panther_id=7665)
+    assert ORGANISM_GENES["ECO57"] == GeneCounts(genes=5049, genes_with_panther_id=3922)
+    assert ORGANISM_GENES["ARAVE"] == GeneCounts(genes=246021, genes_with_panther_id=126890)
+    assert list(ORGANISM_GENES) == list(ORGANISM_NAMES)
+
+
+def test_the_gene_counts_are_read_only() -> None:
+    with pytest.raises(TypeError):
+        ORGANISM_GENES["HUMAN"] = GeneCounts(1, 1)  # pyright: ignore[reportIndexIssue]
+
+
 def test_the_data_version_is_panther_19() -> None:
     assert DATA_VERSION == "19"
 
@@ -56,22 +74,25 @@ def test_the_organisms_need_no_data_folder_and_no_tarfile_or_urllib() -> None:
     assert result.stdout == "[]\n"
 
 
+COUNTS = {"genes": 2, "genes_with_panther_id": 1}
+
+
 @pytest.mark.parametrize(
     "listing",
     [
         [
-            {"code": "PEA", "long_name": "Pisum_sativum_PEA"},
-            {"code": "PEA", "long_name": "Pisum_arvense_PEA"},
+            {"code": "PEA", "long_name": "Pisum_sativum_PEA", **COUNTS},
+            {"code": "PEA", "long_name": "Pisum_arvense_PEA", **COUNTS},
         ],
         [
-            {"code": "PEA", "long_name": "Pisum_sativum_PEA"},
-            {"code": "PEA", "long_name": "Pisum_sativum_PEA"},
+            {"code": "PEA", "long_name": "Pisum_sativum_PEA", **COUNTS},
+            {"code": "PEA", "long_name": "Pisum_sativum_PEA", **COUNTS},
         ],
     ],
     ids=["two-long-names", "the-same-twice"],
 )
 def test_a_list_that_repeats_a_code_is_refused(
-    listing: list[dict[str, str]], tmp_path: Path
+    listing: list[dict[str, object]], tmp_path: Path
 ) -> None:
     path = tmp_path / "organisms.json"
     path.write_text(json.dumps(listing))
@@ -80,4 +101,25 @@ def test_a_list_that_repeats_a_code_is_refused(
         read_organisms(path)
 
     assert "Pisum_sativum_PEA" in str(raised.value)
-    assert listing[1]["long_name"] in str(raised.value)
+    assert str(listing[1]["long_name"]) in str(raised.value)
+
+
+@pytest.mark.parametrize(
+    "counts",
+    [
+        {"genes_with_panther_id": 1},
+        {"genes": 2},
+        {"genes": -1, "genes_with_panther_id": 0},
+        {"genes": 2, "genes_with_panther_id": 3},
+        {"genes": True, "genes_with_panther_id": 1},
+        {"genes": 2.0, "genes_with_panther_id": 1},
+        {"genes": "2", "genes_with_panther_id": 1},
+    ],
+    ids=["no-genes", "no-mapped", "negative", "more-mapped-than-genes", "boolean", "float", "text"],
+)
+def test_a_list_with_a_bad_gene_count_is_refused(counts: dict[str, object], tmp_path: Path) -> None:
+    path = tmp_path / "organisms.json"
+    path.write_text(json.dumps([{"code": "PEA", "long_name": "Pisum_sativum_PEA", **counts}]))
+
+    with pytest.raises(ValueError, match=r"not an organism.*Pisum_sativum_PEA"):
+        read_organisms(path)

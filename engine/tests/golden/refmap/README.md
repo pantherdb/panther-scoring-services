@@ -6,12 +6,12 @@ Every file here is stored byte for byte (`-text` in `.gitattributes`). `cases/cr
 
 | Path | What it holds |
 | ---- | ------------- |
-| `cases.json` | Each case: its name, what it shows, its ID list, and either an organism, whose classification file is in the data folder, or a made-up classification file here. A case the port refuses names the error it raises and its row in `docs/parity/divergences.md` |
+| `cases.json` | Each case: its name, what it shows, its ID list, and either an organism, whose classification file is in the data folder, or a made-up classification file here. A case the port refuses names the error it raises, a part of the error's message, and its row in `docs/parity/divergences.md` |
 | `release/` | The data server's test lists, unchanged |
 | `cases/` | The hand-made ID lists and the made-up classification files |
 | `out/` | `map_panther.pl`'s standard output for each case, byte for byte |
 
-The port's mapping for each ID must equal the first two fields of its line in `out/`, with `NOHIT` for none. For a refused case, the port must raise the named error instead, and `out/` keeps the reference's answer as a record.
+The port's mapping for each ID must equal the first two fields of its line in `out/`, with `NOHIT` for none. For a refused case, the port must raise the named error instead, with a message that holds the case's part, so a case can't pass on a refusal for another reason. `out/` keeps the reference's answer as a record.
 
 ## `release/`: The Data Server's Test Lists
 

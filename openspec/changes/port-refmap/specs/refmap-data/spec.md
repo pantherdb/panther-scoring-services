@@ -87,6 +87,7 @@ The organisms the engine publishes SHALL be generated from the pinned `stats`, a
 
 - one organism per line;
 - its code is the last `_` part of its long name;
+- its gene counts are its `stats` line's, which equal its file's lines and those with a PANTHER ID;
 - the list is in long-name order.
 
 A test with the data MUST fail when the data folder's `stats` gives a different list.

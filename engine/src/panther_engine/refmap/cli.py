@@ -162,11 +162,11 @@ def configure(parser: argparse.ArgumentParser) -> None:
         help="check the port against the golden outputs",
         description="Map each golden case with the port, and compare each mapping with the "
         "first two fields of the reference's line, NOHIT for none. A case the port refuses must "
-        "raise the error its divergence row names. Lists every line that differs, by case and "
-        "line, and exits with status 1 if any does. The cases on an organism need the refmap "
-        "data; the made-up files and the refused cases don't. Without a data folder, those are "
-        "still checked, the others are listed as not checked, and the command exits with "
-        "status 1.",
+        "raise the error its divergence row names, with a message holding the part the case "
+        "gives. Lists every line that differs, by case and line, and exits with status 1 if any "
+        "does. The cases on an organism need the refmap data; the made-up files and the refused "
+        "cases don't. Without a data folder, those are still checked, the others are listed as "
+        "not checked, and the command exits with status 1.",
     )
     add_parity_options(check)
 
@@ -345,7 +345,7 @@ def run_check(args: argparse.Namespace) -> int:
             continue
         found = parity.check_case(case, args.golden, folder)
         lines = len(parity.golden_lines(args.golden / parity.OUT / f"{case.name}.out"))
-        kind = f"refused ({case.refused})" if case.refused else f"{lines:,} lines"
+        kind = f"refused ({case.refused}: {case.message!r})" if case.refused else f"{lines:,} lines"
         print(f"{case.name}: {kind}, {len(found)} differences")
         differences += found
     for difference in differences:

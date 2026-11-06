@@ -39,7 +39,7 @@ def test_the_cases_are_read_in_order() -> None:
     assert len({case.name for case in cases}) == len(cases)
     for case in cases:
         assert (case.organism is None) != (case.file is None)
-        assert (case.refused is None) == (case.divergence is None)
+        assert (case.refused is None) == (case.divergence is None) == (case.message is None)
 
 
 def test_each_case_runs_the_script_on_its_file_and_list(
@@ -93,6 +93,32 @@ def test_a_case_with_a_path_outside_the_golden_folder_is_refused(golden: Path) -
     (golden / "cases.json").write_text(json.dumps(listed))
 
     with pytest.raises(parity.ParityError, match="etc/passwd"):
+        parity.read_cases(golden)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"message": None},
+        {"message": ""},
+        {"divergence": None},
+        {"refused": None},
+    ],
+    ids=["no message", "empty message", "no divergence", "no error"],
+)
+def test_a_refused_case_names_its_error_a_part_of_its_message_and_its_row(
+    golden: Path, change: dict[str, object]
+) -> None:
+    listed = json.loads((golden / "cases.json").read_text())
+    case = next(item for item in listed["cases"] if item["name"] == "unknown-organism")
+    for key, value in change.items():
+        if value is None:
+            del case[key]
+        else:
+            case[key] = value
+    (golden / "cases.json").write_text(json.dumps(listed))
+
+    with pytest.raises(parity.ParityError, match=r"unknown-organism.*message"):
         parity.read_cases(golden)
 
 

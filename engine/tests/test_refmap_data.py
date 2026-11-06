@@ -64,15 +64,27 @@ def test_the_manifest_pins_the_release_and_every_file(release: Release, tmp_path
     }
 
 
-def test_the_organism_list_is_in_long_name_order(release: Release, tmp_path: Path) -> None:
+def test_the_organism_list_is_in_long_name_order_with_the_gene_counts(
+    release: Release, tmp_path: Path
+) -> None:
     out = tmp_path / "out"
 
     assert write_manifest(release, out) == 0
 
     assert json.loads((out / "organisms.json").read_text()) == [
-        {"code": "ENDPU", "long_name": "Endocarpon_pusillum_ENDPU"},
-        {"code": "ECO57", "long_name": "Escherichia_coli_O157:H7_ECO57"},
-        {"code": "PEA", "long_name": "Pisum_sativum_PEA"},
+        {
+            "code": "ENDPU",
+            "long_name": "Endocarpon_pusillum_ENDPU",
+            "genes": 3,
+            "genes_with_panther_id": 2,
+        },
+        {
+            "code": "ECO57",
+            "long_name": "Escherichia_coli_O157:H7_ECO57",
+            "genes": 1,
+            "genes_with_panther_id": 1,
+        },
+        {"code": "PEA", "long_name": "Pisum_sativum_PEA", "genes": 2, "genes_with_panther_id": 1},
     ]
 
 

@@ -1,8 +1,9 @@
 """The organisms refmap maps for, and where their data is.
 
 `ORGANISM_NAMES` maps each organism's code to its name, in the order of their long names, as the
-website listed them; `ORGANISM_CODES` is its codes. Both come from `organisms.json`, which
-`panther-engine refmap data manifest` generates from the pinned `stats`.
+website listed them; `ORGANISM_CODES` is its codes; `ORGANISM_GENES` maps each code to its gene
+counts. All come from `organisms.json`, which `panther-engine refmap data manifest` generates from
+the pinned `stats`.
 
 The refmap data is PANTHER 19's classification files, one per Reference Proteome organism, under
 `refmap/19/` in the data folder: `stats` as published, and each file at
@@ -29,9 +30,20 @@ CODE = re.compile(r"[A-Z0-9]{1,5}")
 
 
 @dataclass(frozen=True)
+class GeneCounts:
+    """An organism's genes in the pinned release, as `stats` gives them: the lines of its
+    classification file, and those with a PANTHER ID rather than NOHIT. No file in the release
+    repeats an ID, so each line is one gene."""
+
+    genes: int
+    genes_with_panther_id: int
+
+
+@dataclass(frozen=True)
 class Organism:
     code: str
     long_name: str
+    counts: GeneCounts
 
 
 def code_of(long_name: str) -> str:
@@ -39,8 +51,15 @@ def code_of(long_name: str) -> str:
     return long_name.rsplit("_", 1)[-1]
 
 
+def count(value: object) -> int | None:
+    """A count from the organism list: an integer, not negative, and not a boolean."""
+    if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+        return value
+    return None
+
+
 def read_organisms(path: Path = ORGANISMS) -> tuple[Organism, ...]:
-    """The organism list: each organism's code and long name, in long-name order.
+    """The organism list: each organism's code, long name and gene counts, in long-name order.
 
     Raises ValueError if the file can't be read as one, or if it repeats a code: each code is a
     file name in the data folder, and a key of `ORGANISM_NAMES`.
@@ -56,11 +75,16 @@ def read_organisms(path: Path = ORGANISMS) -> tuple[Organism, ...]:
     for item in cast(list[object], listing):
         fields = cast(dict[str, object], item) if isinstance(item, dict) else {}
         code, long_name = fields.get("code"), fields.get("long_name")
+        genes = count(fields.get("genes"))
+        with_panther_id = count(fields.get("genes_with_panther_id"))
         if not (
             isinstance(code, str)
             and isinstance(long_name, str)
             and CODE.fullmatch(code)
             and code_of(long_name) == code
+            and genes is not None
+            and with_panther_id is not None
+            and with_panther_id <= genes
         ):
             raise ValueError(f"not an organism in {path}: {item!r}")
         if code in seen:
@@ -68,7 +92,7 @@ def read_organisms(path: Path = ORGANISMS) -> tuple[Organism, ...]:
                 f"the organism list {path} repeats the code {code!r}: {seen[code]} and {long_name}"
             )
         seen[code] = long_name
-        organisms.append(Organism(code, long_name))
+        organisms.append(Organism(code, long_name, GeneCounts(genes, with_panther_id)))
     return tuple(organisms)
 
 
@@ -79,7 +103,13 @@ def display_name(long_name: str) -> str:
 
 
 # Read once, at import: the API checks a request's organism with no data folder.
+_ORGANISMS = read_organisms()
 ORGANISM_NAMES: Mapping[str, str] = MappingProxyType(
-    {organism.code: display_name(organism.long_name) for organism in read_organisms()}
+    {organism.code: display_name(organism.long_name) for organism in _ORGANISMS}
 )
 ORGANISM_CODES: frozenset[str] = frozenset(ORGANISM_NAMES)
+# For the overrepresentation and enrichment tests on a generic mapping file, which run outside
+# refmap: the website read these from refmap's `stats` (`OrganismHelper.java`, `getMappingOrgs`).
+ORGANISM_GENES: Mapping[str, GeneCounts] = MappingProxyType(
+    {organism.code: organism.counts for organism in _ORGANISMS}
+)

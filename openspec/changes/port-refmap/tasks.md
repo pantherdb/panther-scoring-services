@@ -241,6 +241,12 @@ From the API developer's review on #63 (2026-11-06). None changes what the API c
 - [x] 7.5 `read_stats` takes only ASCII digits as counts. Test: `²`, `٣`, `-1` and an empty count are each named, with no traceback.
 - [x] 7.6 `HashingReader` moves to `core/manifest.py`; `csnp/survey.py`, `csnp/full.py`, `csnp/sample.py` and `refmap/data.py` import it from there. Test in `test_manifest.py`.
 
+From mugitty's review on #63 (2026-11-06). Its point on overwriting the goldens is 7.1.
+
+- [x] 7.7 Each refused case in `cases.json` names a part of the error's message, and `parity check` requires it as well as the error, so a case can't pass on a refusal for another reason. The report prints the part each refusal was checked for. Tests: a case without the part, or with an empty one, isn't read; `empty-line` checked for the unknown organism's message is a difference that prints the port's whole error.
+- [x] 7.8 The test that the release lists cover every ENDPU ID reads the file with `parity.file_ids()`, as the full run does, not with `read_text().splitlines()`, which decodes with the locale's encoding and splits on more than `\n`.
+- [x] 7.9 `organisms.json` keeps each organism's gene counts from `stats`, its genes and those with a PANTHER ID, and the engine exports them as `ORGANISM_GENES` (`GeneCounts`), for the overrepresentation and enrichment tests on a generic mapping file. `read_organisms` refuses a missing, negative or non-integer count, and more genes with a PANTHER ID than genes. The spec deltas, proposal and design say so. Tests: ENDPU, ECO57 and ARAVE's counts; the small release's list; each bad count; with the data, the committed list against the folder's `stats`.
+
 Verify: the engine's checks pass, the reference in the image gives the same goldens, and `parity full` still reports no differences.
 
 ## Workflow follow-up
@@ -298,11 +304,15 @@ None.
 
 - **Section 7, the review on #63 (2026-11-06):** each bug was reproduced first, and each fix's tests failed before it. The three review points not taken: CI downloading the release twice on a cache miss (only when `data.json` changes; making the image jobs wait for `engine` would slow every run), a `core` fetch helper shared with cSNP (a design change, for a follow-up), and reading classification files line by line (14.6 MB peak instead of 31.6 MB for 100,000 IDs against ARAVE, but 0.49 s instead of 0.36 s). After the fixes: natively, 599 passed and 31 `tools` skipped; in the image, `parity reference` gave the same goldens, `parity full --organism ENDPU` 9,328 IDs as in the full run, and `parity full` 1,533 organisms and 23,114,501 IDs with no differences, in 79 s.
 
+- **The second review on #63 (2026-11-06):** its point on the goldens was already 7.1, fixed in `dca56e9`. The gene counts stay in refmap rather than another service: they describe refmap's pinned data, `data manifest` checks them against every file, and the website read them from refmap's deployment (`/mapping19/stats`). No file in the release repeats an ID, so each line is one gene. `organisms.json` was regenerated with `data manifest` from the pinned tarball and `stats`; `data.json` came out unchanged.
+
 ### Failed approaches
 
 - **A link from the copy's `.data` to the real one (6.1).** The copy already has `.data/` as a folder, for its tracked `.gitkeep`, so `ln -s` put the link inside it, and 103 data tests failed. A link to a host path wouldn't work in a container either. `cp -cR` of `csnp/` and `refmap/` clones them on APFS, instantly.
 
 ### Lessons learned
+
+- **A new format for `organisms.json` needs a bootstrap.** The package reads the list when it's imported, so `panther-engine` can't start while the committed file is in the old format, and `data manifest` can't regenerate it. Write the new file once from `stats` with a script that doesn't import the package, then run `data manifest`, and check its output equals the script's. `docs/testing/engine.md` says so under "Pinning a new release".
 
 - **Assigned to scalars, Perl's `split` keeps a trailing empty field.** `my ($id, $pthr) = split(/\t/, $line)` has an implicit limit of 3; `my ($id, @rest) = split(...)` has none. Read the left side before describing a `split`. Worth keeping for the `hmmscore` port.
 - **Python's text-mode capture changes line endings.** `subprocess` reads `\r\n` and `\r` as `\n`, so a reference's output must go to a file, through `run_tool(stdout=...)`, to be kept byte for byte. Worth keeping for every Perl reference.

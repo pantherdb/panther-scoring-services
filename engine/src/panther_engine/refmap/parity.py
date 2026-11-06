@@ -6,7 +6,7 @@ The reference is `map_panther.pl` at RefProteomeMapper's `4fc6a09`, in the `refm
 
 - `cases.json`: each case's name, what it shows, its ID list, and either an organism, whose
   classification file is in the data folder, or a made-up classification file in the folder. A
-  case the port refuses names the error and its divergence row;
+  case the port refuses names the error, a part of the error's message, and its divergence row;
 - `release/`: the data server's test lists, unchanged;
 - `cases/`: the hand-made ID lists and made-up classification files;
 - `out/`: `map_panther.pl`'s standard output for each case, byte for byte.
@@ -70,6 +70,7 @@ class Case:
     organism: str | None = None
     file: str | None = None
     refused: str | None = None
+    message: str | None = None
     divergence: int | None = None
 
     def classification(self, golden: Path, data: Path) -> Path:
@@ -115,8 +116,16 @@ def validate_case(case: Case, golden: Path) -> None:
         raise ParityError(f"{where} needs an organism or a file, not both")
     if case.organism is not None and not CODE.fullmatch(case.organism):
         raise ParityError(f"{where}: not an organism code: {case.organism!r}")
-    if case.refused not in (None, *REFUSALS) or (case.refused is None) != (case.divergence is None):
-        raise ParityError(f"{where}: a refused case names its error and its divergence row")
+    refusal = (case.refused, case.message, case.divergence)
+    if (
+        case.refused not in (None, *REFUSALS)
+        or len({field is None for field in refusal}) > 1
+        or case.message == ""
+    ):
+        raise ParityError(
+            f"{where}: a refused case names its error, a part of the error's message, and its "
+            "divergence row"
+        )
     for path in (case.list, case.file):
         if path is None:
             continue
@@ -236,9 +245,9 @@ def compare(
         result = map_ids(RefmapInput(organism, ids), data_dir=data)
     except (ValueError, MissingDataError, DataFolderError) as error:
         raised = type(error).__name__
-        if raised == case.refused:
+        if raised == case.refused and case.message is not None and case.message in str(error):
             return []
-        wanted = case.refused or "mappings"
+        wanted = f"{case.refused} with {case.message!r}" if case.refused else "mappings"
         return [f"{case.name}: the port raised {raised} ({error}), not {wanted}"]
     if case.refused is not None:
         return [

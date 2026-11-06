@@ -172,7 +172,7 @@ What the pinned release never holds, so the port matches the Perl beyond it. The
 
 ### Divergences
 
-The port refuses these, where the reference answered. Their `out/` files keep the reference's answer as a record.
+The port refuses these, where the reference answered. Each case names the error and a part of its message, such as `ID 2 isn't 1 to 64 printable ASCII characters` for `empty-line`, and the check requires both, so a case can't pass on a refusal for another reason. Their `out/` files keep the reference's answer as a record.
 
 | Case | Input | Reference | Port | Row |
 | ---- | ----- | --------- | ---- | --- |

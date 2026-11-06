@@ -281,6 +281,8 @@ None.
   - in `api/`: `uv sync --locked`, `uv run pytest` (339 passed, 6 `blastp` skips) and `uv lock --check` pass;
   - `npx markdownlint-cli2`, `npx openspec validate --all --no-interactive` (18 passed) and `npx openspec validate port-refmap --strict --no-interactive` pass.
 
+- **CI on #63 (2026-11-06): the `repo` job's gitleaks scan failed** on two lines of `refmap/data.json`. Every other job passed. The paths end in the organism codes `APICC` and `APIME`, so the `generic-api-key` rule read the "api" in the key and the sha256 beside it as a secret. Reproduced with gitleaks 8.30.1, CI's pinned version. `.gitleaks.toml` now keeps the default rules and allows that rule's findings only in that file, and only for a 64-character hex value. The scan then reports no leaks. In a scratch folder, a key that isn't a sha256 in the same file was still reported, and so was a sha256 under an `API…` key in another file. `docs/testing/README.md` names the file.
+
 ### Failed approaches
 
 - **A link from the copy's `.data` to the real one (6.1).** The copy already has `.data/` as a folder, for its tracked `.gitkeep`, so `ln -s` put the link inside it, and 103 data tests failed. A link to a host path wouldn't work in a container either. `cp -cR` of `csnp/` and `refmap/` clones them on APFS, instantly.

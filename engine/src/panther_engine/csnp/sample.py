@@ -34,13 +34,14 @@ from panther_engine.core.data import data_root
 from panther_engine.core.download import download
 from panther_engine.core.manifest import (
     CHUNK,
+    HashingReader,
     Mismatches,
     checksums,
     read_manifest,
     sha256_file,
     verify,
 )
-from panther_engine.csnp.survey import FAMILY_FILE, FAMILY_NAME, HashingReader, open_stream
+from panther_engine.csnp.survey import FAMILY_FILE, FAMILY_NAME, open_stream
 
 SERVICE = "csnp"
 VERSION = "9"

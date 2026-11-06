@@ -199,6 +199,19 @@ def test_a_link_is_named(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> 
     assert "'panther_classifications/Pisum_sativum_PEA'" in err
 
 
+@pytest.mark.parametrize("count", ["many", "\u00b2", "\u0663", "-1", ""])
+def test_a_count_that_isnt_ascii_digits_is_named(
+    count: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    stats = "".join(stats_line(name, content) for name, content in ORGANISMS.items())
+    stats += f"Broken_line_BROKE\t{count}\t1\n"
+
+    err = refused(make_release(tmp_path / "release", stats=stats), tmp_path, capsys)
+
+    assert "Broken_line_BROKE" in err
+    assert "Traceback" not in err
+
+
 def test_a_malformed_stats_line_is_named(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

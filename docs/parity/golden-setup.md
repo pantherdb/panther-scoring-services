@@ -167,6 +167,7 @@ docker run --rm -v "$PWD/engine:/work/engine" -v "$PWD/.data:/data:ro" \
 ```
 
 - **It writes `out/<case>.out`,** the script's standard output for each case, byte for byte, in about 2 s. It's sent to a file rather than captured as text, which would turn each carriage return into a line feed. A second run gives the same bytes.
+- **The outputs go to a temporary folder first,** and into `out/` only once every case has run. If one case fails, `out/` is left as it was.
 - **The data folder needs the refmap data.** It stops before running anything if a published organism's file is missing: the Perl reads a missing file as an empty one, and would answer `NOHIT` for every ID (`REFMAP-9`).
 - **Update the checksums** in the golden folder's README, and commit `out/` with them. CI checks the port against it without Perl (`tests/test_refmap_golden.py`).
 
@@ -183,5 +184,5 @@ docker run --rm -v "$PWD/engine:/work/engine" -v "$PWD/.data:/data:ro" \
 - **For each organism, one at a time,** it writes a list of every ID in the organism's file, in file order, then extras from a generator seeded with `port-refmap:<code>`: up to 20 of its IDs repeated, 20 lower-cased, 20 with `-2`, 20 with `.1`, and 20 from the next organism's file. The same data and seed give the same lists. `--seed` changes the seed.
 - **It runs `map_panther.pl` on the list,** maps the same IDs with `map_ids()`, and compares each line's first two fields.
 - **It prints each organism's IDs and differences** as it goes, the first 20 differences of each, and a total. It exits with status 1 if any line differs.
-- **`--organism CODE`** runs only that organism; repeat it for more. The next organism, for the extras, is then the next one given.
+- **`--organism CODE`** runs only that organism; repeat it for more. Its extras still come from the next organism in the list, so a rerun of one organism checks the IDs the full run did, and that organism's file must be in the data folder too.
 - **It writes nothing** outside the container's `/tmp`, so it needs no `--user`. On 2026-11-06 it took 81 s on an Apple Silicon Mac. The result is in [inputs.md](inputs.md#the-refmap-full-run).

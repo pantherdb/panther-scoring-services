@@ -230,6 +230,19 @@ Paths under `engine/` are relative to `engine/src/panther_engine/`, unless they 
   - **in `api/`,** which imports the engine: `uv sync --locked` and `uv run pytest` pass, and `uv lock --check` reports no change.
   - **docs and specs:** `npx markdownlint-cli2`, `npx openspec validate --all --no-interactive`, and `npx openspec validate port-refmap --strict --no-interactive` pass.
 
+## 7. Review Fixes (#63)
+
+From the API developer's review on #63 (2026-11-06). None changes what the API calls.
+
+- [x] 7.1 `parity reference` writes into a temporary folder, and moves the outputs into `out/` only once every case has run. Test: a run that fails at the `crlf` case leaves `out/` as it was.
+- [x] 7.2 `parity check` without a data folder checks the made-up and refused cases, lists the others as not checked, and exits with 1. Tests: with all the cases, and with only those that need no data (exits with 0).
+- [x] 7.3 `parity full` takes each organism's extras from the next organism in the published list, whichever organisms it runs, and needs that organism's file too. It refuses an organism refmap doesn't publish. Tests: one organism gets the next one's IDs; a missing next file and `HUMAN` are named.
+- [x] 7.4 `read_organisms` refuses a list that repeats a code, naming both long names.
+- [x] 7.5 `read_stats` takes only ASCII digits as counts. Test: `²`, `٣`, `-1` and an empty count are each named, with no traceback.
+- [x] 7.6 `HashingReader` moves to `core/manifest.py`; `csnp/survey.py`, `csnp/full.py`, `csnp/sample.py` and `refmap/data.py` import it from there. Test in `test_manifest.py`.
+
+Verify: the engine's checks pass, the reference in the image gives the same goldens, and `parity full` still reports no differences.
+
 ## Workflow follow-up
 
 - **One pull request, cross-cutting.**
@@ -282,6 +295,8 @@ None.
   - `npx markdownlint-cli2`, `npx openspec validate --all --no-interactive` (18 passed) and `npx openspec validate port-refmap --strict --no-interactive` pass.
 
 - **CI on #63 (2026-11-06): the `repo` job's gitleaks scan failed** on two lines of `refmap/data.json`. Every other job passed. The paths end in the organism codes `APICC` and `APIME`, so the `generic-api-key` rule read the "api" in the key and the sha256 beside it as a secret. Reproduced with gitleaks 8.30.1, CI's pinned version. `.gitleaks.toml` now keeps the default rules and allows that rule's findings only in that file, and only for a 64-character hex value. The scan then reports no leaks. In a scratch folder, a key that isn't a sha256 in the same file was still reported, and so was a sha256 under an `API…` key in another file. `docs/testing/README.md` names the file.
+
+- **Section 7, the review on #63 (2026-11-06):** each bug was reproduced first, and each fix's tests failed before it. The three review points not taken: CI downloading the release twice on a cache miss (only when `data.json` changes; making the image jobs wait for `engine` would slow every run), a `core` fetch helper shared with cSNP (a design change, for a follow-up), and reading classification files line by line (14.6 MB peak instead of 31.6 MB for 100,000 IDs against ARAVE, but 0.49 s instead of 0.36 s). After the fixes: natively, 599 passed and 31 `tools` skipped; in the image, `parity reference` gave the same goldens, `parity full --organism ENDPU` 9,328 IDs as in the full run, and `parity full` 1,533 organisms and 23,114,501 IDs with no differences, in 79 s.
 
 ### Failed approaches
 

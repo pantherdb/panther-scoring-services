@@ -34,6 +34,7 @@ from panther_engine.core.data import data_root
 from panther_engine.core.download import download
 from panther_engine.core.manifest import (
     CHUNK,
+    HashingReader,
     Mismatches,
     checksums,
     read_manifest,
@@ -86,25 +87,6 @@ class StatsLine:
     mapped: int
 
 
-class HashingReader:
-    """A binary file that hashes and counts what is read from it."""
-
-    def __init__(self, raw: IO[bytes]) -> None:
-        self.raw = raw
-        self.digest = hashlib.sha256()
-        self.size = 0
-
-    def read(self, size: int = -1) -> bytes:
-        data = self.raw.read(size)
-        self.digest.update(data)
-        self.size += len(data)
-        return data
-
-    def drain(self) -> None:
-        while self.read(CHUNK):
-            pass
-
-
 def joined(problems: list[str]) -> str:
     listed = "; ".join(problems[:LISTED])
     if len(problems) > LISTED:
@@ -133,7 +115,12 @@ def read_stats(path: Path) -> tuple[list[StatsLine], list[str]]:
         lines.pop()
     for number, line in enumerate(lines, 1):
         fields = line.split("\t")
-        if len(fields) != 3 or not fields[0] or not all(f.isdigit() for f in fields[1:]):
+        counts = fields[1:]
+        if (
+            len(fields) != 3
+            or not fields[0]
+            or not all(c.isascii() and c.isdigit() for c in counts)
+        ):
             problems.append(f"{path.name} line {number} isn't a long name and two counts: {line!r}")
             continue
         entries.append(StatsLine(fields[0], int(fields[1]), int(fields[2])))

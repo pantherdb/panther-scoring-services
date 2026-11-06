@@ -75,6 +75,7 @@ From the #52 survey of the pinned release:
 ```text
 engine/src/panther_engine/
   core/download.py       download(url, target): moved from csnp/sample.py, unchanged
+  core/manifest.py       + HashingReader: moved from csnp/survey.py, shared with refmap/data.py
   csnp/sample.py         imports download from core
   refmap/__init__.py     exports map_ids, RefmapInput, IdMapping, RefmapResult, ORGANISM_CODES,
                          ORGANISM_NAMES, DATA_VERSION, check_data
@@ -260,10 +261,10 @@ engine/tests/golden/refmap/
   - an empty line, and an ID with a space (row 10): `ValueError`;
   - a missing file (row 9): `MissingDataError`.
 - **The gene lists** are read as the Perl reads them: every `\r` removed, and the first tab field taken. The same reader serves `refmap map --file`.
-- **`panther-engine refmap parity reference`,** in the image, runs `perl map_panther.pl -i FILE -g LIST` for each case through `run_tool()`, and writes `out/`.
-- **`parity check`** compares the port with `out/`, line by line, and names the case and the line. pytest calls the same function. The cases on `ENDPU` need `data("refmap")`; the made-up files need no data.
+- **`panther-engine refmap parity reference`,** in the image, runs `perl map_panther.pl -i FILE -g LIST` for each case through `run_tool()`, into a temporary folder, and moves the outputs into `out/` once every case has run (#63's review).
+- **`parity check`** compares the port with `out/`, line by line, and names the case and the line. pytest calls the same function. The cases on `ENDPU` need `data("refmap")`; the made-up files and the refused cases need no data, and are checked without a data folder.
 - **`parity full [--seed port-refmap] [--organism CODE ...]`,** in the image, works one organism at a time.
-  - **The list:** the file's IDs in file order. Then extras, from `random.Random(f"{seed}:{code}")`: 20 of its IDs repeated, 20 lower-cased, 20 with `-2`, 20 with `.1`, and 20 from the next organism's file.
+  - **The list:** the file's IDs in file order. Then extras, from `random.Random(f"{seed}:{code}")`: 20 of its IDs repeated, 20 lower-cased, 20 with `-2`, 20 with `.1`, and 20 from the next organism's file. The next organism is the next in the published list, whichever organisms a run covers, so `--organism` reruns an organism's list as the full run made it (#63's review).
   - **The run:** it writes the list to a temporary file, runs the Perl, maps the same IDs with `map_ids`, and compares.
   - **The report:** for each organism, the IDs compared and any differences. It exits with 1 if there are any.
   - **The result** is M1's acceptance, recorded in `docs/parity/inputs.md`.

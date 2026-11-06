@@ -99,3 +99,32 @@ def test_parity_check_reports_the_difference_and_fails(
     assert "crlf line 2: the reference has 'B2\\tPTHR00002:SF1', the port" in captured.out
     assert "repeated-id: 2 lines, 0 differences" in captured.out
     assert "1 differences" in captured.err
+
+
+def test_parity_check_without_a_data_folder_still_checks_what_needs_none(
+    copy: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.delenv("PANTHER_DATA_DIR", raising=False)
+
+    status = main(["refmap", "parity", "check", "--golden", str(copy)])
+
+    captured = capsys.readouterr()
+    assert status == 1
+    assert "crlf: 4 lines, 0 differences" in captured.out
+    assert "empty-line: refused (ValueError), 0 differences" in captured.out
+    assert "test_geneList: not checked: it needs the refmap data" in captured.out
+    assert f"{len(ON_DATA)} cases not checked" in captured.err
+    assert "PANTHER_DATA_DIR" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_parity_check_of_cases_that_need_no_data_passes_without_it(
+    copy: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.delenv("PANTHER_DATA_DIR", raising=False)
+    listed = json.loads((copy / "cases.json").read_text())
+    listed["cases"] = [item for item in listed["cases"] if "file" in item or "refused" in item]
+    (copy / "cases.json").write_text(json.dumps(listed))
+
+    assert main(["refmap", "parity", "check", "--golden", str(copy)]) == 0
+    assert "not checked" not in capsys.readouterr().out

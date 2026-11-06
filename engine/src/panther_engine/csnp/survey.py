@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import IO, cast
 
+from panther_engine.core.manifest import HashingReader
 from panther_engine.csnp import legacy
 from panther_engine.csnp.library import CARRIAGE_RETURN, ENCODING, LibraryFormatError
 from panther_engine.csnp.orig_tree import OrigTree, read_orig_tree
@@ -218,25 +219,6 @@ class Family:
 
     def note(self, key: str, detail: str, items: int = 1) -> None:
         self.findings.append((key, detail, items))
-
-
-class HashingReader:
-    """A binary file that hashes and counts what is read from it."""
-
-    def __init__(self, raw: IO[bytes]) -> None:
-        self.raw = raw
-        self.digest = hashlib.sha256()
-        self.size = 0
-
-    def read(self, size: int = -1) -> bytes:
-        data = self.raw.read(size)
-        self.digest.update(data)
-        self.size += len(data)
-        return data
-
-    def drain(self) -> None:
-        while self.read(READ_SIZE):
-            pass
 
 
 def open_stream(reader: HashingReader) -> tarfile.TarFile:

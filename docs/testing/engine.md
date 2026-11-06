@@ -178,7 +178,7 @@ For `refmap`, `tests/test_refmap_golden.py` reads `tests/golden/refmap/`. Each m
 uv run panther-engine refmap parity check --data-dir ../.data
 ```
 
-It exits with status 1 if any line differs. Making the goldens needs `map_panther.pl`, in the `refmap-reference` image: see [golden-setup.md](../parity/golden-setup.md#refmap).
+It exits with status 1 if any line differs. Without a data folder, it still checks the made-up files and the refused cases, lists the cases on ENDPU as not checked, and exits with status 1. Making the goldens needs `map_panther.pl`, in the `refmap-reference` image: see [golden-setup.md](../parity/golden-setup.md#refmap).
 
 ## Input Errors
 

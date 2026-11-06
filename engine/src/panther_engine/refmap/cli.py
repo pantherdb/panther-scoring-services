@@ -164,7 +164,9 @@ def configure(parser: argparse.ArgumentParser) -> None:
         "first two fields of the reference's line, NOHIT for none. A case the port refuses must "
         "raise the error its divergence row names. Lists every line that differs, by case and "
         "line, and exits with status 1 if any does. The cases on an organism need the refmap "
-        "data; the made-up files don't.",
+        "data; the made-up files and the refused cases don't. Without a data folder, those are "
+        "still checked, the others are listed as not checked, and the command exits with "
+        "status 1.",
     )
     add_parity_options(check)
 
@@ -189,8 +191,8 @@ def configure(parser: argparse.ArgumentParser) -> None:
         "--organism",
         action="append",
         metavar="CODE",
-        help="run this organism only; repeat for more (default: every organism, in the list's "
-        "order)",
+        help="run this organism only; repeat for more. Its extras still come from the next "
+        "organism in the list, as in the full run (default: every organism, in the list's order)",
     )
     full.add_argument(
         "--script",
@@ -307,35 +309,52 @@ def run_data(args: argparse.Namespace) -> int:
 def run_parity(args: argparse.Namespace) -> int:
     command = f"panther-engine refmap parity {args.parity_command}"
     try:
-        folder = data_root(args.data_dir)
         match args.parity_command:
             case "reference":
                 reference = parity.Reference.find(args.script)
-                counts = parity.run_reference(reference, args.golden, folder)
+                counts = parity.run_reference(reference, args.golden, data_root(args.data_dir))
                 for name, lines in counts.items():
                     print(f"{name}: {lines:,} lines")
                 print(f"wrote {len(counts)} cases to {args.golden / parity.OUT}")
             case "check":
-                differences: list[str] = []
-                for case in parity.read_cases(args.golden):
-                    found = parity.check_case(case, args.golden, folder)
-                    lines = len(parity.golden_lines(args.golden / parity.OUT / f"{case.name}.out"))
-                    kind = f"refused ({case.refused})" if case.refused else f"{lines:,} lines"
-                    print(f"{case.name}: {kind}, {len(found)} differences")
-                    differences += found
-                for difference in differences:
-                    print(difference)
-                if differences:
-                    print(f"{len(differences)} differences", file=sys.stderr)
-                    return 1
+                return run_check(args)
             case "full":
-                return run_full(args, folder)
+                return run_full(args, data_root(args.data_dir))
             case _:
                 raise AssertionError(f"unhandled command: {command}")
     except (parity.ParityError, DataFolderError, MissingDataError, OSError) as error:
         print(f"{command}: {error}", file=sys.stderr)
         return 1
     return 0
+
+
+def run_check(args: argparse.Namespace) -> int:
+    """Check every case. Without a data folder, the cases that need it are listed as not checked,
+    the others are checked, and the command fails."""
+    folder: Path | None
+    try:
+        folder, no_data = data_root(args.data_dir), ""
+    except DataFolderError as error:
+        folder, no_data = None, str(error)
+    differences: list[str] = []
+    unchecked = 0
+    for case in parity.read_cases(args.golden):
+        if folder is None and parity.needs_data(case):
+            print(f"{case.name}: not checked: it needs the refmap data")
+            unchecked += 1
+            continue
+        found = parity.check_case(case, args.golden, folder)
+        lines = len(parity.golden_lines(args.golden / parity.OUT / f"{case.name}.out"))
+        kind = f"refused ({case.refused})" if case.refused else f"{lines:,} lines"
+        print(f"{case.name}: {kind}, {len(found)} differences")
+        differences += found
+    for difference in differences:
+        print(difference)
+    if unchecked:
+        print(f"{unchecked} cases not checked: {no_data}", file=sys.stderr)
+    if differences:
+        print(f"{len(differences)} differences", file=sys.stderr)
+    return 1 if differences or unchecked else 0
 
 
 def run_full(args: argparse.Namespace, folder: Path) -> int:

@@ -1,10 +1,12 @@
 import hashlib
+import io
 import json
 from pathlib import Path
 
 import pytest
 
 from panther_engine.core.manifest import (
+    HashingReader,
     ManifestError,
     checksums,
     read_manifest,
@@ -96,3 +98,14 @@ def test_other_members_of_a_manifest_are_kept(tmp_path: Path) -> None:
 
     assert loaded["tag"] == "csnp-sample-1"
     assert checksums(loaded) == {"csnp/9/a.paml": digest(b"")}
+
+
+def test_a_hashing_reader_hashes_and_counts_what_is_read() -> None:
+    reader = HashingReader(io.BytesIO(b"abcdef" * 1000))
+
+    assert reader.read(2) == b"ab"
+    reader.drain()
+
+    assert reader.size == 6000
+    assert reader.digest.hexdigest() == digest(b"abcdef" * 1000)
+    assert reader.read() == b""

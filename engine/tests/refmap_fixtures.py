@@ -67,7 +67,7 @@ def make_release(
     path = folder / "stats"
     if stats is None:
         stats = "".join(stats_line(name, content) for name, content in organisms.items())
-    path.write_text(stats, encoding="ascii", newline="\n")
+    path.write_text(stats, encoding="utf-8", newline="\n")
     return Release(tarball, path)
 
 

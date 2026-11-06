@@ -42,7 +42,8 @@ def code_of(long_name: str) -> str:
 def read_organisms(path: Path = ORGANISMS) -> tuple[Organism, ...]:
     """The organism list: each organism's code and long name, in long-name order.
 
-    Raises ValueError if the file can't be read as one.
+    Raises ValueError if the file can't be read as one, or if it repeats a code: each code is a
+    file name in the data folder, and a key of `ORGANISM_NAMES`.
     """
     try:
         listing: object = json.loads(path.read_text(encoding="utf-8"))
@@ -51,6 +52,7 @@ def read_organisms(path: Path = ORGANISMS) -> tuple[Organism, ...]:
     if not isinstance(listing, list):
         raise ValueError(f"the organism list {path} isn't a JSON list")
     organisms: list[Organism] = []
+    seen: dict[str, str] = {}
     for item in cast(list[object], listing):
         fields = cast(dict[str, object], item) if isinstance(item, dict) else {}
         code, long_name = fields.get("code"), fields.get("long_name")
@@ -61,6 +63,11 @@ def read_organisms(path: Path = ORGANISMS) -> tuple[Organism, ...]:
             and code_of(long_name) == code
         ):
             raise ValueError(f"not an organism in {path}: {item!r}")
+        if code in seen:
+            raise ValueError(
+                f"the organism list {path} repeats the code {code!r}: {seen[code]} and {long_name}"
+            )
+        seen[code] = long_name
         organisms.append(Organism(code, long_name))
     return tuple(organisms)
 

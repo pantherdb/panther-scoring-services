@@ -1,9 +1,12 @@
+import json
 import sys
+from pathlib import Path
 
 import pytest
 
 from panther_engine.core.process import run_tool
 from panther_engine.refmap import DATA_VERSION, ORGANISM_CODES, ORGANISM_NAMES
+from panther_engine.refmap.organisms import read_organisms
 
 
 def test_there_are_1533_codes_none_of_them_panthers_own_genomes() -> None:
@@ -51,3 +54,30 @@ def test_the_organisms_need_no_data_folder_and_no_tarfile_or_urllib() -> None:
 
     assert result.returncode == 0, result.stderr
     assert result.stdout == "[]\n"
+
+
+@pytest.mark.parametrize(
+    "listing",
+    [
+        [
+            {"code": "PEA", "long_name": "Pisum_sativum_PEA"},
+            {"code": "PEA", "long_name": "Pisum_arvense_PEA"},
+        ],
+        [
+            {"code": "PEA", "long_name": "Pisum_sativum_PEA"},
+            {"code": "PEA", "long_name": "Pisum_sativum_PEA"},
+        ],
+    ],
+    ids=["two-long-names", "the-same-twice"],
+)
+def test_a_list_that_repeats_a_code_is_refused(
+    listing: list[dict[str, str]], tmp_path: Path
+) -> None:
+    path = tmp_path / "organisms.json"
+    path.write_text(json.dumps(listing))
+
+    with pytest.raises(ValueError, match="PEA") as raised:
+        read_organisms(path)
+
+    assert "Pisum_sativum_PEA" in str(raised.value)
+    assert listing[1]["long_name"] in str(raised.value)

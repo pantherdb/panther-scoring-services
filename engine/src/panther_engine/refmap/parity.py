@@ -16,6 +16,7 @@ returns included, survives.
 """
 
 import json
+import os
 import random
 import shutil
 import subprocess
@@ -25,7 +26,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-from panther_engine.core.data import MissingDataError
+from panther_engine.core.data import DataFolderError, MissingDataError
 from panther_engine.core.manifest import ManifestError, relative_path
 from panther_engine.core.process import run_tool
 from panther_engine.refmap.mapping import (
@@ -35,7 +36,13 @@ from panther_engine.refmap.mapping import (
     read_id_list,
     render,
 )
-from panther_engine.refmap.organisms import CLASSIFICATION, CODE, FOLDER, ORGANISM_CODES
+from panther_engine.refmap.organisms import (
+    CLASSIFICATION,
+    CODE,
+    FOLDER,
+    ORGANISM_CODES,
+    ORGANISM_NAMES,
+)
 
 GOLDEN = Path("tests/golden/refmap")
 CASES = "cases.json"
@@ -156,7 +163,9 @@ def run_reference(reference: Reference, golden: Path, data: Path) -> dict[str, i
     each case's lines of output.
 
     `data` is the data folder. The Perl reads a missing file as an empty one, so every published
-    organism's file must be there before anything runs.
+    organism's file must be there before anything runs. The outputs are written to a temporary
+    folder, and moved into `out/` only once every case has run: if one fails, `out/` is left as
+    it was.
     """
     cases = read_cases(golden)
     for case in cases:
@@ -169,16 +178,20 @@ def run_reference(reference: Reference, golden: Path, data: Path) -> dict[str, i
                 f"case {case.name!r}: no classification file {classification}. Fetch the refmap "
                 "data: docs/testing/engine.md"
             )
-    out = golden / OUT
-    out.mkdir(exist_ok=True)
     counts: dict[str, int] = {}
-    for case in cases:
-        target = out / f"{case.name}.out"
-        try:
-            reference.run(case.classification(golden, data), golden / case.list, target)
-        except ParityError as error:
-            raise ParityError(f"case {case.name!r}: {error}") from error
-        counts[case.name] = target.read_bytes().count(b"\n")
+    with tempfile.TemporaryDirectory(dir=golden, prefix=".refmap-reference-") as work:
+        written = Path(work)
+        for case in cases:
+            target = written / f"{case.name}.out"
+            try:
+                reference.run(case.classification(golden, data), golden / case.list, target)
+            except ParityError as error:
+                raise ParityError(f"case {case.name!r}: {error}") from error
+            counts[case.name] = target.read_bytes().count(b"\n")
+        out = golden / OUT
+        out.mkdir(exist_ok=True)
+        for case in cases:
+            os.replace(written / f"{case.name}.out", out / f"{case.name}.out")
     return counts
 
 
@@ -194,10 +207,16 @@ def golden_lines(path: Path) -> list[str]:
     return ["\t".join(line.split("\t", 2)[:2]) for line in lines]
 
 
-def check_case(case: Case, golden: Path, data: Path) -> list[str]:
+def needs_data(case: Case) -> bool:
+    """True for a case mapped against an organism's file in the data folder. A made-up file needs
+    no data, nor does a refused case: the port refuses it before reading anything."""
+    return case.file is None and case.refused is None
+
+
+def check_case(case: Case, golden: Path, data: Path | None) -> list[str]:
     """Each difference between the port and the reference's output for one case, naming the case
     and the line. A refused case must raise its error instead. `data` is the data folder, read
-    only by the cases on an organism: a made-up file is mapped in a temporary one."""
+    only by the cases that `needs_data`: a made-up file is mapped in a temporary one."""
     ids = read_id_list((golden / case.list).read_bytes())
     if case.file is None:
         return compare(case, golden, ids, cast(str, case.organism), data)
@@ -210,10 +229,12 @@ def check_case(case: Case, golden: Path, data: Path) -> list[str]:
         return compare(case, golden, ids, MADE_UP, root)
 
 
-def compare(case: Case, golden: Path, ids: tuple[str, ...], organism: str, data: Path) -> list[str]:
+def compare(
+    case: Case, golden: Path, ids: tuple[str, ...], organism: str, data: Path | None
+) -> list[str]:
     try:
         result = map_ids(RefmapInput(organism, ids), data_dir=data)
-    except (ValueError, MissingDataError) as error:
+    except (ValueError, MissingDataError, DataFolderError) as error:
         raised = type(error).__name__
         if raised == case.refused:
             return []
@@ -280,26 +301,49 @@ class OrganismRun:
     differences: tuple[str, ...]
 
 
+def next_organism(code: str, order: Sequence[str]) -> str:
+    """The organism after `code` in `order`; the last one's is the first."""
+    return order[(order.index(code) + 1) % len(order)]
+
+
+def organism_list(
+    folder: Path, code: str, seed: str, order: Sequence[str] | None = None
+) -> list[str]:
+    """The full run's IDs for one organism: every ID of its file in `folder`, in file order, then
+    its extras. The IDs from another organism come from the next one in `order`, the published
+    list by default, whichever organisms a run covers: a rerun of one organism checks the IDs
+    the full run did."""
+    order = list(ORGANISM_NAMES) if order is None else order
+    ids = file_ids(folder / code)
+    following = file_ids(folder / next_organism(code, order))
+    return [*ids, *extras(ids, following, seed, code)]
+
+
 def run_full(
-    reference: Reference, data: Path, codes: Sequence[str], seed: str = SEED
+    reference: Reference,
+    data: Path,
+    codes: Sequence[str],
+    seed: str = SEED,
+    order: Sequence[str] | None = None,
 ) -> Iterator[OrganismRun]:
-    """Map every ID of each organism's file, then the extras, through the Perl and the port, and
-    compare, one organism at a time. `data` is the data folder; the next organism, for the
-    extras, is the next in `codes`, the last one's the first. Every file must be there first."""
+    """Map each organism's list (`organism_list`) through the Perl and the port, and compare,
+    one organism at a time. `data` is the data folder. Every organism must be in `order`, and its
+    file and the next organism's must be there before anything runs."""
+    order = list(ORGANISM_NAMES) if order is None else list(order)
+    unknown = [code for code in codes if code not in order]
+    if unknown:
+        raise ParityError(f"not an organism refmap maps for: {', '.join(map(repr, unknown))}")
     folder = data / FOLDER / CLASSIFICATION
-    missing = [code for code in codes if not (folder / code).is_file()]
+    needed = dict.fromkeys(name for code in codes for name in (code, next_organism(code, order)))
+    missing = [name for name in needed if not (folder / name).is_file()]
     if missing:
         raise ParityError(
             f"no classification file in {folder} for {', '.join(missing[:EXTRAS])}"
             + (f" and {len(missing) - EXTRAS:,} more" if len(missing) > EXTRAS else "")
         )
-    current = file_ids(folder / codes[0]) if codes else []
-    for index, code in enumerate(codes):
-        following_code = codes[(index + 1) % len(codes)]
-        following = current if following_code == code else file_ids(folder / following_code)
-        listed = [*current, *extras(current, following, seed, code)]
+    for code in codes:
+        listed = organism_list(folder, code, seed, order)
         yield OrganismRun(code, len(listed), tuple(compare_organism(reference, data, code, listed)))
-        current = following
 
 
 def compare_organism(reference: Reference, data: Path, code: str, listed: list[str]) -> list[str]:

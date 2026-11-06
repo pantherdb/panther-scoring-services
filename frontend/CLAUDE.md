@@ -36,6 +36,7 @@ e2e/                Playwright specs and fixtures
 - **One concern per component.** If one fetches, computes and renders, split it. Past about 100 lines, something wants extracting: a hook, a subcomponent or a selector.
 - **Stateful logic goes in a `useX.ts` hook** next to the component that uses it.
 - **Show real loading and error states.** Never render "no data" when the request failed.
+- **`aria-current="page"` only on a link to the page being shown.** A link that's current in its set but leads elsewhere, such as a job's service tab, takes `aria-current="true"`.
 
 ## React Compiler and the Rules of React
 
@@ -47,6 +48,7 @@ The app builds with the React Compiler, and `react-hooks` 7 fails the lint on wh
 - **Don't read the clock while rendering.** Take the time from a hook, so the render is pure.
 - **Don't define components inside components.**
 - **Effects must be idempotent.** StrictMode runs them twice in development and tests.
+- **A reducer reads its starting state once, on mount.** A link to the page already shown changes the location but keeps the component, so don't derive from the location what the reducer's state should say: put the flag in the state, and key the component on `location.key` when the link should start it afresh.
 - **When a lint rule is wrong**, disable it on that line with a comment saying why. Never disable it for a file.
 
 ## Styling: Mantine for Controls, Tailwind for the Rest

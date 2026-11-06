@@ -63,7 +63,7 @@ The UI MUST NOT show build or environment details, such as ports, environment va
 
 ### Requirement: Versions on every page
 
-Every page SHALL show the API version, the engine version, each external tool with its version, and each service's data with the PANTHER release the API names for it, as `GET /api/v1/versions` reports them and in the order reported, so a result can be traced to what produced it. A tool with a `null` version MUST be shown as not available, not left out. If the versions can't be loaded, the page MUST say so instead of showing an empty list, and the rest of the page MUST still work.
+Every page SHALL show the API version, the engine version, each external tool with its version, and each service's data with the PANTHER release the API names for it, as `GET /api/v1/versions` reports them and in the order reported, so a result can be traced to what produced it. A tool with a `null` version MUST be shown as not available, not left out. If the versions can't be loaded, the page MUST say so instead of showing an empty list, and the rest of the page MUST still work. If the answer leaves out the tools or the data, the page MUST show the rest of the versions, and the rest of the page MUST still work.
 
 #### Scenario: All versions reported
 
@@ -79,6 +79,11 @@ Every page SHALL show the API version, the engine version, each external tool wi
 
 - **WHEN** the user opens `/` and the versions request fails
 - **THEN** the page says the versions are unavailable, shows no version numbers, and still shows the title and the home page content
+
+#### Scenario: The answer has no tools or data
+
+- **WHEN** the user opens `/csnp` and the API answers the versions with 200 and `{"api": "1.2.3", "engine": "4.5.6"}`
+- **THEN** the page shows the API and engine versions, and still shows the title and the cSNP form
 
 #### Scenario: On the not-found page
 
@@ -631,3 +636,205 @@ The refmap results SHALL offer every mapping as a tab-separated file, built in t
 
 - **WHEN** a job has 150 mappings and the table shows its first page
 - **THEN** the downloaded file has a line for each of the 150
+
+### Requirement: A page that fails to render keeps the shell
+
+When rendering a page throws, the UI SHALL replace only that page with an error page inside the app shell, with fixed text and a link to the home page; the header and footer MUST stay. When the shell itself throws, the UI MUST show the header with the same error page. The error page MUST NOT show the error, its stack, build details, or React Router's own error screen.
+
+#### Scenario: A page throws
+
+- **WHEN** the user opens `/` and rendering the home page throws
+- **THEN** the page shows the header, a fixed error message, a link to `/` and the footer's versions, and no error text, stack trace or React Router developer screen
+
+#### Scenario: The shell throws
+
+- **WHEN** the user opens `/` and rendering the footer throws
+- **THEN** the page shows the header, a fixed error message and a link to `/`, and no error text, stack trace or React Router developer screen
+
+#### Scenario: Going home from the error page
+
+- **WHEN** a page has failed to render and the user follows the link home, where the home page renders
+- **THEN** the UI shows `/` with the home page
+
+### Requirement: Field text meets WCAG AA contrast
+
+A form field's description and its error message SHALL each have a contrast ratio of at least 4.5:1 against the page's background (WCAG 2.1, 1.4.3), and MUST take their colours from the project's colour tokens, not from Mantine's defaults.
+
+#### Scenario: Description and error on the cSNP form
+
+- **WHEN** the user opens `/csnp`, and submits the empty form
+- **THEN** the protein sequence field's description and its error each have a contrast ratio of at least 4.5:1 against the page's background
+
+### Requirement: The site built in a container
+
+The repository SHALL build the site in a container from `frontend/` alone, on any machine with Docker and no Node. It MUST be the production build, and the build MUST fail if the result contains the API mocking library or the mock data banner. The base path and the API's URL MUST be build arguments with the same defaults as `npm run build`. A CA certificate MAY be given to the build, for a network that re-signs TLS, and MUST NOT be kept in the image.
+
+#### Scenario: The defaults
+
+- **WHEN** the image is built with no build arguments
+- **THEN** the site is served at `/`, and calls the relative `/api/v1`
+
+#### Scenario: Behind a network that re-signs TLS
+
+- **WHEN** the image is built on a network that re-signs TLS, with that network's CA certificate given to the build
+- **THEN** the dependencies install, and the image holds no copy of the certificate
+
+#### Scenario: A base path
+
+- **WHEN** the image is built with the base path `/scoring/`
+- **THEN** the asset URLs in the built `index.html` start with `/scoring/`
+
+### Requirement: The built files without a server
+
+The build SHALL be able to write the built files to a folder on the host, for a web server that's already running, with the same files the web image serves.
+
+#### Scenario: Write the files
+
+- **WHEN** the files are written to a folder with the documented command
+- **THEN** the folder holds `index.html`, `404.html` and the `assets` folder, and nothing else from the build
+
+### Requirement: The web image serves the site and forwards the API
+
+The web image SHALL serve the site on port 8080 as a user other than root. A path that isn't a file MUST get `index.html`. Requests under `/api/` MUST be forwarded to the API at an address set when the container starts, `http://api:8000` by default, with bodies up to the API's own limit, and with the host and scheme the request came with. A replaced API container MUST be reached without restarting the web image. Assets MUST be cached for a long time, and `index.html` revalidated on each load.
+
+#### Scenario: A deep link
+
+- **WHEN** a client requests `/jobs/{id}` from the web image
+- **THEN** it gets `index.html` with status 200
+
+#### Scenario: The API through the site
+
+- **WHEN** a client requests `/api/v1/health` from the web image
+- **THEN** the request reaches the API, and the API's answer comes back
+
+#### Scenario: The API's container replaced
+
+- **WHEN** the API's container is replaced by one with the same name and a new address, while the web image runs
+- **THEN** within seconds, requests to `/api/` reach the new container, with no restart of the web image
+
+#### Scenario: Forwarded by a front end
+
+- **WHEN** a front end that ended HTTPS forwards a request under `/api/` with `X-Forwarded-Proto: https`
+- **THEN** the API receives `X-Forwarded-Proto: https` and the request's own `Host`
+
+#### Scenario: Caching
+
+- **WHEN** a client requests an asset, then `/`
+- **THEN** the asset's response may be cached for a year, and the page's must be revalidated
+
+### Requirement: The site and the API with one command
+
+A developer or the server SHALL be able to start the web image with the API image with one documented command from the repository root. The site MUST then answer at `http://localhost:8080`, and its API calls MUST reach that API.
+
+#### Scenario: Start both
+
+- **WHEN** the documented command is run from a fresh clone
+- **THEN** `http://localhost:8080/` serves the site, and `http://localhost:8080/api/v1/health` returns status 200
+
+### Requirement: The title links home
+
+The application title in the header SHALL be a link to the home page, on every page.
+
+#### Scenario: From a form
+
+- **WHEN** the user is on `/csnp` and follows the title
+- **THEN** the home page is shown
+
+### Requirement: Service tabs
+
+The header SHALL list the four services on every page but the root error page, in this order: cSNP scoring, ID mapping, HMM scoring, TreeGrafter. Each MUST link to its service's page. The tab of the page being shown MUST be marked as the current page, however the router matches its path. On a phone-width screen the tabs MUST NOT make the page scroll sideways.
+
+#### Scenario: On a form
+
+- **WHEN** the user opens `/csnp`
+- **THEN** the header lists the four services in order, and cSNP scoring is marked as current
+
+#### Scenario: On a job's page
+
+- **WHEN** the user opens the page of a `csnp` job
+- **THEN** cSNP scoring is marked as current, but not as the current page, since its link leads to the form
+
+#### Scenario: A path the router matches loosely
+
+- **WHEN** the user opens `/csnp/` or `/CSNP`
+- **THEN** cSNP scoring is marked as the current page
+
+#### Scenario: The root error page
+
+- **WHEN** the layout fails to render and the root error page is shown
+- **THEN** its header has the title and no service tabs
+
+#### Scenario: Following a tab
+
+- **WHEN** the user follows the ID mapping tab
+- **THEN** the refmap form is shown, and ID mapping is marked as current
+
+### Requirement: Services that aren't available yet
+
+Every service the API can't score yet SHALL be marked "coming soon", in its tab and on the home page: today ID mapping, HMM scoring and TreeGrafter. ID mapping's tab MUST still open its form. HMM scoring and TreeGrafter MUST each open a page that says what the service will do, that it's coming soon, and links home.
+
+#### Scenario: The marks
+
+- **WHEN** the user opens any page
+- **THEN** the ID mapping, HMM scoring and TreeGrafter tabs say they're coming soon, and cSNP scoring doesn't
+
+#### Scenario: A service without a form
+
+- **WHEN** the user follows the HMM scoring tab
+- **THEN** a page says HMM scoring is coming soon, says what it will do, and links home
+
+### Requirement: The home page shows every service
+
+The home page SHALL show the four services, in the tabs' order, each with what it does and the same "coming soon" mark. A service with a form MUST link to it.
+
+#### Scenario: The four services
+
+- **WHEN** the user opens `/`
+- **THEN** the page shows cSNP scoring, ID mapping, HMM scoring and TreeGrafter, with links to the cSNP and refmap forms, and the last three marked coming soon
+
+### Requirement: The next step from a job's page
+
+A job's page SHALL offer the next step, whatever the job's status: for a `csnp` job, a link to an empty cSNP form; for a `refmap` job, a link to an empty refmap form; for the tools check, a link home.
+
+#### Scenario: A cSNP job
+
+- **WHEN** the user opens the page of a `csnp` job and follows "New cSNP search"
+- **THEN** the cSNP form is shown, empty
+
+#### Scenario: The tools check
+
+- **WHEN** the user opens the page of a tools job
+- **THEN** the page links home
+
+### Requirement: Edit and resubmit
+
+When a job was submitted from the same browser tab, its page SHALL offer to edit and resubmit it: the service's form opens filled in with the input as it was typed, says so, and starts a new job when submitted. The input MUST be kept in that tab's session storage and nowhere else; a job opened from a shared link or a new tab MUST NOT offer it. The offer MUST appear only when the kept input fills every box of the form. The note MUST show only while the form holds that input.
+
+#### Scenario: Edit a cSNP job
+
+- **WHEN** the user submits the cSNP form, then follows "Edit and resubmit" on the job's page
+- **THEN** the cSNP form shows the same sequence, substitutions and species as typed, and says it was filled in from the earlier job
+
+#### Scenario: The tab or the example after editing
+
+- **WHEN** the user follows "Edit and resubmit", then follows the service's tab, or uses the example
+- **THEN** from the tab, the form is empty, with no note; from the example, the form holds the example, with no note
+
+#### Scenario: An input kept before a box was added
+
+- **WHEN** the kept input lacks a box the form has now
+- **THEN** the job's page offers no "Edit and resubmit"
+
+#### Scenario: A shared link
+
+- **WHEN** the user opens a job's page that wasn't submitted from this tab
+- **THEN** the page offers no "Edit and resubmit"
+
+### Requirement: The API docs open in a new tab
+
+The footer's link to the API's docs SHALL open in a new tab, without giving the docs a reference back to the app's page, and its accessible name MUST say that it opens in a new tab.
+
+#### Scenario: The link
+
+- **WHEN** the UI calls the scoring service and shows the footer
+- **THEN** the API docs link opens in a new tab, and its accessible name says so

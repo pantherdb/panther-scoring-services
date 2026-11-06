@@ -25,14 +25,13 @@ import os
 import shutil
 import tarfile
 import tempfile
-import urllib.parse
-import urllib.request
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import IO, cast
+from typing import cast
 
 from panther_engine.core.data import data_root
+from panther_engine.core.download import download
 from panther_engine.core.manifest import (
     CHUNK,
     Mismatches,
@@ -58,7 +57,6 @@ RELEASES = "https://github.com/pantherdb/panther-scoring-services/releases/downl
 PINNED_ARCHIVE = "6791f43325afdae3a1872c7655d103f9cdd98d5dbf6695a1187bb30985a869c5"
 PINNED_SPECIES = "23b035c293337966bd766628dd721c0a264230a49e4763188c607e301623d1e9"
 PINNED_BLAST = "2cf4428c97b99c4bce3705a80dc7f55c17779e54a0bcae9ddb7d75a67b40dcc9"
-DOWNLOAD_TIMEOUT = 60.0
 
 
 class SampleError(Exception):
@@ -302,22 +300,6 @@ def fetch(
             root.rmdir()
         raise
     return True
-
-
-def download(url: str, target: Path) -> Path:
-    """Download `url` to `target` over HTTPS only, redirects included."""
-    if urllib.parse.urlsplit(url).scheme != "https":
-        raise SampleError(f"refusing to download {url}: only https is allowed")
-    # S310 flags opening a URL, for its file: and other schemes. The URL is https, checked
-    # above, and where a redirect led is checked below.
-    request = urllib.request.Request(url, headers={"User-Agent": "panther-engine"})  # noqa: S310
-    with urllib.request.urlopen(request, timeout=DOWNLOAD_TIMEOUT) as response:  # noqa: S310
-        final = cast(str, response.geturl())
-        if urllib.parse.urlsplit(final).scheme != "https":
-            raise SampleError(f"refusing to download {final}: only https is allowed")
-        with target.open("wb") as out:
-            shutil.copyfileobj(cast(IO[bytes], response), out, CHUNK)
-    return target
 
 
 def unpack(tarball: Path, folder: Path) -> None:

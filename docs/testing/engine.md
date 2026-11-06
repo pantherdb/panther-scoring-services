@@ -21,7 +21,7 @@ docker compose run --rm engine panther-engine tools                 # the CLI: e
 - **The first run builds the image.** That takes about two minutes. Later runs reuse it.
 - **Rebuild after a change to the image.** That means the `Dockerfile`, `engine/tools-env/` or `engine/uv.lock`. Add `--build`: `docker compose run --rm --build engine`. A changed `uv.lock` without a rebuild still works, but each run then reinstalls the packages in the container.
 - **Your working copy is mounted** at `/work/engine`, so the checks run against your edits without a rebuild.
-- **Your `.data/` folder is mounted read-only** at `/data`, with `PANTHER_DATA_DIR=/data`. Fetch the cSNP data sample into it first ([Test Data](#test-data)), or the tests that need it skip.
+- **Your `.data/` folder is mounted read-only** at `/data`, with `PANTHER_DATA_DIR=/data`. Fetch the cSNP data sample and the refmap data into it first ([Test Data](#test-data)), or the tests that need them skip.
 - **Nothing is written into `engine/`.** The image keeps its own environment in `/opt/venv`, and no bytecode or caches land in the mount. A local `engine/.venv` keeps working.
 - **`uv.lock` is never rewritten.** If it's out of date with `pyproject.toml`, the run stops. Update it natively with `uv lock` in `engine/`.
 
@@ -97,6 +97,28 @@ G15D          4200  probably damaging  0.95
 - **`--json`** prints the result as `score()` returns it. **`--data-dir`** overrides `PANTHER_DATA_DIR`.
 - **Exit status 1** for input it can't score, with the reason on standard error.
 
+## Mapping IDs From the Command Line
+
+`panther-engine refmap map` maps IDs for one organism as the API's `refmap` job does, for checks by hand. It needs the refmap data ([Test Data](#the-refmap-data)), and no external tool. From `engine/`:
+
+```sh
+uv run panther-engine refmap map --organism ENDPU U1G4Q5 U1GLV9 U1HQ27 --data-dir ../.data
+```
+
+It prints one line per ID, in order, the ID and its PANTHER ID or `NOHIT`, separated by a tab:
+
+```text
+U1G4Q5  PTHR11360:SF130
+U1GLV9  PTHR28011
+U1HQ27  NOHIT
+```
+
+- **`--organism`** is the organism's code, such as `ENDPU`: the last part of its long name. The engine's list is `src/panther_engine/refmap/organisms.json`. It holds no organism in PANTHER's own 143 genomes, such as `HUMAN`.
+- **The IDs** come from the arguments, or from a file with `--file FILE`, read as `map_panther.pl` read its list: the text before the first tab of each line, with every carriage return removed. `--file ../.data/refmap/19/panther_classification/ARAVE` maps the largest genome, 246,021 IDs, in about half a second.
+- **The lookup is exact,** as the legacy's was: case-sensitive, with no isoform or version stripped (`REFMAP-1`). A repeated ID is mapped each time.
+- **`--json`** prints the result as `map_ids()` returns it, with `null` for `NOHIT`. **`--data-dir`** overrides `PANTHER_DATA_DIR`.
+- **Exit status 1** for a request the API would reject, such as an organism refmap doesn't map for or an ID with a space, and for missing data, with the reason on standard error.
+
 ## The BLAST+ Time Limit
 
 Each search's time limit grows with the sequence: 60 s, plus 21 ms a residue, times `PANTHER_CSNP_BLAST_TIME_SCALE` (`csnp/blast.py`). A search past its limit fails the job with a `500`.
@@ -124,7 +146,7 @@ Each search's time limit grows with the sequence: 60 s, plus 21 ms a residue, ti
 
 ## Parity Tests
 
-The parity tests check the port against golden files made by the service's reference, byte for byte. For `csnp`, `tests/test_csnp_golden.py` reads `tests/golden/csnp/`:
+The parity tests check the port against golden files made by the service's reference. For `csnp`, `tests/test_csnp_golden.py` reads `tests/golden/csnp/`, and compares byte for byte:
 
 | Test | Needs | Checks |
 | ---- | ----- | ------ |
@@ -141,6 +163,22 @@ uv run panther-engine csnp parity check tests/golden/csnp/generated --data-dir .
 ```
 
 It exits with status 1 if any case differs. Making the goldens needs the legacy Perl, in the `csnp-reference` image: see [golden-setup.md](../parity/golden-setup.md).
+
+For `refmap`, `tests/test_refmap_golden.py` reads `tests/golden/refmap/`. Each mapping must equal the first two fields of the Perl's line, with `NOHIT` for none:
+
+| Test | Needs | Checks |
+| ---- | ----- | ------ |
+| The made-up files | Nothing | Small classification files for what the release never holds: a repeated ID, CRLF endings, a line with no value, more fields |
+| The divergences | Nothing | The port refuses what rows 9 and 10 of [divergences.md](../parity/divergences.md) say it refuses, where the Perl answered `NOHIT` |
+| The cases on ENDPU | `data("refmap")` | The data server's two test lists, every ENDPU ID among them, and the hand-made lists |
+
+`panther-engine refmap parity check` runs the same comparisons and lists every line that differs, by case and line. From `engine/`, with the refmap data:
+
+```sh
+uv run panther-engine refmap parity check --data-dir ../.data
+```
+
+It exits with status 1 if any line differs. Making the goldens needs `map_panther.pl`, in the `refmap-reference` image: see [golden-setup.md](../parity/golden-setup.md#refmap).
 
 ## Input Errors
 
@@ -181,19 +219,65 @@ docker compose run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" engine
 - **`--from FILE`** takes a local copy of the tarball instead of downloading it.
 - **`--user "$(id -u):$(id -g)"`** makes you the owner of the fetched files. On Linux, files written by the image's user would otherwise belong to that user, and you couldn't delete them.
 
+### The refmap Data
+
+The refmap tests read the whole PANTHER 19 release of the classification files refmap maps against: one file for each of 1,533 Reference Proteome organisms, and the `stats` that lists them. At 157 MB it's the size of the cSNP sample, so there's no refmap sample.
+
+- **Where it lives:** `data.pantherdb.org`, the 2024-06-20 release in `ftp/generic_mapping/archive/2024-06-20/`: a tarball of 157 MB, 523 MB unpacked, and `stats`. `engine/src/panther_engine/refmap/data.json` pins both by URL, size and sha256, and lists the sha256 of every file as laid out in the data folder. What the release holds is in [refmap-legacy-behaviour.md](../parity/refmap-legacy-behaviour.md#the-pinned-release).
+- **Where it goes:** the data folder, under `refmap/19/`: `stats`, and each organism's classification file at `panther_classification/<code>`, such as `panther_classification/ENDPU`.
+
+Fetch it natively, from `engine/`:
+
+```sh
+uv run panther-engine refmap data fetch --data-dir ../.data
+uv run panther-engine refmap data verify --data-dir ../.data    # optional: check every file again
+```
+
+Or through compose, from the repository root, as for the sample:
+
+```sh
+docker compose run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" engine \
+  panther-engine refmap data fetch --data-dir /fetch
+```
+
+- **`fetch` checks before it saves.** It downloads the tarball and `stats` over HTTPS, and checks each one's size and sha256 against the manifest. Then it reads the tarball as a stream, writes each classification file into a temporary folder in the data folder, checks every file, and moves into place only the files that were missing or differed. If anything fails, nothing under `refmap/19/` changes. It took about 30 s on 2026-11-06, almost all of it the download.
+- **Run it again any time.** When the folder already matches the manifest, it downloads nothing; the check takes about 2 s.
+- **`--tarball FILE` and `--stats FILE`** take local copies instead of downloading them, checked against the same pins.
+- **`verify`** lists each file that is missing (`missing: PATH`) or differs (`differs: PATH`), and exits with status 1 if there is any. Files the manifest doesn't list are ignored.
+
+**Why the files are named by code.** The tarball names each file by its organism's long name, as `Escherichia_coli_O157:H7_ECO57`. Ten long names contain `:`, which Windows can't use in a file name, so `fetch` saves each file under its code, as `ECO57`. The code comes from the engine's organism list, never from the member's name, so no member of the tarball can write outside the folder. The published names don't change: `stats` and the organism list keep them (#52, the update to question 4).
+
+**Pinning a new release.** `data.json` and the engine's organism list, `src/panther_engine/refmap/organisms.json`, are generated from a release's tarball and `stats`, never edited by hand. Download both, then run from `engine/`:
+
+```sh
+uv run panther-engine refmap data manifest panther_classifications.tar.gz stats \
+  --tarball-url https://data.pantherdb.org/ftp/generic_mapping/archive/<date>/panther_classifications.tar.gz \
+  --stats-url https://data.pantherdb.org/ftp/generic_mapping/archive/<date>/stats
+```
+
+- **It writes both files only if every check passes:** `stats` and the tarball list the same organisms; each file's lines, and its lines with a PANTHER ID, are the counts its `stats` line gives; and every code is unique, 1 to 5 upper-case letters or digits, and not a Windows device name. Otherwise it names each problem and writes nothing.
+- **It reads the tarball once, as a stream,** in about 6 s. The release's name in `data.json` is the folder its tarball is in, such as `2024-06-20`.
+- **The same inputs give the same bytes.** Run on the pinned release, it writes the committed files unchanged.
+- **A new PANTHER version** also changes `VERSION` in `src/panther_engine/refmap/organisms.py`, so the files go under `refmap/<version>/`.
+- **Commit both files.** CI's cache is keyed on `data.json`, so the next run fetches the new release.
+
 ### Tests That Need the Data
 
-A test that reads a service's data sample is marked with the service:
+A test that reads a service's data is marked with the service:
 
 ```python
 @pytest.mark.data("csnp")
 def test_reads_every_sample_family(csnp_data: Path) -> None: ...
+
+
+@pytest.mark.data("refmap")
+def test_every_file_matches_the_manifest(refmap_data: Path) -> None: ...
 ```
 
-- **The data folder is `PANTHER_DATA_DIR`,** or `.data/` at the repository root where it isn't set. The `csnp_data` fixture is its `csnp/9/` folder. compose mounts `.data/` read-only at `/data` and sets `PANTHER_DATA_DIR=/data`, so the same tests run in the image.
-- **Where the sample isn't there,** the test is skipped, and the reason names the data and `PANTHER_DATA_DIR`: `needs the csnp data sample, not found in …`.
-- **With `PANTHER_REQUIRE_DATA=1`,** missing data fails the test instead. CI sets it. compose doesn't, so without the sample `docker compose run --rm engine` still passes, listing the skips.
-- **Each test checks only that the files are there.** One test, `test_the_sample_matches_its_manifest`, hashes every file against the manifest.
+- **The data folder is `PANTHER_DATA_DIR`,** or `.data/` at the repository root where it isn't set. The `csnp_data` fixture is its `csnp/9/` folder, and `refmap_data` its `refmap/19/` folder. compose mounts `.data/` read-only at `/data` and sets `PANTHER_DATA_DIR=/data`, so the same tests run in the image.
+- **Where the data isn't there,** the test is skipped, and the reason names the data and `PANTHER_DATA_DIR`: `needs the refmap data, not found in …`.
+- **With `PANTHER_REQUIRE_DATA=1`,** missing data fails the test instead. CI sets it. compose doesn't, so without the data `docker compose run --rm engine` still passes, listing the skips.
+- **Each test checks only that the files are there.** `test_the_sample_matches_its_manifest`, and refmap's `test_every_file_matches_the_manifest`, hash every file against their manifests. `test_the_organism_list_is_the_one_the_data_folders_stats_gives` regenerates the organism list from the folder's `stats`, and fails if it differs from the committed one.
 
 ### Using the Full Library
 

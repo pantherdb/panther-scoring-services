@@ -7,10 +7,13 @@ import pytest
 
 from panther_engine.core.manifest import checksums, read_manifest
 from panther_engine.csnp import sample
+from panther_engine.refmap import organisms as refmap_organisms
+from panther_engine.refmap.data import MANIFEST as REFMAP_MANIFEST
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-# Each service's data sample, by the manifest that lists its files.
-DATA_MANIFESTS = {"csnp": sample.MANIFEST}
+# Each service's data, by the manifest that lists its files: the cSNP data sample, and the whole
+# refmap release.
+DATA_MANIFESTS = {"csnp": sample.MANIFEST, "refmap": REFMAP_MANIFEST}
 
 
 def missing_tools(item: pytest.Item) -> list[str]:
@@ -30,7 +33,7 @@ def data_folder() -> Path:
 
 
 def missing_data(item: pytest.Item) -> list[str]:
-    """The services named by the test's `data` markers whose sample files aren't all there.
+    """The services named by the test's `data` markers whose data files aren't all there.
 
     Only presence is checked here. One test hashes every file against the manifest.
     """
@@ -57,7 +60,7 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
     missing = missing_data(item)
     if missing and not data_required():
         pytest.skip(
-            f"needs the {', '.join(missing)} data sample, not found in {data_folder()} "
+            f"needs the {', '.join(missing)} data, not found in {data_folder()} "
             "(set PANTHER_DATA_DIR, or fetch it: docs/testing/engine.md)"
         )
 
@@ -74,7 +77,7 @@ def pytest_runtest_call(item: pytest.Item) -> None:
     missing = missing_data(item)
     if missing and data_required():
         pytest.fail(
-            f"needs the {', '.join(missing)} data sample, not found in {data_folder()} "
+            f"needs the {', '.join(missing)} data, not found in {data_folder()} "
             "(PANTHER_REQUIRE_DATA=1)",
             pytrace=False,
         )
@@ -84,6 +87,12 @@ def pytest_runtest_call(item: pytest.Item) -> None:
 def csnp_data() -> Path:
     """cSNP's data folder, `csnp/9/` in the data folder."""
     return data_folder() / sample.FOLDER
+
+
+@pytest.fixture
+def refmap_data() -> Path:
+    """refmap's data folder, `refmap/19/` in the data folder."""
+    return data_folder() / refmap_organisms.FOLDER
 
 
 @pytest.fixture

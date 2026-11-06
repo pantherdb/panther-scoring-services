@@ -1,6 +1,6 @@
 # Parity Inputs
 
-Each service's test inputs, and why each is in the set. The files are in `engine/tests/golden/<service>/`; how they were made, and how to make them again, is in [golden-setup.md](golden-setup.md). Only `csnp` has inputs so far.
+Each service's test inputs, and why each is in the set. The files are in `engine/tests/golden/<service>/`; how they were made, and how to make them again, is in [golden-setup.md](golden-setup.md). `csnp` and `refmap` have inputs so far.
 
 ## `csnp`
 
@@ -128,3 +128,68 @@ The scoring form's example, from the legacy site's help page (`tips_exampleCsnpI
 - **A gene missing from the `.orig.tree` (`SCORE-8`).** No BLAST entry whose family has a `.paml` is missing from its tree (`DATA-2`), so the service never sees one. The fixture `PTHR00004` tests the Perl's stale start column instead.
 - **A batch spanning families (`SCORE-7`).** The service scores one protein per call. Divergence row 3 stays a proposal for batch use.
 - **The full library.** The staging run covers it ([golden-setup.md](golden-setup.md#the-staging-run-on-the-full-library)).
+
+## `refmap`
+
+Quirk IDs (`REFMAP-1`, …) refer to [refmap-legacy-behaviour.md](refmap-legacy-behaviour.md). Each case is an ID list, mapped by `map_panther.pl` against one organism's classification file in the pinned release, or against a small made-up file. The cases are listed in `engine/tests/golden/refmap/cases.json`, in this order.
+
+| Folder | What it is | Made by |
+| ------ | ---------- | ------- |
+| `release/` | The data server's test lists, `test_geneList` and `test_geneList_values` | `data.pantherdb.org`, copied |
+| `cases/` | Hand-made ID lists, and made-up classification files | Written for `port-refmap` |
+| `out/` | The reference's output for each case | The `refmap-reference` image |
+
+The parity tests compare the first two fields of each output line with the port's mapping, `NOHIT` for none. The Perl's third field echoes the list's other columns (`REFMAP-5`), which the API doesn't take.
+
+### Against ENDPU
+
+`Endocarpon_pusillum_ENDPU`, the organism of the data's own test. Its file has 9,228 lines, 1,563 of them `NOHIT`. These cases need the refmap data.
+
+| Case | IDs | What it shows |
+| ---- | --- | ------------- |
+| `test_geneList` | The README's 450 IDs | The data's own test, every one in the file |
+| `test_geneList_values` | All 9,228 IDs, each with a value | Every ID of the file, in a two-column list as the enrichment test sent it |
+| `repeats` | `U1G4Q5`, `U1GLV9`, `U1HQ27` and `P04217`, each twice | One line each, in order (`REFMAP-4`): a subfamily, a family, a stored `NOHIT` and an ID not in the file |
+| `case-and-suffixes` | `u1g4q5`, `U1g4Q5`, `U1G4Q5-2`, `U1G4Q5.1`, … | No folding or stripping (`REFMAP-1`) |
+| `first-unmapped` | `P04217` first | The service answers a first ID that doesn't map; only the website dropped it as a header |
+| `other-organism` | Three IDs from `ARAVE`'s file | No ID is in two organisms' files, so none maps |
+| `punctuation` | `;`, `\|`, `+`, `,` and quotes; one ID of 64 characters | Looked up as they are. 64 characters is the longest ID the API takes |
+| `list-endings` | CRLF endings, a `\r` inside an ID, more columns, no final line feed | How the Perl reads a list: every `\r` removed, the first field taken. `refmap map --file` reads lists the same way |
+
+### Made-up Classification Files
+
+What the pinned release never holds, so the port matches the Perl beyond it. These need no data.
+
+| Case | The file | What it shows |
+| ---- | -------- | ------------- |
+| `repeated-id` | `A1` on two lines | The last line wins (`REFMAP-2`) |
+| `crlf` | CRLF endings | Each value keeps its `\r`, and the Perl prints `\r\t\n` (`REFMAP-3`). `NOHIT\r` isn't `NOHIT`, so it's a PANTHER ID |
+| `no-second-field` | `A1` alone and `B2` with a tab, after lines giving them values | A later line replaces the value. With no tab, there's none; after a tab, it's empty, since `my ($id, $pthr) = split` keeps a trailing empty field |
+| `empty-second-field` | `A1`, two tabs, then a value | An empty PANTHER ID |
+| `third-field` | More fields after the value | The second field alone |
+| `stored-nohit` | `A1` with `NOHIT` | No PANTHER ID, as for an ID not in the file (`REFMAP-6`) |
+| `no-final-line-feed` | A last line with no line feed | The last line is read |
+
+### Divergences
+
+The port refuses these, where the reference answered. Their `out/` files keep the reference's answer as a record.
+
+| Case | Input | Reference | Port | Row |
+| ---- | ----- | --------- | ---- | --- |
+| `empty-line` | An empty line among the IDs | An empty ID, `NOHIT` (`REFMAP-10`) | `ValueError` | [10](divergences.md) |
+| `space-in-id` | `U1G4Q5 U1GLV9` on one line | `NOHIT` | `ValueError` | [10](divergences.md) |
+| `id-too-long` | An ID of 65 characters | `NOHIT` | `ValueError` | [10](divergences.md) |
+| `non-ascii-id` | An ID with a Latin-1 byte | `NOHIT` | `ValueError` | [10](divergences.md) |
+| `unknown-organism` | Organism `HUMAN`, which refmap has no file for | `NOHIT` for every ID (`REFMAP-9`) | `ValueError` | [9](divergences.md) |
+| `missing-file` | A classification file that isn't there | `NOHIT` for every ID (`REFMAP-9`) | `MissingDataError` | [9](divergences.md) |
+
+### The refmap Full Run
+
+**M1's acceptance for refmap's engine.** On 2026-11-06, `panther-engine refmap parity full` ran in the `refmap-reference` image on an Apple Silicon Mac, on the pinned release (`engine/src/panther_engine/refmap/data.json`), with the seed `port-refmap` ([golden-setup.md](golden-setup.md#the-refmap-full-run)):
+
+- **Organisms:** 1,533, every one in the release.
+- **IDs compared:** 23,114,501. That's the release's 22,961,201, each organism's in file order, and 100 extras for each organism.
+- **Differences:** none. The first two fields of every line of `map_panther.pl`'s output equal the port's mapping.
+- **Time:** 81 s.
+
+The extras are 20 of the organism's IDs repeated, 20 lower-cased, 20 with `-2`, 20 with `.1`, and 20 from the next organism's file. Divergences 9 and 10 can't arise in the run: every organism has its file, and every ID in the release is one the API accepts.

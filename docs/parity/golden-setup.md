@@ -1,6 +1,6 @@
 # Golden Setup
 
-How to run each service's reference and regenerate its golden files. Only `csnp` has one so far. The goldens themselves are in `engine/tests/golden/<service>/`, each folder with a README giving every file's source and sha256. Why each input is in the set is in [inputs.md](inputs.md).
+How to run each service's reference and regenerate its golden files: `csnp` and `refmap` so far. The goldens themselves are in `engine/tests/golden/<service>/`, each folder with a README giving every file's source and sha256. Why each input is in the set is in [inputs.md](inputs.md).
 
 ## `csnp`
 
@@ -132,3 +132,56 @@ panther-engine csnp parity check /parity/full --data-dir /full-data --golden /wo
 - **The cases** are generated from every family in the library: 8,607 families, about 360,000 cases with the defaults. The generator reads each `.paml` once.
 - **The Perl** reads each family's `.paml` once per gene: about 3 hours for the defaults, on 17 GB of `.paml`. `--family` limits a run to some families, for a rerun.
 - **The report** of `parity check` goes in `docs/parity/`, as a dated record of the run.
+
+## `refmap`
+
+The reference is `map_panther.pl` at `pantherdb/RefProteomeMapper` `4fc6a09`. It's the same file on `master` (`649c85f`), in `panther-workspace`, and on `data.pantherdb.org` ([refmap-legacy-behaviour.md](refmap-legacy-behaviour.md)).
+
+| Piece | Version |
+| ----- | ------- |
+| The script | `4fc6a09`, pinned by sha256 in the root `Dockerfile` |
+| Perl | 5.40.1, Debian trixie's `perl` package `5.40.1-6+deb13u1`, as for `csnp` |
+| The data | The PANTHER 19 release of 2024-06-20, pinned by `engine/src/panther_engine/refmap/data.json` ([engine.md](../testing/engine.md#the-refmap-data)) |
+
+### The refmap Reference Image
+
+`refmap-reference` is a test-only stage of the root `Dockerfile`, built from the `engine` stage: the engine, plus Debian's `perl` package and `map_panther.pl` in `/opt/refmap-reference/`. The runtime `api` image has neither. CI and compose never build it. From the repository root:
+
+```sh
+docker buildx build --load --target refmap-reference -t panther-refmap-reference .
+```
+
+- **The repository is public, so no checkout is needed.** A stage of its own, `refmap-reference-script`, downloads the script from GitHub at the full commit, so curl stays out of the image. The build needs the network.
+- **The script is checked against its pinned sha256.** A script that differs fails the build, and `sha256sum` names it: `map_panther.pl: FAILED`.
+- **There's no self-check,** unlike `csnp-reference`: no output of `map_panther.pl` was ever published to check against. The full run compares the Perl with the port on every line instead.
+- **Building `engine` or `api` never downloads the script.**
+
+### Regenerating the refmap Goldens
+
+The cases are in `engine/tests/golden/refmap/cases.json`; why each is there is in [inputs.md](inputs.md#refmap). The image runs them with your working copy mounted over the engine and your data folder read-only, from the repository root:
+
+```sh
+docker run --rm -v "$PWD/engine:/work/engine" -v "$PWD/.data:/data:ro" \
+  -e PANTHER_DATA_DIR=/data -e PYTHONDONTWRITEBYTECODE=1 --user "$(id -u):$(id -g)" \
+  panther-refmap-reference panther-engine refmap parity reference
+```
+
+- **It writes `out/<case>.out`,** the script's standard output for each case, byte for byte, in about 2 s. It's sent to a file rather than captured as text, which would turn each carriage return into a line feed. A second run gives the same bytes.
+- **The data folder needs the refmap data.** It stops before running anything if a published organism's file is missing: the Perl reads a missing file as an empty one, and would answer `NOHIT` for every ID (`REFMAP-9`).
+- **Update the checksums** in the golden folder's README, and commit `out/` with them. CI checks the port against it without Perl (`tests/test_refmap_golden.py`).
+
+### The refmap Full Run
+
+M1's acceptance for refmap's engine: every ID of every organism in the release, through both the Perl and the port. From the repository root, with the refmap data in `.data/`:
+
+```sh
+docker run --rm -v "$PWD/engine:/work/engine" -v "$PWD/.data:/data:ro" \
+  -e PANTHER_DATA_DIR=/data -e PYTHONDONTWRITEBYTECODE=1 \
+  panther-refmap-reference panther-engine refmap parity full
+```
+
+- **For each organism, one at a time,** it writes a list of every ID in the organism's file, in file order, then extras from a generator seeded with `port-refmap:<code>`: up to 20 of its IDs repeated, 20 lower-cased, 20 with `-2`, 20 with `.1`, and 20 from the next organism's file. The same data and seed give the same lists. `--seed` changes the seed.
+- **It runs `map_panther.pl` on the list,** maps the same IDs with `map_ids()`, and compares each line's first two fields.
+- **It prints each organism's IDs and differences** as it goes, the first 20 differences of each, and a total. It exits with status 1 if any line differs.
+- **`--organism CODE`** runs only that organism; repeat it for more. The next organism, for the extras, is then the next one given.
+- **It writes nothing** outside the container's `/tmp`, so it needs no `--user`. On 2026-11-06 it took 81 s on an Apple Silicon Mac. The result is in [inputs.md](inputs.md#the-refmap-full-run).

@@ -105,6 +105,8 @@ Specs are organized by capability, not by developer. This is the starting layout
 | `engine-core` | Behaviour every engine service shares: the CLI, the pinned external tools in the image, finding them, reporting their versions and running them without a shell |
 | `csnp-data` | The cSNP data: reading the PAML_RST library and the species tree, the library survey, and the data sample |
 | `psep-engine` | cSNP scoring: pipeline behaviour, thresholds, and parity with the Perl |
+| `refmap-data` | The PANTHER 19 classification files refmap maps against: the pinned release, the organism list generated from it, fetching and verifying |
+| `refmap-engine` | Mapping IDs as `map_panther.pl` did, the organisms the engine publishes, the `map` command, and parity with the Perl |
 
 ## Where Things Go
 

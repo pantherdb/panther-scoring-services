@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from panther_engine.core.data import DATA_DIR_VARIABLE, DataFolderError, service_folder
+from panther_engine.core.download import DownloadError
 from panther_engine.core.errors import InputError
 from panther_engine.core.manifest import ManifestError, checksums, read_manifest
 from panther_engine.csnp import full, parity, sample
@@ -430,7 +431,7 @@ def run_sample(args: argparse.Namespace) -> int:
                 print("every file matches the manifest")
             case _:
                 raise AssertionError(f"unhandled command: {command}")
-    except (sample.SampleError, DataFolderError, ManifestError, OSError) as error:
+    except (sample.SampleError, DownloadError, DataFolderError, ManifestError, OSError) as error:
         print(f"{command}: {error}", file=sys.stderr)
         return 1
     return 0

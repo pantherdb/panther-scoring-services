@@ -1,0 +1,6134 @@
+[
+  {
+    "code": "ABRPR",
+    "long_name": "Abrus_precatorius_ABRPR"
+  },
+  {
+    "code": "ABSGL",
+    "long_name": "Absidia_glauca_ABSGL"
+  },
+  {
+    "code": "ACACF",
+    "long_name": "Acanthamoeba_castellanii_ACACF"
+  },
+  {
+    "code": "ACAPL",
+    "long_name": "Acanthaster_planci_ACAPL"
+  },
+  {
+    "code": "ACAVI",
+    "long_name": "Acanthocheilonema_viteae_ACAVI"
+  },
+  {
+    "code": "ACAOB",
+    "long_name": "Acanthoscelides_obtectus_ACAOB"
+  },
+  {
+    "code": "ACAM1",
+    "long_name": "Acaryochloris_marina_ACAM1"
+  },
+  {
+    "code": "ACCRE",
+    "long_name": "Accumulibacter_regalis_ACCRE"
+  },
+  {
+    "code": "ACIJB",
+    "long_name": "Acinonyx_jubatus_ACIJB"
+  },
+  {
+    "code": "ACIRT",
+    "long_name": "Acipenser_ruthenus_ACIRT"
+  },
+  {
+    "code": "ACRAR",
+    "long_name": "Acrocephalus_arundinaceus_ACRAR"
+  },
+  {
+    "code": "ACREC",
+    "long_name": "Acromyrmex_echinatior_ACREC"
+  },
+  {
+    "code": "ACTTE",
+    "long_name": "Actinia_tenebrosa_ACTTE"
+  },
+  {
+    "code": "ACTCC",
+    "long_name": "Actinidia_chinensis_var_chinensis_ACTCC"
+  },
+  {
+    "code": "ACTNM",
+    "long_name": "Actinomadura_namibiensis_ACTNM"
+  },
+  {
+    "code": "ACTM4",
+    "long_name": "Actinoplanes_missouriensis_ACTM4"
+  },
+  {
+    "code": "ACTS5",
+    "long_name": "Actinoplanes_sp_strain_ATCC_31044_ACTS5"
+  },
+  {
+    "code": "ACTS9",
+    "long_name": "Actinoplanes_sp_strain_N902-109_ACTS9"
+  },
+  {
+    "code": "ACTTI",
+    "long_name": "Actinoplanes_teichomyceticus_ACTTI"
+  },
+  {
+    "code": "ACTUT",
+    "long_name": "Actinoplanes_utahensis_ACTUT"
+  },
+  {
+    "code": "ACTMZ",
+    "long_name": "Actinopolyspora_mzabensis_ACTMZ"
+  },
+  {
+    "code": "ACTMD",
+    "long_name": "Actinosynnema_mirum_ACTMD"
+  },
+  {
+    "code": "ACYPI",
+    "long_name": "Acyrthosiphon_pisum_ACYPI"
+  },
+  {
+    "code": "ADICA",
+    "long_name": "Adiantum_capillus-veneris_ADICA"
+  },
+  {
+    "code": "ADIRI",
+    "long_name": "Adineta_ricciae_ADIRI"
+  },
+  {
+    "code": "ADVMD",
+    "long_name": "Advenella_mimigardefordensis_ADVMD"
+  },
+  {
+    "code": "AEDAE",
+    "long_name": "Aedes_aegypti_AEDAE"
+  },
+  {
+    "code": "AEDAL",
+    "long_name": "Aedes_albopictus_AEDAL"
+  },
+  {
+    "code": "AEGTS",
+    "long_name": "Aegilops_tauschii_subsp_strangulata_AEGTS"
+  },
+  {
+    "code": "AEGCA",
+    "long_name": "Aegithalos_caudatus_AEGCA"
+  },
+  {
+    "code": "AERHH",
+    "long_name": "Aeromonas_hydrophila_subsp_hydrophila_AERHH"
+  },
+  {
+    "code": "AGABU",
+    "long_name": "Agaricus_bisporus_var_burnettii_AGABU"
+  },
+  {
+    "code": "AGRPL",
+    "long_name": "Agrilus_planipennis_AGRPL"
+  },
+  {
+    "code": "AGRFC",
+    "long_name": "Agrobacterium_fabrum_AGRFC"
+  },
+  {
+    "code": "AILME",
+    "long_name": "Ailuropoda_melanoleuca_AILME"
+  },
+  {
+    "code": "AJECA",
+    "long_name": "Ajellomyces_capsulatus_AJECA"
+  },
+  {
+    "code": "AJECG",
+    "long_name": "Ajellomyces_capsulatus_strain_G186AR_AJECG"
+  },
+  {
+    "code": "AJECH",
+    "long_name": "Ajellomyces_capsulatus_strain_H143_AJECH"
+  },
+  {
+    "code": "AJEC8",
+    "long_name": "Ajellomyces_capsulatus_strain_H88_AJEC8"
+  },
+  {
+    "code": "AJECN",
+    "long_name": "Ajellomyces_capsulatus_strain_NAm1_AJECN"
+  },
+  {
+    "code": "ALBFT",
+    "long_name": "Albidiferax_ferrireducens_ALBFT"
+  },
+  {
+    "code": "ALCTO",
+    "long_name": "Alca_torda_ALCTO"
+  },
+  {
+    "code": "ALCDB",
+    "long_name": "Alcanivorax_dieselolei_ALCDB"
+  },
+  {
+    "code": "ALELA",
+    "long_name": "Alectura_lathami_ALELA"
+  },
+  {
+    "code": "ALIDK",
+    "long_name": "Alicycliphilus_denitrificans_ALIDK"
+  },
+  {
+    "code": "ALKPO",
+    "long_name": "Alkalihalophilus_pseudofirmus_ALKPO"
+  },
+  {
+    "code": "ALKMQ",
+    "long_name": "Alkaliphilus_metalliredigens_ALKMQ"
+  },
+  {
+    "code": "ALLMI",
+    "long_name": "Alligator_mississippiensis_ALLMI"
+  },
+  {
+    "code": "ALLSI",
+    "long_name": "Alligator_sinensis_ALLSI"
+  },
+  {
+    "code": "ALLAB",
+    "long_name": "Allokutzneria_albata_ALLAB"
+  },
+  {
+    "code": "ALLM3",
+    "long_name": "Allomyces_macrogynus_ALLM3"
+  },
+  {
+    "code": "ALLAM",
+    "long_name": "Allorhizobium_ampelinum_ALLAM"
+  },
+  {
+    "code": "ALTAL",
+    "long_name": "Alternaria_alternata_ALTAL"
+  },
+  {
+    "code": "AMAMK",
+    "long_name": "Amanita_muscaria_AMAMK"
+  },
+  {
+    "code": "AMAAE",
+    "long_name": "Amazona_aestiva_AMAAE"
+  },
+  {
+    "code": "AMBMO",
+    "long_name": "Ambrosiozyma_monospora_AMBMO"
+  },
+  {
+    "code": "AMEME",
+    "long_name": "Ameiurus_melas_AMEME"
+  },
+  {
+    "code": "AMPQU",
+    "long_name": "Ampelomyces_quisqualis_AMPQU"
+  },
+  {
+    "code": "AMPAM",
+    "long_name": "Amphibalanus_amphitrite_AMPAM"
+  },
+  {
+    "code": "AMPQE",
+    "long_name": "Amphimedon_queenslandica_AMPQE"
+  },
+  {
+    "code": "AMPOC",
+    "long_name": "Amphiprion_ocellaris_AMPOC"
+  },
+  {
+    "code": "AMPPE",
+    "long_name": "Amphiprion_percula_AMPPE"
+  },
+  {
+    "code": "AMYCI",
+    "long_name": "Amycolatopsis_cihanbeyliensis_AMYCI"
+  },
+  {
+    "code": "AMYMU",
+    "long_name": "Amycolatopsis_mediterranei_AMYMU"
+  },
+  {
+    "code": "ANACC",
+    "long_name": "Anabaena_cylindrica_ANACC"
+  },
+  {
+    "code": "ANAGA",
+    "long_name": "Anabarilius_grahami_ANAGA"
+  },
+  {
+    "code": "ANATE",
+    "long_name": "Anabas_testudineus_ANATE"
+  },
+  {
+    "code": "ANADE",
+    "long_name": "Anaeromyxobacter_dehalogenans_ANADE"
+  },
+  {
+    "code": "ANADF",
+    "long_name": "Anaeromyxobacter_sp_ANADF"
+  },
+  {
+    "code": "ANACO",
+    "long_name": "Ananas_comosus_ANACO"
+  },
+  {
+    "code": "ANAPL",
+    "long_name": "Anas_platyrhynchos_ANAPL"
+  },
+  {
+    "code": "ANAPP",
+    "long_name": "Anas_platyrhynchos_platyrhynchos_ANAPP"
+  },
+  {
+    "code": "ANCCA",
+    "long_name": "Ancylostoma_caninum_ANCCA"
+  },
+  {
+    "code": "ANEMI",
+    "long_name": "Aneurinibacillus_migulanus_ANEMI"
+  },
+  {
+    "code": "ANGCA",
+    "long_name": "Angiostrongylus_cantonensis_ANGCA"
+  },
+  {
+    "code": "ANGCS",
+    "long_name": "Angiostrongylus_costaricensis_ANGCS"
+  },
+  {
+    "code": "ANGAN",
+    "long_name": "Anguilla_anguilla_ANGAN"
+  },
+  {
+    "code": "ANHAN",
+    "long_name": "Anhinga_anhinga_ANHAN"
+  },
+  {
+    "code": "ANISI",
+    "long_name": "Anisakis_simplex_ANISI"
+  },
+  {
+    "code": "ANODA",
+    "long_name": "Anopheles_darlingi_ANODA"
+  },
+  {
+    "code": "ANOSI",
+    "long_name": "Anopheles_sinensis_ANOSI"
+  },
+  {
+    "code": "ANOST",
+    "long_name": "Anopheles_stephensi_ANOST"
+  },
+  {
+    "code": "ANSCY",
+    "long_name": "Anser_cygnoides_ANSCY"
+  },
+  {
+    "code": "ANSSE",
+    "long_name": "Anseranas_semipalmata_ANSSE"
+  },
+  {
+    "code": "ANTMN",
+    "long_name": "Anthoscopus_minutus_ANTMN"
+  },
+  {
+    "code": "ANTCR",
+    "long_name": "Antrostomus_carolinensis_ANTCR"
+  },
+  {
+    "code": "AOTNA",
+    "long_name": "Aotus_nancymaae_AOTNA"
+  },
+  {
+    "code": "APAVI",
+    "long_name": "Apaloderma_vittatum_APAVI"
+  },
+  {
+    "code": "APHAT",
+    "long_name": "Aphanomyces_astaci_APHAT"
+  },
+  {
+    "code": "APHCE",
+    "long_name": "Aphelocoma_coerulescens_APHCE"
+  },
+  {
+    "code": "APHCR",
+    "long_name": "Aphis_craccivora_APHCR"
+  },
+  {
+    "code": "APHGL",
+    "long_name": "Aphis_glycines_APHGL"
+  },
+  {
+    "code": "APHGO",
+    "long_name": "Aphis_gossypii_APHGO"
+  },
+  {
+    "code": "APICC",
+    "long_name": "Apis_cerana_cerana_APICC"
+  },
+  {
+    "code": "APIME",
+    "long_name": "Apis_mellifera_APIME"
+  },
+  {
+    "code": "APOLU",
+    "long_name": "Apolygus_lucorum_APOLU"
+  },
+  {
+    "code": "APTFO",
+    "long_name": "Aptenodytes_forsteri_APTFO"
+  },
+  {
+    "code": "APTPA",
+    "long_name": "Aptenodytes_patagonicus_APTPA"
+  },
+  {
+    "code": "APTOW",
+    "long_name": "Apteryx_owenii_APTOW"
+  },
+  {
+    "code": "AQUCT",
+    "long_name": "Aquarana_catesbeiana_AQUCT"
+  },
+  {
+    "code": "AQUCA",
+    "long_name": "Aquilegia_coerulea_AQUCA"
+  },
+  {
+    "code": "AQUAM",
+    "long_name": "Aquimarina_amphilecti_AQUAM"
+  },
+  {
+    "code": "ARALL",
+    "long_name": "Arabidopsis_lyrata_subsp_lyrata_ARALL"
+  },
+  {
+    "code": "ARAAL",
+    "long_name": "Arabis_alpina_ARAAL"
+  },
+  {
+    "code": "ARADU",
+    "long_name": "Arachis_duranensis_ARADU"
+  },
+  {
+    "code": "ARAHY",
+    "long_name": "Arachis_hypogaea_ARAHY"
+  },
+  {
+    "code": "ARAGA",
+    "long_name": "Aramus_guarauna_ARAGA"
+  },
+  {
+    "code": "ARAVE",
+    "long_name": "Araneus_ventricosus_ARAVE"
+  },
+  {
+    "code": "ARCPL",
+    "long_name": "Arctia_plantaginis_ARCPL"
+  },
+  {
+    "code": "AREIN",
+    "long_name": "Arenaria_interpres_AREIN"
+  },
+  {
+    "code": "ARGBR",
+    "long_name": "Argiope_bruennichi_ARGBR"
+  },
+  {
+    "code": "ARMRO",
+    "long_name": "Armatimonas_rosea_ARMRO"
+  },
+  {
+    "code": "ARMGA",
+    "long_name": "Armillaria_gallica_ARMGA"
+  },
+  {
+    "code": "ARMOS",
+    "long_name": "Armillaria_ostoyae_ARMOS"
+  },
+  {
+    "code": "AROAE",
+    "long_name": "Aromatoleum_aromaticum_AROAE"
+  },
+  {
+    "code": "ARTAN",
+    "long_name": "Artemisia_annua_ARTAN"
+  },
+  {
+    "code": "ARTS2",
+    "long_name": "Arthrobacter_sp_ARTS2"
+  },
+  {
+    "code": "ARTOA",
+    "long_name": "Arthrobotrys_oligospora_ARTOA"
+  },
+  {
+    "code": "ARTBC",
+    "long_name": "Arthroderma_benhamiae_ARTBC"
+  },
+  {
+    "code": "ARTGP",
+    "long_name": "Arthroderma_gypseum_ARTGP"
+  },
+  {
+    "code": "ARTOC",
+    "long_name": "Arthroderma_otae_ARTOC"
+  },
+  {
+    "code": "ASBVE",
+    "long_name": "Asbolus_verrucosus_ASBVE"
+  },
+  {
+    "code": "ASPOF",
+    "long_name": "Asparagus_officinalis_ASPOF"
+  },
+  {
+    "code": "ASPA1",
+    "long_name": "Aspergillus_aculeatus_ASPA1"
+  },
+  {
+    "code": "ASPAW",
+    "long_name": "Aspergillus_awamori_ASPAW"
+  },
+  {
+    "code": "ASPBC",
+    "long_name": "Aspergillus_brasiliensis_ASPBC"
+  },
+  {
+    "code": "ASPBU",
+    "long_name": "Aspergillus_burnettii_ASPBU"
+  },
+  {
+    "code": "ASPCI",
+    "long_name": "Aspergillus_calidoustus_ASPCI"
+  },
+  {
+    "code": "ASPCN",
+    "long_name": "Aspergillus_candidus_ASPCN"
+  },
+  {
+    "code": "ASPC5",
+    "long_name": "Aspergillus_carbonarius_ASPC5"
+  },
+  {
+    "code": "ASPCH",
+    "long_name": "Aspergillus_chevalieri_ASPCH"
+  },
+  {
+    "code": "ASPCL",
+    "long_name": "Aspergillus_clavatus_ASPCL"
+  },
+  {
+    "code": "ASPCR",
+    "long_name": "Aspergillus_cristatus_ASPCR"
+  },
+  {
+    "code": "ASPHC",
+    "long_name": "Aspergillus_homomorphus_ASPHC"
+  },
+  {
+    "code": "ASPKA",
+    "long_name": "Aspergillus_kawachii_ASPKA"
+  },
+  {
+    "code": "ASPNC",
+    "long_name": "Aspergillus_niger_ASPNC"
+  },
+  {
+    "code": "ASPN1",
+    "long_name": "Aspergillus_novofumigatus_ASPN1"
+  },
+  {
+    "code": "ASPOZ",
+    "long_name": "Aspergillus_oryzae_ASPOZ"
+  },
+  {
+    "code": "ASPOR",
+    "long_name": "Aspergillus_oryzae_strain_ATCC_42149_ASPOR"
+  },
+  {
+    "code": "ASPPA",
+    "long_name": "Aspergillus_parasiticus_ASPPA"
+  },
+  {
+    "code": "ASPPU",
+    "long_name": "Aspergillus_parasiticus_strain_ATCC_56775_ASPPU"
+  },
+  {
+    "code": "ASPPS",
+    "long_name": "Aspergillus_pseudotamarii_ASPPS"
+  },
+  {
+    "code": "ASPRC",
+    "long_name": "Aspergillus_ruber_ASPRC"
+  },
+  {
+    "code": "ASPSB",
+    "long_name": "Aspergillus_sclerotiicarbonarius_ASPSB"
+  },
+  {
+    "code": "ASPTE",
+    "long_name": "Aspergillus_terreus_ASPTE"
+  },
+  {
+    "code": "ASPTN",
+    "long_name": "Aspergillus_terreus_strain_NIH_2624_ASPTN"
+  },
+  {
+    "code": "ASPTC",
+    "long_name": "Aspergillus_tubingensis_ASPTC"
+  },
+  {
+    "code": "ASPV1",
+    "long_name": "Aspergillus_violaceofuscus_ASPV1"
+  },
+  {
+    "code": "ASTMX",
+    "long_name": "Astyanax_mexicanus_ASTMX"
+  },
+  {
+    "code": "ATHCN",
+    "long_name": "Athene_cunicularia_ATHCN"
+  },
+  {
+    "code": "ATRSP",
+    "long_name": "Atractosteus_spatula_ATRSP"
+  },
+  {
+    "code": "ATTCE",
+    "long_name": "Atta_cephalotes_ATTCE"
+  },
+  {
+    "code": "AURSE",
+    "long_name": "Aureobasidium_subglaciale_AURSE"
+  },
+  {
+    "code": "AURAN",
+    "long_name": "Aureococcus_anophagefferens_AURAN"
+  },
+  {
+    "code": "AURST",
+    "long_name": "Auricularia_subglabra_AURST"
+  },
+  {
+    "code": "AUSLI",
+    "long_name": "Austrofundulus_limnaeus_AUSLI"
+  },
+  {
+    "code": "AUXPR",
+    "long_name": "Auxenochlorella_protothecoides_AUXPR"
+  },
+  {
+    "code": "AYTFU",
+    "long_name": "Aythya_fuligula_AYTFU"
+  },
+  {
+    "code": "AZOC5",
+    "long_name": "Azorhizobium_caulinodans_AZOC5"
+  },
+  {
+    "code": "AZOS1",
+    "long_name": "Azospirillum_sp_AZOS1"
+  },
+  {
+    "code": "BABBI",
+    "long_name": "Babesia_bigemina_BABBI"
+  },
+  {
+    "code": "BACAN",
+    "long_name": "Bacillus_anthracis_BACAN"
+  },
+  {
+    "code": "BACDA",
+    "long_name": "Bacillus_dafuensis_BACDA"
+  },
+  {
+    "code": "BACLD",
+    "long_name": "Bacillus_licheniformis_BACLD"
+  },
+  {
+    "code": "BACTR",
+    "long_name": "Bacillus_thermotolerans_BACTR"
+  },
+  {
+    "code": "BACFN",
+    "long_name": "Bacteroides_fragilis_BACFN"
+  },
+  {
+    "code": "UNCBA",
+    "long_name": "Bacteroidota_bacterium_UNCBA"
+  },
+  {
+    "code": "BACDO",
+    "long_name": "Bactrocera_dorsalis_BACDO"
+  },
+  {
+    "code": "BAGYA",
+    "long_name": "Bagarius_yarrelli_BAGYA"
+  },
+  {
+    "code": "BALRX",
+    "long_name": "Balaeniceps_rex_BALRX"
+  },
+  {
+    "code": "BALAS",
+    "long_name": "Balaenoptera_acutorostrata_scammoni_BALAS"
+  },
+  {
+    "code": "BALMU",
+    "long_name": "Balaenoptera_musculus_BALMU"
+  },
+  {
+    "code": "BALPH",
+    "long_name": "Balaenoptera_physalus_BALPH"
+  },
+  {
+    "code": "BAMTH",
+    "long_name": "Bambusicola_thoracicus_BAMTH"
+  },
+  {
+    "code": "BARMA",
+    "long_name": "Baryphthengus_martii_BARMA"
+  },
+  {
+    "code": "BATDL",
+    "long_name": "Batrachochytrium_dendrobatidis_BATDL"
+  },
+  {
+    "code": "BAUPA",
+    "long_name": "Baudoinia_panamericana_BAUPA"
+  },
+  {
+    "code": "BEABA",
+    "long_name": "Beauveria_bassiana_BEABA"
+  },
+  {
+    "code": "BEAB2",
+    "long_name": "Beauveria_bassiana_strain_ARSEF_2860_BEAB2"
+  },
+  {
+    "code": "BEMTA",
+    "long_name": "Bemisia_tabaci_BEMTA"
+  },
+  {
+    "code": "BETVV",
+    "long_name": "Beta_vulgaris_subsp_vulgaris_BETVV"
+  },
+  {
+    "code": "BETSP",
+    "long_name": "Betta_splendens_BETSP"
+  },
+  {
+    "code": "BEUC1",
+    "long_name": "Beutenbergia_cavernae_BEUC1"
+  },
+  {
+    "code": "BICAN",
+    "long_name": "Bicyclus_anynana_BICAN"
+  },
+  {
+    "code": "BIOGL",
+    "long_name": "Biomphalaria_glabrata_BIOGL"
+  },
+  {
+    "code": "BIOOC",
+    "long_name": "Bionectria_ochroleuca_BIOOC"
+  },
+  {
+    "code": "BISBB",
+    "long_name": "Bison_bison_bison_BISBB"
+  },
+  {
+    "code": "BLASD",
+    "long_name": "Blastococcus_saxobsidens_BLASD"
+  },
+  {
+    "code": "BLAHO",
+    "long_name": "Blastocystis_hominis_BLAHO"
+  },
+  {
+    "code": "BLAHN",
+    "long_name": "Blastocystis_sp_subtype_1_BLAHN"
+  },
+  {
+    "code": "BLAGS",
+    "long_name": "Blastomyces_gilchristii_BLAGS"
+  },
+  {
+    "code": "BLOTA",
+    "long_name": "Blomia_tropicalis_BLOTA"
+  },
+  {
+    "code": "BLUG1",
+    "long_name": "Blumeria_graminis_f_sp_hordei_BLUG1"
+  },
+  {
+    "code": "BLUHO",
+    "long_name": "Blumeria_hordei_BLUHO"
+  },
+  {
+    "code": "BODSA",
+    "long_name": "Bodo_saltans_BODSA"
+  },
+  {
+    "code": "BOMGA",
+    "long_name": "Bombycilla_garrulus_BOMGA"
+  },
+  {
+    "code": "BOMMO",
+    "long_name": "Bombyx_mori_BOMMO"
+  },
+  {
+    "code": "BOSIN",
+    "long_name": "Bos_indicus_BOSIN"
+  },
+  {
+    "code": "BOBOX",
+    "long_name": "Bos_indicus_x_Bos_taurus_BOBOX"
+  },
+  {
+    "code": "BOSMU",
+    "long_name": "Bos_mutus_grunniens_BOSMU"
+  },
+  {
+    "code": "BOTPV",
+    "long_name": "Botryosphaeria_parva_BOTPV"
+  },
+  {
+    "code": "BOTFB",
+    "long_name": "Botryotinia_fuckeliana_strain_B05.10_BOTFB"
+  },
+  {
+    "code": "BOTF4",
+    "long_name": "Botryotinia_fuckeliana_strain_T4_BOTF4"
+  },
+  {
+    "code": "BRAPC",
+    "long_name": "Brachionus_plicatilis_BRAPC"
+  },
+  {
+    "code": "BRASO",
+    "long_name": "Bradyrhizobium_sp_BRASO"
+  },
+  {
+    "code": "BRABE",
+    "long_name": "Branchiostoma_belcheri_BRABE"
+  },
+  {
+    "code": "BRALA",
+    "long_name": "Branchiostoma_lanceolatum_BRALA"
+  },
+  {
+    "code": "BRACI",
+    "long_name": "Brassica_carinata_BRACI"
+  },
+  {
+    "code": "BRACR",
+    "long_name": "Brassica_cretica_BRACR"
+  },
+  {
+    "code": "BRAAE",
+    "long_name": "Brassicogethes_aeneus_BRAAE"
+  },
+  {
+    "code": "BRELC",
+    "long_name": "Bremia_lactucae_BRELC"
+  },
+  {
+    "code": "BRENA",
+    "long_name": "Brettanomyces_naardenensis_BRENA"
+  },
+  {
+    "code": "BREBN",
+    "long_name": "Brevibacillus_brevis_BREBN"
+  },
+  {
+    "code": "BRUA4",
+    "long_name": "Brucella_anthropi_BRUA4"
+  },
+  {
+    "code": "BRUMA",
+    "long_name": "Brugia_malayi_BRUMA"
+  },
+  {
+    "code": "BRUPA",
+    "long_name": "Brugia_pahangi_BRUPA"
+  },
+  {
+    "code": "BUBBB",
+    "long_name": "Bubo_bubo_BUBBB"
+  },
+  {
+    "code": "BUCAB",
+    "long_name": "Bucorvus_abyssinicus_BUCAB"
+  },
+  {
+    "code": "BUGNE",
+    "long_name": "Bugula_neritina_BUGNE"
+  },
+  {
+    "code": "BURGB",
+    "long_name": "Burkholderia_glumae_BURGB"
+  },
+  {
+    "code": "BURM1",
+    "long_name": "Burkholderia_multivorans_BURM1"
+  },
+  {
+    "code": "BURPL",
+    "long_name": "Burkholderia_plantarii_BURPL"
+  },
+  {
+    "code": "BURPS",
+    "long_name": "Burkholderia_pseudomallei_BURPS"
+  },
+  {
+    "code": "BURVG",
+    "long_name": "Burkholderia_vietnamiensis_BURVG"
+  },
+  {
+    "code": "BURXY",
+    "long_name": "Bursaphelenchus_xylophilus_BURXY"
+  },
+  {
+    "code": "BYSSP",
+    "long_name": "Byssochlamys_spectabilis_BYSSP"
+  },
+  {
+    "code": "BYSSN",
+    "long_name": "Byssochlamys_spectabilis_strain_No_5_BYSSN"
+  },
+  {
+    "code": "CAEBE",
+    "long_name": "Caenorhabditis_brenneri_CAEBE"
+  },
+  {
+    "code": "CAEJA",
+    "long_name": "Caenorhabditis_japonica_CAEJA"
+  },
+  {
+    "code": "CAERE",
+    "long_name": "Caenorhabditis_remanei_CAERE"
+  },
+  {
+    "code": "CAFRO",
+    "long_name": "Cafeteria_roenbergensis_CAFRO"
+  },
+  {
+    "code": "CAJCA",
+    "long_name": "Cajanus_cajan_CAJCA"
+  },
+  {
+    "code": "CALOR",
+    "long_name": "Calcarius_ornatus_CALOR"
+  },
+  {
+    "code": "CALAS",
+    "long_name": "Caldilinea_aerophila_CALAS"
+  },
+  {
+    "code": "CALRO",
+    "long_name": "Caligus_rogercresseyi_CALRO"
+  },
+  {
+    "code": "CALSU",
+    "long_name": "Callipepla_squamata_CALSU"
+  },
+  {
+    "code": "CALJA",
+    "long_name": "Callithrix_jacchus_CALJA"
+  },
+  {
+    "code": "CALMI",
+    "long_name": "Callorhinchus_milii_CALMI"
+  },
+  {
+    "code": "CALUR",
+    "long_name": "Callorhinus_ursinus_CALUR"
+  },
+  {
+    "code": "CALMS",
+    "long_name": "Callosobruchus_maculatus_CALMS"
+  },
+  {
+    "code": "CALVF",
+    "long_name": "Calocera_viscosa_CALVF"
+  },
+  {
+    "code": "CALNI",
+    "long_name": "Caloenas_nicobarica_CALNI"
+  },
+  {
+    "code": "CALAN",
+    "long_name": "Calypte_anna_CALAN"
+  },
+  {
+    "code": "CALVR",
+    "long_name": "Calyptomena_viridis_CALVR"
+  },
+  {
+    "code": "CAMSI",
+    "long_name": "Camellia_sinensis_CAMSI"
+  },
+  {
+    "code": "CAMBA",
+    "long_name": "Camelus_bactrianus_CAMBA"
+  },
+  {
+    "code": "CAMDR",
+    "long_name": "Camelus_dromedarius_CAMDR"
+  },
+  {
+    "code": "CAMFR",
+    "long_name": "Camelus_ferus_CAMFR"
+  },
+  {
+    "code": "CAMFO",
+    "long_name": "Camponotus_floridanus_CAMFO"
+  },
+  {
+    "code": "CAMJE",
+    "long_name": "Campylobacter_jejuni_subsp_jejuni_serotype_O:2_CAMJE"
+  },
+  {
+    "code": "CANAX",
+    "long_name": "Candida_albicans_CANAX"
+  },
+  {
+    "code": "CANAR",
+    "long_name": "Candida_auris_CANAR"
+  },
+  {
+    "code": "CANBO",
+    "long_name": "Candida_boidinii_CANBO"
+  },
+  {
+    "code": "CANGA",
+    "long_name": "Candida_glabrata_CANGA"
+  },
+  {
+    "code": "CANMX",
+    "long_name": "Candida_maltosa_CANMX"
+  },
+  {
+    "code": "CANPC",
+    "long_name": "Candida_parapsilosis_CANPC"
+  },
+  {
+    "code": "CANTC",
+    "long_name": "Candida_tenuis_CANTC"
+  },
+  {
+    "code": "CANTT",
+    "long_name": "Candida_tropicalis_CANTT"
+  },
+  {
+    "code": "CANSA",
+    "long_name": "Cannabis_sativa_CANSA"
+  },
+  {
+    "code": "CAPTE",
+    "long_name": "Capitella_teleta_CAPTE"
+  },
+  {
+    "code": "CAPHI",
+    "long_name": "Capra_hircus_CAPHI"
+  },
+  {
+    "code": "CAPO3",
+    "long_name": "Capsaspora_owczarzaki_CAPO3"
+  },
+  {
+    "code": "CAPBA",
+    "long_name": "Capsicum_baccatum_CAPBA"
+  },
+  {
+    "code": "CARAU",
+    "long_name": "Carassius_auratus_CARAU"
+  },
+  {
+    "code": "CARCD",
+    "long_name": "Cardinalis_cardinalis_CARCD"
+  },
+  {
+    "code": "CARIC",
+    "long_name": "Cariama_cristata_CARIC"
+  },
+  {
+    "code": "CARSF",
+    "long_name": "Carlito_syrichta_CARSF"
+  },
+  {
+    "code": "CARIL",
+    "long_name": "Carya_illinoinensis_CARIL"
+  },
+  {
+    "code": "CASCN",
+    "long_name": "Castor_canadensis_CASCN"
+  },
+  {
+    "code": "CATAD",
+    "long_name": "Catenulispora_acidiphila_CATAD"
+  },
+  {
+    "code": "CATAU",
+    "long_name": "Cathartes_aura_CATAU"
+  },
+  {
+    "code": "CATFU",
+    "long_name": "Catharus_fuscescens_CATFU"
+  },
+  {
+    "code": "CATUS",
+    "long_name": "Catharus_ustulatus_CATUS"
+  },
+  {
+    "code": "CACFS",
+    "long_name": "Cavenderia_fasciculata_CACFS"
+  },
+  {
+    "code": "CAVPO",
+    "long_name": "Cavia_porcellus_CAVPO"
+  },
+  {
+    "code": "CEBIM",
+    "long_name": "Cebus_imitator_CEBIM"
+  },
+  {
+    "code": "CECL9",
+    "long_name": "Cecembia_lonarensis_CECL9"
+  },
+  {
+    "code": "CELLD",
+    "long_name": "Cellulosilyticum_lentocellum_CELLD"
+  },
+  {
+    "code": "CEPOR",
+    "long_name": "Cephalopterus_ornatus_CEPOR"
+  },
+  {
+    "code": "CEPFO",
+    "long_name": "Cephalotus_follicularis_CEPFO"
+  },
+  {
+    "code": "CEPGR",
+    "long_name": "Cepphus_grylle_CEPGR"
+  },
+  {
+    "code": "CERCA",
+    "long_name": "Ceratitis_capitata_CERCA"
+  },
+  {
+    "code": "CERFI",
+    "long_name": "Ceratocystis_fimbriata_f_sp_platani_CERFI"
+  },
+  {
+    "code": "CERPU",
+    "long_name": "Ceratodon_purpureus_CERPU"
+  },
+  {
+    "code": "CERRI",
+    "long_name": "Ceratopteris_richardii_CERRI"
+  },
+  {
+    "code": "CERAT",
+    "long_name": "Cercocebus_atys_CERAT"
+  },
+  {
+    "code": "CERS4",
+    "long_name": "Cereibacter_sphaeroides_CERS4"
+  },
+  {
+    "code": "CERS8",
+    "long_name": "Ceriporiopsis_subvermispora_CERS8"
+  },
+  {
+    "code": "CERFA",
+    "long_name": "Certhia_familiaris_CERFA"
+  },
+  {
+    "code": "CEREH",
+    "long_name": "Cervus_elaphus_hippelaphus_CEREH"
+  },
+  {
+    "code": "CHAGB",
+    "long_name": "Chaetomium_globosum_CHAGB"
+  },
+  {
+    "code": "CHATD",
+    "long_name": "Chaetomium_thermophilum_CHATD"
+  },
+  {
+    "code": "CHAP6",
+    "long_name": "Chamaesiphon_minutus_CHAP6"
+  },
+  {
+    "code": "CHACN",
+    "long_name": "Chanos_chanos_CHACN"
+  },
+  {
+    "code": "CHABU",
+    "long_name": "Chara_braunii_CHABU"
+  },
+  {
+    "code": "CHAVO",
+    "long_name": "Charadrius_vociferus_CHAVO"
+  },
+  {
+    "code": "CHATO",
+    "long_name": "Chauna_torquata_CHATO"
+  },
+  {
+    "code": "CHEMY",
+    "long_name": "Chelonia_mydas_CHEMY"
+  },
+  {
+    "code": "CHEAB",
+    "long_name": "Chelonoidis_abingdonii_CHEAB"
+  },
+  {
+    "code": "CHESE",
+    "long_name": "Chelydra_serpentina_CHESE"
+  },
+  {
+    "code": "CHEQI",
+    "long_name": "Chenopodium_quinoa_CHEQI"
+  },
+  {
+    "code": "CHIPU",
+    "long_name": "Chiloscyllium_punctatum_CHIPU"
+  },
+  {
+    "code": "CHILA",
+    "long_name": "Chinchilla_lanigera_CHILA"
+  },
+  {
+    "code": "CHIMN",
+    "long_name": "Chionis_minor_CHIMN"
+  },
+  {
+    "code": "CHIOP",
+    "long_name": "Chionoecetes_opilio_CHIOP"
+  },
+  {
+    "code": "CHIJA",
+    "long_name": "Chitinophaga_japonensis_CHIJA"
+  },
+  {
+    "code": "CHINA",
+    "long_name": "Chitinophaga_niastensis_CHINA"
+  },
+  {
+    "code": "CHLIN",
+    "long_name": "Chlamydomonas_incerta_CHLIN"
+  },
+  {
+    "code": "CHLGU",
+    "long_name": "Chloebia_gouldiae_CHLGU"
+  },
+  {
+    "code": "CHLSO",
+    "long_name": "Chlorella_sorokiniana_CHLSO"
+  },
+  {
+    "code": "CHLVA",
+    "long_name": "Chlorella_variabilis_CHLVA"
+  },
+  {
+    "code": "CHLVU",
+    "long_name": "Chlorella_vulgaris_CHLVU"
+  },
+  {
+    "code": "CHLSB",
+    "long_name": "Chlorocebus_sabaeus_CHLSB"
+  },
+  {
+    "code": "CHOCO",
+    "long_name": "Chondromyces_crocatus_CHOCO"
+  },
+  {
+    "code": "CHOCR",
+    "long_name": "Chondrus_crispus_CHOCR"
+  },
+  {
+    "code": "CHOAC",
+    "long_name": "Chordeiles_acutipennis_CHOAC"
+  },
+  {
+    "code": "CHRVL",
+    "long_name": "Chromobacterium_violaceum_CHRVL"
+  },
+  {
+    "code": "CHRVO",
+    "long_name": "Chromobacterium_violaceum_strain_ATCC_12472_CHRVO"
+  },
+  {
+    "code": "CHRTP",
+    "long_name": "Chroococcidiopsis_thermalis_CHRTP"
+  },
+  {
+    "code": "CHRPI",
+    "long_name": "Chrysemys_picta_bellii_CHRPI"
+  },
+  {
+    "code": "CHRAS",
+    "long_name": "Chrysochloris_asiatica_CHRAS"
+  },
+  {
+    "code": "CHRIL",
+    "long_name": "Chrysodeixis_includens_CHRIL"
+  },
+  {
+    "code": "CHRPC",
+    "long_name": "Chrysolophus_pictus_CHRPC"
+  },
+  {
+    "code": "CICAR",
+    "long_name": "Cicer_arietinum_CICAR"
+  },
+  {
+    "code": "CIMLE",
+    "long_name": "Cimex_lectularius_CIMLE"
+  },
+  {
+    "code": "CINMU",
+    "long_name": "Cinclus_mexicanus_CINMU"
+  },
+  {
+    "code": "CIOSA",
+    "long_name": "Ciona_savignyi_CIOSA"
+  },
+  {
+    "code": "CITBB",
+    "long_name": "Citrifermentans_bemidjiense_CITBB"
+  },
+  {
+    "code": "CITKO",
+    "long_name": "Citrobacter_koseri_CITKO"
+  },
+  {
+    "code": "CITK8",
+    "long_name": "Citrobacter_koseri_strain_ATCC_BAA-895_CITK8"
+  },
+  {
+    "code": "CITCL",
+    "long_name": "Citrus_clementina_CITCL"
+  },
+  {
+    "code": "CITUN",
+    "long_name": "Citrus_unshiu_CITUN"
+  },
+  {
+    "code": "CLAMG",
+    "long_name": "Clarias_magur_CLAMG"
+  },
+  {
+    "code": "CLAMM",
+    "long_name": "Clavibacter_michiganensis_subsp_michiganensis_CLAMM"
+  },
+  {
+    "code": "CLAP2",
+    "long_name": "Claviceps_purpurea_CLAP2"
+  },
+  {
+    "code": "CLAL4",
+    "long_name": "Clavispora_lusitaniae_CLAL4"
+  },
+  {
+    "code": "CLOSI",
+    "long_name": "Clonorchis_sinensis_CLOSI"
+  },
+  {
+    "code": "CLOC7",
+    "long_name": "Clostridium_cellulovorans_CLOC7"
+  },
+  {
+    "code": "CLOTT",
+    "long_name": "Clostridium_tetanomorphum_CLOTT"
+  },
+  {
+    "code": "CLUHA",
+    "long_name": "Clupea_harengus_CLUHA"
+  },
+  {
+    "code": "COCIM",
+    "long_name": "Coccidioides_immitis_COCIM"
+  },
+  {
+    "code": "COCPS",
+    "long_name": "Coccidioides_posadasii_COCPS"
+  },
+  {
+    "code": "COCSC",
+    "long_name": "Coccomyxa_subellipsoidea_COCSC"
+  },
+  {
+    "code": "COCCO",
+    "long_name": "Cochlearius_cochlearius_COCCO"
+  },
+  {
+    "code": "COCC2",
+    "long_name": "Cochliobolus_carbonum_COCC2"
+  },
+  {
+    "code": "COCH5",
+    "long_name": "Cochliobolus_heterostrophus_COCH5"
+  },
+  {
+    "code": "COCSA",
+    "long_name": "Cochliobolus_sativus_COCSA"
+  },
+  {
+    "code": "COCSN",
+    "long_name": "Cochliobolus_sativus_strain_ND90Pr_COCSN"
+  },
+  {
+    "code": "COCNU",
+    "long_name": "Cocos_nucifera_COCNU"
+  },
+  {
+    "code": "COERN",
+    "long_name": "Coemansia_reversa_COERN"
+  },
+  {
+    "code": "COFAR",
+    "long_name": "Coffea_arabica_COFAR"
+  },
+  {
+    "code": "COFCA",
+    "long_name": "Coffea_canephora_COFCA"
+  },
+  {
+    "code": "COLST",
+    "long_name": "Colius_striatus_COLST"
+  },
+  {
+    "code": "COLFN",
+    "long_name": "Colletotrichum_fructicola_COLFN"
+  },
+  {
+    "code": "COLGL",
+    "long_name": "Colletotrichum_gloeosporioides_COLGL"
+  },
+  {
+    "code": "COLGC",
+    "long_name": "Colletotrichum_gloeosporioides_strain_Cg-14_COLGC"
+  },
+  {
+    "code": "COLGM",
+    "long_name": "Colletotrichum_graminicola_COLGM"
+  },
+  {
+    "code": "COLOR",
+    "long_name": "Colletotrichum_orbiculare_COLOR"
+  },
+  {
+    "code": "COLSU",
+    "long_name": "Colletotrichum_sublineola_COLSU"
+  },
+  {
+    "code": "COLTR",
+    "long_name": "Colletotrichum_trifolii_COLTR"
+  },
+  {
+    "code": "COLLU",
+    "long_name": "Collichthys_lucidus_COLLU"
+  },
+  {
+    "code": "COLFT",
+    "long_name": "Collimonas_fungivorans_COLFT"
+  },
+  {
+    "code": "COLAP",
+    "long_name": "Colobus_angolensis_palliatus_COLAP"
+  },
+  {
+    "code": "COLES",
+    "long_name": "Colocasia_esculenta_COLES"
+  },
+  {
+    "code": "COLLI",
+    "long_name": "Columba_livia_COLLI"
+  },
+  {
+    "code": "COLPI",
+    "long_name": "Columbina_picui_COLPI"
+  },
+  {
+    "code": "COMTR",
+    "long_name": "Comamonas_terrigena_COMTR"
+  },
+  {
+    "code": "CONWI",
+    "long_name": "Conexibacter_woesei_CONWI"
+  },
+  {
+    "code": "CONCO",
+    "long_name": "Conger_conger_CONCO"
+  },
+  {
+    "code": "CONC2",
+    "long_name": "Conidiobolus_coronatus_CONC2"
+  },
+  {
+    "code": "CONPW",
+    "long_name": "Coniophora_puteana_CONPW"
+  },
+  {
+    "code": "CONA1",
+    "long_name": "Coniosporium_apollinis_CONA1"
+  },
+  {
+    "code": "COPMI",
+    "long_name": "Coprinellus_micaceus_COPMI"
+  },
+  {
+    "code": "COPC7",
+    "long_name": "Coprinopsis_cinerea_COPC7"
+  },
+  {
+    "code": "COPMA",
+    "long_name": "Coprinopsis_marcescibilis_COPMA"
+  },
+  {
+    "code": "COPFO",
+    "long_name": "Coptotermes_formosanus_COPFO"
+  },
+  {
+    "code": "CORCM",
+    "long_name": "Corallococcus_coralloides_CORCM"
+  },
+  {
+    "code": "COCAP",
+    "long_name": "Corchorus_capsularis_COCAP"
+  },
+  {
+    "code": "CORDF",
+    "long_name": "Cordyceps_confragosa_CORDF"
+  },
+  {
+    "code": "CORFA",
+    "long_name": "Cordyceps_fumosorosea_CORFA"
+  },
+  {
+    "code": "CORMM",
+    "long_name": "Cordyceps_militaris_CORMM"
+  },
+  {
+    "code": "CORBR",
+    "long_name": "Corvus_brachyrhynchos_CORBR"
+  },
+  {
+    "code": "CORMO",
+    "long_name": "Corvus_moneduloides_CORMO"
+  },
+  {
+    "code": "CORCR",
+    "long_name": "Corythaeola_cristata_CORCR"
+  },
+  {
+    "code": "CORCN",
+    "long_name": "Corythaixoides_concolor_CORCN"
+  },
+  {
+    "code": "COTCN",
+    "long_name": "Cotesia_congregata_COTCN"
+  },
+  {
+    "code": "COTGO",
+    "long_name": "Cottoperca_gobio_COTGO"
+  },
+  {
+    "code": "COTJA",
+    "long_name": "Coturnix_japonica_COTJA"
+  },
+  {
+    "code": "CRAGI",
+    "long_name": "Crassostrea_gigas_CRAGI"
+  },
+  {
+    "code": "CRAVI",
+    "long_name": "Crassostrea_virginica_CRAVI"
+  },
+  {
+    "code": "CRIGR",
+    "long_name": "Cricetulus_griseus_CRIGR"
+  },
+  {
+    "code": "CROPO",
+    "long_name": "Crocodylus_porosus_CROPO"
+  },
+  {
+    "code": "CROS5",
+    "long_name": "Crocosphaera_subtropica_CROS5"
+  },
+  {
+    "code": "CROCR",
+    "long_name": "Crocuta_crocuta_CROCR"
+  },
+  {
+    "code": "CROS8",
+    "long_name": "Cronobacter_sakazakii_CROS8"
+  },
+  {
+    "code": "CROSL",
+    "long_name": "Crotophaga_sulcirostris_CROSL"
+  },
+  {
+    "code": "CUCME",
+    "long_name": "Cucumis_melo_CUCME"
+  },
+  {
+    "code": "CUCMA",
+    "long_name": "Cucurbita_maxima_CUCMA"
+  },
+  {
+    "code": "CULQU",
+    "long_name": "Culex_quinquefasciatus_CULQU"
+  },
+  {
+    "code": "CUPMC",
+    "long_name": "Cupriavidus_metallidurans_CUPMC"
+  },
+  {
+    "code": "CUPNH",
+    "long_name": "Cupriavidus_necator_CUPNH"
+  },
+  {
+    "code": "CURCL",
+    "long_name": "Curvularia_clavata_CURCL"
+  },
+  {
+    "code": "CURKU",
+    "long_name": "Curvularia_kusanoi_CURKU"
+  },
+  {
+    "code": "CUSEU",
+    "long_name": "Cuscuta_europaea_CUSEU"
+  },
+  {
+    "code": "CYAM1",
+    "long_name": "Cyanidioschyzon_merolae_CYAM1"
+  },
+  {
+    "code": "CYACU",
+    "long_name": "Cyanistes_caeruleus_CYACU"
+  },
+  {
+    "code": "CYBFA",
+    "long_name": "Cyberlindnera_fabianii_CYBFA"
+  },
+  {
+    "code": "CYBJN",
+    "long_name": "Cyberlindnera_jadinii_CYBJN"
+  },
+  {
+    "code": "CYCMS",
+    "long_name": "Cyclobacterium_marinum_CYCMS"
+  },
+  {
+    "code": "CYCAE",
+    "long_name": "Cyclocybe_aegerita_CYCAE"
+  },
+  {
+    "code": "CYCLU",
+    "long_name": "Cyclopterus_lumpus_CYCLU"
+  },
+  {
+    "code": "CYLGO",
+    "long_name": "Cylicostephanus_goldi_CYLGO"
+  },
+  {
+    "code": "CYNCS",
+    "long_name": "Cynara_cardunculus_var_scolymus_CYNCS"
+  },
+  {
+    "code": "CYNSE",
+    "long_name": "Cynoglossus_semilaevis_CYNSE"
+  },
+  {
+    "code": "CYPVA",
+    "long_name": "Cyprinodon_variegatus_CYPVA"
+  },
+  {
+    "code": "CYPCA",
+    "long_name": "Cyprinus_carpio_CYPCA"
+  },
+  {
+    "code": "DACPD",
+    "long_name": "Dacryopinax_primogenitus_DACPD"
+  },
+  {
+    "code": "DACHA",
+    "long_name": "Dactylellina_haptotyla_DACHA"
+  },
+  {
+    "code": "DAUCS",
+    "long_name": "Daucus_carota_subsp_sativus_DAUCS"
+  },
+  {
+    "code": "DEBHA",
+    "long_name": "Debaryomyces_hansenii_DEBHA"
+  },
+  {
+    "code": "DEIC1",
+    "long_name": "Deinococcus_cellulosilyticus_DEIC1"
+  },
+  {
+    "code": "DEIPD",
+    "long_name": "Deinococcus_peraridilitoris_DEIPD"
+  },
+  {
+    "code": "DEKBR",
+    "long_name": "Dekkera_bruxellensis_DEKBR"
+  },
+  {
+    "code": "DELAS",
+    "long_name": "Delftia_acidovorans_DELAS"
+  },
+  {
+    "code": "DELLE",
+    "long_name": "Delphinapterus_leucas_DELLE"
+  },
+  {
+    "code": "DENNO",
+    "long_name": "Dendrobium_nobile_DENNO"
+  },
+  {
+    "code": "DENPD",
+    "long_name": "Dendroctonus_ponderosae_DENPD"
+  },
+  {
+    "code": "DENBC",
+    "long_name": "Dendrothele_bispora_DENBC"
+  },
+  {
+    "code": "DENI1",
+    "long_name": "Denitromonas_iodatirespirans_DENI1"
+  },
+  {
+    "code": "DERFA",
+    "long_name": "Dermatophagoides_farinae_DERFA"
+  },
+  {
+    "code": "DERPT",
+    "long_name": "Dermatophagoides_pteronyssinus_DERPT"
+  },
+  {
+    "code": "DESAL",
+    "long_name": "Desulfatibacillum_aliphaticivorans_DESAL"
+  },
+  {
+    "code": "DESHY",
+    "long_name": "Desulfitobacterium_hafniense_DESHY"
+  },
+  {
+    "code": "DESTT",
+    "long_name": "Desulfobacula_toluolica_DESTT"
+  },
+  {
+    "code": "DESAS",
+    "long_name": "Desulfofarcimen_acetoxidans_DESAS"
+  },
+  {
+    "code": "DESTA",
+    "long_name": "Desulfomonile_tiedjei_DESTA"
+  },
+  {
+    "code": "DESAH",
+    "long_name": "Desulforapulum_autotrophicum_DESAH"
+  },
+  {
+    "code": "DESOD",
+    "long_name": "Desulfosporosinus_orientis_DESOD"
+  },
+  {
+    "code": "DIABA",
+    "long_name": "Diabrotica_balteata_DIABA"
+  },
+  {
+    "code": "DIALT",
+    "long_name": "Diacronema_lutheri_DIALT"
+  },
+  {
+    "code": "DIACI",
+    "long_name": "Diaphorina_citri_DIACI"
+  },
+  {
+    "code": "DIBLA",
+    "long_name": "Dibothriocephalus_latus_DIBLA"
+  },
+  {
+    "code": "DICLA",
+    "long_name": "Dicentrarchus_labrax_DICLA"
+  },
+  {
+    "code": "DICBM",
+    "long_name": "Diceros_bicornis_minor_DICBM"
+  },
+  {
+    "code": "DICSQ",
+    "long_name": "Dichomitus_squalens_DICSQ"
+  },
+  {
+    "code": "DICD3",
+    "long_name": "Dickeya_dadantii_DICD3"
+  },
+  {
+    "code": "DICVI",
+    "long_name": "Dictyocaulus_viviparus_DICVI"
+  },
+  {
+    "code": "DIDRA",
+    "long_name": "Didymella_rabiei_DIDRA"
+  },
+  {
+    "code": "DINQU",
+    "long_name": "Dinoponera_quadriceps_DINQU"
+  },
+  {
+    "code": "DINSH",
+    "long_name": "Dinoroseobacter_shibae_DINSH"
+  },
+  {
+    "code": "DIPOR",
+    "long_name": "Dipodomys_ordii_DIPOR"
+  },
+  {
+    "code": "DISMA",
+    "long_name": "Dissostichus_mawsoni_DISMA"
+  },
+  {
+    "code": "DIURU",
+    "long_name": "Diutina_rugosa_DIURU"
+  },
+  {
+    "code": "DOTSN",
+    "long_name": "Dothistroma_septosporum_DOTSN"
+  },
+  {
+    "code": "DRAME",
+    "long_name": "Dracunculus_medinensis_DRAME"
+  },
+  {
+    "code": "DREPO",
+    "long_name": "Dreissena_polymorpha_DREPO"
+  },
+  {
+    "code": "DRONO",
+    "long_name": "Dromaius_novaehollandiae_DRONO"
+  },
+  {
+    "code": "DROAB",
+    "long_name": "Drosophila_albomicans_DROAB"
+  },
+  {
+    "code": "DROAN",
+    "long_name": "Drosophila_ananassae_DROAN"
+  },
+  {
+    "code": "DROBS",
+    "long_name": "Drosophila_busckii_DROBS"
+  },
+  {
+    "code": "DROGR",
+    "long_name": "Drosophila_grimshawi_DROGR"
+  },
+  {
+    "code": "DROKI",
+    "long_name": "Drosophila_kikkawai_DROKI"
+  },
+  {
+    "code": "DROLE",
+    "long_name": "Drosophila_lebanonensis_DROLE"
+  },
+  {
+    "code": "DROMO",
+    "long_name": "Drosophila_mojavensis_DROMO"
+  },
+  {
+    "code": "DRONA",
+    "long_name": "Drosophila_navojoa_DRONA"
+  },
+  {
+    "code": "DROPE",
+    "long_name": "Drosophila_persimilis_DROPE"
+  },
+  {
+    "code": "DROPS",
+    "long_name": "Drosophila_pseudoobscura_pseudoobscura_DROPS"
+  },
+  {
+    "code": "DRORH",
+    "long_name": "Drosophila_rhopaloa_DRORH"
+  },
+  {
+    "code": "DROSE",
+    "long_name": "Drosophila_sechellia_DROSE"
+  },
+  {
+    "code": "DROSI",
+    "long_name": "Drosophila_simulans_DROSI"
+  },
+  {
+    "code": "DROVI",
+    "long_name": "Drosophila_virilis_DROVI"
+  },
+  {
+    "code": "DROWI",
+    "long_name": "Drosophila_willistoni_DROWI"
+  },
+  {
+    "code": "DRYPU",
+    "long_name": "Dryobates_pubescens_DRYPU"
+  },
+  {
+    "code": "DUFNO",
+    "long_name": "Dufourea_novaeangliae_DUFNO"
+  },
+  {
+    "code": "DURZI",
+    "long_name": "Durio_zibethinus_DURZI"
+  },
+  {
+    "code": "DYAFD",
+    "long_name": "Dyadobacter_fermentans_DYAFD"
+  },
+  {
+    "code": "ECHNA",
+    "long_name": "Echeneis_naucrates_ECHNA"
+  },
+  {
+    "code": "ECHVK",
+    "long_name": "Echinicola_vietnamensis_ECHVK"
+  },
+  {
+    "code": "ECHGR",
+    "long_name": "Echinococcus_granulosus_ECHGR"
+  },
+  {
+    "code": "ECTSI",
+    "long_name": "Ectocarpus_siliculosus_ECTSI"
+  },
+  {
+    "code": "EDHAE",
+    "long_name": "Edhazardia_aedis_EDHAE"
+  },
+  {
+    "code": "EENNA",
+    "long_name": "Eeniella_nana_EENNA"
+  },
+  {
+    "code": "EGRGA",
+    "long_name": "Egretta_garzetta_EGRGA"
+  },
+  {
+    "code": "ELAGV",
+    "long_name": "Elaeis_guineensis_var_tenera_ELAGV"
+  },
+  {
+    "code": "ELEEL",
+    "long_name": "Electrophorus_electricus_ELEEL"
+  },
+  {
+    "code": "ELECQ",
+    "long_name": "Eleutherodactylus_coqui_ELECQ"
+  },
+  {
+    "code": "ELYCH",
+    "long_name": "Elysia_chlorotica_ELYCH"
+  },
+  {
+    "code": "EMIHU",
+    "long_name": "Emiliania_huxleyi_EMIHU"
+  },
+  {
+    "code": "ENDPU",
+    "long_name": "Endocarpon_pusillum_ENDPU"
+  },
+  {
+    "code": "ENSVE",
+    "long_name": "Ensete_ventricosum_ENSVE"
+  },
+  {
+    "code": "ENTAG",
+    "long_name": "Enterobacter_agglomerans_ENTAG"
+  },
+  {
+    "code": "ENTLS",
+    "long_name": "Enterobacter_lignolyticus_ENTLS"
+  },
+  {
+    "code": "ENTBF",
+    "long_name": "Enterobacteriaceae_bacterium_ENTBF"
+  },
+  {
+    "code": "ENTVE",
+    "long_name": "Enterobius_vermicularis_ENTVE"
+  },
+  {
+    "code": "ENTBW",
+    "long_name": "Enterocloster_bolteae_ENTBW"
+  },
+  {
+    "code": "ENTF1",
+    "long_name": "Entotheonella_factor_ENTF1"
+  },
+  {
+    "code": "EOLRO",
+    "long_name": "Eolophus_roseicapilla_EOLRO"
+  },
+  {
+    "code": "EPIFF",
+    "long_name": "Epichloe_festucae_EPIFF"
+  },
+  {
+    "code": "EPING",
+    "long_name": "Epicoccum_nigrum_EPING"
+  },
+  {
+    "code": "EPTBU",
+    "long_name": "Eptatretus_burgeri_EPTBU"
+  },
+  {
+    "code": "EQUAS",
+    "long_name": "Equus_asinus_EQUAS"
+  },
+  {
+    "code": "ERECY",
+    "long_name": "Eremothecium_cymbalariae_ERECY"
+  },
+  {
+    "code": "ERIEU",
+    "long_name": "Erinaceus_europaeus_ERIEU"
+  },
+  {
+    "code": "ERIRU",
+    "long_name": "Erithacus_rubecula_ERIRU"
+  },
+  {
+    "code": "ERPCA",
+    "long_name": "Erpetoichthys_calabaricus_ERPCA"
+  },
+  {
+    "code": "ERWBE",
+    "long_name": "Erwinia_billingiae_ERWBE"
+  },
+  {
+    "code": "ECO27",
+    "long_name": "Escherichia_coli_O127:H6_ECO27"
+  },
+  {
+    "code": "ECO24",
+    "long_name": "Escherichia_coli_O139:H28_ECO24"
+  },
+  {
+    "code": "ECO57",
+    "long_name": "Escherichia_coli_O157:H7_ECO57"
+  },
+  {
+    "code": "ECOK1",
+    "long_name": "Escherichia_coli_O1:K1_ECOK1"
+  },
+  {
+    "code": "ECO45",
+    "long_name": "Escherichia_coli_O45:K1_ECO45"
+  },
+  {
+    "code": "ECOL6",
+    "long_name": "Escherichia_coli_O6:H1_ECOL6"
+  },
+  {
+    "code": "ECO8N",
+    "long_name": "Escherichia_coli_O83:H1_ECO8N"
+  },
+  {
+    "code": "ECOHS",
+    "long_name": "Escherichia_coli_O9:H4_ECOHS"
+  },
+  {
+    "code": "ECO55",
+    "long_name": "Escherichia_coli_strain_55989_ECO55"
+  },
+  {
+    "code": "ECOBD",
+    "long_name": "Escherichia_coli_strain_B_ECOBD"
+  },
+  {
+    "code": "ESCRO",
+    "long_name": "Eschrichtius_robustus_ESCRO"
+  },
+  {
+    "code": "ESOLU",
+    "long_name": "Esox_lucius_ESOLU"
+  },
+  {
+    "code": "EUDEL",
+    "long_name": "Eudromia_elegans_EUDEL"
+  },
+  {
+    "code": "EUDCH",
+    "long_name": "Eudyptes_chrysocome_EUDCH"
+  },
+  {
+    "code": "EUDMI",
+    "long_name": "Eudyptula_minor_EUDMI"
+  },
+  {
+    "code": "EUMVA",
+    "long_name": "Eumeta_variegata_EUMVA"
+  },
+  {
+    "code": "EURMA",
+    "long_name": "Euroglyphus_maynei_EURMA"
+  },
+  {
+    "code": "EURHL",
+    "long_name": "Eurypyga_helias_EURHL"
+  },
+  {
+    "code": "EUTSA",
+    "long_name": "Eutrema_salsugineum_EUTSA"
+  },
+  {
+    "code": "EUTLA",
+    "long_name": "Eutypa_lata_EUTLA"
+  },
+  {
+    "code": "EVAC2",
+    "long_name": "Evansella_cellulosilytica_EVAC2"
+  },
+  {
+    "code": "EXADI",
+    "long_name": "Exaiptasia_diaphana_EXADI"
+  },
+  {
+    "code": "EXODN",
+    "long_name": "Exophiala_dermatitidis_EXODN"
+  },
+  {
+    "code": "EXOME",
+    "long_name": "Exophiala_mesophila_EXOME"
+  },
+  {
+    "code": "EXST2",
+    "long_name": "Exserohilum_turcicum_EXST2"
+  },
+  {
+    "code": "FALTI",
+    "long_name": "Falco_tinnunculus_FALTI"
+  },
+  {
+    "code": "FASGI",
+    "long_name": "Fasciola_gigantica_FASGI"
+  },
+  {
+    "code": "FASHE",
+    "long_name": "Fasciola_hepatica_FASHE"
+  },
+  {
+    "code": "FICAL",
+    "long_name": "Ficedula_albicollis_FICAL"
+  },
+  {
+    "code": "FISSO",
+    "long_name": "Fistulifera_solaris_FISSO"
+  },
+  {
+    "code": "FLAPC",
+    "long_name": "Flammeovirga_pacifica_FLAPC"
+  },
+  {
+    "code": "FLAN2",
+    "long_name": "Flavilitoribacter_nigricans_FLAN2"
+  },
+  {
+    "code": "FLUTR",
+    "long_name": "Fluviicola_taffensis_FLUTR"
+  },
+  {
+    "code": "FOLCA",
+    "long_name": "Folsomia_candida_FOLCA"
+  },
+  {
+    "code": "FOMSC",
+    "long_name": "Fomitopsis_schrenkii_FOMSC"
+  },
+  {
+    "code": "FONAL",
+    "long_name": "Fonticula_alba_FONAL"
+  },
+  {
+    "code": "FRAAA",
+    "long_name": "Frankia_alni_FRAAA"
+  },
+  {
+    "code": "FRACC",
+    "long_name": "Frankia_casuarinae_FRACC"
+  },
+  {
+    "code": "FRAOC",
+    "long_name": "Frankliniella_occidentalis_FRAOC"
+  },
+  {
+    "code": "FREMA",
+    "long_name": "Fregata_magnificens_FREMA"
+  },
+  {
+    "code": "FREGA",
+    "long_name": "Fregetta_grallaria_FREGA"
+  },
+  {
+    "code": "FUKDA",
+    "long_name": "Fukomys_damarensis_FUKDA"
+  },
+  {
+    "code": "FULGA",
+    "long_name": "Fulmarus_glacialis_FULGA"
+  },
+  {
+    "code": "BLOB1",
+    "long_name": "Fungal_sp_BLOB1"
+  },
+  {
+    "code": "FUNMO",
+    "long_name": "Funneliformis_mosseae_FUNMO"
+  },
+  {
+    "code": "FUSCU",
+    "long_name": "Fusarium_culmorum_FUSCU"
+  },
+  {
+    "code": "FUSHE",
+    "long_name": "Fusarium_heterosporum_FUSHE"
+  },
+  {
+    "code": "FUSLA",
+    "long_name": "Fusarium_langsethiae_FUSLA"
+  },
+  {
+    "code": "FUSOX",
+    "long_name": "Fusarium_oxysporum_FUSOX"
+  },
+  {
+    "code": "FUSC1",
+    "long_name": "Fusarium_oxysporum_f_sp_cubense_strain_race_1_FUSC1"
+  },
+  {
+    "code": "FUSC4",
+    "long_name": "Fusarium_oxysporum_f_sp_cubense_strain_race_4_FUSC4"
+  },
+  {
+    "code": "FUSO4",
+    "long_name": "Fusarium_oxysporum_f_sp_lycopersici_FUSO4"
+  },
+  {
+    "code": "FUSOF",
+    "long_name": "Fusarium_oxysporum_strain_Fo5176_FUSOF"
+  },
+  {
+    "code": "FUSPO",
+    "long_name": "Fusarium_poae_FUSPO"
+  },
+  {
+    "code": "FUSPC",
+    "long_name": "Fusarium_pseudograminearum_FUSPC"
+  },
+  {
+    "code": "FUSRE",
+    "long_name": "Fusarium_redolens_FUSRE"
+  },
+  {
+    "code": "FUSSL",
+    "long_name": "Fusarium_solani_FUSSL"
+  },
+  {
+    "code": "FUSSP",
+    "long_name": "Fusarium_sporotrichioides_FUSSP"
+  },
+  {
+    "code": "FUSV7",
+    "long_name": "Fusarium_vanettenii_FUSV7"
+  },
+  {
+    "code": "GADMO",
+    "long_name": "Gadus_morhua_GADMO"
+  },
+  {
+    "code": "GAET3",
+    "long_name": "Gaeumannomyces_tritici_GAET3"
+  },
+  {
+    "code": "GALSU",
+    "long_name": "Galdieria_sulphuraria_GALSU"
+  },
+  {
+    "code": "GALPY",
+    "long_name": "Galemys_pyrenaicus_GALPY"
+  },
+  {
+    "code": "GALM3",
+    "long_name": "Galerina_marginata_GALM3"
+  },
+  {
+    "code": "GALME",
+    "long_name": "Galleria_mellonella_GALME"
+  },
+  {
+    "code": "GAMAF",
+    "long_name": "Gambusia_affinis_GAMAF"
+  },
+  {
+    "code": "GASAC",
+    "long_name": "Gasterosteus_aculeatus_GASAC"
+  },
+  {
+    "code": "GAVST",
+    "long_name": "Gavia_stellata_GAVST"
+  },
+  {
+    "code": "GEOCA",
+    "long_name": "Geococcyx_californianus_GEOCA"
+  },
+  {
+    "code": "GEOOG",
+    "long_name": "Geodermatophilus_obscurus_GEOOG"
+  },
+  {
+    "code": "GEOFO",
+    "long_name": "Geospiza_fortis_GEOFO"
+  },
+  {
+    "code": "GEOPR",
+    "long_name": "Geospiza_parvula_GEOPR"
+  },
+  {
+    "code": "GEOUR",
+    "long_name": "Geotalea_uraniireducens_GEOUR"
+  },
+  {
+    "code": "GEOCN",
+    "long_name": "Geotrichum_candidum_GEOCN"
+  },
+  {
+    "code": "GEOSA",
+    "long_name": "Geotrypetes_seraphini_GEOSA"
+  },
+  {
+    "code": "GIAMU",
+    "long_name": "Giardia_muris_GIAMU"
+  },
+  {
+    "code": "GIBF5",
+    "long_name": "Gibberella_fujikuroi_GIBF5"
+  },
+  {
+    "code": "GIBM7",
+    "long_name": "Gibberella_moniliformis_GIBM7"
+  },
+  {
+    "code": "GIBNY",
+    "long_name": "Gibberella_nygamai_GIBNY"
+  },
+  {
+    "code": "GIBSU",
+    "long_name": "Gibberella_subglutinans_GIBSU"
+  },
+  {
+    "code": "GIBZE",
+    "long_name": "Gibberella_zeae_GIBZE"
+  },
+  {
+    "code": "GIGMA",
+    "long_name": "Gigaspora_margarita_GIGMA"
+  },
+  {
+    "code": "GLAL2",
+    "long_name": "Glarea_lozoyensis_strain_ATCC_20868_GLAL2"
+  },
+  {
+    "code": "GLAL7",
+    "long_name": "Glarea_lozoyensis_strain_ATCC_74030_GLAL7"
+  },
+  {
+    "code": "GLAPT",
+    "long_name": "Glareola_pratincola_GLAPT"
+  },
+  {
+    "code": "GLABR",
+    "long_name": "Glaucidium_brasilianum_GLABR"
+  },
+  {
+    "code": "GLOUD",
+    "long_name": "Globisporangium_ultimum_GLOUD"
+  },
+  {
+    "code": "GLORO",
+    "long_name": "Globodera_rostochiensis_GLORO"
+  },
+  {
+    "code": "GLOK1",
+    "long_name": "Gloeobacter_kilaueensis_GLOK1"
+  },
+  {
+    "code": "GLOTA",
+    "long_name": "Gloeophyllum_trabeum_GLOTA"
+  },
+  {
+    "code": "GLOC7",
+    "long_name": "Gloeothece_citriformis_GLOC7"
+  },
+  {
+    "code": "GLOV7",
+    "long_name": "Gloeothece_verrucosa_GLOV7"
+  },
+  {
+    "code": "GLYSO",
+    "long_name": "Glycine_soja_GLYSO"
+  },
+  {
+    "code": "GONPJ",
+    "long_name": "Gonapodya_prolifera_GONPJ"
+  },
+  {
+    "code": "GONPE",
+    "long_name": "Gonium_pectorale_GONPE"
+  },
+  {
+    "code": "GORB4",
+    "long_name": "Gordonia_bronchialis_GORB4"
+  },
+  {
+    "code": "GORPV",
+    "long_name": "Gordonia_polyisoprenivorans_GORPV"
+  },
+  {
+    "code": "GOSAR",
+    "long_name": "Gossypium_arboreum_GOSAR"
+  },
+  {
+    "code": "GOSAI",
+    "long_name": "Gossypium_aridum_GOSAI"
+  },
+  {
+    "code": "GOSBA",
+    "long_name": "Gossypium_barbadense_GOSBA"
+  },
+  {
+    "code": "GOSDV",
+    "long_name": "Gossypium_davidsonii_GOSDV"
+  },
+  {
+    "code": "GOSGO",
+    "long_name": "Gossypium_gossypioides_GOSGO"
+  },
+  {
+    "code": "GOSMU",
+    "long_name": "Gossypium_mustelinum_GOSMU"
+  },
+  {
+    "code": "GOSRA",
+    "long_name": "Gossypium_raimondii_GOSRA"
+  },
+  {
+    "code": "GOSSC",
+    "long_name": "Gossypium_schwendimanii_GOSSC"
+  },
+  {
+    "code": "GRAMM",
+    "long_name": "Granulicella_mallensis_GRAMM"
+  },
+  {
+    "code": "GRATM",
+    "long_name": "Granulicella_tundricola_GRATM"
+  },
+  {
+    "code": "GRENI",
+    "long_name": "Gregarina_niphandrodes_GRENI"
+  },
+  {
+    "code": "GRIFR",
+    "long_name": "Grifola_frondosa_GRIFR"
+  },
+  {
+    "code": "GROCL",
+    "long_name": "Grosmannia_clavigera_GROCL"
+  },
+  {
+    "code": "GRUAM",
+    "long_name": "Grus_americana_GRUAM"
+  },
+  {
+    "code": "GUITC",
+    "long_name": "Guillardia_theta_GUITC"
+  },
+  {
+    "code": "GYMAC",
+    "long_name": "Gymnodraco_acuticeps_GYMAC"
+  },
+  {
+    "code": "GYMJU",
+    "long_name": "Gymnopilus_junonius_GYMJU"
+  },
+  {
+    "code": "GYMTI",
+    "long_name": "Gymnorhina_tibicen_GYMTI"
+  },
+  {
+    "code": "HAELO",
+    "long_name": "Haemaphysalis_longicornis_HAELO"
+  },
+  {
+    "code": "HAELA",
+    "long_name": "Haematococcus_lacustris_HAELA"
+  },
+  {
+    "code": "HAEPC",
+    "long_name": "Haemonchus_placei_HAEPC"
+  },
+  {
+    "code": "HAHCH",
+    "long_name": "Hahella_chejuensis_HAHCH"
+  },
+  {
+    "code": "HALA3",
+    "long_name": "Halalkalibacter_akibai_HALA3"
+  },
+  {
+    "code": "HALAL",
+    "long_name": "Haliaeetus_albicilla_HALAL"
+  },
+  {
+    "code": "HALO1",
+    "long_name": "Haliangium_ochraceum_HALO1"
+  },
+  {
+    "code": "HALH1",
+    "long_name": "Haliscomenobacter_hydrossis_HALH1"
+  },
+  {
+    "code": "HALMA",
+    "long_name": "Haloarcula_marismortui_HALMA"
+  },
+  {
+    "code": "HALH3",
+    "long_name": "Halobacillus_halophilus_HALH3"
+  },
+  {
+    "code": "HALAF",
+    "long_name": "Halomonas_anticariensis_HALAF"
+  },
+  {
+    "code": "HALXS",
+    "long_name": "Halopiger_xanaduensis_HALXS"
+  },
+  {
+    "code": "HALGN",
+    "long_name": "Halteria_grandinella_HALGN"
+  },
+  {
+    "code": "HANUV",
+    "long_name": "Hanseniaspora_uvarum_HANUV"
+  },
+  {
+    "code": "HAPBU",
+    "long_name": "Haplochromis_burtoni_HAPBU"
+  },
+  {
+    "code": "HAPC1",
+    "long_name": "Hapsidospora_chrysogenum_HAPC1"
+  },
+  {
+    "code": "HARSA",
+    "long_name": "Harpegnathos_saltator_HARSA"
+  },
+  {
+    "code": "HELAM",
+    "long_name": "Helicoverpa_armigera_HELAM"
+  },
+  {
+    "code": "HELVI",
+    "long_name": "Heliothis_virescens_HELVI"
+  },
+  {
+    "code": "HERSS",
+    "long_name": "Herbaspirillum_seropedicae_HERSS"
+  },
+  {
+    "code": "HERIL",
+    "long_name": "Hermetia_illucens_HERIL"
+  },
+  {
+    "code": "HERCA",
+    "long_name": "Herpetotheres_cachinnans_HERCA"
+  },
+  {
+    "code": "HETIT",
+    "long_name": "Heterobasidion_irregulare_HETIT"
+  },
+  {
+    "code": "HETGA",
+    "long_name": "Heterocephalus_glaber_HETGA"
+  },
+  {
+    "code": "HETP5",
+    "long_name": "Heterostelium_pallidum_HETP5"
+  },
+  {
+    "code": "HEVBR",
+    "long_name": "Hevea_brasiliensis_HEVBR"
+  },
+  {
+    "code": "HIBSY",
+    "long_name": "Hibiscus_syriacus_HIBSY"
+  },
+  {
+    "code": "HIBTR",
+    "long_name": "Hibiscus_trionum_HIBTR"
+  },
+  {
+    "code": "HIMHI",
+    "long_name": "Himantopus_himantopus_HIMHI"
+  },
+  {
+    "code": "HIPAR",
+    "long_name": "Hipposideros_armiger_HIPAR"
+  },
+  {
+    "code": "HIRRU",
+    "long_name": "Hirundo_rustica_HIRRU"
+  },
+  {
+    "code": "HOEPD",
+    "long_name": "Hoeflea_phototrophica_HOEPD"
+  },
+  {
+    "code": "HOLLE",
+    "long_name": "Holothuria_leucospilota_HOLLE"
+  },
+  {
+    "code": "HOMAM",
+    "long_name": "Homarus_americanus_HOMAM"
+  },
+  {
+    "code": "HORWE",
+    "long_name": "Hortaea_werneckii_HORWE"
+  },
+  {
+    "code": "HOYSD",
+    "long_name": "Hoyosella_subflava_HOYSD"
+  },
+  {
+    "code": "HYAAZ",
+    "long_name": "Hyalella_azteca_HYAAZ"
+  },
+  {
+    "code": "HYAAE",
+    "long_name": "Hyaloperonospora_arabidopsidis_HYAAE"
+  },
+  {
+    "code": "HYAVF",
+    "long_name": "Hyaloscypha_variabilis_HYAVF"
+  },
+  {
+    "code": "HYDTA",
+    "long_name": "Hydatigena_taeniaeformis_HYDTA"
+  },
+  {
+    "code": "HYDVU",
+    "long_name": "Hydra_vulgaris_HYDVU"
+  },
+  {
+    "code": "HYDET",
+    "long_name": "Hydrogenispora_ethanolica_HYDET"
+  },
+  {
+    "code": "HYMDI",
+    "long_name": "Hymenolepis_diminuta_HYMDI"
+  },
+  {
+    "code": "HYPSF",
+    "long_name": "Hypholoma_sublateritium_HYPSF"
+  },
+  {
+    "code": "HYPSM",
+    "long_name": "Hyphomicrobium_sp_HYPSM"
+  },
+  {
+    "code": "HYPAI",
+    "long_name": "Hypocrea_atroviridis_HYPAI"
+  },
+  {
+    "code": "HYPJQ",
+    "long_name": "Hypocrea_jecorina_HYPJQ"
+  },
+  {
+    "code": "HYPVG",
+    "long_name": "Hypocrea_virens_HYPVG"
+  },
+  {
+    "code": "HYPEX",
+    "long_name": "Hypsibius_exemplaris_HYPEX"
+  },
+  {
+    "code": "HYPMA",
+    "long_name": "Hypsizygus_marmoreus_HYPMA"
+  },
+  {
+    "code": "ICHMU",
+    "long_name": "Ichthyophthirius_multifiliis_ICHMU"
+  },
+  {
+    "code": "ICTTR",
+    "long_name": "Ictidomys_tridecemlineatus_ICTTR"
+  },
+  {
+    "code": "IDEDE",
+    "long_name": "Ideonella_dechloratans_IDEDE"
+  },
+  {
+    "code": "IDESA",
+    "long_name": "Ideonella_sakaiensis_IDESA"
+  },
+  {
+    "code": "ILUCY",
+    "long_name": "Ilumatobacter_coccineus_ILUCY"
+  },
+  {
+    "code": "INDAL",
+    "long_name": "Indibacter_alkaliphilus_INDAL"
+  },
+  {
+    "code": "IRECY",
+    "long_name": "Irena_cyanogastra_IRECY"
+  },
+  {
+    "code": "JACJC",
+    "long_name": "Jacana_jacana_JACJC"
+  },
+  {
+    "code": "JACJA",
+    "long_name": "Jaculus_jaculus_JACJA"
+  },
+  {
+    "code": "JANSC",
+    "long_name": "Jannaschia_sp_JANSC"
+  },
+  {
+    "code": "JATCU",
+    "long_name": "Jatropha_curcas_JATCU"
+  },
+  {
+    "code": "JUNHY",
+    "long_name": "Junco_hyemalis_JUNHY"
+  },
+  {
+    "code": "KALFE",
+    "long_name": "Kalanchoe_fedtschenkoi_KALFE"
+  },
+  {
+    "code": "KALBG",
+    "long_name": "Kalmanozyma_brasiliensis_KALBG"
+  },
+  {
+    "code": "KAZAF",
+    "long_name": "Kazachstania_africana_KAZAF"
+  },
+  {
+    "code": "KAZNA",
+    "long_name": "Kazachstania_naganishii_KAZNA"
+  },
+  {
+    "code": "KIBAR",
+    "long_name": "Kibdelosporangium_aridum_KIBAR"
+  },
+  {
+    "code": "KINRD",
+    "long_name": "Kineococcus_radiotolerans_KINRD"
+  },
+  {
+    "code": "KITAU",
+    "long_name": "Kitasatospora_aureofaciens_KITAU"
+  },
+  {
+    "code": "KITGR",
+    "long_name": "Kitasatospora_griseola_KITGR"
+  },
+  {
+    "code": "KITKI",
+    "long_name": "Kitasatospora_kifunensis_KITKI"
+  },
+  {
+    "code": "KITSK",
+    "long_name": "Kitasatospora_setae_KITSK"
+  },
+  {
+    "code": "KLEPO",
+    "long_name": "Klebsiella_pneumoniae_subsp_ozaenae_KLEPO"
+  },
+  {
+    "code": "KLEPH",
+    "long_name": "Klebsiella_pneumoniae_subsp_pneumoniae_KLEPH"
+  },
+  {
+    "code": "KLEVA",
+    "long_name": "Klebsiella_variicola_KLEVA"
+  },
+  {
+    "code": "KLUCR",
+    "long_name": "Kluyvera_cryocrescens_KLUCR"
+  },
+  {
+    "code": "KLULA",
+    "long_name": "Kluyveromyces_lactis_KLULA"
+  },
+  {
+    "code": "KOMPG",
+    "long_name": "Komagataella_phaffii_KOMPG"
+  },
+  {
+    "code": "KORVE",
+    "long_name": "Koribacter_versatilis_KORVE"
+  },
+  {
+    "code": "KRIFD",
+    "long_name": "Kribbella_flavida_KRIFD"
+  },
+  {
+    "code": "KRYMA",
+    "long_name": "Kryptolebias_marmoratus_KRYMA"
+  },
+  {
+    "code": "KTERU",
+    "long_name": "Ktedonosporobacter_rubrisoli_KTERU"
+  },
+  {
+    "code": "KUTS7",
+    "long_name": "Kutzneria_sp_KUTS7"
+  },
+  {
+    "code": "LABRH",
+    "long_name": "Labedaea_rhizosphaerae_LABRH"
+  },
+  {
+    "code": "LABRO",
+    "long_name": "Labeo_rohita_LABRO"
+  },
+  {
+    "code": "LACBS",
+    "long_name": "Laccaria_bicolor_LACBS"
+  },
+  {
+    "code": "LACFM",
+    "long_name": "Lachancea_fermentati_LACFM"
+  },
+  {
+    "code": "LACTC",
+    "long_name": "Lachancea_thermotolerans_LACTC"
+  },
+  {
+    "code": "LADFU",
+    "long_name": "Ladona_fulva_LADFU"
+  },
+  {
+    "code": "LANLU",
+    "long_name": "Lanius_ludovicianus_LANLU"
+  },
+  {
+    "code": "LAOST",
+    "long_name": "Laodelphax_striatellus_LAOST"
+  },
+  {
+    "code": "LARCR",
+    "long_name": "Larimichthys_crocea_LARCR"
+  },
+  {
+    "code": "LASNI",
+    "long_name": "Lasius_niger_LASNI"
+  },
+  {
+    "code": "LATCA",
+    "long_name": "Lates_calcarifer_LATCA"
+  },
+  {
+    "code": "LATLA",
+    "long_name": "Laticauda_laticaudata_LATLA"
+  },
+  {
+    "code": "LATCH",
+    "long_name": "Latimeria_chalumnae_LATCH"
+  },
+  {
+    "code": "LEDLE",
+    "long_name": "Lederbergia_lenta_LEDLE"
+  },
+  {
+    "code": "LEILU",
+    "long_name": "Leiothrix_lutea_LEILU"
+  },
+  {
+    "code": "LEIBR",
+    "long_name": "Leishmania_braziliensis_LEIBR"
+  },
+  {
+    "code": "LEIIN",
+    "long_name": "Leishmania_infantum_LEIIN"
+  },
+  {
+    "code": "LENAE",
+    "long_name": "Lentzea_aerocolonigenes_LENAE"
+  },
+  {
+    "code": "LEPSM",
+    "long_name": "Lepeophtheirus_salmonis_LEPSM"
+  },
+  {
+    "code": "LEPPY",
+    "long_name": "Leptomonas_pyrrhocoris_LEPPY"
+  },
+  {
+    "code": "LEPWE",
+    "long_name": "Leptonychotes_weddellii_LEPWE"
+  },
+  {
+    "code": "LEPDC",
+    "long_name": "Leptosomus_discolor_LEPDC"
+  },
+  {
+    "code": "LEPMJ",
+    "long_name": "Leptosphaeria_maculans_LEPMJ"
+  },
+  {
+    "code": "LEPCP",
+    "long_name": "Leptothrix_cholodnii_LEPCP"
+  },
+  {
+    "code": "LEURO",
+    "long_name": "Leucopsar_rothschildi_LEURO"
+  },
+  {
+    "code": "LINUN",
+    "long_name": "Lingula_unguis_LINUN"
+  },
+  {
+    "code": "LIPVE",
+    "long_name": "Lipotes_vexillifer_LIPVE"
+  },
+  {
+    "code": "LITSI",
+    "long_name": "Litomosoides_sigmodontis_LITSI"
+  },
+  {
+    "code": "LOALO",
+    "long_name": "Loa_loa_LOALO"
+  },
+  {
+    "code": "LODEL",
+    "long_name": "Lodderomyces_elongisporus_LODEL"
+  },
+  {
+    "code": "LOTGI",
+    "long_name": "Lottia_gigantea_LOTGI"
+  },
+  {
+    "code": "LOXCU",
+    "long_name": "Loxia_curvirostra_LOXCU"
+  },
+  {
+    "code": "LOXAF",
+    "long_name": "Loxodonta_africana_LOXAF"
+  },
+  {
+    "code": "LUCCU",
+    "long_name": "Lucilia_cuprina_LUCCU"
+  },
+  {
+    "code": "LUPAL",
+    "long_name": "Lupinus_albus_LUPAL"
+  },
+  {
+    "code": "LUPAN",
+    "long_name": "Lupinus_angustifolius_LUPAN"
+  },
+  {
+    "code": "LUTPR",
+    "long_name": "Luteitalea_pratensis_LUTPR"
+  },
+  {
+    "code": "LYNSP",
+    "long_name": "Lyngbya_sp_LYNSP"
+  },
+  {
+    "code": "LYNCA",
+    "long_name": "Lynx_canadensis_LYNCA"
+  },
+  {
+    "code": "LYNPA",
+    "long_name": "Lynx_pardinus_LYNPA"
+  },
+  {
+    "code": "LYOSH",
+    "long_name": "Lyophyllum_shimeji_LYOSH"
+  },
+  {
+    "code": "LYSSH",
+    "long_name": "Lysinibacillus_sphaericus_LYSSH"
+  },
+  {
+    "code": "LYSAN",
+    "long_name": "Lysobacter_antibioticus_LYSAN"
+  },
+  {
+    "code": "LYSEN",
+    "long_name": "Lysobacter_enzymogenes_LYSEN"
+  },
+  {
+    "code": "MACFA",
+    "long_name": "Macaca_fascicularis_MACFA"
+  },
+  {
+    "code": "MACNE",
+    "long_name": "Macaca_nemestrina_MACNE"
+  },
+  {
+    "code": "MACPH",
+    "long_name": "Macrophomina_phaseolina_MACPH"
+  },
+  {
+    "code": "MAGP6",
+    "long_name": "Magnaporthiopsis_poae_MAGP6"
+  },
+  {
+    "code": "MAGGM",
+    "long_name": "Magnetospirillum_gryphiswaldense_MAGGM"
+  },
+  {
+    "code": "MAGSA",
+    "long_name": "Magnetospirillum_magneticum_MAGSA"
+  },
+  {
+    "code": "MALGO",
+    "long_name": "Malassezia_globosa_MALGO"
+  },
+  {
+    "code": "MALR7",
+    "long_name": "Malassezia_restricta_MALR7"
+  },
+  {
+    "code": "MALS4",
+    "long_name": "Malassezia_sympodialis_MALS4"
+  },
+  {
+    "code": "MALBA",
+    "long_name": "Malus_baccata_MALBA"
+  },
+  {
+    "code": "MALDO",
+    "long_name": "Malus_domestica_MALDO"
+  },
+  {
+    "code": "MANLE",
+    "long_name": "Mandrillus_leucophaeus_MANLE"
+  },
+  {
+    "code": "MANSE",
+    "long_name": "Manduca_sexta_MANSE"
+  },
+  {
+    "code": "MARM1",
+    "long_name": "Marinomonas_mediterranea_MARM1"
+  },
+  {
+    "code": "MARMA",
+    "long_name": "Marmota_marmota_marmota_MARMA"
+  },
+  {
+    "code": "MARMO",
+    "long_name": "Marmota_monax_MARMO"
+  },
+  {
+    "code": "MARBU",
+    "long_name": "Marssonina_brunnea_f_sp_multigermtubi_MARBU"
+  },
+  {
+    "code": "MAREN",
+    "long_name": "Martelella_endophytica_MAREN"
+  },
+  {
+    "code": "MEGAT",
+    "long_name": "Megalops_atlanticus_MEGAT"
+  },
+  {
+    "code": "MEGSC",
+    "long_name": "Megaselia_scalaris_MEGSC"
+  },
+  {
+    "code": "MELLP",
+    "long_name": "Melampsora_larici-populina_MELLP"
+  },
+  {
+    "code": "MELGA",
+    "long_name": "Meleagris_gallopavo_MELGA"
+  },
+  {
+    "code": "MELIC",
+    "long_name": "Meloidogyne_incognita_MELIC"
+  },
+  {
+    "code": "MELJA",
+    "long_name": "Meloidogyne_javanica_MELJA"
+  },
+  {
+    "code": "MELUD",
+    "long_name": "Melopsittacus_undulatus_MELUD"
+  },
+  {
+    "code": "MELMO",
+    "long_name": "Melospiza_melodia_MELMO"
+  },
+  {
+    "code": "MERNU",
+    "long_name": "Merops_nubicus_MERNU"
+  },
+  {
+    "code": "MESCO",
+    "long_name": "Mesocestoides_corti_MESCO"
+  },
+  {
+    "code": "MESAU",
+    "long_name": "Mesocricetus_auratus_MESAU"
+  },
+  {
+    "code": "MESAW",
+    "long_name": "Mesorhizobium_australicum_MESAW"
+  },
+  {
+    "code": "METAQ",
+    "long_name": "Metarhizium_acridum_METAQ"
+  },
+  {
+    "code": "METAS",
+    "long_name": "Metarhizium_album_METAS"
+  },
+  {
+    "code": "METMF",
+    "long_name": "Metarhizium_majus_METMF"
+  },
+  {
+    "code": "METRR",
+    "long_name": "Metarhizium_rileyi_METRR"
+  },
+  {
+    "code": "METPP",
+    "long_name": "Methylibium_petroleiphilum_METPP"
+  },
+  {
+    "code": "METTV",
+    "long_name": "Methylobacter_tundripaludum_METTV"
+  },
+  {
+    "code": "METNO",
+    "long_name": "Methylobacterium_nodulans_METNO"
+  },
+  {
+    "code": "METTU",
+    "long_name": "Methylocella_tundrae_METTU"
+  },
+  {
+    "code": "METMM",
+    "long_name": "Methylomonas_methanica_METMM"
+  },
+  {
+    "code": "METSD",
+    "long_name": "Methylomonas_sp_METSD"
+  },
+  {
+    "code": "METEA",
+    "long_name": "Methylorubrum_extorquens_METEA"
+  },
+  {
+    "code": "META2",
+    "long_name": "Methylotuvimicrobium_alcaliphilum_META2"
+  },
+  {
+    "code": "PICGU",
+    "long_name": "Meyerozyma_guilliermondii_PICGU"
+  },
+  {
+    "code": "MICSX",
+    "long_name": "Microbacterium_sp._MICSX"
+  },
+  {
+    "code": "USTV1",
+    "long_name": "Microbotryum_lychnidis-dioicae_USTV1"
+  },
+  {
+    "code": "MICMU",
+    "long_name": "Microcebus_murinus_MICMU"
+  },
+  {
+    "code": "MICPN",
+    "long_name": "Microlunatus_phosphovorus_MICPN"
+  },
+  {
+    "code": "MICCC",
+    "long_name": "Micromonas_commoda_MICCC"
+  },
+  {
+    "code": "MICPC",
+    "long_name": "Micromonas_pusilla_MICPC"
+  },
+  {
+    "code": "MICAI",
+    "long_name": "Micromonospora_aurantiaca_MICAI"
+  },
+  {
+    "code": "MICEH",
+    "long_name": "Micromonospora_echinofusca_MICEH"
+  },
+  {
+    "code": "MICM1",
+    "long_name": "Micromonospora_maris_MICM1"
+  },
+  {
+    "code": "MICOL",
+    "long_name": "Micromonospora_olivasterospora_MICOL"
+  },
+  {
+    "code": "MICS3",
+    "long_name": "Micromonospora_sp_MICS3"
+  },
+  {
+    "code": "MICOH",
+    "long_name": "Microtus_ochrogaster_MICOH"
+  },
+  {
+    "code": "MIXOS",
+    "long_name": "Mixia_osmundae_MIXOS"
+  },
+  {
+    "code": "MIZYE",
+    "long_name": "Mizuhopecten_yessoensis_MIZYE"
+  },
+  {
+    "code": "MOLML",
+    "long_name": "Mola_mola_MOLML"
+  },
+  {
+    "code": "MOLSC",
+    "long_name": "Mollisia_scopiformis_MOLSC"
+  },
+  {
+    "code": "MOLMO",
+    "long_name": "Molossus_molossus_MOLMO"
+  },
+  {
+    "code": "MOLAT",
+    "long_name": "Molothrus_ater_MOLAT"
+  },
+  {
+    "code": "MOMCH",
+    "long_name": "Momordica_charantia_MOMCH"
+  },
+  {
+    "code": "MONPU",
+    "long_name": "Monascus_purpureus_MONPU"
+  },
+  {
+    "code": "MONFR",
+    "long_name": "Monilinia_fructicola_MONFR"
+  },
+  {
+    "code": "MONLA",
+    "long_name": "Monilinia_laxa_MONLA"
+  },
+  {
+    "code": "MONPE",
+    "long_name": "Moniliophthora_perniciosa_MONPE"
+  },
+  {
+    "code": "MONRO",
+    "long_name": "Moniliophthora_roreri_MONRO"
+  },
+  {
+    "code": "MONMO",
+    "long_name": "Monodon_monoceros_MONMO"
+  },
+  {
+    "code": "MORAP",
+    "long_name": "Mortierella_alpina_MORAP"
+  },
+  {
+    "code": "MORIS",
+    "long_name": "Mortierella_isabellina_MORIS"
+  },
+  {
+    "code": "MOSMO",
+    "long_name": "Moschus_moschiferus_MOSMO"
+  },
+  {
+    "code": "MOTAL",
+    "long_name": "Motacilla_alba_MOTAL"
+  },
+  {
+    "code": "MUCC1",
+    "long_name": "Mucor_circinelloides_f_circinelloides_MUCC1"
+  },
+  {
+    "code": "MUNRE",
+    "long_name": "Muntiacus_reevesi_MUNRE"
+  },
+  {
+    "code": "MUSSI",
+    "long_name": "Mus_spicilegus_MUSSI"
+  },
+  {
+    "code": "MUSBA",
+    "long_name": "Musa_balbisiana_MUSBA"
+  },
+  {
+    "code": "MUSDO",
+    "long_name": "Musca_domestica_MUSDO"
+  },
+  {
+    "code": "MUSPF",
+    "long_name": "Mustela_putorius_furo_MUSPF"
+  },
+  {
+    "code": "MYCCL",
+    "long_name": "Mycena_chlorophos_MYCCL"
+  },
+  {
+    "code": "MYCAS",
+    "long_name": "Mycobacterium_asiaticum_MYCAS"
+  },
+  {
+    "code": "MYCBE",
+    "long_name": "Mycobacterium_bohemicum_MYCBE"
+  },
+  {
+    "code": "MYCGO",
+    "long_name": "Mycobacterium_gordonae_MYCGO"
+  },
+  {
+    "code": "MYCHE",
+    "long_name": "Mycobacterium_heidelbergense_MYCHE"
+  },
+  {
+    "code": "MYCIE",
+    "long_name": "Mycobacterium_intermedium_MYCIE"
+  },
+  {
+    "code": "MYCKA",
+    "long_name": "Mycobacterium_kansasii_MYCKA"
+  },
+  {
+    "code": "MYCMM",
+    "long_name": "Mycobacterium_marinum_MYCMM"
+  },
+  {
+    "code": "MYCTE",
+    "long_name": "Mycobacterium_tuberculosis_strain_ATCC_35801_MYCTE"
+  },
+  {
+    "code": "MYCTO",
+    "long_name": "Mycobacterium_tuberculosis_strain_CDC_1551_MYCTO"
+  },
+  {
+    "code": "MYCSD",
+    "long_name": "Mycolicibacter_sinensis_MYCSD"
+  },
+  {
+    "code": "MYCAG",
+    "long_name": "Mycolicibacterium_agri_MYCAG"
+  },
+  {
+    "code": "MYCAU",
+    "long_name": "Mycolicibacterium_aurum_MYCAU"
+  },
+  {
+    "code": "MYCCI",
+    "long_name": "Mycolicibacterium_chitae_MYCCI"
+  },
+  {
+    "code": "MYCCU",
+    "long_name": "Mycolicibacterium_chubuense_MYCCU"
+  },
+  {
+    "code": "MYCCN",
+    "long_name": "Mycolicibacterium_chubuense_strain_NBB4_MYCCN"
+  },
+  {
+    "code": "MYCCO",
+    "long_name": "Mycolicibacterium_cosmeticum_MYCCO"
+  },
+  {
+    "code": "MYCFO",
+    "long_name": "Mycolicibacterium_fortuitum_MYCFO"
+  },
+  {
+    "code": "MYCHD",
+    "long_name": "Mycolicibacterium_hassiacum_MYCHD"
+  },
+  {
+    "code": "MYCPA",
+    "long_name": "Mycolicibacterium_paratuberculosis_MYCPA"
+  },
+  {
+    "code": "MYCRN",
+    "long_name": "Mycolicibacterium_rhodesiae_MYCRN"
+  },
+  {
+    "code": "MYCS2",
+    "long_name": "Mycolicibacterium_smegmatis_MYCS2"
+  },
+  {
+    "code": "MYCT3",
+    "long_name": "Mycolicibacterium_thermoresistibile_MYCT3"
+  },
+  {
+    "code": "MYCVN",
+    "long_name": "Mycolicibacterium_vanbaalenii_MYCVN"
+  },
+  {
+    "code": "MYCVP",
+    "long_name": "Mycolicibacterium_vanbaalenii_strain_DSM_7251_MYCVP"
+  },
+  {
+    "code": "MYCDI",
+    "long_name": "Mycoplana_dimorpha_MYCDI"
+  },
+  {
+    "code": "MYOBR",
+    "long_name": "Myotis_brandtii_MYOBR"
+  },
+  {
+    "code": "MYODS",
+    "long_name": "Myotis_davidii_MYODS"
+  },
+  {
+    "code": "MYOLU",
+    "long_name": "Myotis_lucifugus_MYOLU"
+  },
+  {
+    "code": "MYOMY",
+    "long_name": "Myotis_myotis_MYOMY"
+  },
+  {
+    "code": "MYTCO",
+    "long_name": "Mytilus_coruscus_MYTCO"
+  },
+  {
+    "code": "MYTED",
+    "long_name": "Mytilus_edulis_MYTED"
+  },
+  {
+    "code": "MYTGA",
+    "long_name": "Mytilus_galloprovincialis_MYTGA"
+  },
+  {
+    "code": "UNCMY",
+    "long_name": "Myxococcales_bacterium_UNCMY"
+  },
+  {
+    "code": "MYXXD",
+    "long_name": "Myxococcus_xanthus_MYXXD"
+  },
+  {
+    "code": "NAEFO",
+    "long_name": "Naegleria_fowleri_NAEFO"
+  },
+  {
+    "code": "NAEGR",
+    "long_name": "Naegleria_gruberi_NAEGR"
+  },
+  {
+    "code": "NAJNA",
+    "long_name": "Naja_naja_NAJNA"
+  },
+  {
+    "code": "NAKMY",
+    "long_name": "Nakamurella_multipartita_NAKMY"
+  },
+  {
+    "code": "NANGA",
+    "long_name": "Nannospalax_galili_NANGA"
+  },
+  {
+    "code": "NASVI",
+    "long_name": "Nasonia_vitripennis_NASVI"
+  },
+  {
+    "code": "NATA1",
+    "long_name": "Natrialba_asiatica_NATA1"
+  },
+  {
+    "code": "NATMM",
+    "long_name": "Natrialba_magadii_NATMM"
+  },
+  {
+    "code": "NAUCC",
+    "long_name": "Naumovozyma_castellii_NAUCC"
+  },
+  {
+    "code": "NAUDC",
+    "long_name": "Naumovozyma_dairenensis_NAUDC"
+  },
+  {
+    "code": "NECAM",
+    "long_name": "Necator_americanus_NECAM"
+  },
+  {
+    "code": "NEOLC",
+    "long_name": "Neodiprion_lecontei_NEOLC"
+  },
+  {
+    "code": "NEOBR",
+    "long_name": "Neolamprologus_brichardi_NEOBR"
+  },
+  {
+    "code": "NEOID",
+    "long_name": "Neolecta_irregularis_NEOID"
+  },
+  {
+    "code": "NEOSC",
+    "long_name": "Neomonachus_schauinslandi_NEOSC"
+  },
+  {
+    "code": "NEOAA",
+    "long_name": "Neophocaena_asiaeorientalis_asiaeorientalis_NEOAA"
+  },
+  {
+    "code": "NEOFI",
+    "long_name": "Neosartorya_fischeri_NEOFI"
+  },
+  {
+    "code": "NEOCL",
+    "long_name": "Neospora_caninum_NEOCL"
+  },
+  {
+    "code": "NEOLE",
+    "long_name": "Neotoma_lepida_NEOLE"
+  },
+  {
+    "code": "NEOVI",
+    "long_name": "Neovison_vison_NEOVI"
+  },
+  {
+    "code": "NEPPI",
+    "long_name": "Nephila_pilipes_NEPPI"
+  },
+  {
+    "code": "NESNO",
+    "long_name": "Nestor_notabilis_NESNO"
+  },
+  {
+    "code": "NEUT9",
+    "long_name": "Neurospora_tetrasperma_NEUT9"
+  },
+  {
+    "code": "NEZVI",
+    "long_name": "Nezara_viridula_NEZVI"
+  },
+  {
+    "code": "NIADE",
+    "long_name": "Niabella_drilacis_NIADE"
+  },
+  {
+    "code": "NIACI",
+    "long_name": "Niallia_circulans_NIACI"
+  },
+  {
+    "code": "NICAT",
+    "long_name": "Nicotiana_attenuata_NICAT"
+  },
+  {
+    "code": "NICSY",
+    "long_name": "Nicotiana_sylvestris_NICSY"
+  },
+  {
+    "code": "NIPNI",
+    "long_name": "Nipponia_nippon_NIPNI"
+  },
+  {
+    "code": "NIPBR",
+    "long_name": "Nippostrongylus_brasiliensis_NIPBR"
+  },
+  {
+    "code": "NITHX",
+    "long_name": "Nitrobacter_hamburgensis_NITHX"
+  },
+  {
+    "code": "NITMO",
+    "long_name": "Nitrospira_moscoviensis_NITMO"
+  },
+  {
+    "code": "NOCB7",
+    "long_name": "Nocardia_brasiliensis_NOCB7"
+  },
+  {
+    "code": "NOCCG",
+    "long_name": "Nocardia_cyriacigeorgica_NOCCG"
+  },
+  {
+    "code": "NOCFA",
+    "long_name": "Nocardia_farcinica_NOCFA"
+  },
+  {
+    "code": "NOCSI",
+    "long_name": "Nocardioides_simplex_NOCSI"
+  },
+  {
+    "code": "NOCSJ",
+    "long_name": "Nocardioides_sp_NOCSJ"
+  },
+  {
+    "code": "NOCAA",
+    "long_name": "Nocardiopsis_alba_NOCAA"
+  },
+  {
+    "code": "NOCDD",
+    "long_name": "Nocardiopsis_dassonvillei_NOCDD"
+  },
+  {
+    "code": "NOMLE",
+    "long_name": "Nomascus_leucogenys_NOMLE"
+  },
+  {
+    "code": "NOSB1",
+    "long_name": "Nosema_bombycis_NOSB1"
+  },
+  {
+    "code": "NOSP7",
+    "long_name": "Nostoc_punctiforme_NOSP7"
+  },
+  {
+    "code": "NOSS7",
+    "long_name": "Nostoc_sp_strain_ATCC_29411_NOSS7"
+  },
+  {
+    "code": "NOSS1",
+    "long_name": "Nostoc_sp_strain_PCC_7120_NOSS1"
+  },
+  {
+    "code": "NOTFU",
+    "long_name": "Nothobranchius_furzeri_NOTFU"
+  },
+  {
+    "code": "NOTPE",
+    "long_name": "Nothoprocta_perdicaria_NOTPE"
+  },
+  {
+    "code": "NYCPR",
+    "long_name": "Nyctereutes_procyonoides_NYCPR"
+  },
+  {
+    "code": "NYCGR",
+    "long_name": "Nyctibius_grandis_NYCGR"
+  },
+  {
+    "code": "OCEOC",
+    "long_name": "Oceanites_oceanicus_OCEOC"
+  },
+  {
+    "code": "OCETE",
+    "long_name": "Oceanodroma_tethys_OCETE"
+  },
+  {
+    "code": "OCTDE",
+    "long_name": "Octodon_degus_OCTDE"
+  },
+  {
+    "code": "OCTVU",
+    "long_name": "Octopus_vulgaris_OCTVU"
+  },
+  {
+    "code": "ODORO",
+    "long_name": "Odobenus_rosmarus_divergens_ODORO"
+  },
+  {
+    "code": "OENON",
+    "long_name": "Oenanthe_oenanthe_OENON"
+  },
+  {
+    "code": "OESDE",
+    "long_name": "Oesophagostomum_dentatum_OESDE"
+  },
+  {
+    "code": "OGAPD",
+    "long_name": "Ogataea_parapolymorpha_OGAPD"
+  },
+  {
+    "code": "OIDMZ",
+    "long_name": "Oidiodendron_maius_OIDMZ"
+  },
+  {
+    "code": "OIKDI",
+    "long_name": "Oikopleura_dioica_OIKDI"
+  },
+  {
+    "code": "ONCOC",
+    "long_name": "Onchocerca_ochengi_ONCOC"
+  },
+  {
+    "code": "ONCVO",
+    "long_name": "Onchocerca_volvulus_ONCVO"
+  },
+  {
+    "code": "ONCKI",
+    "long_name": "Oncorhynchus_kisutch_ONCKI"
+  },
+  {
+    "code": "ONCMY",
+    "long_name": "Oncorhynchus_mykiss_ONCMY"
+  },
+  {
+    "code": "ONCTS",
+    "long_name": "Oncorhynchus_tshawytscha_ONCTS"
+  },
+  {
+    "code": "ONYCO",
+    "long_name": "Onychorhynchus_coronatus_ONYCO"
+  },
+  {
+    "code": "OOCBI",
+    "long_name": "Ooceraea_biroi_OOCBI"
+  },
+  {
+    "code": "OPEBR",
+    "long_name": "Operophtera_brumata_OPEBR"
+  },
+  {
+    "code": "OPHSC",
+    "long_name": "Ophiocordyceps_sinensis_OPHSC"
+  },
+  {
+    "code": "OPHUN",
+    "long_name": "Ophiocordyceps_unilateralis_OPHUN"
+  },
+  {
+    "code": "OPHHA",
+    "long_name": "Ophiophagus_hannah_OPHHA"
+  },
+  {
+    "code": "OPHP1",
+    "long_name": "Ophiostoma_piceae_OPHP1"
+  },
+  {
+    "code": "OPIHO",
+    "long_name": "Opisthocomus_hoazin_OPIHO"
+  },
+  {
+    "code": "OPIFE",
+    "long_name": "Opisthorchis_felineus_OPIFE"
+  },
+  {
+    "code": "OPITP",
+    "long_name": "Opitutus_terrae_OPITP"
+  },
+  {
+    "code": "ORCCI",
+    "long_name": "Orchesella_cincta_ORCCI"
+  },
+  {
+    "code": "OREAU",
+    "long_name": "Oreochromis_aureus_OREAU"
+  },
+  {
+    "code": "ORENI",
+    "long_name": "Oreochromis_niloticus_ORENI"
+  },
+  {
+    "code": "ORIOR",
+    "long_name": "Oriolus_oriolus_ORIOR"
+  },
+  {
+    "code": "ORTSP",
+    "long_name": "Orthonyx_spaldingii_ORTSP"
+  },
+  {
+    "code": "RABIT",
+    "long_name": "Oryctolagus_cuniculus_RABIT"
+  },
+  {
+    "code": "ORYBR",
+    "long_name": "Oryza_brachyantha_ORYBR"
+  },
+  {
+    "code": "ORYNI",
+    "long_name": "Oryza_nivara_ORYNI"
+  },
+  {
+    "code": "ORYPU",
+    "long_name": "Oryza_punctata_ORYPU"
+  },
+  {
+    "code": "ORYRU",
+    "long_name": "Oryza_rufipogon_ORYRU"
+  },
+  {
+    "code": "ORYSI",
+    "long_name": "Oryza_sativa_subsp_indica_ORYSI"
+  },
+  {
+    "code": "ORYJA",
+    "long_name": "Oryzias_javanicus_ORYJA"
+  },
+  {
+    "code": "ORYME",
+    "long_name": "Oryzias_melastigma_ORYME"
+  },
+  {
+    "code": "OSTLU",
+    "long_name": "Ostreococcus_lucimarinus_OSTLU"
+  },
+  {
+    "code": "OSTTA",
+    "long_name": "Ostreococcus_tauri_OSTTA"
+  },
+  {
+    "code": "OTOGA",
+    "long_name": "Otolemur_garnettii_OTOGA"
+  },
+  {
+    "code": "SHEEP",
+    "long_name": "Ovis_aries_SHEEP"
+  },
+  {
+    "code": "OWEFU",
+    "long_name": "Owenia_fusiformis_OWEFU"
+  },
+  {
+    "code": "PAEAU",
+    "long_name": "Paenarthrobacter_aurescens_PAEAU"
+  },
+  {
+    "code": "PAEDU",
+    "long_name": "Paenibacillus_durus_PAEDU"
+  },
+  {
+    "code": "PAELE",
+    "long_name": "Paenibacillus_lemnae_PAELE"
+  },
+  {
+    "code": "PAEMA",
+    "long_name": "Paenibacillus_macerans_PAEMA"
+  },
+  {
+    "code": "PAEPS",
+    "long_name": "Paenibacillus_polymyxa_PAEPS"
+  },
+  {
+    "code": "PANPA",
+    "long_name": "Pan_paniscus_PANPA"
+  },
+  {
+    "code": "PANRE",
+    "long_name": "Panagrellus_redivivus_PANRE"
+  },
+  {
+    "code": "PANHA",
+    "long_name": "Pandion_haliaetus_PANHA"
+  },
+  {
+    "code": "PANHP",
+    "long_name": "Pangasianodon_hypophthalmus_PANHP"
+  },
+  {
+    "code": "PANMI",
+    "long_name": "Panicum_miliaceum_PANMI"
+  },
+  {
+    "code": "PANVG",
+    "long_name": "Panicum_virgatum_PANVG"
+  },
+  {
+    "code": "PANLE",
+    "long_name": "Panthera_leo_PANLE"
+  },
+  {
+    "code": "PANTA",
+    "long_name": "Panthera_tigris_altaica_PANTA"
+  },
+  {
+    "code": "PANGU",
+    "long_name": "Pantherophis_guttatus_PANGU"
+  },
+  {
+    "code": "PANAM",
+    "long_name": "Pantoea_ananatis_PANAM"
+  },
+  {
+    "code": "PANBI",
+    "long_name": "Panurus_biarmicus_PANBI"
+  },
+  {
+    "code": "PAPSO",
+    "long_name": "Papaver_somniferum_PAPSO"
+  },
+  {
+    "code": "PAPMA",
+    "long_name": "Papilio_machaon_PAPMA"
+  },
+  {
+    "code": "PAPXU",
+    "long_name": "Papilio_xuthus_PAPXU"
+  },
+  {
+    "code": "PAPAN",
+    "long_name": "Papio_anubis_PAPAN"
+  },
+  {
+    "code": "PARG4",
+    "long_name": "Paraburkholderia_graminis_PARG4"
+  },
+  {
+    "code": "PARP8",
+    "long_name": "Paraburkholderia_phymatum_PARP8"
+  },
+  {
+    "code": "PARA1",
+    "long_name": "Paracidovorax_avenae_PARA1"
+  },
+  {
+    "code": "PARBD",
+    "long_name": "Paracoccidioides_brasiliensis_PARBD"
+  },
+  {
+    "code": "PARBA",
+    "long_name": "Paracoccidioides_lutzii_PARBA"
+  },
+  {
+    "code": "PARDP",
+    "long_name": "Paracoccus_denitrificans_PARDP"
+  },
+  {
+    "code": "PAROT",
+    "long_name": "Paramecium_octaurelia_PAROT"
+  },
+  {
+    "code": "PARPR",
+    "long_name": "Paramecium_primaurelia_PARPR"
+  },
+  {
+    "code": "PARCT",
+    "long_name": "Paramuricea_clavata_PARCT"
+  },
+  {
+    "code": "PAREQ",
+    "long_name": "Parascaris_equorum_PAREQ"
+  },
+  {
+    "code": "PARUN",
+    "long_name": "Parascaris_univalens_PARUN"
+  },
+  {
+    "code": "PARAD",
+    "long_name": "Parasponia_andersonii_PARAD"
+  },
+  {
+    "code": "PARAO",
+    "long_name": "Parnassius_apollo_PARAO"
+  },
+  {
+    "code": "PASFU",
+    "long_name": "Passalora_fulva_PASFU"
+  },
+  {
+    "code": "PASAF",
+    "long_name": "Passerina_amoena_PASAF"
+  },
+  {
+    "code": "PATMI",
+    "long_name": "Patiria_miniata_PATMI"
+  },
+  {
+    "code": "PAVCR",
+    "long_name": "Pavo_cristatus_PAVCR"
+  },
+  {
+    "code": "PECAS",
+    "long_name": "Pectobacterium_atrosepticum_PECAS"
+  },
+  {
+    "code": "PEDHC",
+    "long_name": "Pediculus_humanus_subsp_corporis_PEDHC"
+  },
+  {
+    "code": "PEDTO",
+    "long_name": "Pedionomus_torquatus_PEDTO"
+  },
+  {
+    "code": "PEDHD",
+    "long_name": "Pedobacter_heparinus_PEDHD"
+  },
+  {
+    "code": "PEDPL",
+    "long_name": "Pedosphaera_parvula_PEDPL"
+  },
+  {
+    "code": "PELUR",
+    "long_name": "Pelecanoides_urinatrix_PELUR"
+  },
+  {
+    "code": "PELCR",
+    "long_name": "Pelecanus_crispus_PELCR"
+  },
+  {
+    "code": "PELSI",
+    "long_name": "Pelodiscus_sinensis_PELSI"
+  },
+  {
+    "code": "PELSC",
+    "long_name": "Pelomonas_saccharophila_PELSC"
+  },
+  {
+    "code": "PENVA",
+    "long_name": "Penaeus_vannamei_PENVA"
+  },
+  {
+    "code": "PENBI",
+    "long_name": "Penicillium_brasilianum_PENBI"
+  },
+  {
+    "code": "PENBR",
+    "long_name": "Penicillium_brevicompactum_PENBR"
+  },
+  {
+    "code": "PENCI",
+    "long_name": "Penicillium_citrinum_PENCI"
+  },
+  {
+    "code": "PENCR",
+    "long_name": "Penicillium_crustosum_PENCR"
+  },
+  {
+    "code": "PENDC",
+    "long_name": "Penicillium_decumbens_PENDC"
+  },
+  {
+    "code": "PEND2",
+    "long_name": "Penicillium_digitatum_PEND2"
+  },
+  {
+    "code": "PENEN",
+    "long_name": "Penicillium_expansum_PENEN"
+  },
+  {
+    "code": "PENFR",
+    "long_name": "Penicillium_freii_PENFR"
+  },
+  {
+    "code": "PENIT",
+    "long_name": "Penicillium_italicum_PENIT"
+  },
+  {
+    "code": "PENNA",
+    "long_name": "Penicillium_nalgiovense_PENNA"
+  },
+  {
+    "code": "PENOL",
+    "long_name": "Penicillium_olsonii_PENOL"
+  },
+  {
+    "code": "PENO1",
+    "long_name": "Penicillium_oxalicum_PENO1"
+  },
+  {
+    "code": "PENPA",
+    "long_name": "Penicillium_patulum_PENPA"
+  },
+  {
+    "code": "PENPO",
+    "long_name": "Penicillium_polonicum_PENPO"
+  },
+  {
+    "code": "PENRW",
+    "long_name": "Penicillium_rubens_PENRW"
+  },
+  {
+    "code": "PERFV",
+    "long_name": "Perca_flavescens_PERFV"
+  },
+  {
+    "code": "PERFL",
+    "long_name": "Perca_fluviatilis_PERFL"
+  },
+  {
+    "code": "PERPY",
+    "long_name": "Peribacillus_psychrosaccharolyticus_PERPY"
+  },
+  {
+    "code": "PERCH",
+    "long_name": "Perkinsus_chesapeaki_PERCH"
+  },
+  {
+    "code": "PERM5",
+    "long_name": "Perkinsus_marinus_PERM5"
+  },
+  {
+    "code": "PEROL",
+    "long_name": "Perkinsus_olseni_PEROL"
+  },
+  {
+    "code": "PERMB",
+    "long_name": "Peromyscus_maniculatus_bairdii_PERMB"
+  },
+  {
+    "code": "PERCE",
+    "long_name": "Persicimonas_caeni_PERCE"
+  },
+  {
+    "code": "PESFW",
+    "long_name": "Pestalotiopsis_fici_PESFW"
+  },
+  {
+    "code": "PETAA",
+    "long_name": "Petromyces_alliaceus_PETAA"
+  },
+  {
+    "code": "PETMA",
+    "long_name": "Petromyzon_marinus_PETMA"
+  },
+  {
+    "code": "PEUTA",
+    "long_name": "Peucedramus_taeniatus_PEUTA"
+  },
+  {
+    "code": "PHACE",
+    "long_name": "Phaedon_cochleariae_PHACE"
+  },
+  {
+    "code": "PHAM7",
+    "long_name": "Phaeoacremonium_minimum_PHAM7"
+  },
+  {
+    "code": "PHATC",
+    "long_name": "Phaeodactylum_tricornutum_PHATC"
+  },
+  {
+    "code": "PHALP",
+    "long_name": "Phaethon_lepturus_PHALP"
+  },
+  {
+    "code": "PHANI",
+    "long_name": "Phainopepla_nitens_PHANI"
+  },
+  {
+    "code": "PHACA",
+    "long_name": "Phalacrocorax_carbo_PHACA"
+  },
+  {
+    "code": "PHACS",
+    "long_name": "Phanerochaete_carnosa_PHACS"
+  },
+  {
+    "code": "PHACI",
+    "long_name": "Phascolarctos_cinereus_PHACI"
+  },
+  {
+    "code": "PHAAN",
+    "long_name": "Phaseolus_angularis_PHAAN"
+  },
+  {
+    "code": "PHAVU",
+    "long_name": "Phaseolus_vulgaris_PHAVU"
+  },
+  {
+    "code": "PHACC",
+    "long_name": "Phasianus_colchicus_PHACC"
+  },
+  {
+    "code": "PHEME",
+    "long_name": "Pheucticus_melanocephalus_PHEME"
+  },
+  {
+    "code": "PHLG1",
+    "long_name": "Phlebiopsis_gigantea_PHLG1"
+  },
+  {
+    "code": "PHOSS",
+    "long_name": "Phocoena_sinus_PHOSS"
+  },
+  {
+    "code": "PHODC",
+    "long_name": "Phoenix_dactylifera_PHODC"
+  },
+  {
+    "code": "PHOPY",
+    "long_name": "Photinus_pyralis_PHOPY"
+  },
+  {
+    "code": "PHOPR",
+    "long_name": "Photobacterium_profundum_PHOPR"
+  },
+  {
+    "code": "PHOLL",
+    "long_name": "Photorhabdus_laumondii_subsp_laumondii_PHOLL"
+  },
+  {
+    "code": "PHYB8",
+    "long_name": "Phycomyces_blakesleeanus_PHYB8"
+  },
+  {
+    "code": "PHYSR",
+    "long_name": "Phyllotreta_striolata_PHYSR"
+  },
+  {
+    "code": "PHYMC",
+    "long_name": "Physeter_macrocephalus_PHYMC"
+  },
+  {
+    "code": "PHYIN",
+    "long_name": "Phytophthora_infestans_PHYIN"
+  },
+  {
+    "code": "PHYIT",
+    "long_name": "Phytophthora_infestans_strain_T30-4_PHYIT"
+  },
+  {
+    "code": "PHYNI",
+    "long_name": "Phytophthora_nicotianae_PHYNI"
+  },
+  {
+    "code": "PHYPN",
+    "long_name": "Phytophthora_parasitica_PHYPN"
+  },
+  {
+    "code": "PHYSP",
+    "long_name": "Phytophthora_sojae_PHYSP"
+  },
+  {
+    "code": "PIACA",
+    "long_name": "Piaya_cayana_PIACA"
+  },
+  {
+    "code": "PICGY",
+    "long_name": "Picathartes_gymnocephalus_PICGY"
+  },
+  {
+    "code": "PICKU",
+    "long_name": "Pichia_kudriavzevii_PICKU"
+  },
+  {
+    "code": "PICSO",
+    "long_name": "Pichia_sorbitophila_PICSO"
+  },
+  {
+    "code": "PIEBR",
+    "long_name": "Pieris_brassicae_PIEBR"
+  },
+  {
+    "code": "PILCF",
+    "long_name": "Piloderma_croceum_PILCF"
+  },
+  {
+    "code": "PIPKU",
+    "long_name": "Pipistrellus_kuhlii_PIPKU"
+  },
+  {
+    "code": "PIPCL",
+    "long_name": "Piprites_chloris_PIPCL"
+  },
+  {
+    "code": "PIRSD",
+    "long_name": "Pirellula_staleyi_PIRSD"
+  },
+  {
+    "code": "PIRSE",
+    "long_name": "Piromyces_sp_PIRSE"
+  },
+  {
+    "code": "PEA",
+    "long_name": "Pisum_sativum_PEA"
+  },
+  {
+    "code": "PITSO",
+    "long_name": "Pitta_sordida_PITSO"
+  },
+  {
+    "code": "PLAL2",
+    "long_name": "Planctopirus_limnophila_PLAL2"
+  },
+  {
+    "code": "PLARO",
+    "long_name": "Planobispora_rosea_PLARO"
+  },
+  {
+    "code": "PLAVE",
+    "long_name": "Planomonospora_venezuelensis_PLAVE"
+  },
+  {
+    "code": "PLABS",
+    "long_name": "Plasmodiophora_brassicae_PLABS"
+  },
+  {
+    "code": "PLABA",
+    "long_name": "Plasmodium_berghei_PLABA"
+  },
+  {
+    "code": "PLACD",
+    "long_name": "Plasmodium_cynomolgi_PLACD"
+  },
+  {
+    "code": "PLAFC",
+    "long_name": "Plasmodium_falciparum_isolate_Camp_PLAFC"
+  },
+  {
+    "code": "PLAF4",
+    "long_name": "Plasmodium_falciparum_isolate_Dd2_PLAF4"
+  },
+  {
+    "code": "PLAFX",
+    "long_name": "Plasmodium_falciparum_isolate_HB3_PLAFX"
+  },
+  {
+    "code": "PLAFO",
+    "long_name": "Plasmodium_falciparum_isolate_NF54_PLAFO"
+  },
+  {
+    "code": "PLAFP",
+    "long_name": "Plasmodium_falciparum_isolate_Palo_Alto_PLAFP"
+  },
+  {
+    "code": "PLAGO",
+    "long_name": "Plasmodium_gonderi_PLAGO"
+  },
+  {
+    "code": "PLAKH",
+    "long_name": "Plasmodium_knowlesi_PLAKH"
+  },
+  {
+    "code": "PLAMA",
+    "long_name": "Plasmodium_malariae_PLAMA"
+  },
+  {
+    "code": "PLARL",
+    "long_name": "Plasmodium_relictum_PLARL"
+  },
+  {
+    "code": "PLAVS",
+    "long_name": "Plasmodium_vivax_PLAVS"
+  },
+  {
+    "code": "PLAYO",
+    "long_name": "Plasmodium_yoelii_yoelii_PLAYO"
+  },
+  {
+    "code": "PLAHL",
+    "long_name": "Plasmopara_halstedii_PLAHL"
+  },
+  {
+    "code": "PLEPL",
+    "long_name": "Pleuronectes_platessa_PLEPL"
+  },
+  {
+    "code": "PLEER",
+    "long_name": "Pleurotus_eryngii_PLEER"
+  },
+  {
+    "code": "PLEOS",
+    "long_name": "Pleurotus_ostreatus_PLEOS"
+  },
+  {
+    "code": "PLUGE",
+    "long_name": "Pluralibacter_gergoviae_PLUGE"
+  },
+  {
+    "code": "PLUXY",
+    "long_name": "Plutella_xylostella_PLUXY"
+  },
+  {
+    "code": "PLUSO",
+    "long_name": "Pluvianellus_socialis_PLUSO"
+  },
+  {
+    "code": "POCDA",
+    "long_name": "Pocillopora_damicornis_POCDA"
+  },
+  {
+    "code": "PODMU",
+    "long_name": "Podarcis_muralis_PODMU"
+  },
+  {
+    "code": "PODST",
+    "long_name": "Podargus_strigoides_PODST"
+  },
+  {
+    "code": "PODCR",
+    "long_name": "Podiceps_cristatus_PODCR"
+  },
+  {
+    "code": "PODPO",
+    "long_name": "Podilymbus_podiceps_PODPO"
+  },
+  {
+    "code": "PODAN",
+    "long_name": "Podospora_anserina_PODAN"
+  },
+  {
+    "code": "POEAT",
+    "long_name": "Poecile_atricapillus_POEAT"
+  },
+  {
+    "code": "POEFO",
+    "long_name": "Poecilia_formosa_POEFO"
+  },
+  {
+    "code": "POERE",
+    "long_name": "Poecilia_reticulata_POERE"
+  },
+  {
+    "code": "POLGL",
+    "long_name": "Polarella_glacialis_POLGL"
+  },
+  {
+    "code": "POLNA",
+    "long_name": "Polaromonas_naphthalenivorans_POLNA"
+  },
+  {
+    "code": "POLSJ",
+    "long_name": "Polaromonas_sp_POLSJ"
+  },
+  {
+    "code": "POLCE",
+    "long_name": "Polioptila_caerulea_POLCE"
+  },
+  {
+    "code": "POLGS",
+    "long_name": "Polymorphum_gilvum_POLGS"
+  },
+  {
+    "code": "POLVA",
+    "long_name": "Polypedilum_vanderplanki_POLVA"
+  },
+  {
+    "code": "POLSE",
+    "long_name": "Polypterus_senegalus_POLSE"
+  },
+  {
+    "code": "POMCA",
+    "long_name": "Pomacea_canaliculata_POMCA"
+  },
+  {
+    "code": "POMRU",
+    "long_name": "Pomatostomus_ruficeps_POMRU"
+  },
+  {
+    "code": "PONAB",
+    "long_name": "Pongo_abelii_PONAB"
+  },
+  {
+    "code": "PONDE",
+    "long_name": "Pontiella_desulfatans_PONDE"
+  },
+  {
+    "code": "POPAL",
+    "long_name": "Populus_alba_POPAL"
+  },
+  {
+    "code": "POPDE",
+    "long_name": "Populus_deltoides_POPDE"
+  },
+  {
+    "code": "POPTO",
+    "long_name": "Populus_tomentosa_POPTO"
+  },
+  {
+    "code": "PORUM",
+    "long_name": "Porphyra_umbilicalis_PORUM"
+  },
+  {
+    "code": "PORPP",
+    "long_name": "Porphyridium_purpureum_PORPP"
+  },
+  {
+    "code": "PORTR",
+    "long_name": "Portunus_trituberculatus_PORTR"
+  },
+  {
+    "code": "POSPM",
+    "long_name": "Postia_placenta_POSPM"
+  },
+  {
+    "code": "PRIM1",
+    "long_name": "Priestia_megaterium_PRIM1"
+  },
+  {
+    "code": "PROAR",
+    "long_name": "Probosciger_aterrimus_PROAR"
+  },
+  {
+    "code": "PROSS",
+    "long_name": "Prolemur_simus_PROSS"
+  },
+  {
+    "code": "PROCO",
+    "long_name": "Propithecus_coquereli_PROCO"
+  },
+  {
+    "code": "PROLT",
+    "long_name": "Protomyces_lactucae-debilis_PROLT"
+  },
+  {
+    "code": "PRUAR",
+    "long_name": "Prunus_armeniaca_PRUAR"
+  },
+  {
+    "code": "PRUAV",
+    "long_name": "Prunus_avium_PRUAV"
+  },
+  {
+    "code": "PRUDU",
+    "long_name": "Prunus_dulcis_PRUDU"
+  },
+  {
+    "code": "PSEDA",
+    "long_name": "Pseudallescheria_apiosperma_PSEDA"
+  },
+  {
+    "code": "PSESE",
+    "long_name": "Pseudaminobacter_salicylatoxidans_PSESE"
+  },
+  {
+    "code": "PSEFD",
+    "long_name": "Pseudocercospora_fijiensis_PSEFD"
+  },
+  {
+    "code": "PSEPJ",
+    "long_name": "Pseudocohnilembus_persalinus_PSEPJ"
+  },
+  {
+    "code": "PSEI1",
+    "long_name": "Pseudofrankia_inefficax_PSEI1"
+  },
+  {
+    "code": "PSED2",
+    "long_name": "Pseudogymnoascus_destructans_PSED2"
+  },
+  {
+    "code": "UNCPS",
+    "long_name": "Pseudomonadota_bacterium_UNCPS"
+  },
+  {
+    "code": "PSEAA",
+    "long_name": "Pseudomonas_agarici_PSEAA"
+  },
+  {
+    "code": "PSEA4",
+    "long_name": "Pseudomonas_alcaligenes_PSEA4"
+  },
+  {
+    "code": "PSECI",
+    "long_name": "Pseudomonas_cichorii_PSECI"
+  },
+  {
+    "code": "PSEF1",
+    "long_name": "Pseudomonas_fulva_PSEF1"
+  },
+  {
+    "code": "PSEKB",
+    "long_name": "Pseudomonas_knackmussii_PSEKB"
+  },
+  {
+    "code": "PSEPK",
+    "long_name": "Pseudomonas_putida_PSEPK"
+  },
+  {
+    "code": "PSESM",
+    "long_name": "Pseudomonas_syringae_pv_tomato_PSESM"
+  },
+  {
+    "code": "PSETE",
+    "long_name": "Pseudonaja_textilis_PSETE"
+  },
+  {
+    "code": "PSUAM",
+    "long_name": "Pseudonocardia_ammonioxydans_PSUAM"
+  },
+  {
+    "code": "PSEAH",
+    "long_name": "Pseudonocardia_autotrophica_PSEAH"
+  },
+  {
+    "code": "PSEUX",
+    "long_name": "Pseudonocardia_dioxanivorans_PSEUX"
+  },
+  {
+    "code": "PSEEN",
+    "long_name": "Pseudonocardia_endophytica_PSEEN"
+  },
+  {
+    "code": "PSEOR",
+    "long_name": "Pseudonocardia_oroxyli_PSEOR"
+  },
+  {
+    "code": "PSEST",
+    "long_name": "Pseudonocardia_sediminis_PSEST"
+  },
+  {
+    "code": "PSETH",
+    "long_name": "Pseudonocardia_thermophila_PSETH"
+  },
+  {
+    "code": "PSEBH",
+    "long_name": "Pseudooceanicola_batsensis_PSEBH"
+  },
+  {
+    "code": "PSEA2",
+    "long_name": "Pseudozyma_antarctica_PSEA2"
+  },
+  {
+    "code": "PSEA3",
+    "long_name": "Pseudozyma_antarctica_strain_T-34_PSEA3"
+  },
+  {
+    "code": "PSEHS",
+    "long_name": "Pseudozyma_hubeiensis_PSEHS"
+  },
+  {
+    "code": "PSICU",
+    "long_name": "Psilocybe_cubensis_PSICU"
+  },
+  {
+    "code": "PSICY",
+    "long_name": "Psilocybe_cyanescens_PSICY"
+  },
+  {
+    "code": "PTEAL",
+    "long_name": "Pteropus_alecto_PTEAL"
+  },
+  {
+    "code": "PTEVA",
+    "long_name": "Pteropus_vampyrus_PTEVA"
+  },
+  {
+    "code": "PTIVI",
+    "long_name": "Ptilonorhynchus_violaceus_PTIVI"
+  },
+  {
+    "code": "PUCT1",
+    "long_name": "Puccinia_triticina_PUCT1"
+  },
+  {
+    "code": "PUMCO",
+    "long_name": "Puma_concolor_PUMCO"
+  },
+  {
+    "code": "PUNGR",
+    "long_name": "Punica_granatum_PUNGR"
+  },
+  {
+    "code": "PURLI",
+    "long_name": "Purpureocillium_lilacinum_PURLI"
+  },
+  {
+    "code": "PYCJO",
+    "long_name": "Pycnonotus_jocosus_PYCJO"
+  },
+  {
+    "code": "PYCCI",
+    "long_name": "Pycnoporus_cinnabarinus_PYCCI"
+  },
+  {
+    "code": "PYGAD",
+    "long_name": "Pygoscelis_adeliae_PYGAD"
+  },
+  {
+    "code": "PYRTT",
+    "long_name": "Pyrenophora_teres_f_teres_PYRTT"
+  },
+  {
+    "code": "PYRTR",
+    "long_name": "Pyrenophora_tritici-repentis_PYRTR"
+  },
+  {
+    "code": "PYRGI",
+    "long_name": "Pyricularia_grisea_PYRGI"
+  },
+  {
+    "code": "PYRO7",
+    "long_name": "Pyricularia_oryzae_PYRO7"
+  },
+  {
+    "code": "PYTOL",
+    "long_name": "Pythium_oligandrum_PYTOL"
+  },
+  {
+    "code": "PYTBI",
+    "long_name": "Python_bivittatus_PYTBI"
+  },
+  {
+    "code": "QUELO",
+    "long_name": "Quercus_lobata_QUELO"
+  },
+  {
+    "code": "QUIME",
+    "long_name": "Quiscalus_mexicanus_QUIME"
+  },
+  {
+    "code": "RAHAC",
+    "long_name": "Rahnella_aquatilis_RAHAC"
+  },
+  {
+    "code": "RALSU",
+    "long_name": "Ralstonia_solanacearum_RALSU"
+  },
+  {
+    "code": "RAMVA",
+    "long_name": "Ramazzottius_varieornatus_RAMVA"
+  },
+  {
+    "code": "RAPSA",
+    "long_name": "Raphanus_sativus_RAPSA"
+  },
+  {
+    "code": "REGSA",
+    "long_name": "Regulus_satrapa_REGSA"
+  },
+  {
+    "code": "RETFI",
+    "long_name": "Reticulomyxa_filosa_RETFI"
+  },
+  {
+    "code": "RHIFE",
+    "long_name": "Rhinolophus_ferrumequinum_RHIFE"
+  },
+  {
+    "code": "RHIBE",
+    "long_name": "Rhinopithecus_bieti_RHIBE"
+  },
+  {
+    "code": "RHIRO",
+    "long_name": "Rhinopithecus_roxellana_RHIRO"
+  },
+  {
+    "code": "RHICY",
+    "long_name": "Rhinopomastus_cyanomelas_RHICY"
+  },
+  {
+    "code": "RHIMP",
+    "long_name": "Rhipicephalus_microplus_RHIMP"
+  },
+  {
+    "code": "RHISA",
+    "long_name": "Rhipicephalus_sanguineus_RHISA"
+  },
+  {
+    "code": "RHIEC",
+    "long_name": "Rhizobium_etli_RHIEC"
+  },
+  {
+    "code": "RHIME",
+    "long_name": "Rhizobium_meliloti_RHIME"
+  },
+  {
+    "code": "RHIID",
+    "long_name": "Rhizophagus_irregularis_strain_DAOM_181602_RHIID"
+  },
+  {
+    "code": "RHIIW",
+    "long_name": "Rhizophagus_irregularis_strain_DAOM_197198w_RHIIW"
+  },
+  {
+    "code": "RHIAZ",
+    "long_name": "Rhizopus_azygosporus_RHIAZ"
+  },
+  {
+    "code": "RHIO9",
+    "long_name": "Rhizopus_delemar_RHIO9"
+  },
+  {
+    "code": "RHIZD",
+    "long_name": "Rhizopus_microsporus_RHIZD"
+  },
+  {
+    "code": "RHIOR",
+    "long_name": "Rhizopus_oryzae_RHIOR"
+  },
+  {
+    "code": "RHIST",
+    "long_name": "Rhizopus_stolonifer_RHIST"
+  },
+  {
+    "code": "RHOPR",
+    "long_name": "Rhodnius_prolixus_RHOPR"
+  },
+  {
+    "code": "RHOAC",
+    "long_name": "Rhodoblastus_acidophilus_RHOAC"
+  },
+  {
+    "code": "RHOFA",
+    "long_name": "Rhodococcus_fascians_RHOFA"
+  },
+  {
+    "code": "RHOJR",
+    "long_name": "Rhodococcus_jostii_RHOJR"
+  },
+  {
+    "code": "RHOSX",
+    "long_name": "Rhodococcus_sp_RHOSX"
+  },
+  {
+    "code": "RHOSS",
+    "long_name": "Rhododendron_simsii_RHOSS"
+  },
+  {
+    "code": "RHOGL",
+    "long_name": "Rhodopila_globiformis_RHOGL"
+  },
+  {
+    "code": "RHOPA",
+    "long_name": "Rhodopseudomonas_palustris_RHOPA"
+  },
+  {
+    "code": "RHOSP",
+    "long_name": "Rhodopseudomonas_sp._RHOSP"
+  },
+  {
+    "code": "RHOGW",
+    "long_name": "Rhodotorula_graminis_RHOGW"
+  },
+  {
+    "code": "RHOTO",
+    "long_name": "Rhodotorula_toruloides_RHOTO"
+  },
+  {
+    "code": "RHYFE",
+    "long_name": "Rhynchophorus_ferrugineus_RHYFE"
+  },
+  {
+    "code": "RIPO1",
+    "long_name": "Rippkaea_orientalis_RIPO1"
+  },
+  {
+    "code": "RISTR",
+    "long_name": "Rissa_tridactyla_RISTR"
+  },
+  {
+    "code": "RODNA",
+    "long_name": "Rodentolepis_nana_RODNA"
+  },
+  {
+    "code": "ROMCU",
+    "long_name": "Romanomermis_culicivorax_ROMCU"
+  },
+  {
+    "code": "ROSCH",
+    "long_name": "Rosa_chinensis_ROSCH"
+  },
+  {
+    "code": "ROSCS",
+    "long_name": "Roseiflexus_castenholzii_ROSCS"
+  },
+  {
+    "code": "ROSNE",
+    "long_name": "Rosellinia_necatrix_ROSNE"
+  },
+  {
+    "code": "ROSDO",
+    "long_name": "Roseobacter_denitrificans_ROSDO"
+  },
+  {
+    "code": "ROSS0",
+    "long_name": "Roseobacter_sp_ROSS0"
+  },
+  {
+    "code": "ROUAE",
+    "long_name": "Rousettus_aegyptiacus_ROUAE"
+  },
+  {
+    "code": "ROZAC",
+    "long_name": "Rozella_allomycis_ROZAC"
+  },
+  {
+    "code": "RUBBR",
+    "long_name": "Rubinisphaera_brasiliensis_RUBBR"
+  },
+  {
+    "code": "RUBGI",
+    "long_name": "Rubrivivax_gelatinosus_RUBGI"
+  },
+  {
+    "code": "RUEPO",
+    "long_name": "Ruegeria_pomeroyi_RUEPO"
+  },
+  {
+    "code": "RUMHU",
+    "long_name": "Ruminiclostridium_hungatei_RUMHU"
+  },
+  {
+    "code": "RUNSL",
+    "long_name": "Runella_slithyformis_RUNSL"
+  },
+  {
+    "code": "RYNNI",
+    "long_name": "Rynchops_niger_RYNNI"
+  },
+  {
+    "code": "SACBS",
+    "long_name": "Saccharibacillus_brassicae_SACBS"
+  },
+  {
+    "code": "SACPI",
+    "long_name": "Saccharomonospora_piscinae_SACPI"
+  },
+  {
+    "code": "SACEN",
+    "long_name": "Saccharopolyspora_erythraea_SACEN"
+  },
+  {
+    "code": "SACHI",
+    "long_name": "Saccharopolyspora_hirsuta_SACHI"
+  },
+  {
+    "code": "SACES",
+    "long_name": "Saccharothrix_espanaensis_SACES"
+  },
+  {
+    "code": "SACSY",
+    "long_name": "Saccharothrix_syringae_SACSY"
+  },
+  {
+    "code": "SAGSE",
+    "long_name": "Sagittarius_serpentarius_SAGSE"
+  },
+  {
+    "code": "SAIBB",
+    "long_name": "Saimiri_boliviensis_boliviensis_SAIBB"
+  },
+  {
+    "code": "SAICN",
+    "long_name": "Saitoella_complicata_SAICN"
+  },
+  {
+    "code": "SALFA",
+    "long_name": "Salarias_fasciatus_SALFA"
+  },
+  {
+    "code": "SALTO",
+    "long_name": "Salinispora_tropica_SALTO"
+  },
+  {
+    "code": "SALBH",
+    "long_name": "Salipiger_bermudensis_SALBH"
+  },
+  {
+    "code": "SALPP",
+    "long_name": "Salix_purpurea_SALPP"
+  },
+  {
+    "code": "SALVM",
+    "long_name": "Salix_viminalis_SALVM"
+  },
+  {
+    "code": "SALSA",
+    "long_name": "Salmo_salar_SALSA"
+  },
+  {
+    "code": "SALTR",
+    "long_name": "Salmo_trutta_SALTR"
+  },
+  {
+    "code": "SALAR",
+    "long_name": "Salmonella_arizonae_SALAR"
+  },
+  {
+    "code": "SALR5",
+    "long_name": "Salpingoeca_rosetta_SALR5"
+  },
+  {
+    "code": "SALMN",
+    "long_name": "Salvator_merianae_SALMN"
+  },
+  {
+    "code": "SALNM",
+    "long_name": "Salvelinus_namaycush_SALNM"
+  },
+  {
+    "code": "SALSN",
+    "long_name": "Salvia_splendens_SALSN"
+  },
+  {
+    "code": "SANLU",
+    "long_name": "Sander_lucioperca_SANLU"
+  },
+  {
+    "code": "SANBA",
+    "long_name": "Sanghuangporus_baumii_SANBA"
+  },
+  {
+    "code": "SAPAP",
+    "long_name": "Sapajus_apella_SAPAP"
+  },
+  {
+    "code": "SAPDV",
+    "long_name": "Saprolegnia_diclina_SAPDV"
+  },
+  {
+    "code": "SAPPC",
+    "long_name": "Saprolegnia_parasitica_SAPPC"
+  },
+  {
+    "code": "SAPGL",
+    "long_name": "Saprospira_grandis_SAPGL"
+  },
+  {
+    "code": "SARHA",
+    "long_name": "Sarcophilus_harrisii_SARHA"
+  },
+  {
+    "code": "SARSC",
+    "long_name": "Sarcoptes_scabiei_SARSC"
+  },
+  {
+    "code": "PICST",
+    "long_name": "Scheffersomyces_stipitis_PICST"
+  },
+  {
+    "code": "SCHSO",
+    "long_name": "Schistocephalus_solidus_SCHSO"
+  },
+  {
+    "code": "SCHBO",
+    "long_name": "Schistosoma_bovis_SCHBO"
+  },
+  {
+    "code": "SCHHA",
+    "long_name": "Schistosoma_haematobium_SCHHA"
+  },
+  {
+    "code": "SCHJA",
+    "long_name": "Schistosoma_japonicum_SCHJA"
+  },
+  {
+    "code": "SCHMA",
+    "long_name": "Schistosoma_mansoni_SCHMA"
+  },
+  {
+    "code": "SCHCM",
+    "long_name": "Schizophyllum_commune_SCHCM"
+  },
+  {
+    "code": "SCHCR",
+    "long_name": "Schizosaccharomyces_cryophilus_SCHCR"
+  },
+  {
+    "code": "SCIVU",
+    "long_name": "Sciurus_vulgaris_SCIVU"
+  },
+  {
+    "code": "SCLFO",
+    "long_name": "Scleropages_formosus_SCLFO"
+  },
+  {
+    "code": "SCLBF",
+    "long_name": "Sclerotinia_borealis_SCLBF"
+  },
+  {
+    "code": "SCOMX",
+    "long_name": "Scophthalmus_maximus_SCOMX"
+  },
+  {
+    "code": "SCOUM",
+    "long_name": "Scopus_umbretta_SCOUM"
+  },
+  {
+    "code": "SCYTO",
+    "long_name": "Scyliorhinus_torazame_SCYTO"
+  },
+  {
+    "code": "SCYLI",
+    "long_name": "Scytalidium_lignicola_SCYLI"
+  },
+  {
+    "code": "SEBTE",
+    "long_name": "Sebaldella_termitidis_SEBTE"
+  },
+  {
+    "code": "SEDSS",
+    "long_name": "Sediminispirochaeta_smaragdinae_SEDSS"
+  },
+  {
+    "code": "SEDFL",
+    "long_name": "Sediminitomix_flava_SEDFL"
+  },
+  {
+    "code": "SEPPH",
+    "long_name": "Sepia_pharaonis_SEPPH"
+  },
+  {
+    "code": "SERID",
+    "long_name": "Serendipita_indica_SERID"
+  },
+  {
+    "code": "SERCA",
+    "long_name": "Serinus_canaria_SERCA"
+  },
+  {
+    "code": "SERL3",
+    "long_name": "Serpula_lacrymans_var_lacrymans_SERL3"
+  },
+  {
+    "code": "SERFI",
+    "long_name": "Serratia_ficaria_SERFI"
+  },
+  {
+    "code": "SERFO",
+    "long_name": "Serratia_fonticola_SERFO"
+  },
+  {
+    "code": "SERS3",
+    "long_name": "Serratia_sp_SERS3"
+  },
+  {
+    "code": "SESIN",
+    "long_name": "Sesamum_indicum_SESIN"
+  },
+  {
+    "code": "SETVI",
+    "long_name": "Setaria_viridis_SETVI"
+  },
+  {
+    "code": "SETKR",
+    "long_name": "Setophaga_kirtlandii_SETKR"
+  },
+  {
+    "code": "SHEPA",
+    "long_name": "Shewanella_pealeana_SHEPA"
+  },
+  {
+    "code": "SHESH",
+    "long_name": "Shewanella_sediminis_SHESH"
+  },
+  {
+    "code": "SHEVD",
+    "long_name": "Shewanella_violacea_SHEVD"
+  },
+  {
+    "code": "SHEWM",
+    "long_name": "Shewanella_woodyi_SHEWM"
+  },
+  {
+    "code": "SHIB3",
+    "long_name": "Shigella_boydii_serotype_18_SHIB3"
+  },
+  {
+    "code": "SHIFL",
+    "long_name": "Shigella_flexneri_SHIFL"
+  },
+  {
+    "code": "SHISS",
+    "long_name": "Shigella_sonnei_SHISS"
+  },
+  {
+    "code": "SHOC1",
+    "long_name": "Shouchella_clausii_SHOC1"
+  },
+  {
+    "code": "SILME",
+    "long_name": "Silurus_meridionalis_SILME"
+  },
+  {
+    "code": "SINAD",
+    "long_name": "Singulisphaera_acidiphila_SINAD"
+  },
+  {
+    "code": "SINGR",
+    "long_name": "Sinocyclocheilus_grahami_SINGR"
+  },
+  {
+    "code": "SINFN",
+    "long_name": "Sinorhizobium_fredii_SINFN"
+  },
+  {
+    "code": "SINSA",
+    "long_name": "Sinorhizobium_saheli_SINSA"
+  },
+  {
+    "code": "SINTE",
+    "long_name": "Sinorhizobium_terangae_SINTE"
+  },
+  {
+    "code": "SITOR",
+    "long_name": "Sitophilus_oryzae_SITOR"
+  },
+  {
+    "code": "SITEU",
+    "long_name": "Sitta_europaea_SITEU"
+  },
+  {
+    "code": "SMUAF",
+    "long_name": "Smutsornis_africanus_SMUAF"
+  },
+  {
+    "code": "SOLCO",
+    "long_name": "Solanum_commersonii_SOLCO"
+  },
+  {
+    "code": "SOLCM",
+    "long_name": "Solitalea_canadensis_SOLCM"
+  },
+  {
+    "code": "SORC5",
+    "long_name": "Sorangium_cellulosum_SORC5"
+  },
+  {
+    "code": "SORMK",
+    "long_name": "Sordaria_macrospora_SORMK"
+  },
+  {
+    "code": "SOUCH",
+    "long_name": "Sousa_chinensis_SOUCH"
+  },
+  {
+    "code": "SPAAU",
+    "long_name": "Sparus_aurata_SPAAU"
+  },
+  {
+    "code": "SPAPN",
+    "long_name": "Spathaspora_passalidarum_SPAPN"
+  },
+  {
+    "code": "SPEDA",
+    "long_name": "Spermophilus_dauricus_SPEDA"
+  },
+  {
+    "code": "SPHS4",
+    "long_name": "Sphaerobolus_stellatus_SPHS4"
+  },
+  {
+    "code": "SPHMS",
+    "long_name": "Sphaerulina_musiva_SPHMS"
+  },
+  {
+    "code": "SPHPU",
+    "long_name": "Sphenodon_punctatus_SPHPU"
+  },
+  {
+    "code": "SPHIU",
+    "long_name": "Sphingobium_indicum_SPHIU"
+  },
+  {
+    "code": "SPHSK",
+    "long_name": "Sphingobium_sp_SPHSK"
+  },
+  {
+    "code": "SPHXE",
+    "long_name": "Sphingobium_xenophagum_SPHXE"
+  },
+  {
+    "code": "SPHMC",
+    "long_name": "Sphingopyxis_macrogoltabida_SPHMC"
+  },
+  {
+    "code": "SPHS1",
+    "long_name": "Sphingopyxis_sp_SPHS1"
+  },
+  {
+    "code": "SPIIN",
+    "long_name": "Spirodela_intermedia_SPIIN"
+  },
+  {
+    "code": "SPIPA",
+    "long_name": "Spizella_passerina_SPIPA"
+  },
+  {
+    "code": "SPIPD",
+    "long_name": "Spizellomyces_punctatus_SPIPD"
+  },
+  {
+    "code": "SPOEX",
+    "long_name": "Spodoptera_exigua_SPOEX"
+  },
+  {
+    "code": "SPOLI",
+    "long_name": "Spodoptera_littoralis_SPOLI"
+  },
+  {
+    "code": "SPOLT",
+    "long_name": "Spodoptera_litura_SPOLT"
+  },
+  {
+    "code": "SPOS1",
+    "long_name": "Sporothrix_schenckii_SPOS1"
+  },
+  {
+    "code": "STAC4",
+    "long_name": "Stachybotrys_chlorohalonata_STAC4"
+  },
+  {
+    "code": "STANL",
+    "long_name": "Stackebrandtia_nassauensis_STANL"
+  },
+  {
+    "code": "STAC7",
+    "long_name": "Stanieria_cyanosphaera_STAC7"
+  },
+  {
+    "code": "STECA",
+    "long_name": "Steatornis_caripensis_STECA"
+  },
+  {
+    "code": "STEMI",
+    "long_name": "Stegodyphus_mimosarum_STEMI"
+  },
+  {
+    "code": "STECR",
+    "long_name": "Steinernema_carpocapsae_STECR"
+  },
+  {
+    "code": "STRMK",
+    "long_name": "Stenotrophomonas_maltophilia_STRMK"
+  },
+  {
+    "code": "STEPR",
+    "long_name": "Stercorarius_parasiticus_STEPR"
+  },
+  {
+    "code": "STIJA",
+    "long_name": "Stichopus_japonicus_STIJA"
+  },
+  {
+    "code": "STIAU",
+    "long_name": "Stigmatella_aurantiaca_STIAU"
+  },
+  {
+    "code": "STRJI",
+    "long_name": "Streptacidiphilus_jiangxiensis_STRJI"
+  },
+  {
+    "code": "STREN",
+    "long_name": "Streptantibioticus_cattleyicolor_STREN"
+  },
+  {
+    "code": "STRHI",
+    "long_name": "Streptoalloteichus_hindustanus_STRHI"
+  },
+  {
+    "code": "STRAS",
+    "long_name": "Streptomyces_actuosus_STRAS"
+  },
+  {
+    "code": "STRAD",
+    "long_name": "Streptomyces_alboniger_STRAD"
+  },
+  {
+    "code": "STRA4",
+    "long_name": "Streptomyces_albus_STRA4"
+  },
+  {
+    "code": "STRA7",
+    "long_name": "Streptomyces_ambofaciens_STRA7"
+  },
+  {
+    "code": "STRAW",
+    "long_name": "Streptomyces_avermitilis_STRAW"
+  },
+  {
+    "code": "STRBB",
+    "long_name": "Streptomyces_bingchenggensis_STRBB"
+  },
+  {
+    "code": "STRCI",
+    "long_name": "Streptomyces_cacaoi_STRCI"
+  },
+  {
+    "code": "STRCW",
+    "long_name": "Streptomyces_chromofuscus_STRCW"
+  },
+  {
+    "code": "STRCJ",
+    "long_name": "Streptomyces_cinnamoneus_STRCJ"
+  },
+  {
+    "code": "STRCL",
+    "long_name": "Streptomyces_clavuligerus_STRCL"
+  },
+  {
+    "code": "STRC3",
+    "long_name": "Streptomyces_collinus_STRC3"
+  },
+  {
+    "code": "STRDJ",
+    "long_name": "Streptomyces_davaonensis_STRDJ"
+  },
+  {
+    "code": "STRDA",
+    "long_name": "Streptomyces_diastatochromogenes_STRDA"
+  },
+  {
+    "code": "STREU",
+    "long_name": "Streptomyces_eurocidicus_STREU"
+  },
+  {
+    "code": "STRFL",
+    "long_name": "Streptomyces_filamentosus_STRFL"
+  },
+  {
+    "code": "STRGJ",
+    "long_name": "Streptomyces_galilaeus_STRGJ"
+  },
+  {
+    "code": "STRGA",
+    "long_name": "Streptomyces_glaucescens_STRGA"
+  },
+  {
+    "code": "STRGD",
+    "long_name": "Streptomyces_griseoviridis_STRGD"
+  },
+  {
+    "code": "STRIH",
+    "long_name": "Streptomyces_inhibens_STRIH"
+  },
+  {
+    "code": "STRJU",
+    "long_name": "Streptomyces_jumonjinensis_STRJU"
+  },
+  {
+    "code": "STRKA",
+    "long_name": "Streptomyces_kasugaensis_STRKA"
+  },
+  {
+    "code": "STRLU",
+    "long_name": "Streptomyces_laurentii_STRLU"
+  },
+  {
+    "code": "STRLN",
+    "long_name": "Streptomyces_lincolnensis_STRLN"
+  },
+  {
+    "code": "STRLT",
+    "long_name": "Streptomyces_luteoverticillatus_STRLT"
+  },
+  {
+    "code": "STRMQ",
+    "long_name": "Streptomyces_malaysiensis_STRMQ"
+  },
+  {
+    "code": "STRMB",
+    "long_name": "Streptomyces_mobaraensis_STRMB"
+  },
+  {
+    "code": "STRMO",
+    "long_name": "Streptomyces_morookaense_STRMO"
+  },
+  {
+    "code": "STRNR",
+    "long_name": "Streptomyces_noursei_STRNR"
+  },
+  {
+    "code": "STROL",
+    "long_name": "Streptomyces_olivochromogenes_STROL"
+  },
+  {
+    "code": "STRE2",
+    "long_name": "Streptomyces_pristinaespiralis_STRE2"
+  },
+  {
+    "code": "STRR3",
+    "long_name": "Streptomyces_rubellomurinus_STRR3"
+  },
+  {
+    "code": "STRSW",
+    "long_name": "Streptomyces_scabiei_STRSW"
+  },
+  {
+    "code": "STRSO",
+    "long_name": "Streptomyces_seoulensis_STRSO"
+  },
+  {
+    "code": "STRX0",
+    "long_name": "Streptomyces_sp_strain_CB03234_STRX0"
+  },
+  {
+    "code": "STREK",
+    "long_name": "Streptomyces_sp_strain_SirexAA-E_STREK"
+  },
+  {
+    "code": "STRTO",
+    "long_name": "Streptomyces_toyocaensis_STRTO"
+  },
+  {
+    "code": "STRVP",
+    "long_name": "Streptomyces_venezuelae_STRVP"
+  },
+  {
+    "code": "STRVI",
+    "long_name": "Streptomyces_vinaceus_STRVI"
+  },
+  {
+    "code": "STRVT",
+    "long_name": "Streptomyces_viridochromogenes_STRVT"
+  },
+  {
+    "code": "STRRD",
+    "long_name": "Streptosporangium_roseum_STRRD"
+  },
+  {
+    "code": "STRAF",
+    "long_name": "Striga_asiatica_STRAF"
+  },
+  {
+    "code": "STRHE",
+    "long_name": "Striga_hermonthica_STRHE"
+  },
+  {
+    "code": "STRMM",
+    "long_name": "Strigamia_maritima_STRMM"
+  },
+  {
+    "code": "STRHB",
+    "long_name": "Strigops_habroptila_STRHB"
+  },
+  {
+    "code": "STRRB",
+    "long_name": "Strongyloides_ratti_STRRB"
+  },
+  {
+    "code": "STRER",
+    "long_name": "Strongyloides_stercoralis_STRER"
+  },
+  {
+    "code": "STRVS",
+    "long_name": "Strongyloides_venezuelensis_STRVS"
+  },
+  {
+    "code": "STRVU",
+    "long_name": "Strongylus_vulgaris_STRVU"
+  },
+  {
+    "code": "STUS1",
+    "long_name": "Stutzerimonas_stutzeri_STUS1"
+  },
+  {
+    "code": "STYLE",
+    "long_name": "Stylonychia_lemnae_STYLE"
+  },
+  {
+    "code": "STYPI",
+    "long_name": "Stylophora_pistillata_STYPI"
+  },
+  {
+    "code": "SULDA",
+    "long_name": "Sula_dactylatra_SULDA"
+  },
+  {
+    "code": "SULCO",
+    "long_name": "Sulfidibacter_corallicola_SULCO"
+  },
+  {
+    "code": "SURSU",
+    "long_name": "Suricata_suricatta_SURSU"
+  },
+  {
+    "code": "SYLBO",
+    "long_name": "Sylvia_borin_SYLBO"
+  },
+  {
+    "code": "SYMMI",
+    "long_name": "Symbiodinium_microadriaticum_SYMMI"
+  },
+  {
+    "code": "SYMPI",
+    "long_name": "Symbiodinium_pilosum_SYMPI"
+  },
+  {
+    "code": "SYNKA",
+    "long_name": "Synaphobranchus_kaupii_SYNKA"
+  },
+  {
+    "code": "SYNRA",
+    "long_name": "Syncephalastrum_racemosum_SYNRA"
+  },
+  {
+    "code": "SYNS7",
+    "long_name": "Synechococcus_sp_SYNS7"
+  },
+  {
+    "code": "SYNFM",
+    "long_name": "Syntrophobacter_fumaroxidans_SYNFM"
+  },
+  {
+    "code": "TAEAS",
+    "long_name": "Taenia_asiatica_TAEAS"
+  },
+  {
+    "code": "TAEGU",
+    "long_name": "Taeniopygia_guttata_TAEGU"
+  },
+  {
+    "code": "TAKRU",
+    "long_name": "Takifugu_rubripes_TAKRU"
+  },
+  {
+    "code": "TALIS",
+    "long_name": "Talaromyces_islandicus_TALIS"
+  },
+  {
+    "code": "TALMQ",
+    "long_name": "Talaromyces_marneffei_TALMQ"
+  },
+  {
+    "code": "TALSN",
+    "long_name": "Talaromyces_stipitatus_TALSN"
+  },
+  {
+    "code": "TAPDE",
+    "long_name": "Taphrina_deformans_TAPDE"
+  },
+  {
+    "code": "TAUER",
+    "long_name": "Tauraco_erythrolophus_TAUER"
+  },
+  {
+    "code": "TELCI",
+    "long_name": "Teladorsagia_circumcincta_TELCI"
+  },
+  {
+    "code": "TENMO",
+    "long_name": "Tenebrio_molitor_TENMO"
+  },
+  {
+    "code": "TERTT",
+    "long_name": "Teredinibacter_turnerae_TERTT"
+  },
+  {
+    "code": "TERSS",
+    "long_name": "Terriglobus_saanensis_TERSS"
+  },
+  {
+    "code": "TETOB",
+    "long_name": "Tetradesmus_obliquus_TETOB"
+  },
+  {
+    "code": "TETTS",
+    "long_name": "Tetrahymena_thermophila_TETTS"
+  },
+  {
+    "code": "TETUR",
+    "long_name": "Tetranychus_urticae_TETUR"
+  },
+  {
+    "code": "TETNG",
+    "long_name": "Tetraodon_nigroviridis_TETNG"
+  },
+  {
+    "code": "TETBL",
+    "long_name": "Tetrapisispora_blattae_TETBL"
+  },
+  {
+    "code": "TETPH",
+    "long_name": "Tetrapisispora_phaffii_TETPH"
+  },
+  {
+    "code": "THACH",
+    "long_name": "Thalassarche_chlororhynchos_THACH"
+  },
+  {
+    "code": "THAOC",
+    "long_name": "Thalassiosira_oceanica_THAOC"
+  },
+  {
+    "code": "THATH",
+    "long_name": "Thalictrum_thalictroides_THATH"
+  },
+  {
+    "code": "THACA",
+    "long_name": "Thanatephorus_cucumeris_strain_AG1-IA_THACA"
+  },
+  {
+    "code": "THACB",
+    "long_name": "Thanatephorus_cucumeris_strain_AG1-IB_THACB"
+  },
+  {
+    "code": "THECL",
+    "long_name": "Thelazia_callipaeda_THECL"
+  },
+  {
+    "code": "THEKT",
+    "long_name": "Thelohanellus_kitauei_THEKT"
+  },
+  {
+    "code": "THECD",
+    "long_name": "Thermomonospora_curvata_THECD"
+  },
+  {
+    "code": "THEHA",
+    "long_name": "Thermosporothrix_hazakensis_THEHA"
+  },
+  {
+    "code": "THET4",
+    "long_name": "Thermothelomyces_thermophilus_THET4"
+  },
+  {
+    "code": "THETT",
+    "long_name": "Thermothielavioides_terrestris_THETT"
+  },
+  {
+    "code": "THEGE",
+    "long_name": "Theropithecus_gelada_THEGE"
+  },
+  {
+    "code": "THIV6",
+    "long_name": "Thiocystis_violascens_THIV6"
+  },
+  {
+    "code": "THINJ",
+    "long_name": "Thiothrix_nivea_THINJ"
+  },
+  {
+    "code": "THRPL",
+    "long_name": "Thrips_palmi_THRPL"
+  },
+  {
+    "code": "THRLU",
+    "long_name": "Thryothorus_ludovicianus_THRLU"
+  },
+  {
+    "code": "TIELA",
+    "long_name": "Tieghemostelium_lacteum_TIELA"
+  },
+  {
+    "code": "TIGCA",
+    "long_name": "Tigriopus_californicus_TIGCA"
+  },
+  {
+    "code": "TILAU",
+    "long_name": "Tilletiaria_anomala_TILAU"
+  },
+  {
+    "code": "TINGU",
+    "long_name": "Tinamus_guttatus_TINGU"
+  },
+  {
+    "code": "TISMK",
+    "long_name": "Tistrella_mobilis_TISMK"
+  },
+  {
+    "code": "TODME",
+    "long_name": "Todus_mexicanus_TODME"
+  },
+  {
+    "code": "TOLOC",
+    "long_name": "Tolypocladium_ophioglossoides_TOLOC"
+  },
+  {
+    "code": "TORDE",
+    "long_name": "Torulaspora_delbrueckii_TORDE"
+  },
+  {
+    "code": "TOXCA",
+    "long_name": "Toxocara_canis_TOXCA"
+  },
+  {
+    "code": "TOXGM",
+    "long_name": "Toxoplasma_gondii_strain_ATCC_50611_TOXGM"
+  },
+  {
+    "code": "TOXGV",
+    "long_name": "Toxoplasma_gondii_strain_ATCC_50861_TOXGV"
+  },
+  {
+    "code": "TOXRE",
+    "long_name": "Toxostoma_redivivum_TOXRE"
+  },
+  {
+    "code": "TRAPU",
+    "long_name": "Trametes_pubescens_TRAPU"
+  },
+  {
+    "code": "TREOI",
+    "long_name": "Trema_orientale_TREOI"
+  },
+  {
+    "code": "TREME",
+    "long_name": "Tremella_mesenterica_TREME"
+  },
+  {
+    "code": "TRIBR",
+    "long_name": "Trichinella_britovi_TRIBR"
+  },
+  {
+    "code": "TRIPS",
+    "long_name": "Trichinella_pseudospiralis_TRIPS"
+  },
+  {
+    "code": "TRISP",
+    "long_name": "Trichinella_spiralis_TRISP"
+  },
+  {
+    "code": "TRIRE",
+    "long_name": "Trichobilharzia_regenti_TRIRE"
+  },
+  {
+    "code": "TRIAR",
+    "long_name": "Trichoderma_arundinaceum_TRIAR"
+  },
+  {
+    "code": "TRIHA",
+    "long_name": "Trichoderma_harzianum_TRIHA"
+  },
+  {
+    "code": "TRICU",
+    "long_name": "Trichonephila_clavata_TRICU"
+  },
+  {
+    "code": "TRICX",
+    "long_name": "Trichonephila_clavipes_TRICX"
+  },
+  {
+    "code": "TRIIM",
+    "long_name": "Trichophyton_interdigitale_TRIIM"
+  },
+  {
+    "code": "TRIRU",
+    "long_name": "Trichophyton_rubrum_TRIRU"
+  },
+  {
+    "code": "TRIRC",
+    "long_name": "Trichophyton_rubrum_strain_ATCC_MYA-4607_TRIRC"
+  },
+  {
+    "code": "TRINI",
+    "long_name": "Trichoplusia_ni_TRINI"
+  },
+  {
+    "code": "TRIAC",
+    "long_name": "Trichosporon_asahii_var_asahii_TRIAC"
+  },
+  {
+    "code": "TRIPR",
+    "long_name": "Trifolium_pratense_TRIPR"
+  },
+  {
+    "code": "TRISU",
+    "long_name": "Trifolium_subterraneum_TRISU"
+  },
+  {
+    "code": "TRICW",
+    "long_name": "Trinickia_caryophylli_TRICW"
+  },
+  {
+    "code": "TRIRA",
+    "long_name": "Triplophysa_rosa_TRIRA"
+  },
+  {
+    "code": "TRIWF",
+    "long_name": "Tripterygium_wilfordii_TRIWF"
+  },
+  {
+    "code": "TRITD",
+    "long_name": "Triticum_turgidum_subsp_durum_TRITD"
+  },
+  {
+    "code": "TRIUA",
+    "long_name": "Triticum_urartu_TRIUA"
+  },
+  {
+    "code": "TROML",
+    "long_name": "Trogon_melanurus_TROML"
+  },
+  {
+    "code": "TRYCI",
+    "long_name": "Trypanosoma_congolense_TRYCI"
+  },
+  {
+    "code": "TRYCC",
+    "long_name": "Trypanosoma_cruzi_TRYCC"
+  },
+  {
+    "code": "TRYRA",
+    "long_name": "Trypanosoma_rangeli_TRYRA"
+  },
+  {
+    "code": "TSUPD",
+    "long_name": "Tsukamurella_paurometabola_TSUPD"
+  },
+  {
+    "code": "TUBBO",
+    "long_name": "Tuber_borchii_TUBBO"
+  },
+  {
+    "code": "TUBMM",
+    "long_name": "Tuber_melanosporum_TUBMM"
+  },
+  {
+    "code": "TUPCH",
+    "long_name": "Tupaia_chinensis_TUPCH"
+  },
+  {
+    "code": "TURPD",
+    "long_name": "Turneriella_parva_TURPD"
+  },
+  {
+    "code": "TURTR",
+    "long_name": "Tursiops_truncatus_TURTR"
+  },
+  {
+    "code": "TYCCO",
+    "long_name": "Tychaedon_coryphoeus_TYCCO"
+  },
+  {
+    "code": "TYRSA",
+    "long_name": "Tyrannus_savana_TYRSA"
+  },
+  {
+    "code": "TYTAL",
+    "long_name": "Tyto_alba_TYTAL"
+  },
+  {
+    "code": "UABAM",
+    "long_name": "Uabimicrobium_amorphum_UABAM"
+  },
+  {
+    "code": "UNCRE",
+    "long_name": "Uncinocarpus_reesii_UNCRE"
+  },
+  {
+    "code": "UNCNE",
+    "long_name": "Uncinula_necator_UNCNE"
+  },
+  {
+    "code": "UPUEP",
+    "long_name": "Upupa_epops_UPUEP"
+  },
+  {
+    "code": "UROPR",
+    "long_name": "Urocitellus_parryii_UROPR"
+  },
+  {
+    "code": "UROIN",
+    "long_name": "Urocolius_indicus_UROIN"
+  },
+  {
+    "code": "URSAM",
+    "long_name": "Ursus_americanus_URSAM"
+  },
+  {
+    "code": "URSMA",
+    "long_name": "Ursus_maritimus_URSMA"
+  },
+  {
+    "code": "USTVR",
+    "long_name": "Ustilaginoidea_virens_USTVR"
+  },
+  {
+    "code": "VANPO",
+    "long_name": "Vanderwaltozyma_polyspora_VANPO"
+  },
+  {
+    "code": "VANTA",
+    "long_name": "Vanessa_tameamea_VANTA"
+  },
+  {
+    "code": "VANPL",
+    "long_name": "Vanilla_planifolia_VANPL"
+  },
+  {
+    "code": "VANHU",
+    "long_name": "Vanrija_humicola_VANHU"
+  },
+  {
+    "code": "VARKO",
+    "long_name": "Varanus_komodoensis_VARKO"
+  },
+  {
+    "code": "VARPD",
+    "long_name": "Variovorax_paradoxus_VARPD"
+  },
+  {
+    "code": "VARDE",
+    "long_name": "Varroa_destructor_VARDE"
+  },
+  {
+    "code": "VECG1",
+    "long_name": "Vecturithrix_granuli_VECG1"
+  },
+  {
+    "code": "VENIN",
+    "long_name": "Venturia_inaequalis_VENIN"
+  },
+  {
+    "code": "VEREI",
+    "long_name": "Verminephrobacter_eiseniae_VEREI"
+  },
+  {
+    "code": "VERA1",
+    "long_name": "Verticillium_alfalfae_VERA1"
+  },
+  {
+    "code": "VERDA",
+    "long_name": "Verticillium_dahliae_VERDA"
+  },
+  {
+    "code": "VERDV",
+    "long_name": "Verticillium_dahliae_strain_VdLs.17_VERDV"
+  },
+  {
+    "code": "VESGE",
+    "long_name": "Vespula_germanica_VESGE"
+  },
+  {
+    "code": "VESPE",
+    "long_name": "Vespula_pensylvanica_VESPE"
+  },
+  {
+    "code": "VESVU",
+    "long_name": "Vespula_vulgaris_VESVU"
+  },
+  {
+    "code": "VIBFU",
+    "long_name": "Vibrio_furnissii_VIBFU"
+  },
+  {
+    "code": "VIBPA",
+    "long_name": "Vibrio_parahaemolyticus_serotype_O3:K6_VIBPA"
+  },
+  {
+    "code": "VICPA",
+    "long_name": "Vicugna_pacos_VICPA"
+  },
+  {
+    "code": "VIDCH",
+    "long_name": "Vidua_chalybeata_VIDCH"
+  },
+  {
+    "code": "VIDMA",
+    "long_name": "Vidua_macroura_VIDMA"
+  },
+  {
+    "code": "VIGRR",
+    "long_name": "Vigna_radiata_var_radiata_VIGRR"
+  },
+  {
+    "code": "VIRAL",
+    "long_name": "Vireo_altiloquus_VIRAL"
+  },
+  {
+    "code": "VITXG",
+    "long_name": "Vitiosangium_sp_VITXG"
+  },
+  {
+    "code": "VITBC",
+    "long_name": "Vitrella_brassicaformis_VITBC"
+  },
+  {
+    "code": "VOMUR",
+    "long_name": "Vombatus_ursinus_VOMUR"
+  },
+  {
+    "code": "VULVU",
+    "long_name": "Vulpes_vulpes_VULVU"
+  },
+  {
+    "code": "WALIC",
+    "long_name": "Wallemia_ichthyophaga_WALIC"
+  },
+  {
+    "code": "WALI9",
+    "long_name": "Wallemia_ichthyophaga_strain_EXF-994_WALI9"
+  },
+  {
+    "code": "WALMC",
+    "long_name": "Wallemia_mellicola_WALMC"
+  },
+  {
+    "code": "WENVI",
+    "long_name": "Wenjunlia_vitaminophila_WENVI"
+  },
+  {
+    "code": "WESOR",
+    "long_name": "Westerdykella_ornata_WESOR"
+  },
+  {
+    "code": "WICAA",
+    "long_name": "Wickerhamomyces_anomalus_WICAA"
+  },
+  {
+    "code": "WICCF",
+    "long_name": "Wickerhamomyces_ciferrii_WICCF"
+  },
+  {
+    "code": "WICPI",
+    "long_name": "Wickerhamomyces_pijperi_WICPI"
+  },
+  {
+    "code": "WOLCO",
+    "long_name": "Wolfiporia_cocos_WOLCO"
+  },
+  {
+    "code": "WUCBA",
+    "long_name": "Wuchereria_bancrofti_WUCBA"
+  },
+  {
+    "code": "XANP2",
+    "long_name": "Xanthobacter_autotrophicus_XANP2"
+  },
+  {
+    "code": "XANOR",
+    "long_name": "Xanthomonas_oryzae_pv_oryzae_XANOR"
+  },
+  {
+    "code": "XENNA",
+    "long_name": "Xenorhabdus_nematophila_XENNA"
+  },
+  {
+    "code": "XIPMA",
+    "long_name": "Xiphophorus_maculatus_XIPMA"
+  },
+  {
+    "code": "XYLHT",
+    "long_name": "Xylona_heveae_XYLHT"
+  },
+  {
+    "code": "ZANCU",
+    "long_name": "Zancudomyces_culisetae_ZANCU"
+  },
+  {
+    "code": "ZINOF",
+    "long_name": "Zingiber_officinale_ZINOF"
+  },
+  {
+    "code": "ZIZPA",
+    "long_name": "Zizania_palustris_ZIZPA"
+  },
+  {
+    "code": "ZIZJJ",
+    "long_name": "Ziziphus_jujuba_ZIZJJ"
+  },
+  {
+    "code": "ZOBGA",
+    "long_name": "Zobellia_galactanivorans_ZOBGA"
+  },
+  {
+    "code": "ZONAL",
+    "long_name": "Zonotrichia_albicollis_ZONAL"
+  },
+  {
+    "code": "ZOONE",
+    "long_name": "Zootermopsis_nevadensis_ZOONE"
+  },
+  {
+    "code": "ZYGRC",
+    "long_name": "Zygosaccharomyces_rouxii_ZYGRC"
+  },
+  {
+    "code": "ZYGMR",
+    "long_name": "Zygotorulaspora_mrakii_ZYGMR"
+  },
+  {
+    "code": "ZYMTI",
+    "long_name": "Zymoseptoria_tritici_ZYMTI"
+  }
+]

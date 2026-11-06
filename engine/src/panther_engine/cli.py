@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from panther_engine import __version__
 from panther_engine.core.tools import report_tools
 from panther_engine.csnp import cli as csnp_cli
+from panther_engine.refmap import cli as refmap_cli
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -27,6 +28,15 @@ def build_parser() -> argparse.ArgumentParser:
             help="cSNP: score a protein, survey the library, the data sample, parity checks",
             description="The cSNP service: scoring, the PAML_RST library survey, the data sample "
             "that developers and CI test against, and parity with the legacy scripts.",
+        )
+    )
+    refmap_cli.configure(
+        commands.add_parser(
+            "refmap",
+            help="refmap: map IDs to PANTHER families, the data, parity checks",
+            description="The refmap service: mapping protein IDs to PANTHER families and "
+            "subfamilies for one Reference Proteome organism, the PANTHER 19 classification "
+            "files it reads, and parity with the legacy map_panther.pl.",
         )
     )
     return parser
@@ -53,5 +63,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return tools()
         case "csnp":
             return csnp_cli.run(args)
+        case "refmap":
+            return refmap_cli.run(args)
         case _:
             raise AssertionError(f"unhandled command: {args.command}")

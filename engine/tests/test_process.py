@@ -114,3 +114,27 @@ def test_the_rest_of_the_callers_environment_reaches_the_tool(
     result = run_tool(tool, [], timeout=10)
 
     assert result.stdout == "a value; with $(shell) characters|false"
+
+
+def test_stdout_to_a_file_keeps_every_byte(
+    make_tool: Callable[[str, str], Path], tmp_path: Path
+) -> None:
+    # Carriage returns, a byte that isn't UTF-8 and no final line feed: text capture would
+    # change the first two.
+    tool = make_tool("bytes", "printf 'a\\r\\nb\\r\\tc\\351'; echo warning >&2; exit 3")
+    out = tmp_path / "out"
+
+    result = run_tool(tool, [], timeout=10, stdout=out)
+
+    assert out.read_bytes() == b"a\r\nb\r\tc\xe9"
+    assert result.stdout == ""
+    assert result.stderr == "warning\n"
+    assert result.returncode == 3
+
+
+def test_text_capture_translates_carriage_returns(
+    make_tool: Callable[[str, str], Path],
+) -> None:
+    tool = make_tool("bytes", "printf 'a\\r\\nb\\r\\tc'")
+
+    assert run_tool(tool, [], timeout=10).stdout == "a\nb\n\tc"

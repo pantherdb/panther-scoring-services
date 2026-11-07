@@ -13,7 +13,7 @@ The engine maps protein IDs since #63 (`port-refmap`), with full parity against 
 - **The result names its organism:** `{"organism", "mappings"}`, as the engine's `RefmapResult` does.
 - **`GET /api/v1/refmap/organisms`** lists every organism with its code, name and gene counts, from the engine, with no data needed, cacheable for an hour, as `GET /api/v1/csnp/species` does.
 - **The startup check covers refmap's data,** logging an error, without stopping, when the folder lacks a file, as for cSNP.
-- **A large result is kept compactly, within a budget.** 100,000 mappings take about 59 MB as models; the job keeps them for 24 hours. The result is kept serialised instead, about a tenth of that, and each poll stops re-serialising it. The finished jobs' results share a memory budget, 256 MiB by default, sized so the services fit in about 4 GB of the team server's 8 GB, leaving room to build Docker images: over it, the oldest finished jobs expire first.
+- **A large result is kept compactly, within a budget.** 100,000 mappings take about 59 MB as models; the job keeps them for 24 hours. The result is kept serialised instead, about a tenth of that, and each poll stops re-serialising it. The finished jobs' results share a memory budget, 256 MiB by default: over it, the oldest finished jobs expire first.
 - **A request with 100,000 bad IDs answers its `422` in about the time a valid one takes** (#41), about 0.2 s instead of 1.1 s on the event loop, with the same body: the first 100 errors at their `loc`s, and the total in `detail`.
 - **The form:** a searchable organism selector fed by the new endpoint, as cSNP's species selector is, with a box to type a code when the list can't load; the example becomes six IDs from the data's own ENDPU test list; the "not available yet" path goes; ID mapping is no longer "coming soon".
 - **The job page says which organism** the IDs were mapped against.
@@ -46,5 +46,5 @@ This change doesn't affect parity: the API passes the organism and the IDs to `m
 
 ## Open Questions
 
-- **The results budget's default, 256 MiB,** is sized for about 4 GB of the team server's 8 GB, the rest kept for building Docker images. Whether the server should set it higher or lower is the engine developer's call, who runs it.
+- **The results budget on the team server:** 256 MiB is a starting default; the engine developer, who runs the server, sets the value that suits it.
 - **The gene counts in the organism list** serve the website's enrichment tests, which read them from `stats` before (`ORGANISM_GENES`). Whether the website's port wants them from this endpoint needs team verification; they cost nothing to include.

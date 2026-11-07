@@ -89,16 +89,33 @@ export function csnpJob(id: string, status: JobStatus): CsnpJob {
   }
 }
 
-// The made-up PANTHER ID for one ID: from the sum of its character codes, so the same ID
-// always gets the same answer, and about a third get none.
+/**
+ * The form's example, six IDs of ENDPU's own test list, mapped as the legacy `map_panther.pl`
+ * mapped them (engine/tests/golden/refmap/out/test_geneList.out): three to subfamilies, two to
+ * families, and one to no PANTHER ID. The mocks give these real answers for these IDs.
+ */
+export const EXAMPLE_MAPPINGS: Readonly<Record<string, string | null>> = {
+  U1G4Q5: 'PTHR11360:SF130',
+  U1GCA1: 'PTHR21058:SF0',
+  U1HRR6: 'PTHR42765:SF2',
+  U1GLV9: 'PTHR28011',
+  U1GJ40: 'PTHR13401',
+  U1HQ27: null,
+}
+
+// The PANTHER ID for one ID: the golden's for the example's IDs; otherwise made up from the
+// sum of its character codes, so the same ID always gets the same answer, and about a third
+// get none.
 function mockPantherId(id: string): string | null {
+  if (Object.hasOwn(EXAMPLE_MAPPINGS, id)) return EXAMPLE_MAPPINGS[id] ?? null
   let sum = 0
   for (let i = 0; i < id.length; i += 1) sum += id.charCodeAt(i)
   return sum % 3 === 0 ? null : `PTHR00000:SF${sum % 10}`
 }
 
 /**
- * MOCK DATA, not a mapping. No engine or classification file produced it: PTHR00000 is no
+ * MOCK DATA, not a mapping, except for the example's six IDs (EXAMPLE_MAPPINGS), whatever the
+ * organism. For any other ID, no engine or classification file produced it: PTHR00000 is no
  * PANTHER family, and whether an ID maps is decided by its characters alone. One mapping per
  * ID, in order, repeats included, as the API returns them.
  */
@@ -106,11 +123,16 @@ export function refmapResult(ids: readonly string[], organism = 'ENDPU'): Refmap
   return { organism, mappings: ids.map(id => ({ id, panther_id: mockPantherId(id) })) }
 }
 
-/** A refmap job in the given status, mapping `ids` once it has succeeded. */
-export function refmapJob(id: string, status: JobStatus, ids: readonly string[] = []): RefmapJob {
+/** A refmap job in the given status, mapping `ids` against `organism` once it has succeeded. */
+export function refmapJob(
+  id: string,
+  status: JobStatus,
+  ids: readonly string[] = [],
+  organism = 'ENDPU'
+): RefmapJob {
   return {
     ...jobFields(id, status),
     service: 'refmap',
-    result: status === 'succeeded' ? refmapResult(ids) : null,
+    result: status === 'succeeded' ? refmapResult(ids, organism) : null,
   }
 }

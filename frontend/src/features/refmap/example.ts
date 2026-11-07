@@ -1,7 +1,8 @@
-// Six reviewed human UniProtKB/Swiss-Prot accessions, one per line: A1BG and A2M (P04217 and
-// P01023, the IDs the API's own docs use), APOE (P02649, cSNP's example protein), TP53, BRCA1
-// and EGFR. Which of them map, and to what, is the engine's answer: nothing here is a mapping.
+// Six IDs from the mapping data's own test list for Endocarpon pusillum (ENDPU), one per line:
+// `U1G4Q5`, `U1GCA1` and `U1HRR6` map to subfamilies, `U1GLV9` and `U1GJ40` to families, and
+// `U1HQ27` to no PANTHER ID, so the example shows every kind of answer. Which they map to is the
+// engine's answer, checked against the legacy service's; nothing here is a mapping.
 export const example = {
-  ids: ['P04217', 'P01023', 'P02649', 'P04637', 'P38398', 'P00533'].join('\n'),
-  organism: 'HUMAN',
+  ids: ['U1G4Q5', 'U1GCA1', 'U1HRR6', 'U1GLV9', 'U1GJ40', 'U1HQ27'].join('\n'),
+  organism: 'ENDPU',
 }

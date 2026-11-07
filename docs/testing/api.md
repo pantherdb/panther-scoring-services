@@ -367,7 +367,7 @@ uv run pytest -k "outside_the_prefix"
 
 Its tests are marked as the engine's are, `tools("blastp")` and `data("csnp")` (`tests/markers.py`):
 
-- **Where `blastp` or the sample is missing,** they're skipped with the reason, as natively on Windows and in CI's `api` job. CI's `api-image` job runs a real `csnp` job against the image instead.
+- **Where `blastp` or the sample is missing,** they're skipped with the reason, as natively on Windows and in CI's `api` job. CI's `api-image` job runs them in the image, on amd64, with both set, so a change that breaks the example or a sample protein fails CI.
 - **With `PANTHER_REQUIRE_TOOLS=1` and `PANTHER_REQUIRE_DATA=1`,** missing tools or data fail them.
 - **The data folder is `PANTHER_DATA_DIR`,** or `.data/` at the repository root.
 

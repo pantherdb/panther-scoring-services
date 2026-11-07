@@ -13,12 +13,13 @@
 ## 3. Docs and Final Check
 
 - [x] 3.1 Update `docs/testing/api.md` ("Tests With the Tools and Data": what the tests submit, and the number of real jobs) and `docs/testing/frontend.md` (the api mode's needs, and the `@api` cSNP specs that create a job). Verify that `npx markdownlint-cli2` and `npx openspec validate --all` pass
+- [x] 3.2 CI: the `api-image` job, on amd64 only, runs `tests/test_csnp_scoring.py` in the API image it built, with the tools and data required, so a change that breaks the example fails CI (#38). Docs: `docs/testing/api.md` and `docs/testing/README.md`. Verify in the pull request's CI log that the seven tests run and pass, not skip
 
 ## Notes
 
 ### Next action
 
-Every task is done. Open the pull request against `main`, for the API and frontend developers to review; then archive with `/opsx:archive`. The open question in proposal.md, whether CI should score the example, is for the team.
+Every task is done. The pull request's review, then archive with `/opsx:archive`.
 
 ### Blockers
 
@@ -40,4 +41,4 @@ None.
 
 ### Lessons learned
 
-- **Neither new test runs in CI as it stands:** CI's `api` job skips the real-job tests, and CI runs the e2e tests in mock mode only. Only CI's `api-image` job scores a real job, P26439, with `curl` and `jq`. So a change that breaks the example's scores still passes CI (proposal.md, Open Questions).
+- **Tests that need the tools don't run in CI's `api` job:** it has no `blastp`, so they skip. Without the `api-image` step (3.2), a change that broke the example's scores would have passed CI.

@@ -20,7 +20,13 @@ export type CsnpResult = Schemas['CsnpResult']
 /** A species cSNP scores against, as GET /csnp/species lists it. Nothing in it needs renaming. */
 export type CsnpSpecies = Schemas['CsnpSpecies']
 export type RefmapInput = Schemas['RefmapInput']
+/** The organism mapped against, by its code, and one mapping per submitted ID, in order. */
 export type RefmapResult = Schemas['RefmapResult']
+/**
+ * An organism refmap maps for, as GET /refmap/organisms lists it: its code, name and gene
+ * counts. The form and the job page read only `code` and `name`, so nothing needs renaming.
+ */
+export type RefmapOrganism = Schemas['RefmapOrganism']
 /** One submitted ID and its PANTHER ID; `panther_id` is null where the legacy said NOHIT. */
 export type IdMapping = Schemas['IdMapping']
 export type Problem = Schemas['Problem']

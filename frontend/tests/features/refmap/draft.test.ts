@@ -11,7 +11,7 @@ import { example } from '@/features/refmap/example'
 import { splitIds } from '@/features/refmap/ids'
 
 const withErrors: Draft = {
-  values: { ids: 'P04217', organism: 'human' },
+  values: { ids: 'P04217', organism: 'endpu' },
   errors: { fields: { ids: ['Bad ID.'], organism: ['Bad organism.'] }, form: ['Other.'] },
   filledFromJob: false,
 }
@@ -23,9 +23,9 @@ describe('the refmap draft', () => {
   })
 
   it("clears an edited field's errors and the form's, and keeps the other field's", () => {
-    const draft = draftReducer(withErrors, { type: 'edited', field: 'organism', value: 'HUMAN' })
+    const draft = draftReducer(withErrors, { type: 'edited', field: 'organism', value: 'ENDPU' })
 
-    expect(draft.values).toEqual({ ids: 'P04217', organism: 'HUMAN' })
+    expect(draft.values).toEqual({ ids: 'P04217', organism: 'ENDPU' })
     expect(draft.errors).toEqual({ fields: { ids: ['Bad ID.'] }, form: [] })
   })
 
@@ -33,14 +33,14 @@ describe('the refmap draft', () => {
     const draft = draftReducer(withErrors, { type: 'exampleUsed' })
 
     expect(draft.values).toEqual(example)
-    expect(draft.values.organism).toBe('HUMAN')
+    expect(draft.values.organism).toBe('ENDPU')
     expect(splitIds(draft.values.ids).ids).toEqual([
-      'P04217',
-      'P01023',
-      'P02649',
-      'P04637',
-      'P38398',
-      'P00533',
+      'U1G4Q5',
+      'U1GCA1',
+      'U1HRR6',
+      'U1GLV9',
+      'U1GJ40',
+      'U1HQ27',
     ])
     expect(draft.errors).toEqual({ fields: {}, form: [] })
   })
@@ -88,17 +88,17 @@ describe('the refmap draft', () => {
   })
 
   it('sends the organism trimmed and the IDs as split', () => {
-    const values = { ids: 'P04217, p04217\tvalue', organism: ' HUMAN ' }
+    const values = { ids: 'P04217, p04217\tvalue', organism: ' ENDPU ' }
 
     expect(draftInput(values, splitIds(values.ids))).toEqual({
-      organism: 'HUMAN',
+      organism: 'ENDPU',
       ids: ['P04217', 'p04217'],
     })
   })
 })
 
 describe('the starting draft', () => {
-  const kept = { ids: 'P04217\nQ9H2F3', organism: 'MOUSE' }
+  const kept = { ids: 'P04217\nQ9H2F3', organism: 'ARAVE' }
 
   it('starts from a kept input, as typed, and says it was filled from a job', () => {
     expect(startingDraft(kept)).toEqual({

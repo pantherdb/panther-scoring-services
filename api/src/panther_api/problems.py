@@ -11,6 +11,8 @@ from pydantic import BaseModel
 from pydantic.json_schema import models_json_schema
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from panther_api.jobs.fields import MOST_FIELD_ERRORS, Unlisted
+
 PROBLEM_MEDIA_TYPE = "application/problem+json"
 VALIDATION_DETAIL = "Request validation failed"
 UNEXPECTED_DETAIL = "The server hit an unexpected error and could not complete the request."
@@ -149,11 +151,6 @@ def _message(error: Mapping[str, Any]) -> str:
     return message
 
 
-MOST_FIELD_ERRORS = 100
-"""The most field errors a 422 lists. A list such as refmap's 100,000 IDs could otherwise give
-a problem body of megabytes, built and serialised on the event loop."""
-
-
 def _validation_detail(total: int) -> str:
     if total <= MOST_FIELD_ERRORS:
         return VALIDATION_DETAIL
@@ -165,6 +162,10 @@ def _validation_detail(total: int) -> str:
 
 async def _validation_error(_request: Request, exc: RequestValidationError) -> JSONResponse:
     all_errors = exc.errors()
+    # A list validator that stopped at the first MOST_FIELD_ERRORS says how many more failed.
+    unlisted = sum(
+        error["input"].count for error in all_errors if isinstance(error.get("input"), Unlisted)
+    )
     # Pydantic's errors also carry `input`, `ctx` and `url`; only these three are returned,
     # so a submitted value is never echoed back.
     errors = [
@@ -175,7 +176,7 @@ async def _validation_error(_request: Request, exc: RequestValidationError) -> J
     problem = ValidationProblem(
         title=status.phrase,
         status=status,
-        detail=_validation_detail(len(all_errors)),
+        detail=_validation_detail(len(all_errors) + unlisted),
         errors=errors,
     )
     return problem_response(problem)

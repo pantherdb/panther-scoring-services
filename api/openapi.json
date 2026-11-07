@@ -95,7 +95,7 @@
           "jobs"
         ],
         "summary": "Start a job",
-        "description": "Start a job for `service` with its `input`. The job runs after this request returns.\n\nAn input the job can't run with is a 422, and no job is created. A problem only the work can\nfind, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid\n`refmap` request gets a 501 until its mapping is available; its input is still validated first.\nA valid request is a 503 when too many jobs are already waiting for a worker.",
+        "description": "Start a job for `service` with its `input`. The job runs after this request returns.\n\nAn input the job can't run with is a 422, and no job is created. A problem only the work can\nfind, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid\nrequest is a 503 when too many jobs are already waiting for a worker.",
         "operationId": "create_job_api_v1_jobs_post",
         "requestBody": {
           "content": {
@@ -194,16 +194,6 @@
                 }
               }
             },
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "The service can't run jobs yet: `refmap`, until its mapping is ported. The request was valid, and no job was created.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -344,6 +334,60 @@
                   },
                   "type": "array",
                   "title": "Response Csnp Species Api V1 Csnp Species Get"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as problem details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/refmap/organisms": {
+      "get": {
+        "tags": [
+          "refmap"
+        ],
+        "summary": "The organisms refmap maps for",
+        "description": "Every organism a `refmap` job's `organism` may name, with its name and gene counts, in the\nengine's order.\n\nNeeds no data folder. The response may be cached for an hour.",
+        "operationId": "refmap_organisms_api_v1_refmap_organisms_get",
+        "responses": {
+          "200": {
+            "description": "Every organism, in the engine's order.",
+            "headers": {
+              "Cache-Control": {
+                "description": "`public, max-age=3600`",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RefmapOrganism"
+                  },
+                  "type": "array",
+                  "title": "Response Refmap Organisms Api V1 Refmap Organisms Get"
                 }
               }
             }
@@ -684,7 +728,7 @@
           "ids"
         ],
         "title": "RefmapInput",
-        "description": "One organism, and the IDs to map to PANTHER IDs in it.\n\n`organism` is a UniProt species code such as `HUMAN`. `ids` are the protein IDs, such as\nUniProt accessions, each looked up exactly as given: not trimmed, not upper-cased, and\nrepeated IDs each get their own mapping, in order."
+        "description": "One organism, and the IDs to map to PANTHER IDs in it.\n\n`organism` is the code of an organism refmap maps for, such as `ENDPU`. `ids` are the protein\nIDs, such as UniProt accessions, each looked up exactly as given: not trimmed, not\nupper-cased, and repeated IDs each get their own mapping, in order."
       },
       "RefmapJob": {
         "properties": {
@@ -767,7 +811,7 @@
           "versions"
         ],
         "title": "RefmapJob",
-        "description": "A `refmap` job, with the same fields as every job. `result` is its ID mappings.\n\nNone is created until the engine's mapping is wired in: a valid request gets a 501."
+        "description": "A `refmap` job, with the same fields as every job. `result` is the organism the IDs were\nmapped against, and one mapping per ID, in the order submitted.\n\nIt fails with the generic 500 when the organism's data is missing."
       },
       "RefmapJobRequest": {
         "properties": {
@@ -786,10 +830,43 @@
           "input"
         ],
         "title": "RefmapJobRequest",
-        "description": "Start a `refmap` job: map protein IDs to PANTHER IDs for one organism.\n\nUntil the engine's refmap mapping is wired in, a valid request gets a 501, and no job."
+        "description": "Start a `refmap` job: map protein IDs to PANTHER IDs for one organism."
+      },
+      "RefmapOrganism": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "genes": {
+            "type": "integer",
+            "title": "Genes"
+          },
+          "genes_with_panther_id": {
+            "type": "integer",
+            "title": "Genes With Panther Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "genes",
+          "genes_with_panther_id"
+        ],
+        "title": "RefmapOrganism",
+        "description": "An organism refmap maps for: its UniProt species code, such as `ENDPU`, which a `refmap`\nrequest's `organism` names; its name, such as `Endocarpon pusillum`; how many genes its\nclassification file holds; and how many of them have a PANTHER ID."
       },
       "RefmapResult": {
         "properties": {
+          "organism": {
+            "type": "string",
+            "title": "Organism"
+          },
           "mappings": {
             "items": {
               "$ref": "#/components/schemas/IdMapping"
@@ -800,10 +877,11 @@
         },
         "type": "object",
         "required": [
+          "organism",
           "mappings"
         ],
         "title": "RefmapResult",
-        "description": "One mapping per submitted ID, in the order submitted, repeated IDs included."
+        "description": "The organism mapped against, and one mapping per submitted ID, in the order submitted,\nrepeated IDs included."
       },
       "SubstitutionScore": {
         "properties": {

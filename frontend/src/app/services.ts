@@ -16,7 +16,7 @@ export type Service = {
   path: string
   /** The home page's link to the form; none while the service has no form. */
   action?: string
-  /** The API can't score it yet. `refmap` has a form, but the API answers it with 501 (#40). */
+  /** The API can't score it yet. */
   comingSoon: boolean
 }
 
@@ -39,7 +39,7 @@ export const SERVICES: readonly Service[] = [
       'Maps protein IDs, such as UniProt accessions, to their PANTHER families and subfamilies in one organism.',
     path: '/refmap',
     action: 'Map protein IDs',
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: 'hmmscore',

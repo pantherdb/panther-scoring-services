@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 
+import { organisms as mockedOrganisms } from '@/mocks/data/organisms'
 import { createJob } from '@/mocks/jobs'
 
 import { server } from '../../mocks/server'
@@ -14,6 +15,8 @@ const JOB_PATH = /^\/jobs\/[0-9a-f-]{36}$/
 const IDS = 'P04217\np04217, P01023\tA1BG\nP04217-2'
 const SENT_IDS = ['P04217', 'p04217', 'P01023', 'P04217-2']
 
+const ENDPU = 'Endocarpon pusillum (ENDPU)'
+
 type User = ReturnType<typeof renderRoute>['user']
 
 function main() {
@@ -24,8 +27,13 @@ function idsBox() {
   return main().getByRole('textbox', { name: /protein ids/i })
 }
 
+// The organism selector, or the code box when the list can't be loaded: the same label. By
+// role, since the selector's open list of options has that label too.
 function organismBox() {
-  return main().getByRole('textbox', { name: /organism/i })
+  return (
+    main().queryByRole('combobox', { name: /organism/i }) ??
+    main().getByRole('textbox', { name: /organism/i })
+  )
 }
 
 function fileInput() {
@@ -38,6 +46,30 @@ function submitButton() {
 
 function exampleButton() {
   return main().getByRole('button', { name: /use an example/i })
+}
+
+// The selector is enabled once the mocked list has loaded.
+async function organismsLoaded() {
+  await waitFor(() => expect(organismBox()).toBeEnabled())
+  expect(organismBox()).toHaveRole('combobox')
+}
+
+// Clears the selector's text and types `text` in it. A click leaves the chosen organism's label
+// in the box, so typing alone would add to it.
+async function search(user: User, text: string) {
+  await organismsLoaded()
+  await user.click(organismBox())
+  await user.clear(organismBox())
+  await user.type(organismBox(), text)
+}
+
+async function optionNames() {
+  return (await screen.findAllByRole('option')).map(option => option.textContent)
+}
+
+async function chooseOrganism(user: User, text = 'pusill', option = ENDPU) {
+  await search(user, text)
+  await user.click(await screen.findByRole('option', { name: option }))
 }
 
 // Answers POST /jobs with `answer`, or, by default, as the mocked API does (a queued refmap
@@ -76,22 +108,30 @@ function serveValidationProblem(...errors: { loc: (string | number)[]; msg: stri
   })
 }
 
-const NOT_IMPLEMENTED = {
-  type: 'about:blank',
-  title: 'Not Implemented',
-  status: 501,
-  detail: "refmap ID mapping isn't available yet.",
+function serveOrganismsFailure() {
+  server.use(
+    http.get('/api/v1/refmap/organisms', () =>
+      HttpResponse.json(
+        { type: 'about:blank', title: 'x', status: 500, detail: 'at /opt/app :8000' },
+        { status: 500, headers: PROBLEM }
+      )
+    )
+  )
+}
+
+async function fallbackShown() {
+  expect(await main().findByRole('button', { name: /organisms again/i })).toBeInTheDocument()
 }
 
 // Fills the form with a valid input. Paste, not type: typing a long list is slow.
 async function fillValid(user: User) {
   await user.click(idsBox())
   await user.paste(IDS)
-  await user.type(organismBox(), 'HUMAN')
+  await chooseOrganism(user)
 }
 
 describe('the refmap form', () => {
-  it('opens from the home page, with empty boxes', async () => {
+  it('opens from the home page, with empty boxes and no organism chosen', async () => {
     const { user, router } = renderRoute('/')
 
     await user.click(main().getByRole('link', { name: /map protein ids/i }))
@@ -99,26 +139,27 @@ describe('the refmap form', () => {
     expect(router.state.location.pathname).toBe('/refmap')
     expect(main().getByRole('heading', { level: 2, name: /protein id mapping/i })).toBeVisible()
     expect(idsBox()).toHaveValue('')
+    await organismsLoaded()
     expect(organismBox()).toHaveValue('')
     expect(main().getByText(/no ids yet/i)).toBeInTheDocument()
     expect(submitButton()).toBeEnabled()
   })
 
-  it('fills both boxes with the example, six human accessions and HUMAN', async () => {
+  it("fills both fields with the example, six of ENDPU's IDs and ENDPU", async () => {
     const { user } = renderRoute('/refmap')
-    await user.type(organismBox(), 'MOUSE')
+    await chooseOrganism(user, 'eco57', 'Escherichia coli O157:H7 (ECO57)')
 
     await user.click(exampleButton())
 
     expect((idsBox() as HTMLTextAreaElement).value.split('\n')).toEqual([
-      'P04217',
-      'P01023',
-      'P02649',
-      'P04637',
-      'P38398',
-      'P00533',
+      'U1G4Q5',
+      'U1GCA1',
+      'U1HRR6',
+      'U1GLV9',
+      'U1GJ40',
+      'U1HQ27',
     ])
-    expect(organismBox()).toHaveValue('HUMAN')
+    expect(organismBox()).toHaveValue(ENDPU)
     expect(await main().findByText(/^6 IDs will be sent\.$/)).toBeInTheDocument()
   })
 
@@ -145,6 +186,203 @@ describe('the refmap form', () => {
   })
 })
 
+describe('the organism selector', () => {
+  it('offers each organism the API lists, by name and code, sorted by name', async () => {
+    const { user } = renderRoute('/refmap')
+    await organismsLoaded()
+
+    await user.click(organismBox())
+
+    const expected = mockedOrganisms
+      .map(({ code, name }) => `${name} (${code})`)
+      .sort((a, b) => a.localeCompare(b, 'en'))
+    expect(await optionNames()).toEqual(expected)
+  })
+
+  it('finds organisms by part of a name, in any case, and chooses one', async () => {
+    const { user } = renderRoute('/refmap')
+
+    await search(user, 'PUSILL')
+
+    expect(await optionNames()).toEqual([ENDPU, 'Micromonas pusilla (MICPC)'])
+    await user.click(screen.getByRole('option', { name: ENDPU }))
+    expect(organismBox()).toHaveValue(ENDPU)
+  })
+
+  it('finds an organism by its code, in any case', async () => {
+    const { user } = renderRoute('/refmap')
+
+    await search(user, 'eco57')
+
+    expect(await optionNames()).toEqual(['Escherichia coli O157:H7 (ECO57)'])
+  })
+
+  it('says when no organism matches', async () => {
+    const { user } = renderRoute('/refmap')
+
+    await search(user, 'xyz')
+
+    expect(screen.queryAllByRole('option')).toEqual([])
+    expect(main().getByText(/no organism matches/i)).toBeInTheDocument()
+  })
+
+  it("sends the chosen organism's code", async () => {
+    const bodies = serveStart()
+    const { user, router } = renderRoute('/refmap')
+    await fillValid(user)
+
+    await user.click(submitButton())
+
+    await waitFor(() => expect(router.state.location.pathname).toMatch(JOB_PATH))
+    expect(bodies).toEqual([{ service: 'refmap', input: { organism: 'ENDPU', ids: SENT_IDS } }])
+  })
+
+  it('works with the keyboard alone', async () => {
+    const bodies = serveStart()
+    const { user, router } = renderRoute('/refmap')
+    await user.click(idsBox())
+    await user.paste(IDS)
+    await organismsLoaded()
+
+    await user.tab()
+    await user.tab()
+    expect(organismBox()).toHaveFocus()
+    await user.keyboard('araneus')
+    await user.keyboard('{ArrowDown}{Enter}')
+    expect(organismBox()).toHaveValue('Araneus ventricosus (ARAVE)')
+    await user.click(submitButton())
+
+    await waitFor(() => expect(router.state.location.pathname).toMatch(JOB_PATH))
+    expect(bodies).toEqual([
+      expect.objectContaining({ input: expect.objectContaining({ organism: 'ARAVE' }) }),
+    ])
+  })
+
+  it('says the organisms are loading until the list arrives, and the IDs can be filled', async () => {
+    let release = () => {}
+    const gate = new Promise<void>(resolve => (release = resolve))
+    server.use(
+      http.get('/api/v1/refmap/organisms', async () => {
+        await gate
+        return HttpResponse.json(mockedOrganisms)
+      })
+    )
+    const { user } = renderRoute('/refmap')
+
+    expect(organismBox()).toBeDisabled()
+    expect(organismBox()).toHaveAttribute('placeholder', expect.stringMatching(/loading/i))
+    await user.click(idsBox())
+    await user.paste(IDS)
+    expect(idsBox()).toHaveValue(IDS)
+
+    release()
+    await organismsLoaded()
+  })
+})
+
+describe('when the organism list can’t be loaded', () => {
+  function retryButton() {
+    return main().getByRole('button', { name: /load the list of organisms again/i })
+  }
+
+  it('offers an empty box for the code, says why in fixed text, and offers to retry', async () => {
+    serveOrganismsFailure()
+    renderRoute('/refmap')
+
+    await fallbackShown()
+
+    expect(organismBox()).toHaveRole('textbox')
+    expect(organismBox()).toHaveValue('')
+    expect(organismBox()).toBeEnabled()
+    expect(organismBox()).toHaveAccessibleDescription(/couldn.t be loaded/i)
+    expect(screen.getByRole('main').textContent).not.toMatch(BUILD_DETAILS)
+    expect(screen.getByRole('main').textContent).not.toMatch(/500/)
+  })
+
+  it.each([
+    ['as typed', 'ENDPU'],
+    ['trimmed', ' ENDPU '],
+  ])('sends a typed code, %s', async (_name, typed) => {
+    serveOrganismsFailure()
+    const bodies = serveStart()
+    const { user, router } = renderRoute('/refmap')
+    await fallbackShown()
+    await user.click(idsBox())
+    await user.paste(IDS)
+    await user.type(organismBox(), typed)
+
+    await user.click(submitButton())
+
+    await waitFor(() => expect(router.state.location.pathname).toMatch(JOB_PATH))
+    expect(bodies).toEqual([{ service: 'refmap', input: { organism: 'ENDPU', ids: SENT_IDS } }])
+  })
+
+  it.each([
+    ['empty', '', /species code/i],
+    ['lower case', 'endpu', /1 to 5 upper-case letters or digits/],
+    ['too long', 'ENDOCARPON', /1 to 5 upper-case letters or digits/],
+    ['a path', '../x', /1 to 5 upper-case letters or digits/],
+  ])(
+    'checks the shape of a typed code: %s is refused on its field only, unquoted',
+    async (_name, text, error) => {
+      serveOrganismsFailure()
+      const bodies = serveStart()
+      const { user } = renderRoute('/refmap')
+      await fallbackShown()
+      await user.click(idsBox())
+      await user.paste(IDS)
+      if (text) await user.type(organismBox(), text)
+
+      await user.click(submitButton())
+
+      expect(organismBox()).toBeInvalid()
+      expect(organismBox()).toHaveAccessibleDescription(error)
+      if (text) {
+        expect(organismBox()).not.toHaveAccessibleDescription(
+          new RegExp(text.replaceAll('.', '\\.'))
+        )
+      }
+      expect(idsBox()).toBeValid()
+      expect(bodies).toEqual([])
+    }
+  )
+
+  it('brings the selector back on a retry, keeping the typed organism', async () => {
+    serveOrganismsFailure()
+    const { user } = renderRoute('/refmap')
+    await fallbackShown()
+    await user.type(organismBox(), 'ENDPU')
+    server.resetHandlers()
+
+    await user.click(retryButton())
+
+    await waitFor(() => expect(organismBox()).toHaveValue(ENDPU))
+    expect(organismBox()).toHaveRole('combobox')
+    expect(main().queryByRole('button', { name: /organisms again/i })).toBeNull()
+  })
+
+  it('refuses a typed code the list turns out not to have, such as HUMAN, and sends nothing', async () => {
+    serveOrganismsFailure()
+    const { user } = renderRoute('/refmap')
+    await fallbackShown()
+    await user.click(idsBox())
+    await user.paste(IDS)
+    await user.type(organismBox(), 'HUMAN')
+    server.resetHandlers()
+    const bodies = serveStart()
+    await user.click(retryButton())
+    await organismsLoaded()
+
+    await user.click(submitButton())
+
+    expect(organismBox()).toBeInvalid()
+    expect(organismBox()).toHaveAccessibleDescription(/from the list/i)
+    expect(organismBox()).not.toHaveAccessibleDescription(/HUMAN/)
+    expect(organismBox()).toHaveValue('')
+    expect(bodies).toEqual([])
+  })
+})
+
 describe('loading a text file', () => {
   it("puts the file's contents in the box, read in the browser, and counts them", async () => {
     const bodies = serveStart()
@@ -156,10 +394,10 @@ describe('loading a text file', () => {
     await waitFor(() => expect(idsBox()).toHaveValue(IDS))
     expect(await main().findByText(/^4 IDs will be sent\./)).toBeInTheDocument()
     expect(bodies).toEqual([])
-    await user.type(organismBox(), 'HUMAN')
+    await chooseOrganism(user)
     await user.click(submitButton())
     await waitFor(() => expect(router.state.location.pathname).toMatch(JOB_PATH))
-    expect(bodies).toEqual([{ service: 'refmap', input: { organism: 'HUMAN', ids: SENT_IDS } }])
+    expect(bodies).toEqual([{ service: 'refmap', input: { organism: 'ENDPU', ids: SENT_IDS } }])
   })
 
   it('replaces what was in the box, and clears its error', async () => {
@@ -188,16 +426,17 @@ describe('loading a text file', () => {
 })
 
 describe('the client checks', () => {
-  it('shows an error on each empty box and sends nothing', async () => {
+  it('shows an error on each empty field and sends nothing', async () => {
     const bodies = serveStart()
     const { user, router } = renderRoute('/refmap')
+    await organismsLoaded()
 
     await user.click(submitButton())
 
     expect(idsBox()).toBeInvalid()
     expect(organismBox()).toBeInvalid()
     expect(idsBox()).toHaveAccessibleDescription(/at least one id/i)
-    expect(organismBox()).toHaveAccessibleDescription(/species code/i)
+    expect(organismBox()).toHaveAccessibleDescription(/choose an organism/i)
     expect(bodies).toEqual([])
     expect(router.state.location.pathname).toBe('/refmap')
   })
@@ -215,7 +454,7 @@ describe('the client checks', () => {
     const { user } = renderRoute('/refmap')
     await user.click(idsBox())
     await user.paste(text)
-    await user.type(organismBox(), 'HUMAN')
+    await chooseOrganism(user)
 
     await user.click(submitButton())
 
@@ -225,31 +464,12 @@ describe('the client checks', () => {
     expect(bodies).toEqual([])
   })
 
-  it.each([
-    ['lower case', 'human'],
-    ['too long', 'HOMOSAPIENS'],
-    ['a path', '../x'],
-  ])('refuses an organism in %s, on its field only', async (_name, organism) => {
-    const bodies = serveStart()
-    const { user } = renderRoute('/refmap')
-    await user.click(exampleButton())
-    await user.clear(organismBox())
-    await user.type(organismBox(), organism)
-
-    await user.click(submitButton())
-
-    expect(organismBox()).toBeInvalid()
-    expect(organismBox()).toHaveAccessibleDescription(/1 to 5 upper-case letters or digits/)
-    expect(organismBox()).not.toHaveAccessibleDescription(new RegExp(organism.replace('.', '\\.')))
-    expect(idsBox()).toBeValid()
-    expect(bodies).toEqual([])
-  })
-
   it("clears a field's error once it is edited", async () => {
     const { user } = renderRoute('/refmap')
+    await organismsLoaded()
     await user.click(submitButton())
 
-    await user.type(organismBox(), 'H')
+    await chooseOrganism(user)
 
     expect(organismBox()).toBeValid()
     expect(idsBox()).toBeInvalid()
@@ -257,17 +477,15 @@ describe('the client checks', () => {
 })
 
 describe('submitting a refmap request', () => {
-  it('sends the IDs as split and the organism trimmed, and opens the job', async () => {
+  it('sends the IDs as split and the organism, and opens the job', async () => {
     const bodies = serveStart()
     const { user, router } = renderRoute('/refmap')
-    await user.click(idsBox())
-    await user.paste(IDS)
-    await user.type(organismBox(), ' HUMAN ')
+    await fillValid(user)
 
     await user.click(submitButton())
 
     await waitFor(() => expect(router.state.location.pathname).toMatch(JOB_PATH))
-    expect(bodies).toEqual([{ service: 'refmap', input: { organism: 'HUMAN', ids: SENT_IDS } }])
+    expect(bodies).toEqual([{ service: 'refmap', input: { organism: 'ENDPU', ids: SENT_IDS } }])
     // The status first: the form's own heading reads the same as the job page's.
     expect(await main().findByRole('status')).toHaveTextContent(/queued/i)
     expect(main().getByRole('heading', { level: 2, name: /protein id mapping/i })).toBeVisible()
@@ -279,12 +497,12 @@ describe('submitting a refmap request', () => {
     const ids = Array.from({ length: 100_000 }, (_, i) => `P${i}`)
     await user.click(idsBox())
     await user.paste(ids.join('\n'))
-    await user.type(organismBox(), 'HUMAN')
+    await chooseOrganism(user)
 
     await user.click(submitButton())
 
     await waitFor(() => expect(router.state.location.pathname).toMatch(JOB_PATH))
-    expect(bodies).toEqual([{ service: 'refmap', input: { organism: 'HUMAN', ids } }])
+    expect(bodies).toEqual([{ service: 'refmap', input: { organism: 'ENDPU', ids } }])
   })
 
   it('is disabled while the request is in flight', async () => {
@@ -317,7 +535,7 @@ describe("the API's validation errors", () => {
     expect(organismBox()).toHaveAccessibleDescription(/the api refuses this organism/i)
     expect(idsBox()).toBeValid()
     expect(idsBox()).toHaveValue(IDS)
-    expect(organismBox()).toHaveValue('HUMAN')
+    expect(organismBox()).toHaveValue(ENDPU)
     expect(router.state.location.pathname).toBe('/refmap')
   })
 
@@ -357,8 +575,7 @@ describe("the API's validation errors", () => {
     await user.click(submitButton())
     await waitFor(() => expect(organismBox()).toBeInvalid())
 
-    await user.clear(organismBox())
-    await user.type(organismBox(), 'MOUSE')
+    await chooseOrganism(user, 'eco57', 'Escherichia coli O157:H7 (ECO57)')
 
     expect(organismBox()).toBeValid()
     serveStart()
@@ -368,50 +585,43 @@ describe("the API's validation errors", () => {
 })
 
 describe('when the job is not started', () => {
-  it("says on a 501 that mapping isn't available yet, keeps the input, and stays", async () => {
-    const bodies = serveProblem(501, NOT_IMPLEMENTED)
-    const { user, router } = renderRoute('/refmap')
-    await fillValid(user)
+  it.each([
+    [
+      '500',
+      500,
+      { type: 'about:blank', title: 'Internal Server Error', status: 500, detail: 'at /opt/app' },
+    ],
+    [
+      '501 from an older API',
+      501,
+      { type: 'about:blank', title: 'Not Implemented', status: 501, detail: 'Not yet.' },
+    ],
+  ])(
+    'says the job could not be started on a %s, with no status or build details, and keeps the input',
+    async (_name, status, body) => {
+      const bodies = serveProblem(status, body)
+      const { user, router } = renderRoute('/refmap')
+      await fillValid(user)
 
-    await user.click(submitButton())
+      await user.click(submitButton())
 
-    const alert = await main().findByRole('alert')
-    expect(alert).toHaveTextContent(/isn.t available yet/i)
-    expect(alert).not.toHaveTextContent(/couldn.t be started/i)
-    expect(bodies).toHaveLength(1)
-    expect(idsBox()).toHaveValue(IDS)
-    expect(organismBox()).toHaveValue('HUMAN')
-    expect(router.state.location.pathname).toBe('/refmap')
-    expect(screen.getByRole('main').textContent).not.toMatch(/501|not implemented/i)
-    expect(submitButton()).toBeEnabled()
+      const alert = await main().findByRole('alert')
+      expect(alert).toHaveTextContent(/couldn.t be started/i)
+      expect(bodies).toHaveLength(1)
+      expect(screen.getByRole('main').textContent).not.toMatch(BUILD_DETAILS)
+      expect(screen.getByRole('main').textContent).not.toMatch(
+        /50[01]|internal server error|not implemented/i
+      )
+      expect(router.state.location.pathname).toBe('/refmap')
+      expect(idsBox()).toHaveValue(IDS)
+      expect(organismBox()).toHaveValue(ENDPU)
+      expect(submitButton()).toBeEnabled()
 
-    serveStart()
-    await user.click(submitButton())
-    await waitFor(() => expect(router.state.location.pathname).toMatch(JOB_PATH))
-  })
-
-  it('says the job could not be started on a 500, with no status or build details', async () => {
-    serveProblem(500, {
-      type: 'about:blank',
-      title: 'Internal Server Error',
-      status: 500,
-      detail: 'at /opt/app',
-    })
-    const { user, router } = renderRoute('/refmap')
-    await fillValid(user)
-
-    await user.click(submitButton())
-
-    const alert = await main().findByRole('alert')
-    expect(alert).toHaveTextContent(/couldn.t be started/i)
-    expect(screen.getByRole('main').textContent).not.toMatch(BUILD_DETAILS)
-    expect(screen.getByRole('main').textContent).not.toMatch(/500|internal server error/i)
-    expect(router.state.location.pathname).toBe('/refmap')
-
-    serveStart()
-    await user.click(submitButton())
-    await waitFor(() => expect(router.state.location.pathname).toMatch(JOB_PATH))
-  })
+      serveStart()
+      await user.click(submitButton())
+      await waitFor(() => expect(router.state.location.pathname).toMatch(JOB_PATH))
+    }
+  )
 
   it.each([
     ['the network fails', () => HttpResponse.error()],
@@ -433,6 +643,7 @@ describe('when the job is not started', () => {
       expect(screen.getByRole('main').textContent).not.toMatch(BUILD_DETAILS)
       expect(router.state.location.pathname).toBe('/refmap')
       expect(idsBox()).toHaveValue(IDS)
+      expect(organismBox()).toHaveValue(ENDPU)
       expect(submitButton()).toBeEnabled()
 
       serveStart()
@@ -455,7 +666,7 @@ describe('after submitting', () => {
     expect(router.state.location.pathname).toBe('/refmap')
     expect(main().getByText(/filled in from your earlier job/i)).toBeInTheDocument()
     expect(idsBox()).toHaveValue(IDS)
-    expect(organismBox()).toHaveValue('HUMAN')
+    expect(organismBox()).toHaveValue(ENDPU)
   })
 
   it('starts an empty form, without the note, from the ID mapping tab on an edited form', async () => {

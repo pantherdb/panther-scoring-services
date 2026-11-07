@@ -11,21 +11,45 @@ function check(ids: string[]) {
   return checkIds({ ids, lines: ids.map((_, i) => i + 1), linesWithColumns: 0 })
 }
 
-describe('checkOrganism', () => {
-  it.each(['HUMAN', 'ECOLI', '9BACT', 'A', ' MOUSE '])('accepts %j', organism => {
-    expect(checkOrganism(organism)).toEqual([])
-  })
+const CODES = new Set(['ENDPU', 'ARAVE', 'ECO57'])
+
+describe('checkOrganism, before the list has loaded', () => {
+  it.each(['ENDPU', 'ECO57', '9BACT', 'A', ' ARAVE ', 'HUMAN'])(
+    'accepts %j by its shape alone',
+    organism => {
+      expect(checkOrganism(organism)).toEqual([])
+    }
+  )
 
   it('asks for a code when there is none', () => {
     expect(checkOrganism('  ')).toEqual([expect.stringMatching(/species code/i)])
   })
 
-  it.each(['human', '../../etc/passwd', 'HUMAN|', 'Homo_sapiens_HUMAN', 'HOMOSAP', 'HU MAN'])(
-    'refuses %j without quoting it',
+  it.each([
+    'endpu',
+    '../../etc/passwd',
+    'ENDPU|',
+    'Endocarpon_pusillum_ENDPU',
+    'ENDOCARPON',
+    'EN DPU',
+  ])('refuses %j without quoting it', organism => {
+    const messages = checkOrganism(organism)
+    expect(messages).toEqual([expect.stringMatching(/1 to 5 upper-case letters or digits/)])
+    expect(messages[0]).not.toContain(organism.trim())
+  })
+})
+
+describe('checkOrganism, once the list has loaded', () => {
+  it.each(['ENDPU', ' ECO57 '])('accepts %j, a listed code', organism => {
+    expect(checkOrganism(organism, CODES)).toEqual([])
+  })
+
+  it.each(['HUMAN', 'ECOLI', '', 'endpu', '../x'])(
+    'asks for an organism from the list for %j, without quoting it',
     organism => {
-      const messages = checkOrganism(organism)
-      expect(messages).toEqual([expect.stringMatching(/1 to 5 upper-case letters or digits/)])
-      expect(messages[0]).not.toContain(organism.trim())
+      const messages = checkOrganism(organism, CODES)
+      expect(messages).toEqual([expect.stringMatching(/from the list/)])
+      if (organism) expect(messages[0]).not.toContain(organism)
     }
   )
 })
@@ -90,17 +114,26 @@ describe('checkIds', () => {
 
 describe('checkDraft', () => {
   it('finds nothing wrong with a valid draft', () => {
-    const values = { ids: 'P04217\nP01023', organism: 'HUMAN' }
+    const values = { ids: 'P04217\nP01023', organism: 'ENDPU' }
 
     expect(checkDraft(values, splitIds(values.ids))).toEqual({})
+    expect(checkDraft(values, splitIds(values.ids), CODES)).toEqual({})
   })
 
   it('puts each broken rule on its field', () => {
-    const values = { ids: ' ', organism: 'human' }
+    const values = { ids: ' ', organism: 'endpu' }
 
     expect(checkDraft(values, splitIds(values.ids))).toEqual({
       ids: [expect.stringMatching(/at least one id/i)],
       organism: [expect.stringMatching(/upper-case/)],
+    })
+  })
+
+  it('checks the organism against the list once it has loaded', () => {
+    const values = { ids: 'P04217', organism: 'HUMAN' }
+
+    expect(checkDraft(values, splitIds(values.ids), CODES)).toEqual({
+      organism: [expect.stringMatching(/from the list/)],
     })
   })
 })

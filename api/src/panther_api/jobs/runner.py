@@ -80,8 +80,7 @@ def _raised_at(error: BaseException) -> str:
 
 def _describe(job: JobRecord) -> str:
     """`Job <id> csnp, HUMAN, 347 residues, 3 substitutions`, or `Job <id> tools`."""
-    summary = job.request.input.log_summary()
-    return f"Job {job.id} {job.service}" + (f", {summary}" if summary else "")
+    return f"Job {job.id} {job.service}" + (f", {job.summary}" if job.summary else "")
 
 
 @dataclass
@@ -155,9 +154,15 @@ class JobRunner:
     """The job store, the worker pool, and a task per job that waits for its work."""
 
     def __init__(
-        self, *, workers: int, max_queued: int, expiry: timedelta, versions: Versions
+        self,
+        *,
+        workers: int,
+        max_queued: int,
+        expiry: timedelta,
+        results_budget: int,
+        versions: Versions,
     ) -> None:
-        self.store = JobStore(expiry)
+        self.store = JobStore(expiry, results_budget=results_budget)
         self._versions = versions
         self._workers = workers
         self._max_queued = max_queued
@@ -183,7 +188,7 @@ class JobRunner:
             raise QueueFullError
         job = self.store.add(request, self._versions)
         self._unfinished += 1
-        task = asyncio.create_task(self._run(job))
+        task = asyncio.create_task(self._run(job, request))
         # The loop keeps only a weak reference to a task: keep it alive until it's done.
         self._tasks.add(task)
         task.add_done_callback(self._finished)
@@ -203,7 +208,7 @@ class JobRunner:
             max_workers=self._workers, mp_context=multiprocessing.get_context("spawn")
         )
 
-    async def _run(self, job: JobRecord) -> None:
+    async def _run(self, job: JobRecord, request: JobRequest) -> None:
         # The pool gets at most one job per worker, so a job it has been given is running, not
         # waiting in the pool's own queue. The rest wait here, `queued`.
         async with self._slots:
@@ -211,29 +216,29 @@ class JobRunner:
             pool = self._pool
             try:
                 # Looked up when called, so a test can patch `run_job` with a function of its own.
-                result = await asyncio.wrap_future(pool.submit(run_job, job.request))
+                result = await asyncio.wrap_future(pool.submit(run_job, request))
             except BrokenProcessPool as error:
                 # A worker died. The pool fails every job it holds and takes no more, so replace
                 # it; jobs still queued here then run on the new one.
                 # The pool first, so a failure while logging can't leave it broken for every
                 # later job.
-                job.fail(_job_problem(WORKER_STOPPED_DETAIL))
+                self.store.fail(job, _job_problem(WORKER_STOPPED_DETAIL))
                 self._replace_pool(pool)
                 self._log_unexpected(job, error, "failed 500, the worker stopped")
             except InputError as error:
                 # The user's input, not a fault: the engine writes the message for the user, with
                 # no paths or tool output (engine-core, "Input errors"). Shown to the user as
                 # given; logged as a fixed outcome without the message or a traceback.
-                job.fail(_job_problem(str(error), HTTPStatus.UNPROCESSABLE_CONTENT))
+                self.store.fail(job, _job_problem(str(error), HTTPStatus.UNPROCESSABLE_CONTENT))
                 logger.info("%s", self._finish_line(job, INPUT_ERROR_OUTCOME))
             except Exception as error:
                 # As for a 500 (problems.py), nothing about the exception goes in the job. The
                 # log gets it, with the worker's traceback: concurrent.futures chains it as the
                 # exception's cause.
-                job.fail(_job_problem(UNEXPECTED_JOB_DETAIL))
+                self.store.fail(job, _job_problem(UNEXPECTED_JOB_DETAIL))
                 self._log_unexpected(job, error, "failed 500")
             else:
-                job.succeed(result)
+                self.store.succeed(job, result)
                 logger.info("%s", self._finish_line(job, "succeeded"))
 
     @staticmethod

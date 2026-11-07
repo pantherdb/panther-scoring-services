@@ -103,6 +103,7 @@ describe('fromWireJob, for a csnp job', () => {
 describe('fromWireJob, for a refmap job', () => {
   it('keeps its service and mappings, null PANTHER IDs and repeats included, unchanged', () => {
     const refmapResult = {
+      organism: 'ENDPU',
       mappings: [
         { id: 'P04217', panther_id: 'PTHR00000:SF1' },
         { id: 'P38398', panther_id: null },

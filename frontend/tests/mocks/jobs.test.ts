@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { example } from '@/features/refmap/example'
 import { refmapResult } from '@/mocks/data/jobs'
 import { createJob, pollJob } from '@/mocks/jobs'
 
@@ -16,6 +17,31 @@ describe('a mocked refmap job', () => {
 
     expect(job?.status).toBe('succeeded')
     expect(job?.service === 'refmap' && job.result).toEqual(refmapResult(IDS))
+    expect(job?.service === 'refmap' && job.result?.organism).toBe('ENDPU')
+  })
+
+  it('maps against the organism it was created with', () => {
+    const { id } = createJob('refmap', IDS, 'ARAVE')
+
+    pollJob(id)
+    pollJob(id)
+    const job = pollJob(id)
+
+    expect(job?.service === 'refmap' && job.result).toEqual(refmapResult(IDS, 'ARAVE'))
+    expect(job?.service === 'refmap' && job.result?.organism).toBe('ARAVE')
+  })
+
+  it("maps the form's example as the legacy service did, an unmapped ID included", () => {
+    const ids = example.ids.split('\n')
+
+    expect(refmapResult(ids).mappings).toEqual([
+      { id: 'U1G4Q5', panther_id: 'PTHR11360:SF130' },
+      { id: 'U1GCA1', panther_id: 'PTHR21058:SF0' },
+      { id: 'U1HRR6', panther_id: 'PTHR42765:SF2' },
+      { id: 'U1GLV9', panther_id: 'PTHR28011' },
+      { id: 'U1GJ40', panther_id: 'PTHR13401' },
+      { id: 'U1HQ27', panther_id: null },
+    ])
   })
 
   it('maps the example to a mix of obviously made-up PANTHER IDs and none, the same each time', () => {

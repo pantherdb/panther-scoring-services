@@ -61,9 +61,10 @@ class CsnpJob(JobFields[Literal["csnp"], CsnpResult]):
 
 
 class RefmapJob(JobFields[Literal["refmap"], RefmapResult]):
-    """A `refmap` job, with the same fields as every job. `result` is its ID mappings.
+    """A `refmap` job, with the same fields as every job. `result` is the organism the IDs were
+    mapped against, and one mapping per ID, in the order submitted.
 
-    None is created until the engine's mapping is wired in: a valid request gets a 501.
+    It fails with the generic 500 when the organism's data is missing.
     """
 
 

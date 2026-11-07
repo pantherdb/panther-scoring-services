@@ -164,11 +164,12 @@ def test_a_request_that_creates_no_job_logs_no_submission(
     debug_client: TestClient, caplog: pytest.LogCaptureFixture
 ) -> None:
     invalid = debug_client.post("/api/v1/jobs", json={"service": "tools", "input": {"x": 1}})
-    unavailable = debug_client.post(
+    # HUMAN isn't an organism refmap maps for.
+    unknown = debug_client.post(
         "/api/v1/jobs", json={"service": "refmap", "input": {"organism": "HUMAN", "ids": ["P1"]}}
     )
 
-    assert (invalid.status_code, unavailable.status_code) == (422, 501)
+    assert (invalid.status_code, unknown.status_code) == (422, 422)
     assert runner_records(caplog) == []
 
 

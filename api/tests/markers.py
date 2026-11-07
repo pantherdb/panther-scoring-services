@@ -1,8 +1,9 @@
 """The `tools` and `data` markers, as the engine's tests have them (engine/tests/conftest.py).
 
-A test marked `tools("blastp")` runs `blastp`, and one marked `data("csnp")` reads the cSNP data
-sample. Each is skipped where what it needs is missing, and fails instead where it's required:
-`PANTHER_REQUIRE_TOOLS=1`, `PANTHER_REQUIRE_DATA=1`. conftest.py applies them.
+A test marked `tools("blastp")` runs `blastp`, one marked `data("csnp")` reads the cSNP data
+sample, and one marked `data("refmap")` the refmap data. Each is skipped where what it needs is
+missing, and fails instead where it's required: `PANTHER_REQUIRE_TOOLS=1`,
+`PANTHER_REQUIRE_DATA=1`. conftest.py applies them.
 """
 
 import os
@@ -12,10 +13,11 @@ from pathlib import Path
 import pytest
 from panther_engine.core.manifest import checksums, read_manifest
 from panther_engine.csnp import sample
+from panther_engine.refmap import data as refmap_data
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-# Each service's data sample, by the manifest that lists its files.
-DATA_MANIFESTS = {"csnp": sample.MANIFEST}
+# Each service's data, by the manifest that lists its files: cSNP's sample, and refmap's release.
+DATA_MANIFESTS = {"csnp": sample.MANIFEST, "refmap": refmap_data.MANIFEST}
 
 
 def data_folder() -> Path:
@@ -61,7 +63,7 @@ def skip_if_missing(item: pytest.Item) -> None:
     missing = missing_data(item)
     if missing and not data_required():
         pytest.skip(
-            f"needs the {', '.join(missing)} data sample, not found in {data_folder()} "
+            f"needs the {', '.join(missing)} data, not found in {data_folder()} "
             "(set PANTHER_DATA_DIR, or fetch it: docs/testing/api.md)"
         )
 
@@ -78,7 +80,7 @@ def fail_if_missing(item: pytest.Item) -> None:
     missing = missing_data(item)
     if missing and data_required():
         pytest.fail(
-            f"needs the {', '.join(missing)} data sample, not found in {data_folder()} "
+            f"needs the {', '.join(missing)} data, not found in {data_folder()} "
             "(PANTHER_REQUIRE_DATA=1)",
             pytrace=False,
         )

@@ -811,7 +811,7 @@
           "versions"
         ],
         "title": "RefmapJob",
-        "description": "A `refmap` job, with the same fields as every job. `result` is its ID mappings.\n\nNone is created until the engine's mapping is wired in: a valid request gets a 501."
+        "description": "A `refmap` job, with the same fields as every job. `result` is the organism the IDs were\nmapped against, and one mapping per ID, in the order submitted.\n\nIt fails with the generic 500 when the organism's data is missing."
       },
       "RefmapJobRequest": {
         "properties": {

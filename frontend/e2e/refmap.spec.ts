@@ -169,28 +169,58 @@ test(
   }
 )
 
-// The @api tests create no job: a valid request gets the API's 501 until refmap is ported, and
-// an invalid one a 422.
-
+// Creates a real job: the API needs the refmap data. The example's mappings are the legacy
+// service's (engine/tests/golden/refmap/out/test_geneList.out), which the mocks serve too. The
+// mapping takes well under a second, but the job may wait for a worker behind the cSNP spec's.
 test(
-  "says ID mapping isn't available yet on the API's 501, keeping the input",
+  'maps the example against the real API, as the legacy service did',
   { tag: '@api' },
   async ({ page }) => {
+    test.setTimeout(90_000)
     await openFormWithExample(page)
-    const { ids, organism, submit } = fields(page)
 
-    await submit.click()
+    await fields(page).submit.click()
 
-    const alert = page.getByRole('main').getByRole('alert')
-    await expect(alert).toHaveText(/isn.t available yet/i)
-    await expect(page).toHaveURL(FORM_URL)
-    await expect(ids).toHaveValue(example.ids)
-    await expect(organism).toHaveValue('HUMAN')
-    await expect(alert).not.toHaveText(/501|not implemented/i)
+    await expect(page).toHaveURL(JOB_URL)
+    const main = page.getByRole('main')
+    await expect(main.getByRole('status')).toHaveText(/succeeded/i, { timeout: 60_000 })
+    await expect(main.getByText(`Mapped against ${ENDPU}.`)).toBeVisible()
+    await expect(main.getByText(/^6 IDs: 5 have a PANTHER ID, 1 has none\.$/)).toBeVisible()
+    await expect(bodyRows(page)).toHaveCount(EXAMPLE_IDS.length)
+    for (const [i, id] of EXAMPLE_IDS.entries()) {
+      await expect(bodyRows(page).nth(i).getByRole('cell')).toHaveText([
+        String(i + 1),
+        id,
+        EXAMPLE_MAPPINGS[id] ?? 'No PANTHER ID',
+      ])
+    }
     await expectNoBuildDetails(page)
     await expectNoSidewaysScroll(page)
   }
 )
+
+test("offers the API's organisms, found by name or code", { tag: '@api' }, async ({ page }) => {
+  const response = await page.request.get('/api/v1/refmap/organisms')
+  expect(response.status()).toBe(200)
+  const listed = (await response.json()) as { code: string; name: string }[]
+  expect(listed.length).toBeGreaterThan(1000)
+  await page.goto('/refmap')
+  const { organism } = fields(page)
+  await expect(organism).toBeEnabled()
+  const options = page.getByRole('option')
+
+  await organism.click()
+  await organism.fill('endpu')
+  await expect(options).toHaveText([ENDPU])
+
+  // At most 50 options at once, of the many E. coli strains.
+  await organism.fill('coli')
+  const coli = listed.filter(({ code, name }) => `${name} (${code})`.toLowerCase().includes('coli'))
+  expect(coli.length).toBeGreaterThan(6)
+  await expect(options).toHaveCount(Math.min(coli.length, 50))
+})
+
+// The @api tests below create no job: the API answers each with a 422.
 
 test(
   "shows the API's 422 on the ID it names, when a request gets past the client checks",
@@ -210,7 +240,7 @@ test(
 
     await expect(ids).toHaveAttribute('aria-invalid', 'true')
     // Named from the form's own copy of what it sent: the API never echoes an ID.
-    await expect(ids).toHaveAccessibleDescription(/ID 2 \(P01023, line 2\)/)
+    await expect(ids).toHaveAccessibleDescription(/ID 2 \(U1GCA1, line 2\)/)
     await expect(organism).not.toHaveAttribute('aria-invalid', 'true')
     await expect(page).toHaveURL(FORM_URL)
     await expectNoBuildDetails(page)

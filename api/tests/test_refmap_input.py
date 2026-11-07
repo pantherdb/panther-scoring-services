@@ -3,13 +3,14 @@
 What reaches the engine is checked here, on the model, without a job.
 """
 
-from typing import Any
+from typing import Annotated, Any
 
 import pytest
 from panther_engine.refmap import ORGANISM_CODES
-from pydantic import ValidationError
+from pydantic import Field, TypeAdapter, ValidationError
 
-from panther_api.jobs.refmap import RefmapInput
+from panther_api.jobs.fields import Unlisted
+from panther_api.jobs.refmap import ProteinId, RefmapInput
 
 VALID: dict[str, Any] = {"organism": "ENDPU", "ids": ["P04217", "P01023"]}
 MISSING = object()
@@ -170,6 +171,80 @@ def test_each_bad_id_is_listed() -> None:
         ("ids", 2),
         ("ids", 3),
     ]
+
+
+# Many bad IDs: checked in one pass, with the errors Pydantic's own check gives (#41).
+
+# The IDs as Pydantic checks them item by item, without the list validator.
+PER_ITEM: TypeAdapter[list[str]] = TypeAdapter(
+    Annotated[list[ProteinId], Field(min_length=1, max_length=MOST_IDS)]
+)
+# One of each way an ID can fail.
+EACH_FAILURE: list[object] = ["", 4217, "X" * (LONGEST_ID + 1), "XYZZY A", None, "XYZZYÄ", True]
+
+
+def errors_of(ids: list[object]) -> tuple[list[tuple[object, ...]], list[tuple[object, ...]]]:
+    """The model's errors on `ids`, with `loc`s from the list, and Pydantic's own item-by-item
+    errors: each error's type, loc, msg and ctx, its values as text, since a ValueError isn't
+    equal to its copy."""
+    with pytest.raises(ValidationError) as model:
+        RefmapInput.model_validate(given(ids=ids))
+    with pytest.raises(ValidationError) as per_item:
+        PER_ITEM.validate_python(ids)
+
+    def described(error: Any, loc: tuple[str | int, ...]) -> tuple[object, ...]:
+        ctx = {name: str(value) for name, value in error.get("ctx", {}).items()}
+        return (error["type"], loc, error["msg"], ctx)
+
+    return (
+        [described(error, error["loc"][1:]) for error in model.value.errors()],
+        [described(error, error["loc"]) for error in per_item.value.errors()],
+    )
+
+
+@pytest.mark.parametrize("bad", [1, 100, 101, 250])
+def test_bad_ids_get_pydantics_own_errors(bad: int) -> None:
+    # Each bad ID followed by a valid one.
+    ids: list[object] = []
+    for index in range(bad):
+        ids += [EACH_FAILURE[index % len(EACH_FAILURE)], "P04217"]
+
+    model_errors, per_item_errors = errors_of(ids)
+
+    assert model_errors == per_item_errors[:100]
+
+
+def test_past_100_bad_ids_the_last_error_counts_the_rest() -> None:
+    with pytest.raises(ValidationError) as caught:
+        RefmapInput.model_validate(given(ids=[""] * MOST_IDS))
+    errors = caught.value.errors()
+
+    assert [error["loc"] for error in errors] == [("ids", index) for index in range(100)]
+    assert errors[-1]["input"] == Unlisted(MOST_IDS - 100)
+    assert not any(isinstance(error["input"], Unlisted) for error in errors[:-1])
+
+
+def test_up_to_100_bad_ids_are_all_pydantics() -> None:
+    with pytest.raises(ValidationError) as caught:
+        RefmapInput.model_validate(given(ids=[""] * 100))
+
+    assert len(caught.value.errors()) == 100
+    assert all(error["input"] == "" for error in caught.value.errors())
+
+
+def test_ids_pydantic_would_take_as_strings_are_left_to_it() -> None:
+    # Bytes can't come from JSON, but Pydantic takes them as strings: the one pass mustn't count
+    # them as bad.
+    ids: list[object] = [b"P04217", *[""] * 200]
+
+    model_errors, per_item_errors = errors_of(ids)
+
+    assert len(per_item_errors) == 200
+    assert model_errors == per_item_errors
+
+
+def test_too_many_bad_ids_are_rejected_as_too_many() -> None:
+    assert rejected("XYZZY", ids=["XYZZY A"] * (MOST_IDS + 1)) == [("ids",)]
 
 
 # The input as a whole.

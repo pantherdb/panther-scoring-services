@@ -10,15 +10,29 @@ The result mirrors the engine's `panther_engine.refmap.RefmapResult`, field for 
 keep its imports light and set up no state at import time beyond the engine's organism list.
 """
 
-from typing import Annotated
+import re
+from typing import Annotated, Any, cast
 
 from panther_engine import refmap as engine
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    TypeAdapter,
+    ValidationError,
+    ValidatorFunctionWrapHandler,
+    WrapValidator,
+)
+from pydantic_core import InitErrorDetails
 
 from panther_api.jobs.fields import (
     LONGEST_SPECIES_CODE,
+    MOST_FIELD_ERRORS,
     PRINTABLE,
     SPECIES_CODE,
+    Unlisted,
     count,
     schema_pattern,
 )
@@ -58,6 +72,60 @@ ProteinId = Annotated[
     AfterValidator(_check_id),
     Field(json_schema_extra={"pattern": schema_pattern(PRINTABLE)}),
 ]
+_PROTEIN_ID: TypeAdapter[str] = TypeAdapter(ProteinId)
+
+VALID_ID = re.compile(rf"[!-~]{{1,{LONGEST_ID}}}")
+"""What `ProteinId` accepts, in one pattern: PRINTABLE's characters, 1 to LONGEST_ID of them.
+Use with `fullmatch`. tests/test_refmap_input.py checks the two agree."""
+
+# The JSON types Pydantic never accepts as a string. A list holding anything else, such as bytes,
+# which it does accept, is left to Pydantic, so the fast path can't reject what it would take.
+_NOT_STRINGS = frozenset({int, float, bool, type(None), list, dict})
+
+
+def _check_ids(value: Any, handler: ValidatorFunctionWrapHandler) -> list[str]:
+    """Check every ID in one pass, and raise at most MOST_FIELD_ERRORS errors (#41).
+
+    Pydantic's own check builds an error for every bad ID before the 422 can list only the first
+    100: about 0.9 s on the event loop for 100,000. Here a list of the right length is checked
+    against VALID_ID in one pass. A valid list is returned as it is. A list with more bad IDs
+    than a 422 lists gets the errors Pydantic would give for the first ones only, each from
+    `ProteinId` itself at its index, and the last one's `input` says how many more there were
+    (`Unlisted`), so the 422's `detail` still gives the total. Anything else, such as a list of
+    the wrong length, or few bad IDs, is Pydantic's, as before.
+    """
+    if not isinstance(value, list):
+        return handler(value)
+    items = cast(list[object], value)
+    if not 1 <= len(items) <= MOST_IDS:
+        return handler(value)
+    bad = [
+        index
+        for index, item in enumerate(items)
+        if type(item) is not str or not VALID_ID.fullmatch(item)
+    ]
+    if not bad:
+        return cast(list[str], items)
+    if len(bad) <= MOST_FIELD_ERRORS or any(
+        type(items[index]) is not str and type(items[index]) not in _NOT_STRINGS for index in bad
+    ):
+        return handler(value)
+    errors: list[InitErrorDetails] = []
+    for index in bad[:MOST_FIELD_ERRORS]:
+        try:
+            _PROTEIN_ID.validate_python(items[index])
+        except ValidationError as error:
+            for item in error.errors(include_url=False):
+                details = InitErrorDetails(
+                    type=item["type"], loc=(index, *item["loc"]), input=item["input"]
+                )
+                if "ctx" in item:
+                    details["ctx"] = item["ctx"]
+                errors.append(details)
+    errors[-1]["input"] = Unlisted(len(bad) - MOST_FIELD_ERRORS)
+    raise ValidationError.from_exception_data("ids", errors)
+
+
 Organism = Annotated[
     str,
     AfterValidator(_check_organism),
@@ -81,7 +149,10 @@ class RefmapInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     organism: Organism
-    ids: Annotated[list[ProteinId], Field(min_length=1, max_length=MOST_IDS)]
+    # The schema comes from `list[ProteinId]`; _check_ids checks it faster, with the same errors.
+    ids: Annotated[
+        list[ProteinId], Field(min_length=1, max_length=MOST_IDS), WrapValidator(_check_ids)
+    ]
 
     def log_summary(self) -> str:
         """The input's size for the log: the organism and a count, never the IDs."""

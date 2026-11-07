@@ -1,3 +1,4 @@
+import json
 import logging
 import pickle
 import time
@@ -646,6 +647,44 @@ def test_a_422_for_every_id_lists_the_first_100(client: TestClient) -> None:
     )
     assert len(response.content) < 20_000
     assert len(runner(client).store) == 0
+
+
+def test_a_bad_organism_and_every_bad_id_are_counted(client: TestClient) -> None:
+    body = {"service": "refmap", "input": {"organism": "HUMAN", "ids": [""] * MOST_IDS}}
+
+    response = client.post("/api/v1/jobs", json=body)
+
+    assert response.status_code == 422
+    errors = response.json()["errors"]
+    assert [error["loc"] for error in errors] == [
+        [*REFMAP_LOC, "organism"],
+        *([*REFMAP_LOC, "ids", index] for index in range(MOST_FIELD_ERRORS - 1)),
+    ]
+    assert response.json()["detail"] == (
+        "Request validation failed: 100,001 fields are invalid, and the first 100 are listed."
+    )
+
+
+def test_many_bad_ids_are_rejected_about_as_fast_as_valid_ones(client: TestClient) -> None:
+    # The valid IDs are for an organism refmap doesn't map for, so both are 422s. Each is timed
+    # at its best of three, after one to warm up, in the same process (#41).
+    bad = json.dumps(refmap_job(ids=[""] * MOST_IDS)).encode()
+    valid = json.dumps(
+        refmap_job(organism="ZZZZZ", ids=[f"P{index:05d}" for index in range(MOST_IDS)])
+    ).encode()
+
+    def best(body: bytes) -> float:
+        times: list[float] = []
+        for _ in range(4):
+            start = time.perf_counter()
+            response = client.post(
+                "/api/v1/jobs", content=body, headers={"content-type": "application/json"}
+            )
+            times.append(time.perf_counter() - start)
+            assert response.status_code == 422
+        return min(times[1:])
+
+    assert best(bad) <= 2 * best(valid)
 
 
 def test_a_field_the_refmap_input_doesnt_take_is_a_422(client: TestClient) -> None:

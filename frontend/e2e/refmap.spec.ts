@@ -103,6 +103,7 @@ test(
     // The mocks map the example's IDs to the legacy service's answers.
     const mappings = EXAMPLE_IDS.map(id => ({ id, panther_id: EXAMPLE_MAPPINGS[id] ?? null }))
     expect(mappings).toEqual(refmapResult(EXAMPLE_IDS).mappings)
+    await expect(main.getByText(`Mapped against ${ENDPU}.`)).toBeVisible()
     await expect(main.getByText(/^6 IDs: 5 have a PANTHER ID, 1 has none\.$/)).toBeVisible()
     await expect(bodyRows(page)).toHaveCount(mappings.length)
     for (const [i, mapping] of mappings.entries()) {

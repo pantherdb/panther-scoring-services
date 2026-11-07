@@ -44,22 +44,25 @@ function manyMappings(count: number): Mapping[] {
 }
 
 const FEW: Mapping[] = [
-  { id: 'P04217', panther_id: 'PTHR00000:SF4' },
-  { id: 'P38398', panther_id: null },
-  { id: 'P04217', panther_id: 'PTHR00000:SF4' },
+  { id: 'U1G4Q5', panther_id: 'PTHR11360:SF130' },
+  { id: 'U1HQ27', panther_id: null },
+  { id: 'U1G4Q5', panther_id: 'PTHR11360:SF130' },
 ]
 
 describe('a refmap job on the job page', () => {
-  it('shows its title, a summary, every mapping in order, and its versions', async () => {
+  it('shows its title, its organism, a summary, every mapping in order, and its versions', async () => {
     serveMappings(FEW)
     renderRoute(`/jobs/${ID}`)
 
     expect(await main().findByRole('heading', { name: /protein id mapping/i })).toBeVisible()
+    expect(
+      await main().findByText(/^Mapped against Endocarpon pusillum \(ENDPU\)\.$/)
+    ).toBeInTheDocument()
     expect(main().getByText(/^3 IDs: 2 have a PANTHER ID, 1 has none\.$/)).toBeInTheDocument()
     expect(await rows()).toEqual([
-      ['1', 'P04217', 'PTHR00000:SF4'],
-      ['2', 'P38398', 'No PANTHER ID'],
-      ['3', 'P04217', 'PTHR00000:SF4'],
+      ['1', 'U1G4Q5', 'PTHR11360:SF130'],
+      ['2', 'U1HQ27', 'No PANTHER ID'],
+      ['3', 'U1G4Q5', 'PTHR11360:SF130'],
     ])
     expect(
       main()
@@ -72,6 +75,23 @@ describe('a refmap job on the job page', () => {
       ...versions.data.map(data => `${data.service} data`),
     ])
     expect(main().queryByRole('navigation', { name: /pages/i })).toBeNull()
+  })
+
+  it("names the organism by its code alone when the organism list can't be loaded", async () => {
+    serveMappings(FEW)
+    server.use(
+      http.get('/api/v1/refmap/organisms', () =>
+        HttpResponse.json(
+          { type: 'about:blank', title: 'x', status: 500, detail: 'x' },
+          { status: 500, headers: { 'Content-Type': 'application/problem+json' } }
+        )
+      )
+    )
+    renderRoute(`/jobs/${ID}`)
+
+    expect(await main().findByText(/^Mapped against ENDPU\.$/)).toBeInTheDocument()
+    expect(await rows()).toHaveLength(3)
+    expect(main().queryByText(/endocarpon/i)).toBeNull()
   })
 
   it('words the summary for one ID', async () => {

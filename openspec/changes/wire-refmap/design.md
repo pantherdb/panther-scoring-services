@@ -39,7 +39,7 @@ The `Organism` validator in `jobs/refmap.py` checks membership after the shape, 
 
 ### 3. The organism list: `GET /api/v1/refmap/organisms`
 
-A new `routers/refmap.py`, shaped like `routers/csnp.py`: `RefmapOrganism` (`code`, `name`, `genes`, `genes_with_panther_id`), built once from `ORGANISM_NAMES` and `ORGANISM_GENES` in the engine's order (by code), with `Cache-Control: public, max-age=3600`. About 110 KB of JSON, 20 KB compressed.
+A new `routers/refmap.py`, shaped like `routers/csnp.py`: `RefmapOrganism` (`code`, `name`, `genes`, `genes_with_panther_id`), built once from `ORGANISM_NAMES` and `ORGANISM_GENES` in the engine's order (by long name, as the website listed them), with `Cache-Control: public, max-age=3600`. About 110 KB of JSON, 20 KB compressed.
 
 - **The gene counts** are what the website read from `stats` (`map_panther_stats`, `OrganismHelper.getMappingOrgs`) for its enrichment tests. The engine exports them for that (#63, second review). They cost nothing here, and save the website's port another source. Whether it uses them is an open question.
 - **Alternative: names only,** as cSNP's list. Rejected: a second endpoint for the counts later would duplicate this one.

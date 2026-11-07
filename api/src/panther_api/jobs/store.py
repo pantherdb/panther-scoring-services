@@ -20,9 +20,15 @@ def utcnow() -> datetime:
 
 @dataclass
 class JobRecord:
-    """A job's state. `result` is set only when it succeeds, `error` only when it fails."""
+    """A job's state. `result` is set only when it succeeds, `error` only when it fails.
 
-    request: JobRequest
+    It doesn't keep the request: the runner holds that until the job finishes. The job keeps its
+    service, and its input's size for the log (`summary`), never the input itself, so a finished
+    job of 100,000 IDs doesn't hold them for its 24 hours.
+    """
+
+    service: str
+    summary: str
     versions: Versions
     id: uuid.UUID = field(default_factory=uuid.uuid4)
     # A lambda, not `utcnow` itself, so a patched clock is looked up when the job is made.
@@ -32,10 +38,6 @@ class JobRecord:
     finished_at: datetime | None = None
     result: JobResult | None = None
     error: Problem | None = None
-
-    @property
-    def service(self) -> str:
-        return self.request.service
 
     def start(self) -> None:
         self.status = JobStatus.RUNNING
@@ -67,10 +69,13 @@ class JobStore:
         return len(self._jobs)
 
     def add(self, request: JobRequest, versions: Versions) -> JobRecord:
+        """Store a new job for `request`, keeping its service and its input's log summary."""
         # Memory only grows here, so sweeping here bounds it without a background task.
         for job_id in [job.id for job in self._jobs.values() if job.expired(self._expiry)]:
             del self._jobs[job_id]
-        job = JobRecord(request=request, versions=versions)
+        job = JobRecord(
+            service=request.service, summary=request.input.log_summary(), versions=versions
+        )
         self._jobs[job.id] = job
         return job
 

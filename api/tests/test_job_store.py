@@ -5,9 +5,10 @@ import pytest
 from clock import Clock
 
 from panther_api.jobs.models import JobStatus
+from panther_api.jobs.refmap import RefmapInput
 from panther_api.jobs.store import JobStore
 from panther_api.jobs.tools import ToolsInput, ToolsResult
-from panther_api.jobs.work import ToolsJobRequest
+from panther_api.jobs.work import RefmapJobRequest, ToolsJobRequest
 from panther_api.problems import Problem
 from panther_api.versions import DataVersion, ToolVersion, Versions
 
@@ -39,8 +40,7 @@ def test_a_new_job_is_queued(store: JobStore, clock: Clock) -> None:
     job = store.add(REQUEST, VERSIONS)
 
     assert job.status is JobStatus.QUEUED
-    assert job.service == "tools"
-    assert job.request == REQUEST
+    assert (job.service, job.summary) == ("tools", "")
     assert job.versions == VERSIONS
     assert job.created_at == clock.now
     assert (job.started_at, job.finished_at, job.result, job.error) == (None, None, None, None)
@@ -128,3 +128,13 @@ def test_adding_a_job_sweeps_out_expired_ones(store: JobStore, clock: Clock) -> 
     assert len(store) == 2
     assert store.get(str(unfinished.id)) is unfinished
     assert store.get(str(new.id)) is new
+
+
+def test_a_job_keeps_its_inputs_size_not_the_input(store: JobStore) -> None:
+    ids = [f"U{index:05d}" for index in range(1000)]
+    request = RefmapJobRequest(service="refmap", input=RefmapInput(organism="ENDPU", ids=ids))
+
+    job = store.add(request, VERSIONS)
+
+    assert (job.service, job.summary) == ("refmap", "ENDPU, 1000 IDs")
+    assert "U00001" not in repr(job)

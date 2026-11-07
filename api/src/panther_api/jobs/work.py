@@ -10,12 +10,14 @@ and a case to `run_job`. One whose contract comes before its port also gets a ro
 `UNAVAILABLE`, which the router answers with a 501, and a `run_job` case that refuses to run.
 """
 
+from dataclasses import dataclass
 from typing import Annotated, Literal, NamedTuple
 
 from pydantic import BaseModel, Field
+from pydantic_core import to_json
 
 from panther_api.jobs.csnp import CsnpInput, CsnpResult, run_csnp
-from panther_api.jobs.refmap import RefmapInput, RefmapResult, run_refmap
+from panther_api.jobs.refmap import RefmapInput, run_refmap
 from panther_api.jobs.tools import ToolsInput, ToolsResult, run_tools
 
 
@@ -59,7 +61,22 @@ JobRequest = Annotated[
     ToolsJobRequest | CsnpJobRequest | RefmapJobRequest, Field(discriminator="service")
 ]
 
-JobResult = ToolsResult | CsnpResult | RefmapResult
+
+@dataclass(frozen=True)
+class SerializedResult:
+    """A result already serialised as JSON, in the worker: a `RefmapResult`'s bytes.
+
+    A large result is kept this way, about a tenth of its size as models, and each poll returns
+    the bytes as they are, without validating or serialising it again (openspec wire-refmap,
+    design.md, decision 4). Bytes also cross the process boundary cheaper than 100,000 pickled
+    models.
+    """
+
+    json: bytes
+
+
+JobResult = ToolsResult | CsnpResult | SerializedResult
+"""What a job's work returns. A small result is a model; a large one, refmap's, is serialised."""
 
 
 def run_job(request: JobRequest) -> JobResult:
@@ -70,4 +87,4 @@ def run_job(request: JobRequest) -> JobResult:
         case CsnpJobRequest():
             return run_csnp(request.input)
         case RefmapJobRequest():
-            return run_refmap(request.input)
+            return SerializedResult(to_json(run_refmap(request.input)))

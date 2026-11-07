@@ -5,10 +5,14 @@ No release data is needed, so these run everywhere. `test_refmap_data.py` runs t
 against the real release.
 """
 
+import logging
 from collections.abc import Iterator
+from itertools import cycle
 from pathlib import Path
+from typing import cast
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from job_helpers import FAKE_FAMILY, score_with_a_fake_engine
 from polling import poll, submit_and_wait
@@ -20,7 +24,10 @@ from refmap_golden import (
     write_endpu_folder,
 )
 
-from panther_api.jobs.work import run_job
+from panther_api.jobs.models import JOB_ADAPTER, RefmapJob
+from panther_api.jobs.refmap import MOST_IDS, RefmapInput, RefmapResult, run_refmap
+from panther_api.jobs.runner import JobRunner
+from panther_api.jobs.work import RefmapJobRequest, SerializedResult, run_job
 from panther_api.main import create_app
 
 
@@ -109,3 +116,60 @@ def test_a_refmap_and_a_csnp_job_dont_mix(monkeypatch: pytest.MonkeyPatch, tmp_p
     assert csnp_job["result"]["family"] == FAKE_FAMILY
     assert [score["substitution"] for score in csnp_job["result"]["scores"]] == ["K2E"]
     assert refmap_job_["result"]["mappings"] == [{"id": "U1G4Q5", "panther_id": "PTHR11360:SF130"}]
+
+
+# A finished result is kept as the JSON the worker made (wire-refmap, design.md, decision 4).
+
+
+def test_run_job_returns_the_refmap_result_serialised(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    write_endpu_folder(tmp_path)
+    monkeypatch.setenv("PANTHER_DATA_DIR", str(tmp_path))
+    request = RefmapInput(organism=ORGANISM, ids=list(EXAMPLE_IDS))
+
+    result = run_job(RefmapJobRequest(service="refmap", input=request))
+
+    assert isinstance(result, SerializedResult)
+    assert RefmapResult.model_validate_json(result.json) == run_refmap(request)
+
+
+def test_a_large_job_polls_as_a_job_with_every_mapping_in_order(
+    endpu_client: TestClient,
+) -> None:
+    golden = golden_mappings()
+    ids = [an_id for _, an_id in zip(range(MOST_IDS), cycle(golden), strict=False)]
+
+    response = submit_and_wait(endpu_client, refmap_job(ids), timeout=120.0)
+    polled = endpu_client.get(f"/api/v1/jobs/{response['id']}")
+
+    assert polled.status_code == 200
+    assert polled.headers["content-type"] == "application/json"
+    job = JOB_ADAPTER.validate_json(polled.content)
+    assert isinstance(job, RefmapJob)
+    assert job.result is not None
+    assert job.result.organism == ORGANISM
+    assert [(item.id, item.panther_id) for item in job.result.mappings] == [
+        (an_id, golden[an_id]) for an_id in ids
+    ]
+    # Every other field as for a small job.
+    assert polled.json() | {"result": None} == response | {"result": None}
+
+
+def test_a_finished_job_keeps_its_result_as_json_and_its_log_line(
+    endpu_client: TestClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    job = submit_and_wait(endpu_client, refmap_job(EXAMPLE_IDS))
+
+    record = cast(JobRunner, cast(FastAPI, endpu_client.app).state.jobs).store.get(job["id"])
+    assert record is not None
+    assert isinstance(record.result, SerializedResult)
+    assert RefmapResult.model_validate_json(record.result.json).model_dump() == job["result"]
+    [line] = [
+        r.getMessage()
+        for r in caplog.records
+        if r.name == "panther_api.jobs.runner" and r.levelno == logging.INFO
+    ]
+    assert f"refmap, {ORGANISM}, 6 IDs: succeeded" in line
+    for an_id in EXAMPLE_IDS:
+        assert an_id not in line

@@ -80,8 +80,7 @@ def _raised_at(error: BaseException) -> str:
 
 def _describe(job: JobRecord) -> str:
     """`Job <id> csnp, HUMAN, 347 residues, 3 substitutions`, or `Job <id> tools`."""
-    summary = job.request.input.log_summary()
-    return f"Job {job.id} {job.service}" + (f", {summary}" if summary else "")
+    return f"Job {job.id} {job.service}" + (f", {job.summary}" if job.summary else "")
 
 
 @dataclass
@@ -183,7 +182,7 @@ class JobRunner:
             raise QueueFullError
         job = self.store.add(request, self._versions)
         self._unfinished += 1
-        task = asyncio.create_task(self._run(job))
+        task = asyncio.create_task(self._run(job, request))
         # The loop keeps only a weak reference to a task: keep it alive until it's done.
         self._tasks.add(task)
         task.add_done_callback(self._finished)
@@ -203,7 +202,7 @@ class JobRunner:
             max_workers=self._workers, mp_context=multiprocessing.get_context("spawn")
         )
 
-    async def _run(self, job: JobRecord) -> None:
+    async def _run(self, job: JobRecord, request: JobRequest) -> None:
         # The pool gets at most one job per worker, so a job it has been given is running, not
         # waiting in the pool's own queue. The rest wait here, `queued`.
         async with self._slots:
@@ -211,7 +210,7 @@ class JobRunner:
             pool = self._pool
             try:
                 # Looked up when called, so a test can patch `run_job` with a function of its own.
-                result = await asyncio.wrap_future(pool.submit(run_job, job.request))
+                result = await asyncio.wrap_future(pool.submit(run_job, request))
             except BrokenProcessPool as error:
                 # A worker died. The pool fails every job it holds and takes no more, so replace
                 # it; jobs still queued here then run on the new one.

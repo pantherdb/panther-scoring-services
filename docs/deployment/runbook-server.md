@@ -124,6 +124,21 @@ The same as the `web` image's nginx config, `frontend/nginx/default.conf.templat
 - **`/api/` forwarded to the API,** with a body limit of at least 17 MiB, a little over the API's 16 MiB: nginx's default is 1 MiB.
 - **Caching:** files under `/assets/` can be cached for a year; `index.html` should be revalidated (`Cache-Control: no-cache`), so a new build shows at once.
 
+## The API's Data
+
+The API reads each service's data from the folder `PANTHER_DATA_DIR` names, mounted read-only into its container: the cSNP data under `csnp/`, and, for ID mapping, the refmap data under `refmap/19/`, PANTHER 19's generic mapping release. Until the refmap data is there, every `refmap` job fails with the generic error, and the API's log says at startup which files are missing (`refmap jobs will fail until the refmap data is in place: …`); everything else works.
+
+Fetch it into the same folder once, before or with the deploy that wires `refmap` in, with the engine's CLI in the API image, as the user who owns the folder:
+
+```bash
+docker run --rm --user "$(id -u):$(id -g)" -v <the data folder>:/fetch <the API image> \
+  panther-engine refmap data fetch --data-dir /fetch
+```
+
+It downloads the release from `data.pantherdb.org`, checks it against the pinned manifest, and writes nothing under `refmap/19/` unless every file matches. Run again, it downloads nothing and checks the files. The API reads the data when a job runs, so it needs no restart, though its startup line keeps saying the data is missing until the next one. The data changes only with a new manifest in the engine; [api.md, The refmap Data](../testing/api.md#the-refmap-data) has the details.
+
+`PANTHER_API_RESULTS_BUDGET_MIB` caps the memory the finished jobs' results may take; set it to suit the server ([api.md, Settings](../testing/api.md#settings)).
+
 ## Checking It Works
 
 After either way, against the site's address:
@@ -133,6 +148,7 @@ After either way, against the site's address:
 - [ ] `/api/v1/health` returns `{"status":"ok"}` through the site.
 - [ ] The footer shows the API's versions, not "unavailable". If it says "unavailable" while `/` works, check `API_UPSTREAM`.
 - [ ] A cSNP job, such as the form's example, runs to **Succeeded**.
+- [ ] An ID mapping job, such as the form's example, runs to **Succeeded**, with six mappings.
 - [ ] The page has no **Mock data** banner.
 
 ## Changing Things Later

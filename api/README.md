@@ -34,16 +34,15 @@ Everything is under `/api/v1`. The current, complete list is the schema in [`ope
 
 Every error is an RFC 9457 problem-details body (`application/problem+json`).
 
-Two limits protect a public API: a request body over 16 MiB gets a `413` before it's parsed, and a job that would wait behind 50 others gets a `503` with `Retry-After`. Both are settings. A frontend on another origin, such as GitHub Pages, needs `PANTHER_API_CORS_ORIGINS`, empty by default, which adds no CORS. At startup, the API logs an error if the cSNP data is missing, and starts anyway.
+Two limits protect a public API: a request body over 16 MiB gets a `413` before it's parsed, and a job that would wait behind 50 others gets a `503` with `Retry-After`. Both are settings. A frontend on another origin, such as GitHub Pages, needs `PANTHER_API_CORS_ORIGINS`, empty by default, which adds no CORS. At startup, the API logs an error for each service whose data is missing, `csnp` or `refmap`, and starts anyway.
 
 The log goes to standard error, one line per record with a UTC timestamp, at the level `PANTHER_API_LOG_LEVEL` sets, `INFO` by default. Each job gets one line when it finishes, with its size, status and times, never what was submitted. Health checks, successful polls and accepted submissions are left out of the request log below `DEBUG`.
 
-Jobs run in a pool of worker processes and are kept in memory, so a restart loses them. There are two:
+Jobs run in a pool of worker processes and are kept in memory, so a restart loses them. The finished jobs' results share a memory budget, `PANTHER_API_RESULTS_BUDGET_MIB`; over it, the oldest expire first. There are three:
 
 - **`csnp`** (`{"sequence", "substitutions", "species"}`) scores coding SNPs in one protein with the engine's PANTHER-PSEP port. It needs `blastp` and the cSNP data, in the folder `PANTHER_DATA_DIR` names; the compose `api` service mounts `.data/` there. A sequence the engine can't read fails the job with a `422` and the engine's message; any other error fails it with a generic `500`.
+- **`refmap`** (`{"organism", "ids"}`) maps up to 100,000 protein IDs to PANTHER IDs for one organism, with the engine's port of `map_panther.pl`. It needs the refmap data in the same folder. `GET /api/v1/refmap/organisms` lists the organisms it maps for. Its result is kept as the JSON its worker made.
 - **`tools`**, built in, reports the external tools' versions from a worker.
-
-A third, **`refmap`** (`{"organism", "ids"}`), maps protein IDs to PANTHER IDs for one organism. Its request is validated, but a valid one gets a `501` problem, "refmap ID mapping isn't available yet.", and no job, until the engine's port of `map_panther.pl` is wired in (`openspec/changes/archive/2026-10-30-add-refmap-job/`).
 
 To try them, and to get the data sample, see "Try the Jobs by Hand" in [docs/testing/api.md](../docs/testing/api.md). The settings (`PANTHER_API_*`) are listed there too. `GET /api/v1/versions` and every job also name the PANTHER release each service's data comes from: PANTHER 9 for `csnp`.
 
@@ -53,7 +52,7 @@ To try them, and to get the data sample, see "Try the Jobs by Hand" in [docs/tes
 src/panther_api/
   main.py        create_app(): the /api/v1 router, the error handlers, CORS, the body limit, and the
                  startup that reads the settings, sets up the log, reads the versions, checks
-                 the cSNP data, and starts the job runner
+                 each service's data, and starts the job runner
   prefix.py      API_PREFIX, /api/v1
   settings.py    the PANTHER_API_* settings, read once at startup
   logs.py        the log's format and level, for the API's records and Uvicorn's, and the
@@ -69,10 +68,11 @@ src/panther_api/
                  for its 501. fields.py holds the input shapes more than one service checks
   openapi.py     writes openapi.json: uv run python -m panther_api.openapi
   routers/       one module per area; each is one include_router line in create_app(). csnp.py
-                 holds cSNP's species list
+                 holds cSNP's species list, and refmap.py refmap's organism list
 tests/           pytest with FastAPI's TestClient; conftest.py fakes the engine's tool report,
                  and job_helpers.py the work that runs in the workers. test_csnp_scoring.py
-                 runs real csnp jobs where blastp and the data sample are there (markers.py)
+                 runs real csnp jobs where blastp and the data sample are there, and
+                 test_refmap_data.py real refmap jobs where the refmap data is (markers.py)
 openapi.json     the committed schema; a test fails when it's out of date
 ```
 

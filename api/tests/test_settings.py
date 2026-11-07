@@ -10,6 +10,7 @@ def test_defaults() -> None:
     assert settings.job_workers == 2
     assert settings.job_expiry_seconds == 24 * 60 * 60
     assert settings.max_queued_jobs == 50
+    assert settings.results_budget_mib == 256
     assert settings.max_body_bytes == 16 * 1024 * 1024
     assert settings.cors_origins == ()
     assert settings.log_level == "INFO"
@@ -51,6 +52,7 @@ def test_environment_overrides_the_defaults(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setenv("PANTHER_API_JOB_EXPIRY_SECONDS", "3600")
     monkeypatch.setenv("PANTHER_API_MAX_QUEUED_JOBS", "0")
     monkeypatch.setenv("PANTHER_API_MAX_BODY_BYTES", "1024")
+    monkeypatch.setenv("PANTHER_API_RESULTS_BUDGET_MIB", "1")
 
     settings = Settings()
 
@@ -58,6 +60,7 @@ def test_environment_overrides_the_defaults(monkeypatch: pytest.MonkeyPatch) -> 
     assert settings.job_expiry_seconds == 3600
     assert settings.max_queued_jobs == 0
     assert settings.max_body_bytes == 1024
+    assert settings.results_budget_mib == 1
 
 
 @pytest.mark.parametrize(
@@ -71,6 +74,9 @@ def test_environment_overrides_the_defaults(monkeypatch: pytest.MonkeyPatch) -> 
         ("PANTHER_API_MAX_QUEUED_JOBS", "many"),
         ("PANTHER_API_MAX_BODY_BYTES", "0"),
         ("PANTHER_API_MAX_BODY_BYTES", "16MB"),
+        ("PANTHER_API_RESULTS_BUDGET_MIB", "0"),
+        ("PANTHER_API_RESULTS_BUDGET_MIB", "-1"),
+        ("PANTHER_API_RESULTS_BUDGET_MIB", "256MiB"),
         ("PANTHER_API_LOG_LEVEL", "LOUD"),
         ("PANTHER_API_LOG_LEVEL", "CRITICAL"),
         ("PANTHER_API_LOG_LEVEL", ""),

@@ -19,7 +19,7 @@ from panther_api.logs import configure_logging
 from panther_api.prefix import API_PREFIX
 from panther_api.problems import PROBLEM_RESPONSES, add_problem_handlers, document_problems
 from panther_api.routers import csnp, health, jobs, refmap, versions
-from panther_api.settings import Settings
+from panther_api.settings import MIB, Settings
 from panther_api.versions import read_versions
 
 logger = logging.getLogger(__name__)
@@ -75,6 +75,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         workers=settings.job_workers,
         max_queued=settings.max_queued_jobs,
         expiry=timedelta(seconds=settings.job_expiry_seconds),
+        results_budget=settings.results_budget_mib * MIB,
         versions=app.state.versions,
     )
     app.state.jobs = runner

@@ -173,3 +173,25 @@ def test_a_finished_job_keeps_its_result_as_json_and_its_log_line(
     assert f"refmap, {ORGANISM}, 6 IDs: succeeded" in line
     for an_id in EXAMPLE_IDS:
         assert an_id not in line
+
+
+def test_the_results_budget_expires_the_oldest_job_first(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # 30,000 mappings are about 1.5 MB of JSON, over a budget of 1 MiB on their own.
+    write_endpu_folder(tmp_path)
+    monkeypatch.setenv("PANTHER_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("PANTHER_API_RESULTS_BUDGET_MIB", "1")
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", run_job)
+    ids = [an_id for _, an_id in zip(range(30_000), cycle(golden_mappings()), strict=False)]
+    with TestClient(create_app()) as client:
+        first = submit_and_wait(client, refmap_job(ids))
+        second = submit_and_wait(client, refmap_job(ids))
+        expired = client.get(f"/api/v1/jobs/{first['id']}")
+        kept = client.get(f"/api/v1/jobs/{second['id']}")
+
+    assert (first["status"], second["status"]) == ("succeeded", "succeeded")
+    assert expired.status_code == 404
+    assert expired.headers["content-type"] == "application/problem+json"
+    assert kept.status_code == 200
+    assert len(kept.json()["result"]["mappings"]) == 30_000

@@ -154,9 +154,15 @@ class JobRunner:
     """The job store, the worker pool, and a task per job that waits for its work."""
 
     def __init__(
-        self, *, workers: int, max_queued: int, expiry: timedelta, versions: Versions
+        self,
+        *,
+        workers: int,
+        max_queued: int,
+        expiry: timedelta,
+        results_budget: int,
+        versions: Versions,
     ) -> None:
-        self.store = JobStore(expiry)
+        self.store = JobStore(expiry, results_budget=results_budget)
         self._versions = versions
         self._workers = workers
         self._max_queued = max_queued
@@ -216,23 +222,23 @@ class JobRunner:
                 # it; jobs still queued here then run on the new one.
                 # The pool first, so a failure while logging can't leave it broken for every
                 # later job.
-                job.fail(_job_problem(WORKER_STOPPED_DETAIL))
+                self.store.fail(job, _job_problem(WORKER_STOPPED_DETAIL))
                 self._replace_pool(pool)
                 self._log_unexpected(job, error, "failed 500, the worker stopped")
             except InputError as error:
                 # The user's input, not a fault: the engine writes the message for the user, with
                 # no paths or tool output (engine-core, "Input errors"). Shown to the user as
                 # given; logged as a fixed outcome without the message or a traceback.
-                job.fail(_job_problem(str(error), HTTPStatus.UNPROCESSABLE_CONTENT))
+                self.store.fail(job, _job_problem(str(error), HTTPStatus.UNPROCESSABLE_CONTENT))
                 logger.info("%s", self._finish_line(job, INPUT_ERROR_OUTCOME))
             except Exception as error:
                 # As for a 500 (problems.py), nothing about the exception goes in the job. The
                 # log gets it, with the worker's traceback: concurrent.futures chains it as the
                 # exception's cause.
-                job.fail(_job_problem(UNEXPECTED_JOB_DETAIL))
+                self.store.fail(job, _job_problem(UNEXPECTED_JOB_DETAIL))
                 self._log_unexpected(job, error, "failed 500")
             else:
-                job.succeed(result)
+                self.store.succeed(job, result)
                 logger.info("%s", self._finish_line(job, "succeeded"))
 
     @staticmethod

@@ -52,6 +52,7 @@ The API reads its settings from environment variables when it starts. An invalid
 | -------- | ------- | ----- | ------------ |
 | `PANTHER_API_JOB_WORKERS` | `2` | an integer ≥ 1 | Worker processes that run jobs. Jobs beyond that wait as `queued` |
 | `PANTHER_API_JOB_EXPIRY_SECONDS` | `86400` (24 hours) | an integer ≥ 1 | How long a finished job is kept. After that, polling it gets a 404 |
+| `PANTHER_API_RESULTS_BUDGET_MIB` | `256` | an integer ≥ 1 | The memory the finished jobs' results may take, in MiB, each counted by the size of its JSON. When a finishing job takes them over it, the oldest finished jobs expire first, before their time. A result larger than the budget on its own is still kept, after every older one. See [Limits](#limits) |
 | `PANTHER_API_MAX_QUEUED_JOBS` | `50` | an integer ≥ 0 | Jobs that may wait for a worker. Past that, a submission gets a `503` and no job is created. See [Limits](#limits) |
 | `PANTHER_API_MAX_BODY_BYTES` | `16777216` (16 MiB) | an integer ≥ 1 | The largest request body accepted. A larger one gets a `413`. See [Limits](#limits) |
 | `PANTHER_API_CORS_ORIGINS` | empty | comma-separated origins, such as `https://pantherdb.github.io`: a scheme and host, with no path, `*` or trailing `/` | The browser origins allowed to call the API from another site. Empty adds no CORS headers. See [CORS](#cors) |
@@ -72,10 +73,11 @@ curl -si -X OPTIONS http://localhost:8000/api/v1/jobs -H 'Origin: https://panthe
 
 ### Limits
 
-Two limits protect the API's memory and its queue. Both answer with problem details, in fixed text that never repeats the request:
+Three limits protect the API's memory and its queue. The first two answer with problem details, in fixed text that never repeats the request:
 
 - **A body over `PANTHER_API_MAX_BODY_BYTES` gets a `413`,** "The request body is larger than the API accepts, 16,777,216 bytes.", before it's parsed. A `Content-Length` over the limit is refused without reading the body; a body without one is refused as soon as it passes the limit. The default fits the largest valid request, a `refmap` job of 100,000 IDs of 64 characters, about 13 MB of JSON.
 - **A job that would wait past `PANTHER_API_MAX_QUEUED_JOBS` gets a `503`,** "Too many jobs are waiting to run. Try again later.", with `Retry-After: 30`, and no job is created. Up to `PANTHER_API_JOB_WORKERS` jobs run, and up to the cap wait. A request is validated first, so an invalid one is still a `422`.
+- **The finished jobs' results fit in `PANTHER_API_RESULTS_BUDGET_MIB`.** Each result is counted by the size of its JSON when its job finishes: about 5 MB for a `refmap` job of 100,000 IDs, a few kilobytes for a `csnp` job. A failed job counts nothing. When a finishing job takes the total over the budget, the oldest finished jobs expire first, before their 24 hours, and polling one gets the `404` an expired job gets. The default, 256 MiB, holds about 50 of the largest `refmap` jobs; the server sets the value that suits it. A `refmap` result is kept as the JSON its worker made, and a poll returns those bytes as they are.
 
 To see the `503`, start the dev server with one worker and no waiting allowed, then submit two `tools` jobs at once:
 

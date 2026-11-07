@@ -6,10 +6,11 @@ from clock import Clock
 
 from panther_api.jobs.models import JobStatus
 from panther_api.jobs.refmap import RefmapInput
-from panther_api.jobs.store import JobStore
+from panther_api.jobs.store import JobRecord, JobStore
 from panther_api.jobs.tools import ToolsInput, ToolsResult
-from panther_api.jobs.work import RefmapJobRequest, ToolsJobRequest
+from panther_api.jobs.work import RefmapJobRequest, SerializedResult, ToolsJobRequest
 from panther_api.problems import Problem
+from panther_api.settings import MIB
 from panther_api.versions import DataVersion, ToolVersion, Versions
 
 EXPIRY = timedelta(hours=24)
@@ -33,7 +34,7 @@ def clock(monkeypatch: pytest.MonkeyPatch) -> Clock:
 
 @pytest.fixture
 def store(clock: Clock) -> JobStore:
-    return JobStore(expiry=EXPIRY)
+    return JobStore(expiry=EXPIRY, results_budget=256 * MIB)
 
 
 def test_a_new_job_is_queued(store: JobStore, clock: Clock) -> None:
@@ -138,3 +139,107 @@ def test_a_job_keeps_its_inputs_size_not_the_input(store: JobStore) -> None:
 
     assert (job.service, job.summary) == ("refmap", "ENDPU, 1000 IDs")
     assert "U00001" not in repr(job)
+
+
+# The results budget (scoring-jobs: Jobs expire).
+
+
+def finished(store: JobStore, clock: Clock, size: int) -> JobRecord:
+    """A job that has succeeded, a second after the last, with a result of `size` bytes."""
+    clock.advance(timedelta(seconds=1))
+    job = store.add(REQUEST, VERSIONS)
+    job.start()
+    store.succeed(job, SerializedResult(b"x" * size))
+    return job
+
+
+def kept(store: JobStore, *jobs: JobRecord) -> list[bool]:
+    return [store.get(str(job.id)) is job for job in jobs]
+
+
+@pytest.fixture
+def small_budget(clock: Clock) -> JobStore:
+    return JobStore(expiry=EXPIRY, results_budget=10 * MIB)
+
+
+def test_over_the_results_budget_the_oldest_finished_job_expires(
+    small_budget: JobStore, clock: Clock
+) -> None:
+    first = finished(small_budget, clock, 4 * MIB)
+    second = finished(small_budget, clock, 4 * MIB)
+    assert small_budget.results_bytes == 8 * MIB
+
+    third = finished(small_budget, clock, 4 * MIB)
+
+    assert kept(small_budget, first, second, third) == [False, True, True]
+    assert small_budget.results_bytes == 8 * MIB
+
+
+def test_within_the_results_budget_every_job_is_kept(small_budget: JobStore, clock: Clock) -> None:
+    jobs = [finished(small_budget, clock, 2 * MIB) for _ in range(5)]
+
+    assert kept(small_budget, *jobs) == [True] * 5
+    assert small_budget.results_bytes == 10 * MIB
+
+
+def test_a_result_larger_than_the_budget_is_kept_alone(
+    small_budget: JobStore, clock: Clock
+) -> None:
+    older = [finished(small_budget, clock, MIB) for _ in range(3)]
+    unfinished = small_budget.add(REQUEST, VERSIONS)
+
+    large = finished(small_budget, clock, 11 * MIB)
+
+    assert kept(small_budget, *older, large) == [False, False, False, True]
+    # Not finished, so not counted, and never expired.
+    assert small_budget.get(str(unfinished.id)) is unfinished
+    assert small_budget.results_bytes == 11 * MIB
+
+    clock.advance(EXPIRY - timedelta(seconds=1))
+    assert kept(small_budget, large) == [True]
+
+
+def test_the_oldest_to_finish_expires_first_not_the_oldest_created(
+    small_budget: JobStore, clock: Clock
+) -> None:
+    slow = small_budget.add(REQUEST, VERSIONS)
+    slow.start()
+    fast = finished(small_budget, clock, 4 * MIB)
+    small_budget.succeed(slow, SerializedResult(b"x" * 4 * MIB))
+
+    newest = finished(small_budget, clock, 4 * MIB)
+
+    assert kept(small_budget, fast, slow, newest) == [False, True, True]
+
+
+def test_a_failed_job_counts_nothing_against_the_budget(
+    small_budget: JobStore, clock: Clock
+) -> None:
+    failed = small_budget.add(REQUEST, VERSIONS)
+    failed.start()
+    small_budget.fail(failed, ERROR)
+
+    assert failed.status is JobStatus.FAILED
+    assert small_budget.results_bytes == 0
+    # Older than any result, so the first to go when one doesn't fit.
+    finished(small_budget, clock, 11 * MIB)
+    assert kept(small_budget, failed) == [False]
+
+
+def test_a_models_result_is_counted_by_its_json(store: JobStore) -> None:
+    job = store.add(REQUEST, VERSIONS)
+    job.start()
+
+    store.succeed(job, RESULT)
+
+    assert job.result == RESULT
+    assert store.results_bytes == len(RESULT.model_dump_json().encode())
+
+
+def test_an_expired_job_frees_its_share_of_the_budget(small_budget: JobStore, clock: Clock) -> None:
+    job = finished(small_budget, clock, 4 * MIB)
+
+    clock.advance(EXPIRY)
+
+    assert small_budget.get(str(job.id)) is None
+    assert small_budget.results_bytes == 0

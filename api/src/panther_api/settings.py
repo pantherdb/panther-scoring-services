@@ -10,9 +10,15 @@ from typing import Annotated, Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
-MAX_BODY_BYTES = 16 * 1024 * 1024
+MIB = 1024 * 1024
+
+MAX_BODY_BYTES = 16 * MIB
 """The default limit on a request body. It fits the largest valid request: a `refmap` job of
 100,000 IDs of 64 characters is about 13 MB of JSON when every `"` or `\\` is escaped."""
+
+RESULTS_BUDGET_MIB = 256
+"""The default budget for the finished jobs' results: about 50 jobs of 100,000 IDs, a starting
+point the server sets to suit it (openspec wire-refmap, design.md, decision 4)."""
 
 MAX_QUEUED_JOBS = 50
 """The default cap on jobs waiting for a worker. Why 50: openspec harden-api-for-hosting,
@@ -32,6 +38,14 @@ class Settings(BaseSettings):
     job_workers: int = Field(default=2, ge=1, description="Worker processes that run jobs")
     job_expiry_seconds: int = Field(
         default=24 * 60 * 60, ge=1, description="How long a finished job is kept"
+    )
+    results_budget_mib: int = Field(
+        default=RESULTS_BUDGET_MIB,
+        ge=1,
+        description=(
+            "The memory the finished jobs' results may take, in MiB of JSON; over it, the oldest "
+            "finished jobs expire first"
+        ),
     )
     max_queued_jobs: int = Field(
         default=MAX_QUEUED_JOBS,

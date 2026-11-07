@@ -123,16 +123,16 @@ A finished job SHALL be kept for a configurable time, 24 hours by default, measu
 
 ### Requirement: Configuration from the environment
 
-The API SHALL read the number of worker processes and the job expiry time from environment variables when it starts, and use defaults when they are unset. An invalid value MUST stop the API from starting instead of being ignored.
+The API SHALL read the number of worker processes, the job expiry time, the cap on waiting jobs and the request body limit from environment variables when it starts, and use defaults when they are unset. An invalid value MUST stop the API from starting instead of being ignored.
 
 #### Scenario: Defaults
 
 - **WHEN** the API starts with no job settings in the environment
-- **THEN** it runs jobs with 2 worker processes and keeps finished jobs for 24 hours
+- **THEN** it runs jobs with 2 worker processes, keeps finished jobs for 24 hours, lets 50 jobs wait for a worker, and accepts request bodies of up to 16 MiB
 
 #### Scenario: Invalid setting
 
-- **WHEN** the API starts with the worker count set to 0
+- **WHEN** the API starts with the worker count set to 0, the cap on waiting jobs set to -1, or the body limit set to 0
 - **THEN** the API fails to start
 
 ### Requirement: cSNP job request
@@ -257,3 +257,146 @@ A `refmap` job SHALL have the shape every job has, with `service` `refmap` and a
 
 - **WHEN** a client fetches `/api/v1/openapi.json`
 - **THEN** the job union has a `refmap` member whose `result` is the refmap result or `null`, `mappings` is a required list, and each mapping requires `id` as a string and `panther_id` as a string or `null`
+
+### Requirement: A cap on waiting jobs
+
+The API SHALL limit how many jobs wait for a worker to a configurable number. A job that would wait when that many already do MUST get status 503, a `Retry-After` header and a fixed problem-details body, and MUST NOT be created. A job waits only while every worker has another unfinished job.
+
+#### Scenario: Past the cap
+
+- **WHEN** the API runs with 1 worker and a cap of 2, one job is running and 2 are waiting, and a client submits a valid job
+- **THEN** the API responds with status 503, a `Retry-After` header, and a problem-details body, without a `Location` header, and the number of stored jobs is still 3
+
+#### Scenario: Free workers
+
+- **WHEN** the API runs with 2 workers and a cap of 0, and a client submits three jobs back to back while the first two run
+- **THEN** the first two get status 202, and the third gets status 503
+
+#### Scenario: After the queue drains
+
+- **WHEN** a submission has been refused for the cap, and the waiting jobs then finish
+- **THEN** the next valid submission gets status 202, and its job runs
+
+#### Scenario: Finished jobs free their place
+
+- **WHEN** the API runs with 1 worker and a cap of 0, and a client submits a job that fails, waits for it to finish, and does that three times
+- **THEN** every submission gets status 202
+
+#### Scenario: An invalid request past the cap
+
+- **WHEN** the cap is reached and a client submits an invalid job
+- **THEN** the API responds with status 422, as it would below the cap
+
+#### Scenario: In the schema
+
+- **WHEN** a client reads the OpenAPI schema
+- **THEN** `POST /api/v1/jobs` documents a 503 response with a problem-details body and a `Retry-After` header
+
+### Requirement: Startup check of the cSNP data
+
+When it starts, the API SHALL check the cSNP data folder with the engine's data check. If the folder isn't set, or lacks a part every search needs, the API MUST log an error that says `csnp` jobs will fail and includes the engine's message, and MUST still start and serve requests. When the data is complete, it MUST log no such error.
+
+#### Scenario: No data
+
+- **WHEN** the API starts with `PANTHER_DATA_DIR` naming an empty folder
+- **THEN** it logs an error naming the folder, and `GET /api/v1/health` responds with status 200
+
+#### Scenario: No data folder set
+
+- **WHEN** the API starts with `PANTHER_DATA_DIR` unset
+- **THEN** it logs an error naming `PANTHER_DATA_DIR`, and `GET /api/v1/health` responds with status 200
+
+#### Scenario: Complete data
+
+- **WHEN** the API starts and the engine's data check passes
+- **THEN** it logs no error about the cSNP data
+
+### Requirement: One line for each finished job
+
+When a job finishes, the API SHALL log one line with the job's id, its service, the size of its input, its status, the error's HTTP status if it failed, how long it waited for a worker and how long it ran, in seconds. The line MUST be `INFO` for a job that succeeded or failed on its input, and `ERROR` otherwise.
+
+#### Scenario: A job that succeeds
+
+- **WHEN** a `csnp` job for `HUMAN` with a sequence of 347 residues and 3 substitutions runs and succeeds
+- **THEN** the log has one `INFO` line with the job's id, `csnp`, `HUMAN`, 347 residues, 3 substitutions, `succeeded`, its wait and its run time
+
+#### Scenario: A job that fails on its input
+
+- **WHEN** a job fails because the engine can't process its input
+- **THEN** the log has one `INFO` line with the job's id, `failed`, `422`, its wait and its run time, and neither the engine's message nor a traceback
+
+#### Scenario: A job that fails unexpectedly
+
+- **WHEN** a job's work raises an unexpected exception
+- **THEN** the log has one `ERROR` line with the job's id, `failed`, `500`, its wait and its run time
+
+#### Scenario: A worker dies, in the log
+
+- **WHEN** the worker process running a job dies
+- **THEN** the log has one `ERROR` line with the job's id, `failed` and `500`, and says the worker stopped
+
+### Requirement: The size of a job's input
+
+A job's lines SHALL give the size of its input: for `csnp`, the species code, the sequence's length in residues and the number of substitutions; for `refmap`, the organism code and the number of IDs. They MUST NOT contain the submitted sequence, substitutions or IDs.
+
+#### Scenario: A cSNP job's size
+
+- **WHEN** a `csnp` job for `HUMAN` with a sequence of 347 residues and 3 substitutions finishes
+- **THEN** its line has `HUMAN`, 347 residues and 3 substitutions, and neither the sequence nor any substitution
+
+### Requirement: A job's submission is logged at DEBUG
+
+When the API accepts a job, it SHALL log one `DEBUG` line with the job's id, its service and the size of its input, once the job has started. A request that creates no job MUST NOT log a submission line, and a failure while writing the line MUST NOT stop the job from running.
+
+#### Scenario: Submitted at DEBUG
+
+- **WHEN** the log level is `DEBUG` and a client submits a valid job
+- **THEN** the log has one `DEBUG` line with the job's id, its service and the size of its input, before the job's finish line
+
+#### Scenario: Not at INFO
+
+- **WHEN** the log level is `INFO` and a client submits a valid job that succeeds
+- **THEN** the job's only line is its finish line
+
+#### Scenario: A request that creates no job
+
+- **WHEN** the log level is `DEBUG` and a client submits a request that gets a `422`, a `501` or a `503`
+- **THEN** no submission line is logged
+
+### Requirement: An unexpected error's traceback is logged once in ten minutes
+
+For a job that fails unexpectedly, the API SHALL log the exception's traceback with the finish line the first time that error is seen in ten minutes. An error is the same when its type and the place it was raised are, whatever its message. A repeat within ten minutes MUST log the finish line without the traceback, naming the job whose line has it and how many times the error was seen since.
+
+#### Scenario: The same error twice
+
+- **WHEN** two jobs fail one after the other with the same exception type, raised from the same place
+- **THEN** the first job's line has the traceback, and the second job's line has none and names the first job
+
+#### Scenario: A message that varies
+
+- **WHEN** two jobs fail one after the other from the same place with the same exception type, and messages that differ, such as a time limit that scales with the input
+- **THEN** the second job's line has no traceback and names the first job
+
+#### Scenario: A different error
+
+- **WHEN** a job fails with an error, and the next job fails with the same type and message raised from another place
+- **THEN** both jobs' lines have their traceback
+
+#### Scenario: After ten minutes
+
+- **WHEN** a job fails with an error first seen more than ten minutes before
+- **THEN** its line has the traceback again, and later repeats name this job
+
+### Requirement: A refused submission is logged
+
+When the API refuses a valid job request because the queue is full, it SHALL log a `WARNING` line with the service, the number of jobs running and waiting, and the cap, at most once a minute. A refusal in the minute after a line MUST be counted, and the next line MUST give the number of refusals since the previous line.
+
+#### Scenario: Queue full
+
+- **WHEN** `PANTHER_API_MAX_QUEUED_JOBS` jobs are waiting and a client submits a valid job
+- **THEN** the client gets a `503`, and the log has one `WARNING` line naming the service and the cap
+
+#### Scenario: A client retrying against a full queue
+
+- **WHEN** the queue is full, and a client submits three valid jobs within a minute, then another a minute after the first
+- **THEN** the first and the last get a `WARNING` line, and the last line says three jobs were refused since the first line

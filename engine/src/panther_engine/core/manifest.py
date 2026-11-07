@@ -33,6 +33,26 @@ class Mismatches:
         return not self.missing and not self.differing
 
 
+class HashingReader:
+    """A binary file that hashes and counts what is read from it, such as a tarball read as a
+    stream. `drain()` reads the rest, so the digest covers the whole file."""
+
+    def __init__(self, raw: IO[bytes]) -> None:
+        self.raw = raw
+        self.digest = hashlib.sha256()
+        self.size = 0
+
+    def read(self, size: int = -1) -> bytes:
+        data = self.raw.read(size)
+        self.digest.update(data)
+        self.size += len(data)
+        return data
+
+    def drain(self) -> None:
+        while self.read(CHUNK):
+            pass
+
+
 def sha256_stream(stream: IO[bytes]) -> str:
     digest = hashlib.sha256()
     while chunk := stream.read(CHUNK):

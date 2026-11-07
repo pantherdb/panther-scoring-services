@@ -21,6 +21,7 @@ from pathlib import Path
 
 from panther_engine.core.manifest import (
     CHUNK,
+    HashingReader,
     ManifestError,
     checksums,
     read_manifest,
@@ -28,7 +29,7 @@ from panther_engine.core.manifest import (
     sha256_file,
 )
 from panther_engine.csnp import sample
-from panther_engine.csnp.survey import HashingReader, open_stream
+from panther_engine.csnp.survey import open_stream
 
 MANIFEST = Path(__file__).with_name("full.json")
 

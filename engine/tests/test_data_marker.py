@@ -14,7 +14,7 @@ INI = """
 addopts = --strict-markers
 markers =
     tools(*names): runs the named external tools
-    data(*services): reads the named services' data sample
+    data(*services): reads the named services' data
 """
 
 SUITE = """
@@ -56,7 +56,7 @@ def test_without_the_data_the_test_is_skipped_naming_the_data_and_the_variable(
 
     result.assert_outcomes(passed=1, skipped=1)
     result.stdout.fnmatch_lines(
-        [f"SKIPPED * needs the csnp data sample, not found in {empty} (set PANTHER_DATA_DIR, *"]
+        [f"SKIPPED * needs the csnp data, not found in {empty} (set PANTHER_DATA_DIR, *"]
     )
 
 
@@ -71,7 +71,7 @@ def test_where_data_is_required_the_test_fails_naming_the_data(
     result.stdout.fnmatch_lines(
         [
             "*_ test_needs_the_csnp_sample _*",
-            f"needs the csnp data sample, not found in {empty} (PANTHER_REQUIRE_DATA=1)",
+            f"needs the csnp data, not found in {empty} (PANTHER_REQUIRE_DATA=1)",
             "FAILED *::test_needs_the_csnp_sample*",
         ]
     )

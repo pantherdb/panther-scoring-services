@@ -1,0 +1,148 @@
+{
+  "cases": [
+    {
+      "name": "test_geneList",
+      "what": "The data's own test, from its README: 450 ENDPU IDs",
+      "organism": "ENDPU",
+      "list": "release/test_geneList"
+    },
+    {
+      "name": "test_geneList_values",
+      "what": "Every ENDPU ID, each with a value in a second column",
+      "organism": "ENDPU",
+      "list": "release/test_geneList_values"
+    },
+    {
+      "name": "repeats",
+      "what": "Repeated IDs, each mapped each time: a subfamily, a family, a stored NOHIT and an ID not in the file (REFMAP-4)",
+      "organism": "ENDPU",
+      "list": "cases/repeats.list"
+    },
+    {
+      "name": "case-and-suffixes",
+      "what": "No folding or stripping: lower and mixed case, an isoform and a version (REFMAP-1)",
+      "organism": "ENDPU",
+      "list": "cases/case-and-suffixes.list"
+    },
+    {
+      "name": "first-unmapped",
+      "what": "A first ID that isn't in the file, then a stored NOHIT: the service answers both; only the website dropped a first NOHIT as a header",
+      "organism": "ENDPU",
+      "list": "cases/first-unmapped.list"
+    },
+    {
+      "name": "other-organism",
+      "what": "IDs from ARAVE's file, none of them in ENDPU's",
+      "organism": "ENDPU",
+      "list": "cases/other-organism.list"
+    },
+    {
+      "name": "punctuation",
+      "what": "IDs with punctuation, looked up as they are, and an ID of 64 characters, the longest the API takes",
+      "organism": "ENDPU",
+      "list": "cases/punctuation.list"
+    },
+    {
+      "name": "list-endings",
+      "what": "A list with CRLF endings, a carriage return inside an ID, more columns, and no line feed at the end: every \\r is removed, and the first field taken",
+      "organism": "ENDPU",
+      "list": "cases/list-endings.list"
+    },
+    {
+      "name": "repeated-id",
+      "what": "An ID on two lines of a file: the last line wins (REFMAP-2)",
+      "file": "cases/repeated-id.classification",
+      "list": "cases/repeated-id.list"
+    },
+    {
+      "name": "crlf",
+      "what": "A file with CRLF endings: each value keeps its \\r, NOHIT\\r included (REFMAP-3)",
+      "file": "cases/crlf.classification",
+      "list": "cases/crlf.list"
+    },
+    {
+      "name": "no-second-field",
+      "what": "Later lines after a line that gave the ID a value: A1 alone, with no tab, gives no PANTHER ID; B2 and a tab gives an empty one, as `my ($id, $pthr) = split` keeps a trailing empty field",
+      "file": "cases/no-second-field.classification",
+      "list": "cases/no-second-field.list"
+    },
+    {
+      "name": "empty-second-field",
+      "what": "An empty second field before a third: an empty PANTHER ID",
+      "file": "cases/empty-second-field.classification",
+      "list": "cases/empty-second-field.list"
+    },
+    {
+      "name": "third-field",
+      "what": "More fields after the PANTHER ID: the second field alone",
+      "file": "cases/third-field.classification",
+      "list": "cases/third-field.list"
+    },
+    {
+      "name": "stored-nohit",
+      "what": "A stored NOHIT and an absent ID: both no PANTHER ID (REFMAP-6)",
+      "file": "cases/stored-nohit.classification",
+      "list": "cases/stored-nohit.list"
+    },
+    {
+      "name": "no-final-line-feed",
+      "what": "A file whose last line has no line feed",
+      "file": "cases/no-final-line-feed.classification",
+      "list": "cases/no-final-line-feed.list"
+    },
+    {
+      "name": "empty-line",
+      "what": "An empty line among the IDs (REFMAP-10)",
+      "organism": "ENDPU",
+      "list": "cases/empty-line.list",
+      "refused": "ValueError",
+      "message": "ID 2 isn't 1 to 64 printable ASCII characters with no whitespace",
+      "divergence": 10
+    },
+    {
+      "name": "space-in-id",
+      "what": "Two IDs on one line, separated by a space",
+      "organism": "ENDPU",
+      "list": "cases/space-in-id.list",
+      "refused": "ValueError",
+      "message": "ID 1 isn't 1 to 64 printable ASCII characters with no whitespace",
+      "divergence": 10
+    },
+    {
+      "name": "id-too-long",
+      "what": "An ID of 65 characters",
+      "organism": "ENDPU",
+      "list": "cases/id-too-long.list",
+      "refused": "ValueError",
+      "message": "ID 1 isn't 1 to 64 printable ASCII characters with no whitespace",
+      "divergence": 10
+    },
+    {
+      "name": "non-ascii-id",
+      "what": "An ID with a Latin-1 byte, outside printable ASCII",
+      "organism": "ENDPU",
+      "list": "cases/non-ascii-id.list",
+      "refused": "ValueError",
+      "message": "ID 1 isn't 1 to 64 printable ASCII characters with no whitespace",
+      "divergence": 10
+    },
+    {
+      "name": "unknown-organism",
+      "what": "An organism refmap has no data for (REFMAP-9)",
+      "organism": "HUMAN",
+      "list": "cases/unknown-organism.list",
+      "refused": "ValueError",
+      "message": "not an organism refmap maps for: 'HUMAN'",
+      "divergence": 9
+    },
+    {
+      "name": "missing-file",
+      "what": "A classification file that isn't there: cases/missing.classification is never created (REFMAP-9)",
+      "file": "cases/missing.classification",
+      "list": "cases/missing-file.list",
+      "refused": "MissingDataError",
+      "message": "can't read the classification file",
+      "divergence": 9
+    }
+  ]
+}

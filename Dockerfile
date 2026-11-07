@@ -1,6 +1,6 @@
 # The engine and API images: Python, uv and the external tools at pinned versions, for linux/amd64
 # and linux/arm64. Stages: blast, hmmer, epang -> tools -> engine, api; and the test-only
-# csnp-reference, from engine.
+# csnp-reference and refmap-reference, from engine, with refmap-reference-script.
 #
 # Every base image is pinned by digest and every download by version and sha256. Changing a pin
 # is a pull request that changes this file; Dependabot doesn't update them. The versions are
@@ -145,6 +145,36 @@ RUN set -eux; \
 USER panther
 # parse_blastp.pl's `sort` compares whole lines when percent identities tie: byte by byte, in C.
 ENV LC_ALL=C
+
+# The refmap reference, for parity tests only (Engine condition 3 in docs/design/tech-stack.md): the
+# engine with Debian's Perl and RefProteomeMapper's map_panther.pl at the parity reference, 4fc6a09.
+# That repository is public, so this stage downloads the script at the full commit and checks its
+# sha256. The script is the same file on master (649c85f) and on data.pantherdb.org (checked
+# 2026-11-05 and 2026-11-06). A separate stage, so curl stays out of refmap-reference. A script that
+# differs fails the build, naming the file. The commands are in docs/parity/golden-setup.md.
+# Building `engine` or `api` never runs these stages, and CI and compose never build them.
+FROM ${PYTHON_IMAGE} AS refmap-reference-script
+ARG REFMAP_COMMIT=4fc6a0953ecf138d9d716ba2641afa4664796a51
+ARG REFMAP_SCRIPT_SHA256=ee535a9b935f439be29ae2eafda2c9c953b1abf5f4ab5623bcc7da1746919725
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends curl; \
+    rm -rf /var/lib/apt/lists/*; \
+    mkdir /refmap-reference; \
+    cd /refmap-reference; \
+    curl -fsSL -o map_panther.pl \
+        "https://raw.githubusercontent.com/pantherdb/RefProteomeMapper/${REFMAP_COMMIT}/map_panther.pl"; \
+    echo "${REFMAP_SCRIPT_SHA256}  map_panther.pl" | sha256sum --check --strict
+
+FROM engine AS refmap-reference
+USER root
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends perl; \
+    rm -rf /var/lib/apt/lists/*; \
+    perl -v | sed -n 2p
+COPY --from=refmap-reference-script /refmap-reference/map_panther.pl /opt/refmap-reference/
+USER panther
 
 # The API: api/ and the engine installed into /opt/venv as regular packages, without the dev group,
 # serving on port 8000. The image runs what it was built from; nothing mounted over /work changes

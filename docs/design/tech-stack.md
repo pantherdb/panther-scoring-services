@@ -1,6 +1,6 @@
 # Tech Stack Proposal
 
-**Status:** Proposed, 2026-10-27; revised 2026-10-28 for four services. Not final until the [open questions](#open-questions) are answered and the [reviewers](#review) sign off. The frontend part was split out and accepted on 2026-10-28: see [frontend-stack.md](frontend-stack.md). The API's tooling (uv, Python version, lint, types, tests, error format) was split out and accepted on 2026-10-28: see [api-stack.md](api-stack.md); the API's architecture stays here. Revised 2026-10-29: [pinned tool versions](#pinning-tool-versions) in the container image (BLAST+ 2.17.0 tested against the PANTHER9 database), worker processes (API recommendation 1), the site moving to the JSON API (API recommendation 2), the parity oracle image (Engine condition 3), cSNP data regeneration as a separate project, and the environments and cSNP data sample (Shared Concerns). Revised again 2026-10-29 (`add-csnp-survey-and-sample`): the service priority, with `csnp` first; the origin of `PAML_RST.tar.gz`, production's library build; and following the legacy code where it and its docs disagree, which keeps the code's cSNP thresholds and pDel bounds for M1 (Engine condition 7). Also the cSNP data sample's storage, a release asset unpacked under `PANTHER_DATA_DIR` (Shared Concerns, Data). Revised 2026-10-29 (`port-csnp`): the cSNP reference image takes the legacy scripts from a developer's checkout, because the repository is private (Engine condition 3); two new open questions, on making the original repositories public and on a licence.
+**Status:** Proposed, 2026-10-27; revised 2026-10-28 for four services. Not final until the [open questions](#open-questions) are answered and the [reviewers](#review) sign off. The frontend part was split out and accepted on 2026-10-28: see [frontend-stack.md](frontend-stack.md). The API's tooling (uv, Python version, lint, types, tests, error format) was split out and accepted on 2026-10-28: see [api-stack.md](api-stack.md); the API's architecture stays here. Revised 2026-10-29: [pinned tool versions](#pinning-tool-versions) in the container image (BLAST+ 2.17.0 tested against the PANTHER9 database), worker processes (API recommendation 1), the site moving to the JSON API (API recommendation 2), the parity oracle image (Engine condition 3), cSNP data regeneration as a separate project, and the environments and cSNP data sample (Shared Concerns). Revised again 2026-10-29 (`add-csnp-survey-and-sample`): the service priority, with `csnp` first; the origin of `PAML_RST.tar.gz`, production's library build; and following the legacy code where it and its docs disagree, which keeps the code's cSNP thresholds and pDel bounds for M1 (Engine condition 7). Also the cSNP data sample's storage, a release asset unpacked under `PANTHER_DATA_DIR` (Shared Concerns, Data). Revised 2026-10-29 (`port-csnp`): the cSNP reference image takes the legacy scripts from a developer's checkout, because the repository is private (Engine condition 3); two new open questions, on making the original repositories public and on a licence. Revised 2026-11-06 (`port-refmap`): refmap's data under its own root, `refmap/19/`, with the whole release used by developers and CI (Shared Concerns, Data); the refmap reference image, which downloads its public script (Engine condition 3).
 
 ## Summary
 
@@ -189,6 +189,10 @@ Conditions:
      - It's for tests only. Perl never goes into the runtime image, beyond the minimal `perl-base` that Debian, its base image, can't do without (engine developer, 2026-10-30).
      - Beyond the fixed goldens, tests can run generated inputs through both the Perl and the Python and compare them. The goldens in the legacy behaviour spec §7 cover 2 of the 8,607 families, which is thin for the trace-back. Run each generated case in a fresh Perl process, so leaked batch state (`SCORE-7`, `SCORE-8`) doesn't carry between cases. A property-based test tool such as Hypothesis is a new dependency, so it comes with its own proposal.
      - The comparison applies only approved divergences. Until a row is approved, the Python must match the Perl, defects included.
+   - **For `refmap`** (`port-refmap`):
+     - **The image downloads the public script.** `pantherdb/RefProteomeMapper` is public, so the `refmap-reference` image downloads `map_panther.pl` at the full commit of `4fc6a09` when it's built, and checks its pinned sha256. No checkout is needed. It holds Debian's Perl 5 and that script, beside the engine, and mounts the refmap data read-only. The commands are in [golden-setup.md](../parity/golden-setup.md#refmap). CI doesn't build this image either.
+     - **The goldens** cover the data server's own test lists against one organism, hand-made lists, and small made-up classification files for what the release never holds.
+     - **The full run compares every ID** of every organism in the release, 22,961,201 lines, with seeded extras, through both the Perl and the port. On the pinned data, it's M1's acceptance for refmap's engine.
 4. **Keep external tools as binaries,** called with `subprocess`.
 5. **Adopt `treegrafter`, don't port it.**
    - Pin EBI's repository by git commit. It doesn't appear to be on PyPI; needs team verification.
@@ -268,13 +272,15 @@ The other three services have no M2 defined.
 
 ## Shared Concerns
 
-- **Data.** Large external files, mounted read-only from two versioned roots:
+- **Data.** Large external files, mounted read-only from three versioned roots:
 
   | Root | Contents | Used by |
   | ---- | -------- | ------- |
-  | `/data/panther/<version>/` | The current PANTHER release (19 today): HMM library, family MSAs and trees, PAINT annotations, per-organism classification files, and treegrafter's `prepare` output | `hmmscore`, `refmap`, `treegrafter` |
+  | `/data/panther/<version>/` | The current PANTHER release (19 today): HMM library, family MSAs and trees, PAINT annotations, and treegrafter's `prepare` output | `hmmscore`, `treegrafter` |
+  | `/data/refmap/<version>/` | The current release's classification files (19 today), one per Reference Proteome organism and saved under its code, and their `stats`, pinned by `engine/src/panther_engine/refmap/data.json` (`port-refmap`) | `refmap` |
   | `/data/csnp/<version>/` | Frozen precomputed data from PANTHER 9: BLAST database, PAML library, species tree (checksums pinned in the legacy behaviour spec §7.1) | `csnp` |
 
+  - **Developers and CI use the whole refmap release:** 157 MB, 523 MB unpacked, the size of the cSNP sample, so there's no refmap sample. `panther-engine refmap data fetch` downloads it from `data.pantherdb.org` and checks every file. Fetching it is in [engine.md](../testing/engine.md#the-refmap-data).
   - **cSNP's BLAST database must stay matched to its PAML library.** It can't use the current release's sequences, or the family and node IDs won't line up.
   - **Regenerating the cSNP data is out of scope here.** Rebuilding PAML_RST for newer PANTHER libraries is a separate project, once the service is up. Until then, the frozen files are used as they are, including the two empty `.rst` files (`PTHR11711`, `PTHR19241`).
   - **The cSNP PAML library is 2.35 GB compressed and 19.2 GB unpacked:** 8,607 families, three files each. The developer copy, `panther_build/PAML_RST.tar.gz` beside `panther-workspace`, matches the checksum pinned in spec §7.1 (checked 2026-10-29). It was tarballed from the legacy production server before that was shut down, so it is the library build production ran (engine developer, 2026-10-29).
@@ -287,7 +293,7 @@ The other three services have no M2 defined.
 - **Developer platforms.** Everything that calls the engine's tools runs in the containers, so no machine needs native BLAST+, HMMER or EPA-ng. HMMER and EPA-ng have no Windows builds at all.
   - **Windows:** Docker Desktop with WSL2. Clone the repo, and `panther-workspace` beside it, inside the WSL2 filesystem (for example `~/panther/`), and run git, npm, uv and `docker compose` from the WSL2 shell. Bind mounts from `C:\` cross a slow file-sharing bridge, and file watching (Vite, server reload) misses changes made across it. x86-64 laptops run the amd64 image natively. The engine's compose checks were run this way on 2026-10-29, and pass (`scaffold-engine`).
   - **Apple Silicon and Windows on Arm:** the `linux/arm64` image ([Pinning Tool Versions](#pinning-tool-versions)). CI builds and tests it natively on GitHub's `ubuntu-24.04-arm` runners, which this repository can use.
-  - **Data:** developers use the sample of the cSNP data (Data, above), not the full 19.2 GB PAML library (decided 2026-10-29).
+  - **Data:** developers use the sample of the cSNP data (Data, above), not the full 19.2 GB PAML library (decided 2026-10-29), and the whole refmap release.
 - **Environments.** Decided 2026-10-29:
 
   | Environment | cSNP data | Runs |

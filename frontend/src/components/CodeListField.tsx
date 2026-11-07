@@ -1,4 +1,11 @@
-import { Button, Loader, Select, TextInput } from '@mantine/core'
+import {
+  Button,
+  type ComboboxItem,
+  Loader,
+  type OptionsFilter,
+  Select,
+  TextInput,
+} from '@mantine/core'
 
 import type { CodeList } from './codeList'
 
@@ -28,21 +35,38 @@ type Props = {
   limit?: number
 }
 
+// Mantine's own filter, with the chosen entry first while nothing is typed: opening the list
+// shows the first `limit` options, and the chosen one would otherwise be cut off a long list.
+function chosenFirst(code: string | null): OptionsFilter {
+  return ({ options, search, limit }) => {
+    const items = options as ComboboxItem[]
+    const query = search.trim().toLowerCase()
+    if (query !== '') {
+      return items.filter(item => item.label.toLowerCase().includes(query)).slice(0, limit)
+    }
+    const chosen = items.filter(item => item.value === code)
+    return [...chosen, ...items.filter(item => item.value !== code)].slice(0, limit)
+  }
+}
+
 // A code from a list, such as a species or an organism: a searchable list of the API's entries
 // once it has loaded, each by its name and code, and a box for a code if it can't be, so the
 // form still works. The draft holds the code either way.
 export function CodeListField({ list, texts, value, onChange, error, limit }: Props) {
   switch (list.status) {
-    case 'loaded':
+    case 'loaded': {
+      // The draft may hold a typed code with spaces, from the box below; it's sent trimmed.
+      const chosen = list.codes.has(value.trim()) ? value.trim() : null
       return (
         <Select
           label={texts.label}
           description={texts.description}
           data={list.entries.map(({ code, name }) => ({ value: code, label: `${name} (${code})` }))}
-          value={list.codes.has(value) ? value : null}
+          value={chosen}
           onChange={code => onChange(code ?? '')}
           searchable
           limit={limit}
+          filter={limit === undefined ? undefined : chosenFirst(chosen)}
           allowDeselect={false}
           nothingFoundMessage={texts.nothingFound}
           // Fixed, not absolute: on opening, Mantine scrolls the chosen option into view before
@@ -54,6 +78,7 @@ export function CodeListField({ list, texts, value, onChange, error, limit }: Pr
           className="max-w-md"
         />
       )
+    }
     case 'loading':
       return (
         <Select

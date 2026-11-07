@@ -44,7 +44,7 @@ When it starts, the API SHALL check the refmap data folder with the engine's dat
 
 ### Requirement: Jobs expire
 
-A finished job SHALL be kept for a configurable time, 24 hours by default, measured from its `finished_at`. After that, polling it MUST get status 404, and the API MUST release the memory it held. The finished jobs' results MUST also fit a configurable memory budget, 256 MiB by default, counting each result by the size of its JSON: when a newly finished job's result would exceed it, the API MUST expire the oldest finished jobs first until it fits, even before their time. A job that hasn't finished MUST NOT expire. Jobs MUST NOT survive a restart of the API.
+A finished job SHALL be kept for a configurable time, 24 hours by default, measured from its `finished_at`. After that, polling it MUST get status 404, and the API MUST release the memory it held. The finished jobs' results MUST also fit a configurable memory budget, 256 MiB by default, counting each result by the size of its JSON: when a newly finished job's result would exceed it, the API MUST expire the oldest finished jobs that hold a result first until it fits, even before their time. A job without a result, such as a failed job, frees nothing, so it MUST be kept until its time. A job that hasn't finished MUST NOT expire. Jobs MUST NOT survive a restart of the API.
 
 #### Scenario: Before expiry
 
@@ -64,7 +64,7 @@ A finished job SHALL be kept for a configurable time, 24 hours by default, measu
 #### Scenario: A result larger than the budget
 
 - **WHEN** a job finishes whose result alone is larger than the budget
-- **THEN** every older finished job expires, and the new job is kept until its time, so its user can still read it
+- **THEN** every older finished job with a result expires, failed jobs are kept, and the new job is kept until its time, so its user can still read it
 
 ### Requirement: Configuration from the environment
 

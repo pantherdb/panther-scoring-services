@@ -221,9 +221,10 @@ def test_a_failed_job_counts_nothing_against_the_budget(
 
     assert failed.status is JobStatus.FAILED
     assert small_budget.results_bytes == 0
-    # Older than any result, so the first to go when one doesn't fit.
+    # Expiring it would free nothing, so it's kept even when a result doesn't fit.
+    older = finished(small_budget, clock, 4 * MIB)
     finished(small_budget, clock, 11 * MIB)
-    assert kept(small_budget, failed) == [False]
+    assert kept(small_budget, failed, older) == [True, False]
 
 
 def test_a_models_result_is_counted_by_its_json(store: JobStore) -> None:

@@ -5,11 +5,12 @@ import type { RefmapResult } from '@/app/api/wire'
 
 import { MappingsTable } from './MappingsTable'
 import { mappingsFileName, mappingsTsv, saveTextFile } from './mappingsFile'
-import { useOrganismLabel } from './useOrganismLabel'
 
 type Props = {
   jobId: string
   result: RefmapResult
+  /** The organism mapped against, as the page names it: by name and code, or by code. */
+  organism: string
 }
 
 const number = new Intl.NumberFormat('en-US')
@@ -21,9 +22,8 @@ function plural(count: number, one: string, many: string) {
 // A refmap job's result: the organism mapped against, how many IDs mapped, a download of every
 // mapping, and the mappings a page at a time. Each PANTHER ID is shown exactly as the API
 // gives it.
-export function RefmapMappings({ jobId, result }: Props) {
+export function RefmapMappings({ jobId, result, organism }: Props) {
   const { mappings } = result
-  const organism = useOrganismLabel(result.organism)
   const mapped = mappings.reduce(
     (count, { panther_id }) => count + (panther_id === null ? 0 : 1),
     0

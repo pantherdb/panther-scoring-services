@@ -119,7 +119,9 @@ class JobStore:
         return None
 
     def _finished_with(self, job: JobRecord, size: int) -> None:
-        """Count the job's result, then expire the oldest other finished jobs while over budget.
+        """Count the job's result, then expire the oldest other finished jobs that hold a result
+        while over budget. A job without one, such as a failed job, frees nothing, so it's kept
+        until its time.
 
         The results only grow here, so the budget is kept here, without a background task.
         """
@@ -127,8 +129,12 @@ class JobStore:
             return
         self._finished[job.id] = size
         self._results_bytes += size
-        while self._results_bytes > self._results_budget and len(self._finished) > 1:
-            self._drop(next(iter(self._finished)))
+        if self._results_bytes <= self._results_budget:
+            return
+        for job_id in [key for key, kept in self._finished.items() if kept and key != job.id]:
+            if self._results_bytes <= self._results_budget:
+                break
+            self._drop(job_id)
 
     def _drop(self, job_id: uuid.UUID) -> None:
         del self._jobs[job_id]

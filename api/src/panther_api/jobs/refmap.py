@@ -122,6 +122,10 @@ def _check_ids(value: Any, handler: ValidatorFunctionWrapHandler) -> list[str]:
                 if "ctx" in item:
                     details["ctx"] = item["ctx"]
                 errors.append(details)
+    if len(errors) != MOST_FIELD_ERRORS:
+        # VALID_ID and ProteinId disagree on an item: let Pydantic check every item, as before,
+        # rather than list too few errors or miscount the rest.
+        return handler(value)
     errors[-1]["input"] = Unlisted(len(bad) - MOST_FIELD_ERRORS)
     raise ValidationError.from_exception_data("ids", errors)
 

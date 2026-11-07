@@ -86,10 +86,11 @@ def _job_json(record: JobRecord) -> bytes:
     if not isinstance(record.result, SerializedResult):
         return job
     # The fields before `result` are the job's id, service, status and times, none of which can
-    # hold this text, so its first match is the result's.
-    before, null_result, after = job.partition(_NULL_RESULT)
-    if not null_result:
-        raise ValueError("the job's JSON has no null result to replace")
+    # hold this text. Exactly one match is required, so a reordered or new field that could hold
+    # it fails loudly here, and in the tests, rather than splicing into the wrong place.
+    if job.count(_NULL_RESULT) != 1:
+        raise ValueError("the job's JSON doesn't have exactly one null result to replace")
+    before, _, after = job.partition(_NULL_RESULT)
     return b"".join((before, b'"result":', record.result.json, after))
 
 

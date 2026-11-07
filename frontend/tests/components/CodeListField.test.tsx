@@ -87,6 +87,22 @@ describe('a code field', () => {
     expect(await screen.findAllByRole('option')).toHaveLength(2)
   })
 
+  it('shows the chosen entry first when a long list is cut to `limit`', async () => {
+    // By name: Earth, Jupiter, Mars, Venus. Venus is chosen, past the limit.
+    const { user } = renderField({ list: loaded, limit: 2, start: 'VENUS' })
+
+    await user.click(screen.getByRole('combobox', { name: 'Planet' }))
+
+    const options = await screen.findAllByRole('option')
+    expect(options.map(option => option.textContent)).toEqual(['Venus (VENUS)', 'Earth (EARTH)'])
+  })
+
+  it('shows a typed code with spaces as the entry it names, as it will be sent', () => {
+    renderField({ list: loaded, start: ' MARS ' })
+
+    expect(screen.getByRole('combobox', { name: 'Planet' })).toHaveValue('Mars (MARS)')
+  })
+
   it('shows a code not in the list as no choice', () => {
     renderField({ list: loaded, start: 'PLUTO' })
 

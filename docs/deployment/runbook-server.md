@@ -29,7 +29,7 @@ docker build --secret id=ca,src=<the CA certificate, .pem> ...
 
 The certificate is used only by `npm ci`, and isn't kept in the image or its layers. Without the secret, the build is the same as anywhere else.
 
-The API image, from the root `Dockerfile`, doesn't take the CA yet: its downloads fail the same way. That's an open question in [hosting.md](../design/hosting.md#getting-the-image-to-the-server).
+The API image, from the root `Dockerfile`, takes the same secret, `--secret id=ca,src=<the CA certificate>`: see [Building Behind a TLS-Inspecting Proxy](../testing/engine.md#building-behind-a-tls-inspecting-proxy).
 
 ### Build settings
 

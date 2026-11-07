@@ -1,6 +1,7 @@
 # The engine and API images: Python, uv and the external tools at pinned versions, for linux/amd64
 # and linux/arm64. Stages: blast, hmmer, epang -> tools -> engine, api; and the test-only
-# csnp-reference and refmap-reference, from engine, with refmap-reference-script.
+# csnp-reference and refmap-reference, from engine, with refmap-reference-script. extra-ca holds a
+# script the downloading steps share.
 #
 # Every base image is pinned by digest and every download by version and sha256. Changing a pin
 # is a pull request that changes this file; Dependabot doesn't update them. The versions are
@@ -12,6 +13,26 @@ ARG MICROMAMBA_IMAGE=mambaorg/micromamba:2.10.0-debian13-slim@sha256:e1476182cd4
 # Keep the uv version in step with required-version in engine/pyproject.toml and with ci.yml.
 ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0
 
+# Building behind a TLS-inspecting proxy, which re-signs HTTPS with its own certificate authority:
+# pass that CA, a PEM file of one or more certificates, as the build secret ca.
+#   docker build --target api --secret id=ca,src=<PEM file> .
+# Each step that downloads over HTTPS mounts the secret and sources this script. It points curl,
+# micromamba and uv at the image's roots plus the secret's certificates, for that step only, and
+# leaves nothing in a layer. Without the secret it does nothing, and each tool uses its own roots.
+# A step that sources it must not set an EXIT trap of its own, which would replace the script's.
+# See docs/testing/engine.md ("Building Behind a TLS-Inspecting Proxy").
+FROM scratch AS extra-ca
+COPY <<'EOF' /extra-ca.sh
+if [ -e /run/secrets/ca ]; then
+    grep -q -e '-----BEGIN CERTIFICATE-----' /run/secrets/ca \
+        || { echo "The ca secret holds no PEM certificate" >&2; exit 1; }
+    cat /etc/ssl/certs/ca-certificates.crt /run/secrets/ca > /tmp/extra-ca.pem
+    export CURL_CA_BUNDLE=/tmp/extra-ca.pem MAMBA_CACERT_PATH=/tmp/extra-ca.pem \
+        SSL_CERT_FILE=/tmp/extra-ca.pem
+    trap 'rm -f /tmp/extra-ca.pem' EXIT
+fi
+EOF
+
 # BLAST+: NCBI's prebuilt binaries. We keep blastp and blastdbcmd. They need libgomp1, which the
 # slim base lacks (the only library `ldd` reported missing, on both architectures).
 FROM ${PYTHON_IMAGE} AS blast
@@ -21,7 +42,10 @@ ARG BLAST_VERSION=2.17.0
 # NCBI publishes beside it, in https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.17.0/.
 ARG BLAST_SHA256_AMD64=3888112d8207831aa47371d93583c601f058f88b5db22dc782438b039a3a411b
 ARG BLAST_SHA256_ARM64=cb9ac252a1ac8767d90b0bf0a38486f3cb94f71ef9b6b8d194ded19b30250daf
-RUN set -eux; \
+RUN --mount=type=secret,id=ca,mode=0444 \
+    --mount=type=bind,from=extra-ca,source=/extra-ca.sh,target=/run/extra-ca.sh \
+    set -eux; \
+    . /run/extra-ca.sh; \
     case "$TARGETARCH" in \
         amd64) arch=x64-linux; sha256="$BLAST_SHA256_AMD64" ;; \
         arm64) arch=aarch64-linux; sha256="$BLAST_SHA256_ARM64" ;; \
@@ -46,7 +70,10 @@ ARG HMMER_VERSION=3.4
 # sha256 of the source tarball, computed on 2026-10-29. It matches the sha256 in Bioconda's
 # hmmer 3.4 recipe (bioconda-recipes, recipes/hmmer/meta.yaml).
 ARG HMMER_SHA256=ca70d94fd0cf271bd7063423aabb116d42de533117343a9b27a65c17ff06fbf3
-RUN set -eux; \
+RUN --mount=type=secret,id=ca,mode=0444 \
+    --mount=type=bind,from=extra-ca,source=/extra-ca.sh,target=/run/extra-ca.sh \
+    set -eux; \
+    . /run/extra-ca.sh; \
     apt-get update; \
     apt-get install -y --no-install-recommends curl gcc libc6-dev make; \
     rm -rf /var/lib/apt/lists/*; \
@@ -69,7 +96,10 @@ FROM ${MICROMAMBA_IMAGE} AS epang
 ARG TARGETARCH
 USER root
 COPY engine/tools-env/ /tmp/tools-env/
-RUN set -eux; \
+RUN --mount=type=secret,id=ca,mode=0444 \
+    --mount=type=bind,from=extra-ca,source=/extra-ca.sh,target=/run/extra-ca.sh \
+    set -eux; \
+    . /run/extra-ca.sh; \
     case "$TARGETARCH" in \
         amd64) subdir=linux-64 ;; \
         arm64) subdir=linux-aarch64 ;; \
@@ -114,9 +144,17 @@ ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
     PANTHER_REQUIRE_TOOLS=1
 # The dependencies first, so a change to the source alone doesn't reinstall them.
 COPY --chown=panther:panther engine/pyproject.toml engine/uv.lock engine/.python-version ./
-RUN uv sync --locked --no-cache --no-install-project
+RUN --mount=type=secret,id=ca,mode=0444 \
+    --mount=type=bind,from=extra-ca,source=/extra-ca.sh,target=/run/extra-ca.sh \
+    set -eux; \
+    . /run/extra-ca.sh; \
+    uv sync --locked --no-cache --no-install-project
 COPY --chown=panther:panther engine/ ./
-RUN uv sync --locked --no-cache
+RUN --mount=type=secret,id=ca,mode=0444 \
+    --mount=type=bind,from=extra-ca,source=/extra-ca.sh,target=/run/extra-ca.sh \
+    set -eux; \
+    . /run/extra-ca.sh; \
+    uv sync --locked --no-cache
 
 # The cSNP reference, for parity tests only (Engine condition 3 in docs/design/tech-stack.md): the
 # engine with Debian's Perl and the legacy scripts at the parity reference, pantherdb/cSNP_analysis
@@ -156,7 +194,10 @@ ENV LC_ALL=C
 FROM ${PYTHON_IMAGE} AS refmap-reference-script
 ARG REFMAP_COMMIT=4fc6a0953ecf138d9d716ba2641afa4664796a51
 ARG REFMAP_SCRIPT_SHA256=ee535a9b935f439be29ae2eafda2c9c953b1abf5f4ab5623bcc7da1746919725
-RUN set -eux; \
+RUN --mount=type=secret,id=ca,mode=0444 \
+    --mount=type=bind,from=extra-ca,source=/extra-ca.sh,target=/run/extra-ca.sh \
+    set -eux; \
+    . /run/extra-ca.sh; \
     apt-get update; \
     apt-get install -y --no-install-recommends curl; \
     rm -rf /var/lib/apt/lists/*; \
@@ -191,10 +232,18 @@ ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
 # engine's pyproject.toml to check the lock, but installs nothing from the engine yet.
 COPY --chown=panther:panther api/pyproject.toml api/uv.lock api/.python-version ./
 COPY --chown=panther:panther engine/pyproject.toml /work/engine/
-RUN uv sync --locked --no-dev --no-cache --no-install-project --no-install-package panther-engine
+RUN --mount=type=secret,id=ca,mode=0444 \
+    --mount=type=bind,from=extra-ca,source=/extra-ca.sh,target=/run/extra-ca.sh \
+    set -eux; \
+    . /run/extra-ca.sh; \
+    uv sync --locked --no-dev --no-cache --no-install-project --no-install-package panther-engine
 COPY --chown=panther:panther engine/src/ /work/engine/src/
 COPY --chown=panther:panther api/ ./
-RUN uv sync --locked --no-dev --no-cache --no-editable
+RUN --mount=type=secret,id=ca,mode=0444 \
+    --mount=type=bind,from=extra-ca,source=/extra-ca.sh,target=/run/extra-ca.sh \
+    set -eux; \
+    . /run/extra-ca.sh; \
+    uv sync --locked --no-dev --no-cache --no-editable
 EXPOSE 8000
 # fastapi run finds the app through [tool.fastapi] in api/pyproject.toml, and listens on 0.0.0.0.
 CMD ["fastapi", "run", "--port", "8000"]

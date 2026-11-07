@@ -151,7 +151,7 @@ The reference is `map_panther.pl` at `pantherdb/RefProteomeMapper` `4fc6a09`. It
 docker buildx build --load --target refmap-reference -t panther-refmap-reference .
 ```
 
-- **The repository is public, so no checkout is needed.** A stage of its own, `refmap-reference-script`, downloads the script from GitHub at the full commit, so curl stays out of the image. The build needs the network.
+- **The repository is public, so no checkout is needed.** A stage of its own, `refmap-reference-script`, downloads the script from GitHub at the full commit, so curl stays out of the image. The build needs the network; behind a TLS-inspecting proxy, pass the CA as for the other images ([engine.md](../testing/engine.md#building-behind-a-tls-inspecting-proxy)).
 - **The script is checked against its pinned sha256.** A script that differs fails the build, and `sha256sum` names it: `map_panther.pl: FAILED`.
 - **There's no self-check,** unlike `csnp-reference`: no output of `map_panther.pl` was ever published to check against. The full run compares the Perl with the port on every line instead.
 - **Building `engine` or `api` never downloads the script.**

@@ -58,7 +58,7 @@ The OpenSpec change `deploy-frontend-to-pages` (#39) adds these. Every value the
 
 - **For now:** built on the server from a tagged commit of `main` (`docker build --target api`).
 - **Later:** CI publishes the image to GitHub's container registry, and the server pulls a tag. That keeps the image the server runs the same as the one CI tested.
-- **Building on the server needs its CA certificate** (found on #61, 2026-11-05). The server re-signs TLS, so a build's downloads fail unless they trust its CA: `npm ci` for the site, and apt, curl, micromamba and uv for the API image. `frontend/Dockerfile` takes the CA as a build secret ([runbook-server.md](../deployment/runbook-server.md#the-servers-ca-certificate)); the root `Dockerfile` doesn't yet. A published image needs no downloads on the server, which weighs toward publishing.
+- **Building on the server needs its CA certificate** (found on #61, 2026-11-05). The server re-signs TLS, so a build's downloads fail unless they trust its CA: `npm ci` for the site, and curl, micromamba and uv for the API image. `frontend/Dockerfile` takes the CA as a build secret ([runbook-server.md](../deployment/runbook-server.md#the-servers-ca-certificate)), and so does the root `Dockerfile` ([engine.md](../testing/engine.md#building-behind-a-tls-inspecting-proxy)). Both take it as `--secret id=ca`. A published image needs no downloads on the server, which weighs toward publishing.
 - **What publishing would need,** from the review of a first version on #61:
   - push the image CI checked, not a second build of the same commit;
   - always push the commit's SHA tag, and move `main` only from the head of `main`, so it can't go back to an older build;
@@ -89,7 +89,7 @@ Each needs team verification.
 - **The Pages address:** `https://pantherdb.github.io/panther-scoring-services/`, or a custom domain. Either is a setting now (`PAGES_BASE_PATH`).
 - **How the API fits beside what already runs on the server.**
 - **Limits for a public API,** as above.
-- **When CI should start publishing the image,** and whether the root `Dockerfile` should take the server's CA meanwhile. Both images, if the site is served from the server.
+- **When CI should start publishing the image.** Both images, if the site is served from the server.
 
 ## Review
 

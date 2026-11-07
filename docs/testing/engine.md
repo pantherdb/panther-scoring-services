@@ -29,6 +29,29 @@ docker compose run --rm engine panther-engine tools                 # the CLI: e
 
 Clone the repository inside WSL2, for example under `~/` in the Ubuntu distribution, not under `C:\` or `/mnt/c/`. Run the commands from a WSL2 shell, with Docker Desktop's WSL2 integration turned on for that distribution. A clone on the Windows file system is mounted slowly, and doesn't keep Linux file permissions. Both `docker compose run --rm engine` and `docker compose run --rm engine panther-engine tools` were checked this way on 2026-10-29.
 
+## Building Behind a TLS-Inspecting Proxy
+
+Some networks inspect HTTPS. A proxy re-signs every connection with its own certificate authority, and IT installs that CA on each machine. The machine's own tools and `docker pull` then work, but the image's build steps don't: each runs in a fresh container that doesn't trust the proxy's CA. The build fails at its first HTTPS download, with "unable to get local issuer certificate" from micromamba or curl, or `invalid peer certificate: UnknownIssuer` from uv.
+
+Give the build the machine's CA certificates as the build secret `ca`, a PEM file. The machine's whole bundle is fine, since it includes the proxy's CA. On RHEL and Fedora:
+
+```sh
+sudo docker build --target api -t panther-api:<tag> \
+  --secret id=ca,src=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem .
+```
+
+On Debian and Ubuntu, the bundle is `/etc/ssl/certs/ca-certificates.crt`. The same works for `--target engine` and `--target refmap-reference`.
+
+- **Only the downloads use it.** Each step that downloads over HTTPS trusts those certificates as well as its usual roots, for that step only. Those steps download BLAST+, HMMER, EPA-ng and the Python packages, and `map_panther.pl` for `refmap-reference`. Nothing of the certificates is left in the image: no file, environment variable or history entry holds them.
+- **Every pin is still checked.** TLS verification stays on, and so do the sha256 checks. Don't turn verification off instead, with `curl -k`, `--ssl-verify false` or `UV_INSECURE_HOST`.
+- **A file with no PEM certificate fails the build,** with "The ca secret holds no PEM certificate". Convert a DER certificate first: `openssl x509 -inform der -in ca.cer -out ca.pem`.
+- **Only steps that run read the secret.** A step reused from the build cache doesn't, so a fully cached build ignores it.
+- **apt isn't affected.** It fetches over plain HTTP.
+- **It needs Docker 23 or later,** for the secret mount and the heredoc in the `Dockerfile`.
+- **`docker compose build` doesn't pass the secret.**
+
+It was checked behind mitmproxy, standing in for the proxy: without the secret, the build failed at its first download, and with it both images built and reported the pinned tool versions (2026-11-03). `refmap-reference`'s download was checked the same way on 2026-11-06.
+
 ## Natively
 
 uv `0.13.6` or later, the same as for the API. Run every command from `engine/`:

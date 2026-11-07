@@ -383,4 +383,6 @@ docker run --rm -v "$PWD/api:/src/api:ro" -v "$PWD/engine:/src/engine:ro" -v "$P
 
 It installs the dev tools into the container's `/tmp`, and writes nothing to the mounts. The five real jobs take about a minute and a half.
 
+Behind a TLS-inspecting proxy, the `docker build` needs the proxy's CA: see [Building Behind a TLS-Inspecting Proxy](engine.md#building-behind-a-tls-inspecting-proxy).
+
 In Git Bash, start the `docker run` line with `MSYS_NO_PATHCONV=1`. Otherwise Git Bash rewrites container paths such as `/data` into Windows paths, and every `csnp` job fails with the generic error.

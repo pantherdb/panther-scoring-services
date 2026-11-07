@@ -121,7 +121,7 @@ def test_a_body_without_a_length_within_the_limit_is_accepted(small_limit: TestC
 def test_the_largest_valid_refmap_request_is_within_the_default(client: TestClient) -> None:
     # 100,000 IDs of 64 characters, each `"` or `\`, so every one is escaped in the JSON.
     body = json.dumps(
-        {"service": "refmap", "input": {"organism": "HUMAN", "ids": ['"\\' * 32] * 100_000}}
+        {"service": "refmap", "input": {"organism": "ENDPU", "ids": ['"\\' * 32] * 100_000}}
     ).encode()
     assert len(body) > 13_000_000
 
@@ -129,8 +129,8 @@ def test_the_largest_valid_refmap_request_is_within_the_default(client: TestClie
         "/api/v1/jobs", content=body, headers={"content-type": "application/json"}
     )
 
-    # Read and validated: refmap's 501, not a 413.
-    assert response.status_code == 501, response.text
+    # Read, validated and accepted, not a 413.
+    assert response.status_code == 202, response.text
 
 
 def test_a_body_over_the_default_is_a_413(client: TestClient) -> None:

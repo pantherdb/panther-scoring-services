@@ -2,11 +2,11 @@
 
 ## 1. API: refmap jobs run
 
-- [ ] 1.1 `jobs/refmap.py`: the organism validator checks `ORGANISM_CODES` after the shape, with the message naming `ENDPU` and the organism list (design.md, decision 2); the module docstring and `RefmapInput`'s docstring drop `HUMAN`. Verify in `tests/test_refmap_input.py`: `ENDPU`, `ARAVE` and `ECO57` accepted; `HUMAN`, `ECOLI` and `ZZZZZ` rejected on `organism` without the value; every code in `ORGANISM_CODES` accepted (spec, refmap organism is an organism code)
-- [ ] 1.2 `RefmapResult` gains `organism`, before `mappings`; `run_refmap` calls the engine's `map_ids` in the worker and maps its result field for field (decision 1). `run_job`'s refmap case calls it; `UNAVAILABLE` loses its row, keeping the mechanism. Verify in `tests/test_jobs.py`: a valid request gets 202 and a job, no 501 is left in the schema, and the engine's `ValueError` or `MissingDataError` fails the job with the generic 500
+- [x] 1.1 `jobs/refmap.py`: the organism validator checks `ORGANISM_CODES` after the shape, with the message naming `ENDPU` and the organism list (design.md, decision 2); the module docstring and `RefmapInput`'s docstring drop `HUMAN`. Verify in `tests/test_refmap_input.py`: `ENDPU`, `ARAVE` and `ECO57` accepted; `HUMAN`, `ECOLI` and `ZZZZZ` rejected on `organism` without the value; every code in `ORGANISM_CODES` accepted (spec, refmap organism is an organism code)
+- [x] 1.2 `RefmapResult` gains `organism`, before `mappings`; `run_refmap` calls the engine's `map_ids` in the worker and maps its result field for field (decision 1). `run_job`'s refmap case calls it; `UNAVAILABLE` loses its row, keeping the mechanism. Verify in `tests/test_jobs.py`: a valid request gets 202 and a job, no 501 is left in the schema, and the engine's `ValueError` or `MissingDataError` fails the job with the generic 500
 - [ ] 1.3 A test fixture writes a made-up data folder: `refmap/19/panther_classification/ENDPU` from `engine/tests/golden/refmap/out/test_geneList.out`, in a temporary `PANTHER_DATA_DIR` (decision 8). Verify with job tests against it: the example's six IDs map to the golden's values; `U1G4Q5`, `P04217`, `U1G4Q5` give three mappings in order; a `refmap` and a `csnp` job don't mix (spec, refmap job maps with the engine)
 - [ ] 1.4 Startup: one check per service, `csnp` and `refmap`, each logging its own error (decision 6). Verify in the startup tests: cSNP data without refmap data logs only the refmap error, and health is 200 (spec, Startup check of the refmap data)
-- [ ] 1.5 `GET /api/v1/refmap/organisms` in a new `routers/refmap.py`: code, name and gene counts from the engine, in its order, cached for an hour (decision 3). Verify in a new `tests/test_refmap_organisms.py`: 1,533 entries, ENDPU's name and counts, the header, no data needed, and the schema's entry (spec, refmap organism list)
+- [x] 1.5 `GET /api/v1/refmap/organisms` in a new `routers/refmap.py`: code, name and gene counts from the engine, in its order, cached for an hour (decision 3). Verify in a new `tests/test_refmap_organisms.py`: 1,533 entries, ENDPU's name and counts, the header, no data needed, and the schema's entry (spec, refmap organism list)
 
 ## 2. API: large lists and large results
 
@@ -50,7 +50,7 @@
 
 ### Next action
 
-Review of this plan in its pull request. Then start with 1.1.
+The contract is in (1.1, 1.2, 1.5, 2026-11-06): the organism check, the result's `organism`, `run_refmap`, the organism list, no 501, and the regenerated `openapi.json` and `schema.d.ts`. The rest runs in parallel: the API (1.3, 1.4, 2, 3) and the frontend (4). The plan's review (#64) goes on alongside.
 
 ### Blockers
 
@@ -62,4 +62,4 @@ None yet.
 
 ### Lessons learned
 
-None yet.
+- **The tests' autouse fixture fakes every job's work** with the tools report, so a test of a real refmap job must put `run_job` back (`monkeypatch.setattr("panther_api.jobs.runner.run_job", run_job)`). Polling a refmap job whose result is the fake tools report gets a 500 from the response's validation.

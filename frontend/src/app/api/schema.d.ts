@@ -59,8 +59,7 @@ export interface paths {
          *
          *     An input the job can't run with is a 422, and no job is created. A problem only the work can
          *     find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid
-         *     `refmap` request gets a 501 until its mapping is available; its input is still validated first.
-         *     A valid request is a 503 when too many jobs are already waiting for a worker.
+         *     request is a 503 when too many jobs are already waiting for a worker.
          */
         post: operations["create_job_api_v1_jobs_post"];
         delete?: never;
@@ -103,6 +102,29 @@ export interface paths {
          *     Needs no data folder. The response may be cached for an hour.
          */
         get: operations["csnp_species_api_v1_csnp_species_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refmap/organisms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The organisms refmap maps for
+         * @description Every organism a `refmap` job's `organism` may name, with its name and gene counts, in the
+         *     engine's order.
+         *
+         *     Needs no data folder. The response may be cached for an hour.
+         */
+        get: operations["refmap_organisms_api_v1_refmap_organisms_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -257,9 +279,9 @@ export interface components {
          * RefmapInput
          * @description One organism, and the IDs to map to PANTHER IDs in it.
          *
-         *     `organism` is a UniProt species code such as `HUMAN`. `ids` are the protein IDs, such as
-         *     UniProt accessions, each looked up exactly as given: not trimmed, not upper-cased, and
-         *     repeated IDs each get their own mapping, in order.
+         *     `organism` is the code of an organism refmap maps for, such as `ENDPU`. `ids` are the protein
+         *     IDs, such as UniProt accessions, each looked up exactly as given: not trimmed, not
+         *     upper-cased, and repeated IDs each get their own mapping, in order.
          */
         RefmapInput: {
             /** Organism */
@@ -301,8 +323,6 @@ export interface components {
         /**
          * RefmapJobRequest
          * @description Start a `refmap` job: map protein IDs to PANTHER IDs for one organism.
-         *
-         *     Until the engine's refmap mapping is wired in, a valid request gets a 501, and no job.
          */
         RefmapJobRequest: {
             /**
@@ -313,10 +333,29 @@ export interface components {
             input: components["schemas"]["RefmapInput"];
         };
         /**
+         * RefmapOrganism
+         * @description An organism refmap maps for: its UniProt species code, such as `ENDPU`, which a `refmap`
+         *     request's `organism` names; its name, such as `Endocarpon pusillum`; how many genes its
+         *     classification file holds; and how many of them have a PANTHER ID.
+         */
+        RefmapOrganism: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Genes */
+            genes: number;
+            /** Genes With Panther Id */
+            genes_with_panther_id: number;
+        };
+        /**
          * RefmapResult
-         * @description One mapping per submitted ID, in the order submitted, repeated IDs included.
+         * @description The organism mapped against, and one mapping per submitted ID, in the order submitted,
+         *     repeated IDs included.
          */
         RefmapResult: {
+            /** Organism */
+            organism: string;
             /** Mappings */
             mappings: components["schemas"]["IdMapping"][];
         };
@@ -587,15 +626,6 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description The service can't run jobs yet: `refmap`, until its mapping is ported. The request was valid, and no job was created. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
             /** @description As many jobs are waiting for a worker as the API allows (`PANTHER_API_MAX_QUEUED_JOBS`). The request was valid, and no job was created. */
             503: {
                 headers: {
@@ -685,6 +715,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CsnpSpecies"][];
+                };
+            };
+            /** @description Unexpected error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Error, as problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    refmap_organisms_api_v1_refmap_organisms_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every organism, in the engine's order. */
+            200: {
+                headers: {
+                    /** @description `public, max-age=3600` */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefmapOrganism"][];
                 };
             };
             /** @description Unexpected error */

@@ -36,7 +36,7 @@ from polling import poll
 from pydantic import ValidationError
 
 from panther_api.jobs.csnp import CsnpInput, CsnpResult, SubstitutionScore, run_csnp
-from panther_api.jobs.refmap import MOST_IDS, RefmapInput
+from panther_api.jobs.refmap import MOST_IDS
 from panther_api.jobs.runner import (
     INPUT_ERROR_OUTCOME,
     UNEXPECTED_JOB_DETAIL,
@@ -44,7 +44,7 @@ from panther_api.jobs.runner import (
     JobRunner,
 )
 from panther_api.jobs.tools import ToolsInput, run_tools
-from panther_api.jobs.work import CsnpJobRequest, RefmapJobRequest, ToolsJobRequest, run_job
+from panther_api.jobs.work import CsnpJobRequest, ToolsJobRequest, run_job
 from panther_api.main import create_app
 from panther_api.problems import MOST_FIELD_ERRORS
 
@@ -590,9 +590,9 @@ def test_a_csnp_job_succeeds_with_the_engines_scores(
     assert job["versions"] == client.get("/api/v1/versions").json()
 
 
-# The refmap job: validated, then a 501 until the engine maps IDs. No mapping is made up.
+# The refmap job: validated, then mapped by the engine in a worker.
 
-REFMAP_INPUT: dict[str, object] = {"organism": "HUMAN", "ids": ["P04217", "P01023"]}
+REFMAP_INPUT: dict[str, object] = {"organism": "ENDPU", "ids": ["U1G4Q5", "P04217"]}
 REFMAP_LOC = ["body", "refmap", "input"]
 
 
@@ -602,6 +602,11 @@ def refmap_job(**changes: object) -> dict[str, object]:
 
 def test_an_invalid_organism_is_a_422_without_the_value(client: TestClient) -> None:
     assert_rejected(client, refmap_job(organism="xyzzy|"), [[*REFMAP_LOC, "organism"]])
+
+
+def test_an_organism_refmap_doesnt_map_for_is_a_422(client: TestClient) -> None:
+    # PANTHER's own genomes aren't in the generic mapping data (#52).
+    assert_rejected(client, refmap_job(organism="HUMAN"), [[*REFMAP_LOC, "organism"]])
 
 
 @pytest.mark.parametrize(
@@ -647,32 +652,27 @@ def test_a_field_the_refmap_input_doesnt_take_is_a_422(client: TestClient) -> No
     assert_rejected(client, refmap_job(fileContents="XYZZY"), [[*REFMAP_LOC, "fileContents"]])
 
 
-def test_a_valid_refmap_request_is_a_501_and_creates_no_job(client: TestClient) -> None:
+def test_a_valid_refmap_request_starts_a_job(client: TestClient) -> None:
     response = client.post("/api/v1/jobs", json=refmap_job())
 
-    assert response.status_code == 501
-    assert response.headers["content-type"] == PROBLEM
-    assert "location" not in response.headers
-    assert response.json() == {
-        "type": "about:blank",
-        "title": "Not Implemented",
-        "status": 501,
-        "detail": "refmap ID mapping isn't available yet.",
-    }
-    assert len(runner(client).store) == 0
-
-
-def test_tools_jobs_still_run_after_a_refmap_501(client: TestClient) -> None:
-    assert client.post("/api/v1/jobs", json=refmap_job()).status_code == 501
-
-    job = poll(client, submit(client)["id"])[-1]
-
-    assert job["status"] == "succeeded"
+    assert response.status_code == 202, response.text
+    job = response.json()
+    assert job["service"] == "refmap"
+    assert response.headers["location"] == f"/api/v1/jobs/{job['id']}"
     assert len(runner(client).store) == 1
 
 
-def test_run_job_refuses_a_refmap_job() -> None:
-    request = RefmapJobRequest(service="refmap", input=RefmapInput.model_validate(REFMAP_INPUT))
+def test_a_refmap_job_without_the_data_fails_with_the_generic_500(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # The real work, not the autouse fake; the data folder set before the app starts, as the
+    # workers start with the first job and inherit it.
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", run_job)
+    monkeypatch.setenv("PANTHER_DATA_DIR", str(tmp_path))
+    with TestClient(create_app()) as client:
+        job = poll(client, client.post("/api/v1/jobs", json=refmap_job()).json()["id"])[-1]
 
-    with pytest.raises(NotImplementedError):
-        run_job(request)
+    assert job["status"] == "failed"
+    assert job["result"] is None
+    assert job["error"]["status"] == 500
+    assert str(tmp_path) not in str(job)

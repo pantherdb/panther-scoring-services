@@ -102,8 +102,8 @@ function mockPantherId(id: string): string | null {
  * PANTHER family, and whether an ID maps is decided by its characters alone. One mapping per
  * ID, in order, repeats included, as the API returns them.
  */
-export function refmapResult(ids: readonly string[]): RefmapResult {
-  return { mappings: ids.map(id => ({ id, panther_id: mockPantherId(id) })) }
+export function refmapResult(ids: readonly string[], organism = 'ENDPU'): RefmapResult {
+  return { organism, mappings: ids.map(id => ({ id, panther_id: mockPantherId(id) })) }
 }
 
 /** A refmap job in the given status, mapping `ids` once it has succeeded. */

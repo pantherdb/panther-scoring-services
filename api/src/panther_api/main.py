@@ -17,7 +17,7 @@ from panther_api.limits import BodyLimit
 from panther_api.logs import configure_logging
 from panther_api.prefix import API_PREFIX
 from panther_api.problems import PROBLEM_RESPONSES, add_problem_handlers, document_problems
-from panther_api.routers import csnp, health, jobs, versions
+from panther_api.routers import csnp, health, jobs, refmap, versions
 from panther_api.settings import Settings
 from panther_api.versions import read_versions
 
@@ -98,6 +98,7 @@ def create_app(*routers: APIRouter) -> FastAPI:
     api.include_router(versions.router)
     api.include_router(jobs.router)
     api.include_router(csnp.router)
+    api.include_router(refmap.router)
     for router in routers:
         api.include_router(router)
     app.include_router(api)

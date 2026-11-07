@@ -84,8 +84,7 @@ async def create_job(
 
     An input the job can't run with is a 422, and no job is created. A problem only the work can
     find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid
-    `refmap` request gets a 501 until its mapping is available; its input is still validated first.
-    A valid request is a 503 when too many jobs are already waiting for a worker.
+    request is a 503 when too many jobs are already waiting for a worker.
     """
     unavailable = UNAVAILABLE.get(job_request.service)
     if unavailable is not None:

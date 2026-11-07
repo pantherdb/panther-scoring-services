@@ -211,17 +211,13 @@ def test_the_csnp_result_in_the_schema(client: TestClient) -> None:
     }
 
 
-# The refmap job: its contract, and the 501 until the engine maps IDs.
+# The refmap job: its contract. No 501 is left: every service runs.
 
 
-def test_the_refmap_501_is_documented_as_a_problem(client: TestClient) -> None:
+def test_no_501_is_documented(client: TestClient) -> None:
     responses = served_schema(client)["paths"]["/api/v1/jobs"]["post"]["responses"]
 
-    assert list(responses["501"]["content"]) == [PROBLEM]
-    assert responses["501"]["content"][PROBLEM]["schema"] == {"$ref": f"{SCHEMAS}Problem"}
-    # Only refmap: csnp runs.
-    assert "`refmap`" in responses["501"]["description"]
-    assert "csnp" not in responses["501"]["description"]
+    assert "501" not in responses
 
 
 def test_the_refmap_request_and_input(client: TestClient) -> None:
@@ -276,6 +272,7 @@ def _input_accepts(organism: str, an_id: str) -> tuple[bool, bool]:
 @pytest.mark.parametrize(
     "value",
     [
+        "ENDPU",
         "HUMAN",
         "9BACT",
         "E",
@@ -301,7 +298,10 @@ def test_the_refmap_schema_patterns_agree_with_validation(client: TestClient, va
 
     organism_ok, id_ok = _input_accepts(value, value)
 
-    assert _schema_accepts(properties_["organism"], value) == organism_ok
+    # The schema carries the organism's shape; validation also checks it's one of the engine's
+    # organisms, which the organism list gives. So the schema accepts every organism the API does.
+    if organism_ok:
+        assert _schema_accepts(properties_["organism"], value)
     assert _schema_accepts(properties_["ids"]["items"], value) == id_ok
 
 
@@ -309,8 +309,9 @@ def test_the_refmap_result_in_the_schema(client: TestClient) -> None:
     schema = served_schema(client)
     components = schema["components"]["schemas"]
 
-    assert components["RefmapResult"]["required"] == ["mappings"]
+    assert components["RefmapResult"]["required"] == ["organism", "mappings"]
     assert properties(schema, "RefmapResult") == {
+        "organism": {"type": "string"},
         "mappings": {"type": "array", "items": {"$ref": f"{SCHEMAS}IdMapping"}},
     }
     assert sorted(components["IdMapping"]["required"]) == ["id", "panther_id"]

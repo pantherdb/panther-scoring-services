@@ -15,7 +15,7 @@ type Mapping = { id: string; panther_id: string | null }
 
 // A succeeded refmap job with these mappings, made up for the test.
 function serveMappings(mappings: Mapping[]) {
-  const job: WireJob = { ...refmapJob(ID, 'succeeded'), result: { mappings } }
+  const job: WireJob = { ...refmapJob(ID, 'succeeded'), result: { organism: 'ENDPU', mappings } }
   server.use(http.get('/api/v1/jobs/:id', () => HttpResponse.json(job)))
 }
 

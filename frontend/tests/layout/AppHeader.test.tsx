@@ -11,7 +11,7 @@ import { renderRoute } from '../utils/render'
 const ID = '0b6f5ad2-5d1e-4f63-9f4e-3c1de2a8f001'
 const TABS = [
   /^cSNP scoring$/,
-  /^ID mapping \(coming soon\)$/,
+  /^ID mapping$/,
   /^HMM scoring \(coming soon\)$/,
   /^TreeGrafter \(coming soon\)$/,
 ]

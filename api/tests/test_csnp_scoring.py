@@ -2,10 +2,12 @@
 
 Skipped without `blastp` or the sample, as natively on Windows and in CI's `api` job. Run them in
 the API image (docs/testing/api.md, "Tests With the Tools and Data"). The expected scores are the
-engine's goldens: the release sample's proteins and substitutions, scored as spec §7.3 gives them.
+engine's goldens: the release sample's proteins and substitutions, scored as spec §7.3 gives them,
+and the form's example, human APOE, as the legacy scripts scored it (`example/apoe.out`).
 """
 
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -19,6 +21,7 @@ from panther_api.main import create_app
 pytestmark = [pytest.mark.tools("blastp"), pytest.mark.data("csnp")]
 
 GOLDEN = REPO_ROOT / "engine" / "tests" / "golden" / "csnp"
+EXAMPLE_GOLDEN = GOLDEN / "example"
 # A search takes seconds; the first job also starts a worker.
 POLL_TIMEOUT = 300.0
 
@@ -36,11 +39,14 @@ def sample_fasta() -> dict[str, str]:
     return {name: "\n".join(lines) for name, lines in proteins.items()}
 
 
-def expected_scores() -> dict[str, list[dict[str, Any]]]:
-    """Spec §7.3's rows by protein, in order, as the job's scores: the token as a website user
-    types it, then the age, message and pDel."""
-    inputs = (GOLDEN / "release" / "sample.input").read_text().splitlines()
-    outputs = (GOLDEN / "spec" / "sample.out").read_text().splitlines()
+def expected_scores(
+    inputs_file: Path = GOLDEN / "release" / "sample.input",
+    outputs_file: Path = GOLDEN / "spec" / "sample.out",
+) -> dict[str, list[dict[str, Any]]]:
+    """A golden's rows by protein, in order, as the job's scores: the token as a website user
+    types it, then the age, message and pDel. By default, spec §7.3's."""
+    inputs = inputs_file.read_text().splitlines()
+    outputs = outputs_file.read_text().splitlines()
     rows: dict[str, list[dict[str, Any]]] = {}
     for line, output in zip(inputs, outputs, strict=True):
         _, protein, position, residues = line.split("|")
@@ -60,8 +66,18 @@ def expected_scores() -> dict[str, list[dict[str, Any]]]:
     return rows
 
 
+def example_sequence() -> str:
+    """The form's example as the form sends it: `apoe.fasta`'s residue lines, without its
+    header, as `frontend/src/features/csnp/example.ts` has them."""
+    lines = (EXAMPLE_GOLDEN / "apoe.fasta").read_text().splitlines()
+    return "\n".join(line.strip() for line in lines if line.strip() and not line.startswith(">"))
+
+
 PROTEINS = sample_fasta()
 EXPECTED = expected_scores()
+# The form's example, human APOE, and the legacy scripts' scores for it (add-apoe-to-csnp-sample),
+# under the id the engine gives its one protein.
+EXAMPLE = expected_scores(EXAMPLE_GOLDEN / "apoe.input", EXAMPLE_GOLDEN / "apoe.out")["P0001"]
 
 
 @pytest.fixture
@@ -98,6 +114,18 @@ def test_a_sample_protein_gets_its_spec_7_3_scores(client: TestClient, protein: 
     assert job["result"] == {
         "family": rows[0]["family"],
         "scores": [row["score"] for row in rows],
+    }
+    assert job["versions"]["data"] == [{"service": "csnp", "panther": "9"}]
+
+
+def test_the_forms_example_gets_the_legacy_scripts_scores(client: TestClient) -> None:
+    # openspec test-csnp-example: the example, as the form sends it, against apoe.out.
+    job = run(client, example_sequence(), [row["score"]["substitution"] for row in EXAMPLE])
+
+    assert job["status"] == "succeeded", job["error"]
+    assert job["result"] == {
+        "family": EXAMPLE[0]["family"],
+        "scores": [row["score"] for row in EXAMPLE],
     }
     assert job["versions"]["data"] == [{"service": "csnp", "panther": "9"}]
 

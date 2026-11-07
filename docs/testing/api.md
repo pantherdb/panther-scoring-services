@@ -363,11 +363,11 @@ uv run pytest -k "outside_the_prefix"
 
 ### Tests With the Tools and Data
 
-`tests/test_csnp_scoring.py` runs real `csnp` jobs end to end: the API, a `spawn` worker, the engine, `blastp` and the cSNP data sample. It submits the release sample's three proteins with their substitutions, and checks each job's scores against the engine's goldens (`engine/tests/golden/csnp/`, spec §7.3). It also checks a species with no hit and a sequence `blastp` can't read.
+`tests/test_csnp_scoring.py` runs real `csnp` jobs end to end: the API, a `spawn` worker, the engine, `blastp` and the cSNP data sample. It submits the release sample's three proteins with their substitutions, and checks each job's scores against the engine's goldens (`engine/tests/golden/csnp/`, spec §7.3). It submits the form's example, human APOE, as the form sends it, and checks its four scores against the legacy scripts' (`example/apoe.out`). It also checks a species with no hit and a sequence `blastp` can't read.
 
 Its tests are marked as the engine's are, `tools("blastp")` and `data("csnp")` (`tests/markers.py`):
 
-- **Where `blastp` or the sample is missing,** they're skipped with the reason, as natively on Windows and in CI's `api` job. CI's `api-image` job runs a real `csnp` job against the image instead.
+- **Where `blastp` or the sample is missing,** they're skipped with the reason, as natively on Windows and in CI's `api` job. CI's `api-image` job runs them in the image, on amd64, with both set, so a change that breaks the example or a sample protein fails CI.
 - **With `PANTHER_REQUIRE_TOOLS=1` and `PANTHER_REQUIRE_DATA=1`,** missing tools or data fail them.
 - **The data folder is `PANTHER_DATA_DIR`,** or `.data/` at the repository root.
 
@@ -381,6 +381,6 @@ docker run --rm -v "$PWD/api:/src/api:ro" -v "$PWD/engine:/src/engine:ro" -v "$P
   -w /src/api panther-api sh -c 'uv sync --locked -q && uv run --no-sync pytest -p no:cacheprovider'
 ```
 
-It installs the dev tools into the container's `/tmp`, and writes nothing to the mounts. The five real jobs take about a minute and a half.
+It installs the dev tools into the container's `/tmp`, and writes nothing to the mounts. The seven real jobs take a few minutes.
 
 In Git Bash, start the `docker run` line with `MSYS_NO_PATHCONV=1`. Otherwise Git Bash rewrites container paths such as `/data` into Windows paths, and every `csnp` job fails with the generic error.

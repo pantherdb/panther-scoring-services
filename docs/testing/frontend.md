@@ -108,7 +108,7 @@ Each run prints its mode and target first, for example `[e2e] mode: api, target:
 - **Port 4173 must be free** in mock and api modes. Playwright never reuses a running server, because it could be a build for the other mode.
 - **Point the api mode at another API** by setting `API_PROXY_TARGET`. It also works for `npm run dev:api` and `npm run preview`.
 - **Site mode needs `E2E_BASE_URL`** and fails without it.
-- **Api mode needs the cSNP data sample** in the API's data folder. One `@api` spec scores a real `csnp` job, so the API needs `blastp`, which only its image has, and the sample: with `docker compose up --build api`, fetch it into `.data/` first ([api.md](api.md#the-data-sample)). Without it, that spec's job fails and the spec with it.
+- **Api mode needs the cSNP data sample** in the API's data folder. Two `@api` specs score a real `csnp` job, so the API needs `blastp`, which only its image has, and the sample: with `docker compose up --build api`, fetch it into `.data/` first ([api.md](api.md#the-data-sample)). Without it, their jobs fail and the specs with them.
 
 Setting the variables, in bash and in PowerShell:
 
@@ -137,7 +137,11 @@ Tags choose which specs run in which mode:
 Tag a spec with `test('...', { tag: '@api' }, async ({ page }) => { ... })`.
 
 - **Site mode can point at a shared deployment.** Before tagging a spec `@api`, check it's safe to run there: for example, that submitting jobs to that site is acceptable.
-- **One `@api` cSNP spec creates a real `csnp` job,** in site mode too. It submits the release sample's first protein, P26439, with three substitutions, and checks the scores the legacy service gave them. The form's example, human APOE, scores against the sample too since `csnp-sample-3`, which holds its family, `PTHR18976`; the legacy scripts' scores for it are in `engine/tests/golden/csnp/example/apoe.out`.
+- **Two `@api` cSNP specs score a real `csnp` job,** in site mode too:
+  - one submits the release sample's first protein, P26439, with three substitutions, and checks the scores the legacy service gave them;
+  - one chooses **Use an example**, checks that the form holds the example's golden input, human APOE with four substitutions, submits it, and checks its four rows against the legacy scripts' scores in `engine/tests/golden/csnp/example/apoe.out`. The sample scores it since `csnp-sample-3`, which holds its family, `PTHR18976`.
+
+  A third starts a job for `MOUSE`, and doesn't wait for it.
 - **The other `@api` cSNP specs create no job:** the API answers each with a `422`. One of them rewrites the request in flight with `page.route`, so the real API's `422` reaches the form; the form's own checks would otherwise stop the request.
 - **The `@api` refmap specs create no job** while the API answers a valid `refmap` request with a `501`: one submits the form's example and expects the "isn't available yet" message, one rewrites an ID in flight with `page.route` so the real API's `422` is named on the IDs field, and one posts an invalid request directly. They need no data. When the API maps IDs, the first must wait for a `succeeded` job instead.
 - **`page.route` can't change an answer in mock mode:** MSW's service worker answers first. To serve a body the mocks don't, in every mode, replace `window.fetch` with `page.addInitScript`, as the versions spec without `tools` or `data` does (`e2e/versions.spec.ts`).

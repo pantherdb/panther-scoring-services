@@ -12,13 +12,13 @@
 
 ## 3. Docs and Final Check
 
-- [ ] 3.1 Update `docs/testing/api.md` ("Tests With the Tools and Data": what the tests submit, and the number of real jobs) and `docs/testing/frontend.md` (the api mode's needs, and the `@api` cSNP specs that create a job). Verify that `npx markdownlint-cli2` and `npx openspec validate --all` pass
+- [x] 3.1 Update `docs/testing/api.md` ("Tests With the Tools and Data": what the tests submit, and the number of real jobs) and `docs/testing/frontend.md` (the api mode's needs, and the `@api` cSNP specs that create a job). Verify that `npx markdownlint-cli2` and `npx openspec validate --all` pass
 
 ## Notes
 
 ### Next action
 
-Task 3.1.
+Every task is done. Open the pull request against `main`, for the API and frontend developers to review; then archive with `/opsx:archive`. The open question in proposal.md, whether CI should score the example, is for the team.
 
 ### Blockers
 
@@ -27,11 +27,12 @@ None.
 ### Progress
 
 - **The data (2026-11-06):** `.data/` in the main checkout holds `csnp-sample-3`; `panther-engine csnp sample verify` in the API image says every file matches the manifest. The worktree's own `.data/` is empty, so every run below mounts the main checkout's, read-only.
-- **Task 1.1:** natively, `ruff check`, `ruff format --check` and `basedpyright` (0 errors) pass, and `pytest` gives 339 passed, 7 skipped: the real-job tests, without `blastp`.
 - **The example agrees with the golden:** `frontend/src/features/csnp/example.ts` has `apoe.fasta`'s ten residue lines, without its header, 317 residues, and `apoe.input`'s four substitutions, `L46P`, `C130R`, `R163C` and `R176C`. The browser test checks this in the form.
+- **Task 1.1:** natively, `ruff check`, `ruff format --check` and `basedpyright` (0 errors) pass, and `pytest` gives 339 passed, 7 skipped: the real-job tests, without `blastp`.
 - **Task 1.2:** in the API image built from this branch, with `PANTHER_REQUIRE_TOOLS=1` and `PANTHER_REQUIRE_DATA=1`: 346 passed, none skipped (8 min 18 s, with the frontend's tests running beside it). `tests/test_csnp_scoring.py` alone: 7 passed in 3 min 47 s. The API's rows for the example are exactly `apoe.out`'s: family `PTHR18976`; L46P 91, probably benign, 0.19; C130R 6, probably benign, 0.02; R163C 220, possibly damaging, 0.50; R176C 220, possibly damaging, 0.50.
 - **Task 2.1:** `format:check`, `lint` and `type-check` pass; `npm test` gives 372 passed in 30 files, under Node 24.22.0.
 - **Task 2.2:** mock mode, 40 passed. Api mode, against the API image on port 8001 (`API_PROXY_TARGET=http://localhost:8001`), with the sample: 48 passed, the new test on both projects among them. The container was stopped afterwards.
+- **Task 3.1:** `npx markdownlint-cli2` (179 files, no issues) and `npx openspec validate --all --no-interactive` pass.
 
 ### Failed approaches
 
@@ -39,4 +40,4 @@ None.
 
 ### Lessons learned
 
-None yet.
+- **Neither new test runs in CI as it stands:** CI's `api` job skips the real-job tests, and CI runs the e2e tests in mock mode only. Only CI's `api-image` job scores a real job, P26439, with `curl` and `jq`. So a change that breaks the example's scores still passes CI (proposal.md, Open Questions).

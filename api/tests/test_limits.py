@@ -1,5 +1,5 @@
 """The API's limits for hosting: the request body's size, the jobs that may wait, and the startup
-check of the cSNP data (openspec change harden-api-for-hosting)."""
+checks of each service's data (openspec changes harden-api-for-hosting and wire-refmap)."""
 
 import asyncio
 import json
@@ -272,10 +272,18 @@ def test_a_failed_job_frees_its_place(monkeypatch: pytest.MonkeyPatch) -> None:
             assert poll(client, response.json()["id"], until=("succeeded", "failed")) == "failed"
 
 
-# The startup check of the cSNP data.
+# The startup checks of each service's data (scoring-jobs: Startup check of the refmap data).
 
 
-def test_missing_csnp_data_is_logged_and_the_api_starts(
+def main_records(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
+    return [record for record in caplog.records if record.name == "panther_api.main"]
+
+
+def complete(_data_dir: object = None) -> None:
+    """A data check that passes."""
+
+
+def test_missing_data_is_logged_for_each_service_and_the_api_starts(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     monkeypatch.setenv("PANTHER_DATA_DIR", str(tmp_path))
@@ -284,10 +292,44 @@ def test_missing_csnp_data_is_logged_and_the_api_starts(
         health = client.get("/api/v1/health")
 
     assert health.status_code == 200
-    [record] = [record for record in caplog.records if record.name == "panther_api.main"]
+    csnp, refmap = main_records(caplog)
+    assert (csnp.levelno, refmap.levelno) == (logging.ERROR, logging.ERROR)
+    assert "csnp jobs will fail until the cSNP data is in place" in csnp.getMessage()
+    assert "refmap jobs will fail until the refmap data is in place" in refmap.getMessage()
+    assert str(tmp_path) in csnp.getMessage()
+    assert str(tmp_path) in refmap.getMessage()
+
+
+def test_csnp_data_without_refmap_data_logs_only_refmaps_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setenv("PANTHER_DATA_DIR", str(tmp_path))
+    monkeypatch.setattr("panther_engine.csnp.check_data", complete)
+
+    with TestClient(create_app()) as client:
+        assert client.get("/api/v1/health").status_code == 200
+
+    [record] = main_records(caplog)
     assert record.levelno == logging.ERROR
-    assert "csnp jobs will fail until the cSNP data is in place" in record.getMessage()
+    assert record.getMessage().startswith(
+        "refmap jobs will fail until the refmap data is in place: "
+    )
+    # The engine's message: the folder, and how many files are missing.
     assert str(tmp_path) in record.getMessage()
+    assert "lacks 1,534 of 1,534 files" in record.getMessage()
+
+
+def test_refmap_data_without_csnp_data_logs_only_csnps_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setenv("PANTHER_DATA_DIR", str(tmp_path))
+    monkeypatch.setattr("panther_engine.refmap.check_data", complete)
+
+    with TestClient(create_app()) as client:
+        assert client.get("/api/v1/health").status_code == 200
+
+    [record] = main_records(caplog)
+    assert "csnp jobs will fail until the cSNP data is in place" in record.getMessage()
 
 
 def test_an_unset_data_folder_is_logged_and_the_api_starts(
@@ -298,21 +340,23 @@ def test_an_unset_data_folder_is_logged_and_the_api_starts(
     with TestClient(create_app()) as client:
         assert client.get("/api/v1/health").status_code == 200
 
-    [record] = [record for record in caplog.records if record.name == "panther_api.main"]
-    assert "PANTHER_DATA_DIR" in record.getMessage()
+    records = main_records(caplog)
+    assert [record.getMessage().split()[0] for record in records] == ["csnp", "refmap"]
+    assert all("PANTHER_DATA_DIR" in record.getMessage() for record in records)
 
 
-def test_complete_csnp_data_logs_nothing(
+def test_complete_data_logs_nothing(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    calls: list[None] = []
-    monkeypatch.setattr("panther_engine.csnp.check_data", lambda: calls.append(None))
+    calls: list[str] = []
+    monkeypatch.setattr("panther_engine.csnp.check_data", lambda: calls.append("csnp"))
+    monkeypatch.setattr("panther_engine.refmap.check_data", lambda: calls.append("refmap"))
 
     with TestClient(create_app()) as client:
         assert client.get("/api/v1/health").status_code == 200
 
-    assert calls == [None]
-    assert [record for record in caplog.records if record.name == "panther_api.main"] == []
+    assert calls == ["csnp", "refmap"]
+    assert main_records(caplog) == []
 
 
 # The schema.

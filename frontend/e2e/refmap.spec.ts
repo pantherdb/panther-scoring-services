@@ -4,7 +4,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { example } from '../src/features/refmap/example'
 import { EXAMPLE_MAPPINGS, refmapResult } from '../src/mocks/data/jobs'
-import { versions as mockedVersions } from '../src/mocks/data/versions'
+import { jobVersions } from '../src/mocks/data/versions'
 import { expectNoSidewaysScroll } from './layout'
 
 const BUILD_DETAILS = /localhost|127\.0\.0\.1|:\d{4,5}\b|VITE_|API_PROXY|npm |npx /
@@ -116,8 +116,8 @@ test(
     await expect(main.getByRole('term')).toHaveText([
       'API',
       'Engine',
-      ...mockedVersions.tools.map(tool => tool.name),
-      ...mockedVersions.data.map(data => `${data.service} data`),
+      ...jobVersions('refmap').tools.map(tool => tool.name),
+      ...jobVersions('refmap').data.map(data => `${data.service} data`),
     ])
     await expectNoBuildDetails(page)
     await expectNoSidewaysScroll(page)

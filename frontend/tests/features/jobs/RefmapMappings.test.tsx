@@ -68,12 +68,14 @@ describe('a refmap job on the job page', () => {
       main()
         .getAllByRole('term')
         .map(term => term.textContent)
-    ).toEqual([
-      'API',
-      'Engine',
-      ...versions.tools.map(tool => tool.name),
-      ...versions.data.map(data => `${data.service} data`),
-    ])
+    ).toEqual(['API', 'Engine', ...versions.tools.map(tool => tool.name), 'refmap data'])
+    // Traced to refmap's PANTHER 19 data, not cSNP's PANTHER 9.
+    expect(
+      main()
+        .getAllByRole('definition')
+        .map(definition => definition.textContent)
+        .at(-1)
+    ).toBe('PANTHER 19')
     expect(main().queryByRole('navigation', { name: /pages/i })).toBeNull()
   })
 

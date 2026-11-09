@@ -49,24 +49,35 @@ function chosenFirst(code: string | null): OptionsFilter {
   }
 }
 
+// A code the list doesn't name, such as a resubmitted job's, or the example's while the list
+// loads, as an option of its own: the field shows the code, not a blank, and the form's check
+// or the API's 422 says what's wrong with it.
+function unlisted(code: string): ComboboxItem[] {
+  return code === '' ? [] : [{ value: code, label: code }]
+}
+
 // A code from a list, such as a species or an organism: a searchable list of the API's entries
 // once it has loaded, each by its name and code, and a box for a code if it can't be, so the
 // form still works. The draft holds the code either way.
 export function CodeListField({ list, texts, value, onChange, error, limit }: Props) {
+  // The draft may hold a typed code with spaces, from the box below; it's sent trimmed.
+  const code = value.trim()
   switch (list.status) {
     case 'loaded': {
-      // The draft may hold a typed code with spaces, from the box below; it's sent trimmed.
-      const chosen = list.codes.has(value.trim()) ? value.trim() : null
+      const entries = list.entries.map(entry => ({
+        value: entry.code,
+        label: `${entry.name} (${entry.code})`,
+      }))
       return (
         <Select
           label={texts.label}
           description={texts.description}
-          data={list.entries.map(({ code, name }) => ({ value: code, label: `${name} (${code})` }))}
-          value={chosen}
-          onChange={code => onChange(code ?? '')}
+          data={list.codes.has(code) ? entries : [...unlisted(code), ...entries]}
+          value={code === '' ? null : code}
+          onChange={chosen => onChange(chosen ?? '')}
           searchable
           limit={limit}
-          filter={limit === undefined ? undefined : chosenFirst(chosen)}
+          filter={limit === undefined ? undefined : chosenFirst(code)}
           allowDeselect={false}
           nothingFoundMessage={texts.nothingFound}
           // Fixed, not absolute: on opening, Mantine scrolls the chosen option into view before
@@ -84,8 +95,8 @@ export function CodeListField({ list, texts, value, onChange, error, limit }: Pr
         <Select
           label={texts.label}
           description={texts.description}
-          data={[]}
-          value={null}
+          data={unlisted(code)}
+          value={code === '' ? null : code}
           placeholder={texts.loading}
           rightSection={<Loader size="xs" />}
           disabled

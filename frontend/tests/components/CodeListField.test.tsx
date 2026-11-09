@@ -103,10 +103,24 @@ describe('a code field', () => {
     expect(screen.getByRole('combobox', { name: 'Planet' })).toHaveValue('Mars (MARS)')
   })
 
-  it('shows a code not in the list as no choice', () => {
-    renderField({ list: loaded, start: 'PLUTO' })
+  it('shows a code not in the list as the code itself, not a blank', async () => {
+    const { user } = renderField({ list: loaded, start: 'PLUTO' })
+    const field = screen.getByRole('combobox', { name: 'Planet' })
+    expect(field).toHaveValue('PLUTO')
 
-    expect(screen.getByRole('combobox', { name: 'Planet' })).toHaveValue('')
+    await user.click(field)
+    await user.click(screen.getByRole('option', { name: 'Earth (EARTH)' }))
+
+    expect(field).toHaveValue('Earth (EARTH)')
+    expect(screen.getByRole('status', { name: 'code' })).toHaveTextContent(/^EARTH$/)
+  })
+
+  it('shows the code it holds while the list loads', () => {
+    renderField({ list: { status: 'loading' }, start: 'MARS' })
+
+    const field = screen.getByRole('combobox', { name: 'Planet' })
+    expect(field).toBeDisabled()
+    expect(field).toHaveValue('MARS')
   })
 
   it('says it is loading, disabled', () => {

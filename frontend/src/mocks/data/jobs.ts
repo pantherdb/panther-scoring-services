@@ -1,5 +1,5 @@
 import type { components } from '../../app/api/schema'
-import { versions } from './versions'
+import { jobVersions, versions } from './versions'
 
 // Mocked job bodies, as the API sends them. Also read by the @mock e2e spec, so
 // keep to type imports and relative imports.
@@ -36,8 +36,9 @@ const CREATED_AT = '2026-10-29T12:00:00.000Z'
 const STARTED_AT = '2026-10-29T12:00:00.020Z'
 const FINISHED_AT = '2026-10-29T12:00:01.520Z'
 
-// The times and error a job has in the given status.
-function jobFields(id: string, status: JobStatus) {
+// The times and error a job has in the given status, and its versions, with only its
+// service's data, as the API gives them.
+function jobFields(id: string, status: JobStatus, service: string) {
   const started = status !== 'queued'
   const finished = status === 'succeeded' || status === 'failed'
   return {
@@ -47,14 +48,14 @@ function jobFields(id: string, status: JobStatus) {
     started_at: started ? STARTED_AT : null,
     finished_at: finished ? FINISHED_AT : null,
     error: status === 'failed' ? jobError : null,
-    versions,
+    versions: jobVersions(service),
   }
 }
 
 /** A tools job in the given status, with the fields that status has. */
 export function toolsJob(id: string, status: JobStatus): ToolsJob {
   return {
-    ...jobFields(id, status),
+    ...jobFields(id, status, 'tools'),
     service: 'tools',
     result: status === 'succeeded' ? toolsResult : null,
   }
@@ -83,7 +84,7 @@ export const csnpResult: CsnpResult = {
 /** A csnp job in the given status, with the mock result once it has succeeded. */
 export function csnpJob(id: string, status: JobStatus): CsnpJob {
   return {
-    ...jobFields(id, status),
+    ...jobFields(id, status, 'csnp'),
     service: 'csnp',
     result: status === 'succeeded' ? csnpResult : null,
   }
@@ -131,7 +132,7 @@ export function refmapJob(
   organism = 'ENDPU'
 ): RefmapJob {
   return {
-    ...jobFields(id, status),
+    ...jobFields(id, status, 'refmap'),
     service: 'refmap',
     result: status === 'succeeded' ? refmapResult(ids, organism) : null,
   }

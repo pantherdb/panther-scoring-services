@@ -378,7 +378,8 @@ describe('when the organism list can’t be loaded', () => {
     expect(organismBox()).toBeInvalid()
     expect(organismBox()).toHaveAccessibleDescription(/from the list/i)
     expect(organismBox()).not.toHaveAccessibleDescription(/HUMAN/)
-    expect(organismBox()).toHaveValue('')
+    // The code itself, not a blank, so the user sees what the message is about.
+    expect(organismBox()).toHaveValue('HUMAN')
     expect(bodies).toEqual([])
   })
 })

@@ -40,6 +40,19 @@ async function openFormWithExample(page: Page) {
   await expect(fields(page).substitutions).toHaveValue(/L46P/)
 }
 
+// The job page's scores table holds `rows`, in order, each one's cells as given.
+async function expectScoreRows(page: Page, rows: readonly (readonly string[])[]) {
+  const shown = page
+    .getByRole('main')
+    .getByRole('table', { name: /scores/i })
+    .getByRole('row')
+    .filter({ has: page.getByRole('cell') })
+  await expect(shown).toHaveCount(rows.length)
+  for (const [i, cells] of rows.entries()) {
+    await expect(shown.nth(i).getByRole('cell')).toHaveText([...cells])
+  }
+}
+
 const HUMAN = 'Homo sapiens (HUMAN)'
 
 // Clears the selector, types `text` in it, and clicks the option named `option`. The options
@@ -83,19 +96,15 @@ test(
     const main = page.getByRole('main')
     await expect(main.getByRole('status')).toHaveText(/succeeded/i)
     await expect(main.getByText(csnpResult.family ?? '')).toBeVisible()
-    const rows = main
-      .getByRole('table', { name: /scores/i })
-      .getByRole('row')
-      .filter({ has: page.getByRole('cell') })
-    await expect(rows).toHaveCount(csnpResult.scores.length)
-    for (const [i, score] of csnpResult.scores.entries()) {
-      await expect(rows.nth(i).getByRole('cell')).toHaveText([
+    await expectScoreRows(
+      page,
+      csnpResult.scores.map(score => [
         score.substitution,
         score.age === null ? '' : String(score.age),
         score.message,
         score.pdel ?? '',
       ])
-    }
+    )
     await expect(main.getByRole('term')).toHaveText([
       'API',
       'Engine',
@@ -162,15 +171,55 @@ test(
     const main = page.getByRole('main')
     await expect(main.getByRole('status')).toHaveText(/succeeded/i, { timeout: 60_000 })
     await expect(main.getByText('PTHR10366')).toBeVisible()
-    const rows = main
-      .getByRole('table', { name: /scores/i })
-      .getByRole('row')
-      .filter({ has: page.getByRole('cell') })
-    await expect(rows).toHaveCount(SAMPLE_SCORES.length)
-    for (const [i, cells] of SAMPLE_SCORES.entries()) {
-      await expect(rows.nth(i).getByRole('cell')).toHaveText(cells)
-    }
+    await expectScoreRows(page, SAMPLE_SCORES)
     await expect(main.getByRole('definition').last()).toHaveText(/^PANTHER \S+$/)
+    await expectNoBuildDetails(page)
+    await expectNoSidewaysScroll(page)
+  }
+)
+
+// The form's example, human APOE, and the legacy scripts' scores for it, read from the engine's
+// golden (add-apoe-to-csnp-sample): the residue lines of apoe.fasta, the substitutions of
+// apoe.input as the form shows them, and apoe.out's rows, `SNP_1,L46P,PTHR18976,91,…`.
+const EXAMPLE = fileURLToPath(new URL('../../engine/tests/golden/csnp/example/', import.meta.url))
+function goldenLines(file: string) {
+  return readFileSync(`${EXAMPLE}${file}`, 'utf8')
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line !== '')
+}
+const EXAMPLE_SEQUENCE = goldenLines('apoe.fasta').filter(line => !line.startsWith('>'))
+const EXAMPLE_SUBSTITUTIONS = goldenLines('apoe.input').map(line => {
+  const [, , position, residues] = line.split('|')
+  const [wildType, mutant] = residues.split(';')
+  return `${wildType}${position}${mutant}`
+})
+const EXAMPLE_ROWS = goldenLines('apoe.out').map(line => line.split(','))
+
+// Creates a real job: in api mode the API needs the cSNP data sample, and in site mode the
+// site does too.
+test(
+  "scores the form's example, and shows the legacy scripts' scores for it",
+  { tag: '@api' },
+  async ({ page }) => {
+    // A search takes seconds, and the API's first job also starts a worker.
+    test.setTimeout(90_000)
+    await openFormWithExample(page)
+    const { sequence, substitutions, species, submit } = fields(page)
+    await expect(sequence).toHaveValue(EXAMPLE_SEQUENCE.join('\n'))
+    await expect(substitutions).toHaveValue(EXAMPLE_SUBSTITUTIONS.join('\n'))
+    await expect(species).toHaveValue(HUMAN)
+
+    await submit.click()
+
+    await expect(page).toHaveURL(JOB_URL)
+    const main = page.getByRole('main')
+    await expect(main.getByRole('status')).toHaveText(/succeeded/i, { timeout: 60_000 })
+    await expect(main.getByText(EXAMPLE_ROWS[0][2])).toBeVisible()
+    await expectScoreRows(
+      page,
+      EXAMPLE_ROWS.map(([, token, , age, message, pdel]) => [token, age, message, pdel])
+    )
     await expectNoBuildDetails(page)
     await expectNoSidewaysScroll(page)
   }

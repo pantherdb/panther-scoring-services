@@ -10,7 +10,8 @@ The scoring form's example, human APOE with `L46P`, `C130R`, `R163C` and `R176C`
 
 - **The API's real-job tests** (`api/tests/test_csnp_scoring.py`, marked `tools("blastp")` and `data("csnp")`): a new test submits the form's example, as the form sends it, and checks that the job succeeds with family `PTHR18976` and `apoe.out`'s four rows, in order. The sequence is `apoe.fasta`'s residue lines without its header, as the form's example has it, and the substitutions are `apoe.input`'s. The golden is read from the engine's test folder by path, not copied, as the existing tests read spec §7.3's.
 - **The api-mode browser test** (`frontend/e2e/csnp.spec.ts`, tagged `@api`): a new test chooses **Use an example**, checks that the form then holds `apoe.fasta`'s residue lines and `apoe.input`'s substitutions, submits it, and checks that the job page shows `PTHR18976` and the four rows of `apoe.out`. It reads the golden by path, as the existing `@api` test reads `sample.fasta`.
-- **CI:** the `api-image` job runs the API's real-job tests in the image it builds, on amd64 only, with the tools and data required, so a change that breaks the example fails CI. Before, CI's `api` job skipped them without `blastp`, and only one protein was scored there, with `curl` and `jq`. It adds about four minutes to that job.
+- **The frontend's unit test** (`frontend/tests/features/csnp/draft.test.ts`, "the example"): it reads `apoe.fasta` and `apoe.input` by path, as the browser test does, and checks that `example.ts` holds the whole sequence and the substitutions. CI runs it in the `frontend` job, so a changed residue anywhere in the example fails CI, not only in its first or last residues (review of #65).
+- **CI:** the `api-image` job runs the API's real-job tests with the tools, Python and data of the image it builds, on amd64 only, with `PANTHER_REQUIRE_TOOLS=1` and `PANTHER_REQUIRE_DATA=1`, so a change that breaks the example fails CI. Before, CI's `api` job skipped them without `blastp`, and only one protein was scored there, with `curl` and `jq`. The step installs the checkout's `api/` and `engine/` into the container's `/tmp/venv`, so it tests that code, not the packages the image ships; the job's `curl` step runs those. It adds under a minute to that job, `uv sync` included.
 - **Docs:** `docs/testing/api.md`, `docs/testing/frontend.md` and `docs/testing/README.md` say what the new tests check, the number of real jobs, and where CI runs them.
 
 Not in this change:
@@ -29,11 +30,11 @@ None: the change adds tests of existing behaviour, so it has no spec deltas (`sk
 
 ## Impact
 
-- **Code:** tests only, in `api/tests/` and `frontend/e2e/`.
+- **Code:** tests only, in `api/tests/`, `frontend/tests/` and `frontend/e2e/`.
 - **API contract:** not affected.
 - **Dependencies:** none.
 - **Parity with the reference:** not affected, and no divergence row is needed. The tests compare the API's and the website's results with the reference's own output, `apoe.out`.
-- **Running them:** the API test needs `blastp` and the data sample, so it runs in the API image (`docs/testing/api.md`, "Tests With the Tools and Data"). The browser test needs an API with both, in api or site mode. Each adds one real job, of a few seconds.
+- **Running them:** the API test needs `blastp` and the data sample, so it runs with the API image's tools (`docs/testing/api.md`, "Tests With the Tools and Data"). The browser test needs an API with both, in api or site mode. Each adds one real job, of a few seconds.
 
 ## Open Questions
 

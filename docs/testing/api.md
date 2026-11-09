@@ -367,11 +367,11 @@ uv run pytest -k "outside_the_prefix"
 
 Its tests are marked as the engine's are, `tools("blastp")` and `data("csnp")` (`tests/markers.py`):
 
-- **Where `blastp` or the sample is missing,** they're skipped with the reason, as natively on Windows and in CI's `api` job. CI's `api-image` job runs them in the image, on amd64, with both set, so a change that breaks the example or a sample protein fails CI.
+- **Where `blastp` or the sample is missing,** they're skipped with the reason, as natively on Windows and in CI's `api` job. CI's `api-image` job runs them with the image's tools and data, on amd64, with both set, so a change that breaks the example or a sample protein fails CI. It runs the command below, so it tests the checkout's `api/` and `engine/`, not the packages the image ships.
 - **With `PANTHER_REQUIRE_TOOLS=1` and `PANTHER_REQUIRE_DATA=1`,** missing tools or data fail them.
 - **The data folder is `PANTHER_DATA_DIR`,** or `.data/` at the repository root.
 
-To run the whole suite with them, in the API image, which has `blastp` and uv but not the dev tools: from the repository root, with the sample in `.data/`:
+To run the whole suite with them, with the API image's tools, which has `blastp` and uv but not the dev tools: from the repository root, with the sample in `.data/`:
 
 ```sh
 docker build --target api -t panther-api .
@@ -381,6 +381,6 @@ docker run --rm -v "$PWD/api:/src/api:ro" -v "$PWD/engine:/src/engine:ro" -v "$P
   -w /src/api panther-api sh -c 'uv sync --locked -q && uv run --no-sync pytest -p no:cacheprovider'
 ```
 
-It installs the dev tools into the container's `/tmp`, and writes nothing to the mounts. The seven real jobs take a few minutes.
+It installs the dev tools into the container's `/tmp`, and writes nothing to the mounts. The seven real jobs took under a minute on CI, `uv sync` included, and about four minutes on a laptop.
 
 In Git Bash, start the `docker run` line with `MSYS_NO_PATHCONV=1`. Otherwise Git Bash rewrites container paths such as `/data` into Windows paths, and every `csnp` job fails with the generic error.

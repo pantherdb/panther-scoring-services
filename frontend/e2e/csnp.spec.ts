@@ -40,6 +40,19 @@ async function openFormWithExample(page: Page) {
   await expect(fields(page).substitutions).toHaveValue(/L46P/)
 }
 
+// The job page's scores table holds `rows`, in order, each one's cells as given.
+async function expectScoreRows(page: Page, rows: readonly (readonly string[])[]) {
+  const shown = page
+    .getByRole('main')
+    .getByRole('table', { name: /scores/i })
+    .getByRole('row')
+    .filter({ has: page.getByRole('cell') })
+  await expect(shown).toHaveCount(rows.length)
+  for (const [i, cells] of rows.entries()) {
+    await expect(shown.nth(i).getByRole('cell')).toHaveText([...cells])
+  }
+}
+
 const HUMAN = 'Homo sapiens (HUMAN)'
 
 // Clears the selector, types `text` in it, and clicks the option named `option`. The options
@@ -83,19 +96,15 @@ test(
     const main = page.getByRole('main')
     await expect(main.getByRole('status')).toHaveText(/succeeded/i)
     await expect(main.getByText(csnpResult.family ?? '')).toBeVisible()
-    const rows = main
-      .getByRole('table', { name: /scores/i })
-      .getByRole('row')
-      .filter({ has: page.getByRole('cell') })
-    await expect(rows).toHaveCount(csnpResult.scores.length)
-    for (const [i, score] of csnpResult.scores.entries()) {
-      await expect(rows.nth(i).getByRole('cell')).toHaveText([
+    await expectScoreRows(
+      page,
+      csnpResult.scores.map(score => [
         score.substitution,
         score.age === null ? '' : String(score.age),
         score.message,
         score.pdel ?? '',
       ])
-    }
+    )
     await expect(main.getByRole('term')).toHaveText([
       'API',
       'Engine',
@@ -162,14 +171,7 @@ test(
     const main = page.getByRole('main')
     await expect(main.getByRole('status')).toHaveText(/succeeded/i, { timeout: 60_000 })
     await expect(main.getByText('PTHR10366')).toBeVisible()
-    const rows = main
-      .getByRole('table', { name: /scores/i })
-      .getByRole('row')
-      .filter({ has: page.getByRole('cell') })
-    await expect(rows).toHaveCount(SAMPLE_SCORES.length)
-    for (const [i, cells] of SAMPLE_SCORES.entries()) {
-      await expect(rows.nth(i).getByRole('cell')).toHaveText(cells)
-    }
+    await expectScoreRows(page, SAMPLE_SCORES)
     await expect(main.getByRole('definition').last()).toHaveText(/^PANTHER \S+$/)
     await expectNoBuildDetails(page)
     await expectNoSidewaysScroll(page)
@@ -214,14 +216,10 @@ test(
     const main = page.getByRole('main')
     await expect(main.getByRole('status')).toHaveText(/succeeded/i, { timeout: 60_000 })
     await expect(main.getByText(EXAMPLE_ROWS[0][2])).toBeVisible()
-    const rows = main
-      .getByRole('table', { name: /scores/i })
-      .getByRole('row')
-      .filter({ has: page.getByRole('cell') })
-    await expect(rows).toHaveCount(EXAMPLE_ROWS.length)
-    for (const [i, [, token, , age, message, pdel]] of EXAMPLE_ROWS.entries()) {
-      await expect(rows.nth(i).getByRole('cell')).toHaveText([token, age, message, pdel])
-    }
+    await expectScoreRows(
+      page,
+      EXAMPLE_ROWS.map(([, token, , age, message, pdel]) => [token, age, message, pdel])
+    )
     await expectNoBuildDetails(page)
     await expectNoSidewaysScroll(page)
   }

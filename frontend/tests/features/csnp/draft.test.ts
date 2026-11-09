@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -146,6 +150,22 @@ describe('draftInput', () => {
   })
 })
 
+// The engine's golden for the example (add-apoe-to-csnp-sample), read by path as the e2e spec
+// reads it: apoe.fasta's residue lines, without its header, and apoe.input's substitutions,
+// `SNP_1|P0001|46|L;P`. CI runs these tests, not the @api browser test, so this is where CI
+// catches a changed residue anywhere in the example. By path, not `new URL(…, import.meta.url)`:
+// under jsdom, `URL` is jsdom's, which Node's fileURLToPath refuses.
+const GOLDEN = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../../../engine/tests/golden/csnp/example'
+)
+function goldenLines(file: string) {
+  return readFileSync(resolve(GOLDEN, file), 'utf8')
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line !== '')
+}
+
 describe('the example', () => {
   it("is the legacy website's: the APOE sequence, four substitutions and HUMAN", () => {
     const input = draftInput(example)
@@ -154,5 +174,18 @@ describe('the example', () => {
     expect(input.sequence.replace(/\s/g, '')).toHaveLength(317)
     expect(input.substitutions).toEqual(['L46P', 'C130R', 'R163C', 'R176C'])
     expect(input.species).toBe('HUMAN')
+  })
+
+  it("is the engine's golden input: apoe.fasta's residue lines and apoe.input's substitutions", () => {
+    const fasta = goldenLines('apoe.fasta')
+    const substitutions = goldenLines('apoe.input').map(line => {
+      const [, , position, residues] = line.split('|')
+      const [wildType, mutant] = residues.split(';')
+      return `${wildType}${position}${mutant}`
+    })
+
+    expect(fasta[0]).toMatch(/^>/)
+    expect(example.sequence).toBe(fasta.slice(1).join('\n'))
+    expect(example.substitutions).toBe(substitutions.join('\n'))
   })
 })

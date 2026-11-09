@@ -19,7 +19,7 @@ VERSIONS = Versions(
     api="1.0",
     engine="2.0",
     tools=[ToolVersion(name="blastp", version="2.17.0")],
-    data=[DataVersion(service="csnp", panther="9")],
+    data=[DataVersion(service="csnp", panther="9"), DataVersion(service="refmap", panther="19")],
 )
 RESULT = ToolsResult(tools=[ToolVersion(name="blastp", version="2.17.0")])
 ERROR = Problem(title="Internal Server Error", status=500, detail="It failed.")
@@ -42,7 +42,8 @@ def test_a_new_job_is_queued(store: JobStore, clock: Clock) -> None:
 
     assert job.status is JobStatus.QUEUED
     assert (job.service, job.summary) == ("tools", "")
-    assert job.versions == VERSIONS
+    # A tools job reads no data, so its versions name none.
+    assert job.versions == VERSIONS.model_copy(update={"data": []})
     assert job.created_at == clock.now
     assert (job.started_at, job.finished_at, job.result, job.error) == (None, None, None, None)
 
@@ -77,7 +78,7 @@ def test_the_lifecycle_sets_status_and_times(store: JobStore, clock: Clock) -> N
     assert (job.status, job.started_at) == (JobStatus.RUNNING, created + timedelta(seconds=1))
 
     clock.advance(timedelta(seconds=1))
-    job.succeed(RESULT)
+    store.succeed(job, RESULT)
     assert (job.status, job.finished_at) == (JobStatus.SUCCEEDED, created + timedelta(seconds=2))
     assert (job.result, job.error) == (RESULT, None)
 
@@ -86,7 +87,7 @@ def test_a_failed_job_has_an_error_and_no_result(store: JobStore, clock: Clock) 
     job = store.add(REQUEST, VERSIONS)
     job.start()
 
-    job.fail(ERROR)
+    store.fail(job, ERROR)
 
     assert (job.status, job.finished_at) == (JobStatus.FAILED, clock.now)
     assert (job.result, job.error) == (None, ERROR)
@@ -95,7 +96,7 @@ def test_a_failed_job_has_an_error_and_no_result(store: JobStore, clock: Clock) 
 def test_a_finished_job_is_kept_until_it_expires(store: JobStore, clock: Clock) -> None:
     job = store.add(REQUEST, VERSIONS)
     job.start()
-    job.succeed(RESULT)
+    store.succeed(job, RESULT)
 
     clock.advance(EXPIRY - timedelta(seconds=1))
     assert store.get(str(job.id)) is job
@@ -119,7 +120,7 @@ def test_an_unfinished_job_never_expires(store: JobStore, clock: Clock) -> None:
 def test_adding_a_job_sweeps_out_expired_ones(store: JobStore, clock: Clock) -> None:
     old = store.add(REQUEST, VERSIONS)
     old.start()
-    old.fail(ERROR)
+    store.fail(old, ERROR)
     unfinished = store.add(REQUEST, VERSIONS)
 
     clock.advance(EXPIRY)
@@ -139,6 +140,16 @@ def test_a_job_keeps_its_inputs_size_not_the_input(store: JobStore) -> None:
 
     assert (job.service, job.summary) == ("refmap", "ENDPU, 1000 IDs")
     assert "U00001" not in repr(job)
+
+
+def test_a_job_carries_only_its_own_services_data_version(store: JobStore) -> None:
+    refmap = store.add(
+        RefmapJobRequest(service="refmap", input=RefmapInput(organism="ENDPU", ids=["U1G4Q5"])),
+        VERSIONS,
+    )
+
+    assert refmap.versions.data == [DataVersion(service="refmap", panther="19")]
+    assert (refmap.versions.api, refmap.versions.tools) == (VERSIONS.api, VERSIONS.tools)
 
 
 # The results budget (scoring-jobs: Jobs expire).
@@ -162,7 +173,7 @@ def small_budget(clock: Clock) -> JobStore:
     return JobStore(expiry=EXPIRY, results_budget=10 * MIB)
 
 
-def test_over_the_results_budget_the_oldest_finished_job_expires(
+def test_over_the_results_budget_the_oldest_of_equal_results_expires(
     small_budget: JobStore, clock: Clock
 ) -> None:
     first = finished(small_budget, clock, 4 * MIB)
@@ -173,6 +184,32 @@ def test_over_the_results_budget_the_oldest_finished_job_expires(
 
     assert kept(small_budget, first, second, third) == [False, True, True]
     assert small_budget.results_bytes == 8 * MIB
+
+
+def test_over_the_results_budget_the_largest_result_expires_first(
+    small_budget: JobStore, clock: Clock
+) -> None:
+    small = finished(small_budget, clock, MIB)
+    large = finished(small_budget, clock, 5 * MIB)
+    medium = finished(small_budget, clock, 3 * MIB)
+
+    newest = finished(small_budget, clock, 2 * MIB)
+
+    assert kept(small_budget, small, large, medium, newest) == [True, False, True, True]
+    assert small_budget.results_bytes == 6 * MIB
+
+
+def test_a_burst_of_large_results_doesnt_expire_a_small_older_one(
+    small_budget: JobStore, clock: Clock
+) -> None:
+    small = finished(small_budget, clock, MIB)
+
+    burst = [finished(small_budget, clock, 4 * MIB) for _ in range(10)]
+
+    # Each large result expires the large ones before it, never the small one.
+    assert kept(small_budget, small) == [True]
+    assert kept(small_budget, *burst) == [False] * 8 + [True, True]
+    assert small_budget.results_bytes == 9 * MIB
 
 
 def test_within_the_results_budget_every_job_is_kept(small_budget: JobStore, clock: Clock) -> None:

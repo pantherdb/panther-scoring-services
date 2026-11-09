@@ -4,9 +4,11 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 from panther_engine.refmap import ORGANISM_CODES, ORGANISM_GENES, ORGANISM_NAMES
+from pydantic import TypeAdapter
 
 from panther_api.jobs.refmap import RefmapInput
 from panther_api.main import create_app
+from panther_api.routers.refmap import ORGANISMS, RefmapOrganism
 
 PATH = "/api/v1/refmap/organisms"
 
@@ -77,3 +79,10 @@ def test_the_list_is_in_the_schema(client: TestClient) -> None:
         "genes_with_panther_id": "integer",
     }
     assert PATH in schema["paths"]
+
+
+def test_the_list_is_the_json_the_model_gives(client: TestClient) -> None:
+    # Serialised once at import, not by FastAPI on each request: the bytes must be the model's.
+    adapter = TypeAdapter(list[RefmapOrganism])
+
+    assert client.get(PATH).content == adapter.dump_json(list(ORGANISMS))

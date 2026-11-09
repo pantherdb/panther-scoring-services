@@ -15,6 +15,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from job_helpers import FAKE_FAMILY, score_with_a_fake_engine
+from panther_engine import refmap as engine
 from polling import poll, submit_and_wait
 from refmap_golden import (
     EXAMPLE_IDS,
@@ -58,6 +59,9 @@ def test_the_example_maps_to_the_goldens_values(endpu_client: TestClient) -> Non
             for an_id, panther_id in zip(EXAMPLE_IDS, EXAMPLE_PANTHER_IDS, strict=True)
         ],
     }
+    # Traced to refmap's own data, not cSNP's.
+    assert job["versions"]["data"] == [{"service": "refmap", "panther": engine.DATA_VERSION}]
+    assert engine.DATA_VERSION == "19"
 
 
 def test_repeated_and_unknown_ids_each_get_a_mapping_in_order(endpu_client: TestClient) -> None:
@@ -131,7 +135,24 @@ def test_run_job_returns_the_refmap_result_serialised(
     result = run_job(RefmapJobRequest(service="refmap", input=request))
 
     assert isinstance(result, SerializedResult)
-    assert RefmapResult.model_validate_json(result.json) == run_refmap(request)
+    assert result.json == run_refmap(request)
+    assert RefmapResult.model_validate_json(result.json).organism == ORGANISM
+
+
+def test_the_engines_result_serialises_as_the_models_would(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # run_refmap serialises the engine's dataclasses without building models: the bytes must be
+    # the ones RefmapResult would give, for every golden ID.
+    write_endpu_folder(tmp_path)
+    monkeypatch.setenv("PANTHER_DATA_DIR", str(tmp_path))
+    request = RefmapInput(organism=ORGANISM, ids=[*golden_mappings(), "P04217"])
+
+    engines = engine.map_ids(engine.RefmapInput(organism=ORGANISM, ids=tuple(request.ids)))
+
+    assert run_refmap(request) == (
+        RefmapResult.model_validate(engines, from_attributes=True).model_dump_json().encode()
+    )
 
 
 def test_a_large_job_polls_as_a_job_with_every_mapping_in_order(

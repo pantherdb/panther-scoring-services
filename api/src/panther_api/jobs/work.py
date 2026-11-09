@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from typing import Annotated, Literal, NamedTuple
 
 from pydantic import BaseModel, Field
-from pydantic_core import to_json
 
 from panther_api.jobs.csnp import CsnpInput, CsnpResult, run_csnp
 from panther_api.jobs.refmap import RefmapInput, run_refmap
@@ -87,4 +86,4 @@ def run_job(request: JobRequest) -> JobResult:
         case CsnpJobRequest():
             return run_csnp(request.input)
         case RefmapJobRequest():
-            return SerializedResult(to_json(run_refmap(request.input)))
+            return SerializedResult(run_refmap(request.input))

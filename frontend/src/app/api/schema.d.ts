@@ -224,7 +224,8 @@ export interface components {
         /**
          * DataVersion
          * @description The PANTHER release whose data a scoring service reads, such as "9" for cSNP's frozen
-         *     PANTHER 9 data. It names the release the engine reads, not whether the data is installed.
+         *     PANTHER 9 data, or "19" for refmap's. It names the release the engine reads, not whether the
+         *     data is installed.
          */
         DataVersion: {
             /** Service */
@@ -449,6 +450,9 @@ export interface components {
         /**
          * Versions
          * @description The API, engine, tool and data versions. Never includes where a tool or data was found.
+         *
+         *     The versions report lists every ported service's data. A job's `versions` list only its own
+         *     service's, and none for a `tools` job, which reads no data.
          */
         Versions: {
             /** Api */

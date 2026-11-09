@@ -7,7 +7,9 @@ design.md of `add-refmap-job` gives the legacy line for each, and
 
 The result mirrors the engine's `panther_engine.refmap.RefmapResult`, field for field, and
 `run_refmap` calls the engine's `map_ids` in a worker. A worker process imports this module, so
-keep its imports light and set up no state at import time beyond the engine's organism list.
+keep its imports light. Its import-time state is the engine's organism list and what checks the
+input: the compiled patterns and `ProteinId`'s `TypeAdapter`. None of it depends on the
+environment.
 """
 
 import re
@@ -25,7 +27,7 @@ from pydantic import (
     ValidatorFunctionWrapHandler,
     WrapValidator,
 )
-from pydantic_core import InitErrorDetails
+from pydantic_core import InitErrorDetails, to_json
 
 from panther_api.jobs.fields import (
     LONGEST_SPECIES_CODE,
@@ -48,8 +50,7 @@ def _check_organism(value: str) -> str:
     is checked first, so no other value is looked up."""
     if not SPECIES_CODE.fullmatch(value) or value not in engine.ORGANISM_CODES:
         raise ValueError(
-            "The organism must be the code of an organism refmap maps for, such as ENDPU. "
-            "GET /api/v1/refmap/organisms lists them."
+            "The organism must be the code of an organism refmap maps for, such as ENDPU."
         )
     return value
 
@@ -88,11 +89,11 @@ def _check_ids(value: Any, handler: ValidatorFunctionWrapHandler) -> list[str]:
 
     Pydantic's own check builds an error for every bad ID before the 422 can list only the first
     100: about 0.9 s on the event loop for 100,000. Here a list of the right length is checked
-    against VALID_ID in one pass. A valid list is returned as it is. A list with more bad IDs
-    than a 422 lists gets the errors Pydantic would give for the first ones only, each from
-    `ProteinId` itself at its index, and the last one's `input` says how many more there were
+    against VALID_ID in one pass. A valid list is returned as it is. A list with bad IDs gets the
+    errors Pydantic would give for the first MOST_FIELD_ERRORS of them, each from `ProteinId`
+    itself at its index; when there are more, the last one's `input` says how many
     (`Unlisted`), so the 422's `detail` still gives the total. Anything else, such as a list of
-    the wrong length, or few bad IDs, is Pydantic's, as before.
+    the wrong length, or an item of a type Pydantic might take as a string, is Pydantic's.
     """
     if not isinstance(value, list):
         return handler(value)
@@ -106,12 +107,13 @@ def _check_ids(value: Any, handler: ValidatorFunctionWrapHandler) -> list[str]:
     ]
     if not bad:
         return cast(list[str], items)
-    if len(bad) <= MOST_FIELD_ERRORS or any(
+    if any(
         type(items[index]) is not str and type(items[index]) not in _NOT_STRINGS for index in bad
     ):
         return handler(value)
+    listed = bad[:MOST_FIELD_ERRORS]
     errors: list[InitErrorDetails] = []
-    for index in bad[:MOST_FIELD_ERRORS]:
+    for index in listed:
         try:
             _PROTEIN_ID.validate_python(items[index])
         except ValidationError as error:
@@ -122,11 +124,12 @@ def _check_ids(value: Any, handler: ValidatorFunctionWrapHandler) -> list[str]:
                 if "ctx" in item:
                     details["ctx"] = item["ctx"]
                 errors.append(details)
-    if len(errors) != MOST_FIELD_ERRORS:
-        # VALID_ID and ProteinId disagree on an item: let Pydantic check every item, as before,
-        # rather than list too few errors or miscount the rest.
+    if len(errors) != len(listed):
+        # VALID_ID and ProteinId disagree on an item: let Pydantic check every item, rather than
+        # list too few errors or miscount the rest.
         return handler(value)
-    errors[-1]["input"] = Unlisted(len(bad) - MOST_FIELD_ERRORS)
+    if len(bad) > len(listed):
+        errors[-1]["input"] = Unlisted(len(bad) - len(listed))
     raise ValidationError.from_exception_data("ids", errors)
 
 
@@ -173,6 +176,8 @@ class IdMapping(BaseModel):
     panther_id: str | None
 
 
+# The schema's model. A job's result is serialised from the engine's own result (`run_refmap`),
+# which has the same fields, so no models are built for it.
 class RefmapResult(BaseModel):
     """The organism mapped against, and one mapping per submitted ID, in the order submitted,
     repeated IDs included."""
@@ -181,15 +186,18 @@ class RefmapResult(BaseModel):
     mappings: list[IdMapping]
 
 
-def run_refmap(request: RefmapInput) -> RefmapResult:
-    """Map the IDs with the engine. Runs in a worker process, never on the event loop.
+def run_refmap(request: RefmapInput) -> bytes:
+    """Map the IDs with the engine, and return the result as a `RefmapResult`'s JSON. Runs in a
+    worker process, never on the event loop.
+
+    The engine's result is serialised as it is: its frozen dataclasses have `RefmapResult`'s
+    fields, in its order, so the bytes are the same as the model's, without building 100,000
+    models first (tests/test_refmap_jobs.py compares them).
 
     The engine reads its data folder from `PANTHER_DATA_DIR`, which a worker inherits. Its
     exceptions pass through: the input was checked here first, so the engine's `ValueError` is a
-    bug, and it and a missing data file (`MissingDataError`) fail the job with the generic 500.
+    bug, and it, a missing data file (`MissingDataError`) and an unset `PANTHER_DATA_DIR`
+    (`DataFolderError`) fail the job with the generic 500.
     """
     result = engine.map_ids(engine.RefmapInput(organism=request.organism, ids=tuple(request.ids)))
-    return RefmapResult(
-        organism=result.organism,
-        mappings=[IdMapping(id=item.id, panther_id=item.panther_id) for item in result.mappings],
-    )
+    return to_json(result)

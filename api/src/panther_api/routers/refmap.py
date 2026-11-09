@@ -1,16 +1,13 @@
 """refmap's reference lists. Today, the organisms a `refmap` job maps for, with their names and
 gene counts."""
 
-from typing import Any
-
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Response
 from panther_engine.refmap import ORGANISM_GENES, ORGANISM_NAMES
 from pydantic import BaseModel, ConfigDict
 
-router = APIRouter(prefix="/refmap", tags=["refmap"])
+from panther_api.routers.reference import list_json, list_response, list_responses
 
-ORGANISMS_CACHE_CONTROL = "public, max-age=3600"
-"""The list changes only with a new image, so a browser may reuse it for an hour."""
+router = APIRouter(prefix="/refmap", tags=["refmap"])
 
 
 class RefmapOrganism(BaseModel):
@@ -38,26 +35,21 @@ ORGANISMS: tuple[RefmapOrganism, ...] = tuple(
     )
     for code, name in ORGANISM_NAMES.items()
 )
-
-_ORGANISMS_RESPONSES: dict[int | str, dict[str, Any]] = {
-    status.HTTP_200_OK: {
-        "description": "Every organism, in the engine's order.",
-        "headers": {
-            "Cache-Control": {
-                "description": f"`{ORGANISMS_CACHE_CONTROL}`",
-                "schema": {"type": "string"},
-            }
-        },
-    },
-}
+# 1,533 entries, about 110 KB: serialised once, not on every request (review of #64).
+_ORGANISMS_JSON = list_json(ORGANISMS)
 
 
-@router.get("/organisms", summary="The organisms refmap maps for", responses=_ORGANISMS_RESPONSES)
-def refmap_organisms(response: Response) -> list[RefmapOrganism]:
+# The response is the bytes made at import, so FastAPI documents the list but doesn't build it.
+@router.get(
+    "/organisms",
+    summary="The organisms refmap maps for",
+    response_model=list[RefmapOrganism],
+    responses=list_responses("organism"),
+)
+async def refmap_organisms() -> Response:
     """Every organism a `refmap` job's `organism` may name, with its name and gene counts, in the
     engine's order.
 
     Needs no data folder. The response may be cached for an hour.
     """
-    response.headers["Cache-Control"] = ORGANISMS_CACHE_CONTROL
-    return list(ORGANISMS)
+    return list_response(_ORGANISMS_JSON)

@@ -187,7 +187,8 @@ def test_a_finished_job(client: TestClient) -> None:
     assert job["created_at"].endswith("Z")
     assert job["result"] == FAKE_RESULT.model_dump()
     assert job["error"] is None
-    assert job["versions"] == client.get("/api/v1/versions").json()
+    # The versions report's, with no data: a tools job reads none.
+    assert job["versions"] == {**client.get("/api/v1/versions").json(), "data": []}
 
 
 def test_a_finished_job_has_no_paths(client: TestClient) -> None:
@@ -588,7 +589,11 @@ def test_a_csnp_job_succeeds_with_the_engines_scores(
             for token in ["L4P", "W5R"]
         ],
     }
-    assert job["versions"] == client.get("/api/v1/versions").json()
+    # The versions report's, with only cSNP's data.
+    assert job["versions"] == {
+        **client.get("/api/v1/versions").json(),
+        "data": [{"service": "csnp", "panther": "9"}],
+    }
 
 
 # The refmap job: validated, then mapped by the engine in a worker.
@@ -667,7 +672,9 @@ def test_a_bad_organism_and_every_bad_id_are_counted(client: TestClient) -> None
 
 def test_many_bad_ids_are_rejected_about_as_fast_as_valid_ones(client: TestClient) -> None:
     # The valid IDs are for an organism refmap doesn't map for, so both are 422s. Each is timed
-    # at its best of three, after one to warm up, in the same process (#41).
+    # at its best of four, after one to warm up, in the same process (#41). Pydantic's own check
+    # took about seven times the valid list's time; the bound is loose, a ratio of 3 plus 0.1 s,
+    # so a loaded runner doesn't fail it, and still catches that.
     bad = json.dumps(refmap_job(ids=[""] * MOST_IDS)).encode()
     valid = json.dumps(
         refmap_job(organism="ZZZZZ", ids=[f"P{index:05d}" for index in range(MOST_IDS)])
@@ -675,7 +682,7 @@ def test_many_bad_ids_are_rejected_about_as_fast_as_valid_ones(client: TestClien
 
     def best(body: bytes) -> float:
         times: list[float] = []
-        for _ in range(4):
+        for _ in range(5):
             start = time.perf_counter()
             response = client.post(
                 "/api/v1/jobs", content=body, headers={"content-type": "application/json"}
@@ -684,7 +691,7 @@ def test_many_bad_ids_are_rejected_about_as_fast_as_valid_ones(client: TestClien
             assert response.status_code == 422
         return min(times[1:])
 
-    assert best(bad) <= 2 * best(valid)
+    assert best(bad) <= 3 * best(valid) + 0.1
 
 
 def test_a_field_the_refmap_input_doesnt_take_is_a_422(client: TestClient) -> None:

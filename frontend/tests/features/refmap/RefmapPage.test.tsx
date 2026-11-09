@@ -48,10 +48,10 @@ function exampleButton() {
   return main().getByRole('button', { name: /use an example/i })
 }
 
-// The selector is enabled once the mocked list has loaded.
+// The selector is enabled once the mocked list has loaded. Waits for the selector itself: after a
+// retry, the code box is still shown, and enabled, until the list arrives.
 async function organismsLoaded() {
-  await waitFor(() => expect(organismBox()).toBeEnabled())
-  expect(organismBox()).toHaveRole('combobox')
+  await waitFor(() => expect(main().getByRole('combobox', { name: /organism/i })).toBeEnabled())
 }
 
 // Clears the selector's text and types `text` in it. A click leaves the chosen organism's label

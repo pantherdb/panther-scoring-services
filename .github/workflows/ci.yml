@@ -320,15 +320,14 @@ jobs:
         run: >-
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" panther-api:ci
           panther-engine csnp sample fetch --data-dir /fetch
-      # The refmap data, from the cache the engine jobs fill. Fetched only on a miss: the engine
-      # jobs check the cached files.
+      # The refmap data, from the cache the engine jobs fill. The fetch runs on every run: on a
+      # hit it downloads nothing and checks the cached files against the manifest, which the
+      # engine jobs do only when engine/ changes.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        id: refmap-data
         with:
           path: .data/refmap
           key: refmap-data-${{ hashFiles('engine/src/panther_engine/refmap/data.json') }}
       - name: refmap data
-        if: steps.refmap-data.outputs.cache-hit != 'true'
         run: >-
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" panther-api:ci
           panther-engine refmap data fetch --data-dir /fetch

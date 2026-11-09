@@ -128,14 +128,17 @@ The same as the `web` image's nginx config, `frontend/nginx/default.conf.templat
 
 The API reads each service's data from the folder `PANTHER_DATA_DIR` names, mounted read-only into its container: the cSNP data under `csnp/`, and, for ID mapping, the refmap data under `refmap/19/`, PANTHER 19's generic mapping release. Until the refmap data is there, every `refmap` job fails with the generic error, and the API's log says at startup which files are missing (`refmap jobs will fail until the refmap data is in place: …`); everything else works.
 
-Fetch it into the same folder once, before or with the deploy that wires `refmap` in, with the engine's CLI in the API image, as the user who owns the folder:
+Fetch it into the same folder once, before or with the deploy that wires `refmap` in. The server's outbound HTTPS goes through a TLS-inspecting proxy whose CA the container doesn't trust: the CA secret is used only while the image builds, and leaves nothing in it. So download the release on the host, which trusts the CA, then hand the local copies to the engine's CLI in the API image, as the user who owns the data folder. From a new, empty folder:
 
 ```bash
-docker run --rm --user "$(id -u):$(id -g)" -v <the data folder>:/fetch <the API image> \
-  panther-engine refmap data fetch --data-dir /fetch
+curl -fO https://data.pantherdb.org/ftp/generic_mapping/archive/2024-06-20/panther_classifications.tar.gz
+curl -fO https://data.pantherdb.org/ftp/generic_mapping/archive/2024-06-20/stats
+docker run --rm --user "$(id -u):$(id -g)" -v <the data folder>:/fetch -v "$PWD:/release:ro" <the API image> \
+  panther-engine refmap data fetch --data-dir /fetch \
+  --tarball /release/panther_classifications.tar.gz --stats /release/stats
 ```
 
-It downloads the release from `data.pantherdb.org`, checks it against the pinned manifest, and writes nothing under `refmap/19/` unless every file matches. Run again, it downloads nothing and checks the files. The API reads the data when a job runs, so it needs no restart, though its startup line keeps saying the data is missing until the next one. The data changes only with a new manifest in the engine; [api.md, The refmap Data](../testing/api.md#the-refmap-data) has the details.
+It checks each copy's size and sha256 against the pinned manifest, then every file it writes, and writes nothing under `refmap/19/` unless every file matches. Run again, it writes nothing and only checks the files. The downloaded copies can be deleted afterwards. On a host whose container can reach `data.pantherdb.org` directly, leave out the second `-v`, `--tarball` and `--stats`, and it downloads the release itself. The API reads the data when a job runs, so it needs no restart, though its startup line keeps saying the data is missing until the next one. The data changes only with a new manifest in the engine; [api.md, The refmap Data](../testing/api.md#the-refmap-data) has the details.
 
 `PANTHER_API_RESULTS_BUDGET_MIB` caps the memory the finished jobs' results may take; set it to suit the server ([api.md, Settings](../testing/api.md#settings)).
 

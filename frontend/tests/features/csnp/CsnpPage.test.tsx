@@ -621,7 +621,8 @@ describe('when the species list can’t be loaded', () => {
 
     expect(speciesBox()).toBeInvalid()
     expect(speciesBox()).toHaveAccessibleDescription(/from the list/i)
-    expect(speciesBox()).toHaveValue('')
+    // The code itself, not a blank, so the user sees what the message is about.
+    expect(speciesBox()).toHaveValue('ZZZZZ')
     expect(bodies).toEqual([])
   })
 })

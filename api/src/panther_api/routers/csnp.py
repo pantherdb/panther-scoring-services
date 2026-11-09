@@ -1,15 +1,12 @@
 """cSNP's reference lists. Today, the species a `csnp` job scores against, with their names."""
 
-from typing import Any
-
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Response
 from panther_engine.csnp import SPECIES_NAMES
 from pydantic import BaseModel, ConfigDict
 
-router = APIRouter(prefix="/csnp", tags=["csnp"])
+from panther_api.routers.reference import list_json, list_response, list_responses
 
-SPECIES_CACHE_CONTROL = "public, max-age=3600"
-"""The list changes only with a new image, so a browser may reuse it for an hour."""
+router = APIRouter(prefix="/csnp", tags=["csnp"])
 
 
 class CsnpSpecies(BaseModel):
@@ -28,25 +25,19 @@ class CsnpSpecies(BaseModel):
 SPECIES: tuple[CsnpSpecies, ...] = tuple(
     CsnpSpecies(code=code, name=name) for code, name in SPECIES_NAMES.items()
 )
-
-_SPECIES_RESPONSES: dict[int | str, dict[str, Any]] = {
-    status.HTTP_200_OK: {
-        "description": "Every species, in the engine's order.",
-        "headers": {
-            "Cache-Control": {
-                "description": f"`{SPECIES_CACHE_CONTROL}`",
-                "schema": {"type": "string"},
-            }
-        },
-    },
-}
+_SPECIES_JSON = list_json(SPECIES)
 
 
-@router.get("/species", summary="The species cSNP scores against", responses=_SPECIES_RESPONSES)
-def csnp_species(response: Response) -> list[CsnpSpecies]:
+# The response is the bytes made at import, so FastAPI documents the list but doesn't build it.
+@router.get(
+    "/species",
+    summary="The species cSNP scores against",
+    response_model=list[CsnpSpecies],
+    responses=list_responses("species"),
+)
+async def csnp_species() -> Response:
     """Every species a `csnp` job's `species` may name, with its name, in the engine's order.
 
     Needs no data folder. The response may be cached for an hour.
     """
-    response.headers["Cache-Control"] = SPECIES_CACHE_CONTROL
-    return list(SPECIES)
+    return list_response(_SPECIES_JSON)

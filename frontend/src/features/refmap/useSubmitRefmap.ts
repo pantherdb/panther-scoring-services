@@ -9,17 +9,15 @@ import { type DraftAction, draftInput, REFMAP_FIELDS, type RefmapValues } from '
 import type { SplitIds } from './ids'
 
 /**
- * Why the last submit didn't open a job, when it wasn't the input: `unavailable` is the
- * API's 501 until refmap mapping is ported; `unreachable` is no answer from the API at all;
- * `failed` is anything else.
+ * Why the last submit didn't open a job, when it wasn't the input: `unreachable` is no answer
+ * from the API at all; `failed` is anything else, a 501 from an older API included.
  */
-export type SubmitProblem = 'unavailable' | 'unreachable' | 'failed' | null
+export type SubmitProblem = 'unreachable' | 'failed' | null
 
 /**
- * Starts a refmap job from the draft and its IDs as split. A 202 keeps the input as typed, for "Edit and
- * resubmit", and opens the job's page; a
- * 422's errors go to the draft, on their fields; a 501 or any other failure is the returned
- * `problem`.
+ * Starts a refmap job from the draft and its IDs as split. A 202 keeps the input as typed, for
+ * "Edit and resubmit", and opens the job's page; a 422's errors go to the draft, on their
+ * fields; any other failure is the returned `problem`.
  */
 export function useSubmitRefmap(dispatch: Dispatch<DraftAction>) {
   const [startJob, { isLoading }] = useStartJobMutation()
@@ -38,10 +36,6 @@ export function useSubmitRefmap(dispatch: Dispatch<DraftAction>) {
       const data = errorData(error)
       if (status === 422 && isValidationProblem(data) && data.errors.length > 0) {
         dispatch({ type: 'rejected', ...inputErrors(data, 'refmap', REFMAP_FIELDS), sent: split })
-        return
-      }
-      if (status === 501) {
-        setProblem('unavailable')
         return
       }
       if (isUnreachable(error)) {

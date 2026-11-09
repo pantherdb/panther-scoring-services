@@ -9,6 +9,8 @@ import { mappingsFileName, mappingsTsv, saveTextFile } from './mappingsFile'
 type Props = {
   jobId: string
   result: RefmapResult
+  /** The organism mapped against, as the page names it: by name and code, or by code. */
+  organism: string
 }
 
 const number = new Intl.NumberFormat('en-US')
@@ -17,9 +19,10 @@ function plural(count: number, one: string, many: string) {
   return `${number.format(count)} ${count === 1 ? one : many}`
 }
 
-// A refmap job's result: how many IDs mapped, a download of every mapping, and the mappings
-// a page at a time. Each PANTHER ID is shown exactly as the API gives it.
-export function RefmapMappings({ jobId, result }: Props) {
+// A refmap job's result: the organism mapped against, how many IDs mapped, a download of every
+// mapping, and the mappings a page at a time. Each PANTHER ID is shown exactly as the API
+// gives it.
+export function RefmapMappings({ jobId, result, organism }: Props) {
   const { mappings } = result
   const mapped = mappings.reduce(
     (count, { panther_id }) => count + (panther_id === null ? 0 : 1),
@@ -34,6 +37,7 @@ export function RefmapMappings({ jobId, result }: Props) {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-col items-start gap-2">
+        <p>Mapped against {organism}.</p>
         <p className="font-medium">
           {plural(mappings.length, 'ID', 'IDs')}: {plural(mapped, 'has', 'have')} a PANTHER ID,{' '}
           {plural(unmapped, 'has', 'have')} none.

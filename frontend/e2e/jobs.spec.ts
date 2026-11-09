@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 import type { components } from '../src/app/api/schema'
 import { toolsResult } from '../src/mocks/data/jobs'
-import { versions as mockedVersions } from '../src/mocks/data/versions'
+import { jobVersions } from '../src/mocks/data/versions'
 import { expectNoSidewaysScroll } from './layout'
 
 type ToolVersion = components['schemas']['ToolVersion']
@@ -71,7 +71,7 @@ test(
     await expect(status).toHaveText(/running/i)
     await expect(status).toHaveText(/succeeded/i)
     await expectToolsShown(page, toolsResult.tools)
-    await expectJobVersionsShown(page, mockedVersions)
+    await expectJobVersionsShown(page, jobVersions('tools'))
     await expectNoBuildDetails(page)
 
     await expectNoSidewaysScroll(page)
@@ -93,7 +93,8 @@ test(
     // The API's first job also starts a worker process, which takes a second or two.
     await expect(status).toHaveText(/succeeded/i, { timeout: 15_000 })
     await expectToolsShown(page, reported.tools)
-    await expectJobVersionsShown(page, reported)
+    // A tools job reads no data, so its versions name none.
+    await expectJobVersionsShown(page, { ...reported, data: [] })
 
     await page.reload()
 

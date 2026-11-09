@@ -44,12 +44,17 @@ If the schema changed, also run `npm run api:types` in `frontend/` and commit `s
   - When the engine raises `panther_engine.core.errors.InputError`, the input as a whole can't be processed. The job fails with a `422`, and the engine's message as `detail`; the engine writes that message for the user.
   - Any other exception fails the job with the generic `500` detail, and its details go only to the log.
   - A problem with one item, such as one substitution that can't be mapped, isn't an error: it belongs in the result.
-- **Jobs are kept in memory** until they expire (`PANTHER_API_JOB_EXPIRY_SECONDS`), so a restart loses them. Mind the size of what a job keeps: a result of 100,000 items is tens of megabytes.
+- **Jobs are kept in memory** until they expire (`PANTHER_API_JOB_EXPIRY_SECONDS`), so a restart loses them. Mind the size of what a job keeps: a result of 100,000 items is tens of megabytes as models.
+  - **A large result is kept as JSON** (`wire-refmap`): `run_job` returns `refmap`'s result as a `SerializedResult`, its bytes made in the worker from the engine's own result, with no models built (`run_refmap`), and `get_job` puts those bytes in the job's JSON as they are (`_job_json`), with `Job` still the documented response. A new service with large results does the same; small ones, `csnp`'s and `tools`', stay models.
+  - **A job doesn't keep its request:** the runner holds it until the job finishes, and the record keeps only its service and `log_summary()`.
+  - **The results budget:** the finished jobs' results share `PANTHER_API_RESULTS_BUDGET_MIB`, each counted by its JSON size when it finishes (`JobStore.succeed`). Over it, the largest results expire first, the oldest first among equal sizes, so one client's burst of large jobs can't expire everyone else's (a failed job frees nothing, so it stays until its time); the finishing one is always kept. A job finishes only through the store: `JobRecord` has no `succeed` or `fail` of its own, so no result escapes the count.
+- **A long list is checked in one pass** (#41): `refmap`'s `ids` have a wrap validator that checks every item with one pattern, and raises Pydantic's own errors for the first `MOST_FIELD_ERRORS` bad ones, however many there are, and, when there are more, the last one's `input` an `Unlisted` count of the rest, which `problems.py` adds to the total. A rule added to `ProteinId` must be added to `VALID_ID` too; `test_refmap_input.py` compares the two.
 - **The limits** (`harden-api-for-hosting`):
   - `limits.BodyLimit` refuses a body over `PANTHER_API_MAX_BODY_BYTES` with a `413`, before FastAPI reads it. A new service's largest valid request must fit under it; `refmap`'s, about 13 MB, sets the 16 MiB default.
   - `JobRunner.submit()` raises `QueueFullError`, and stores nothing, when `PANTHER_API_MAX_QUEUED_JOBS` jobs already wait; the router answers `503` with `Retry-After`. It counts unfinished jobs past one per worker, not jobs whose status is `queued`, which lags a loop turn behind.
 - **CORS** (`deploy-frontend-to-pages`): `cors.Cors` wraps Starlette's `CORSMiddleware` for the origins in `PANTHER_API_CORS_ORIGINS`, and adds nothing when it's empty. It's added after `BodyLimit`, so it runs outside it: a preflight is answered before the limit, and a `413` still carries the CORS headers. Keep that order. A new response header a browser must read goes in `cors.EXPOSED_HEADERS`.
-- **The startup checks the cSNP data** with `panther_engine.csnp.check_data()`, and only logs an error if it's missing. Don't make it stop the API: natively, developers run without the data.
+- **Each job names its own service's data:** `versions.read_versions()` lists every ported service's `DataVersion`, from the engine's `DATA_VERSION`, and the store gives each job `Versions.for_service`, so a `refmap` job names PANTHER 19, a `csnp` job PANTHER 9 and a `tools` job none (`wire-refmap`, decision 9). A ported service adds its entry there.
+- **The startup checks each service's data** with its engine module's `check_data()` (`main.DATA_CHECKS`: `csnp` and `refmap`), and only logs an error for each one that's missing. The checks are independent. Don't make one stop the API: natively, developers run without the data.
 - **The log** (`add-api-logging`):
   - `logs.configure_logging()` runs first in the lifespan. It puts one handler on the root logger and routes Uvicorn's loggers through it, so log with `logging.getLogger(__name__)` and nothing else; don't add handlers.
   - `JobRunner` writes each job's one line when it finishes, and a `DEBUG` line when it's submitted. Each service's input model has a `log_summary()` giving its size, such as `HUMAN, 347 residues, 3 substitutions`; basedpyright fails if a new service's input lacks it.
@@ -77,7 +82,7 @@ The order that worked for `csnp`:
 3. **The port and its parity goldens,** in the engine (#24).
 4. **Wiring:** the `UNAVAILABLE` row goes, `run_job` calls the engine, and the code check against the engine's list lands in the same change (#26).
 
-`refmap`'s contract is merged (#30): its form is #35, and its wiring is #40, after the engine's port. The open work is tracked in #46.
+`refmap` has been through all four: its contract (#30), its form (#35), the engine's port (#63), and its wiring (`wire-refmap`, #40). Its wiring also checks its data at startup and keeps its large results as JSON. `UNAVAILABLE` is empty, and keeps its mechanism for `hmmscore` and `treegrafter`.
 
 ## Tests
 
@@ -89,12 +94,12 @@ The setup is in [docs/testing/api.md](../docs/testing/api.md), "Tests (pytest)".
 - **The autouse `fake_tools` fixture** fakes the engine's tool report, so tests pass with or without the tools installed.
 - **`TestClient` doesn't go through Uvicorn,** so there's no access log. A test of the request log serves the app with a real Uvicorn server on a free port (`tests/serving.py`).
 - **The root logger is at `INFO` once an app has started,** so `caplog` also captures the test client's own request lines, which contain job ids. Select records by `record.name`. The autouse `restore_logging` fixture undoes each app's logging setup after the test.
-- **Real jobs** (`tests/test_csnp_scoring.py`) are marked `tools` and `data`, and skipped where `blastp` or the data sample is missing, as natively on Windows. CI's `api-image` job runs them on amd64, with the image's tools and data. Run them by hand with the API image's tools, by the command in the testing doc.
+- **Real jobs** (`tests/test_csnp_scoring.py`, `tests/test_refmap_data.py`) are marked `tools` and `data`, and skipped where `blastp` or the data is missing, as natively on Windows. CI's `api-image` job runs them: the `refmap` data tests on both architectures, and the `csnp` real jobs on amd64, with the image's tools and data. Run them by hand with the API image's tools, by the command in the testing doc. `tests/test_refmap_jobs.py` runs real `refmap` jobs everywhere, against a made-up data folder written from the engine's golden (`refmap_golden.py`).
 - **Keep a success test beside every failure test.** A test that expects an error also passes when everything fails for another reason.
 
 ## Running It With Docker
 
-- **The data:** the compose `api` service reads the cSNP data from `.data/`. Fetch the sample there first; [docs/testing/engine.md](../docs/testing/engine.md), "The cSNP Data Sample", says how.
+- **The data:** the compose `api` service reads the cSNP data and the refmap data from `.data/`. Fetch them there first; [docs/testing/engine.md](../docs/testing/engine.md), "The cSNP Data Sample", and [docs/testing/api.md](../docs/testing/api.md), "The refmap Data", say how.
 - **In Git Bash, start a `docker run` line with `MSYS_NO_PATHCONV=1`.** Otherwise Git Bash rewrites container paths such as `/data` into Windows paths, and every `csnp` job fails with the generic error.
 - **Check that the image was loaded.** If `docker build` warns that the result stays in the build cache, `docker run` starts an older image. Build with `docker buildx build --load`.
 - **Don't disturb a developer's running API.** An agent, or a script, testing the image should run it with `docker run` on another port, such as 8001. Never `docker compose down`, `stop` or `up` the repository's project, which may be serving the developer's frontend on port 8000.

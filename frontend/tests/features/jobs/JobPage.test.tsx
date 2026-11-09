@@ -122,11 +122,11 @@ describe('the job page', () => {
     expect(resultRows()).toEqual(toolsResult.tools.map(tool => [tool.name, tool.version]))
     expect(main().getByText(/1\.5 s/)).toBeInTheDocument()
     expect(main().getByRole('heading', { name: /versions/i })).toBeInTheDocument()
+    // A tools job reads no data, so the API gives it no data versions.
     expect(jobVersions()).toEqual([
       ['API', versions.api],
       ['Engine', versions.engine],
       ...versions.tools.map(tool => [tool.name, tool.version]),
-      ['csnp data', 'PANTHER 9'],
     ])
   })
 

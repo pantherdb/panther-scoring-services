@@ -1,5 +1,5 @@
 import type { components } from '../../app/api/schema'
-import { versions } from './versions'
+import { jobVersions, versions } from './versions'
 
 // Mocked job bodies, as the API sends them. Also read by the @mock e2e spec, so
 // keep to type imports and relative imports.
@@ -36,8 +36,9 @@ const CREATED_AT = '2026-10-29T12:00:00.000Z'
 const STARTED_AT = '2026-10-29T12:00:00.020Z'
 const FINISHED_AT = '2026-10-29T12:00:01.520Z'
 
-// The times and error a job has in the given status.
-function jobFields(id: string, status: JobStatus) {
+// The times and error a job has in the given status, and its versions, with only its
+// service's data, as the API gives them.
+function jobFields(id: string, status: JobStatus, service: string) {
   const started = status !== 'queued'
   const finished = status === 'succeeded' || status === 'failed'
   return {
@@ -47,14 +48,14 @@ function jobFields(id: string, status: JobStatus) {
     started_at: started ? STARTED_AT : null,
     finished_at: finished ? FINISHED_AT : null,
     error: status === 'failed' ? jobError : null,
-    versions,
+    versions: jobVersions(service),
   }
 }
 
 /** A tools job in the given status, with the fields that status has. */
 export function toolsJob(id: string, status: JobStatus): ToolsJob {
   return {
-    ...jobFields(id, status),
+    ...jobFields(id, status, 'tools'),
     service: 'tools',
     result: status === 'succeeded' ? toolsResult : null,
   }
@@ -83,34 +84,56 @@ export const csnpResult: CsnpResult = {
 /** A csnp job in the given status, with the mock result once it has succeeded. */
 export function csnpJob(id: string, status: JobStatus): CsnpJob {
   return {
-    ...jobFields(id, status),
+    ...jobFields(id, status, 'csnp'),
     service: 'csnp',
     result: status === 'succeeded' ? csnpResult : null,
   }
 }
 
-// The made-up PANTHER ID for one ID: from the sum of its character codes, so the same ID
-// always gets the same answer, and about a third get none.
+/**
+ * The form's example, six IDs of ENDPU's own test list, mapped as the legacy `map_panther.pl`
+ * mapped them (engine/tests/golden/refmap/out/test_geneList.out): three to subfamilies, two to
+ * families, and one to no PANTHER ID. The mocks give these real answers for these IDs.
+ */
+export const EXAMPLE_MAPPINGS: Readonly<Record<string, string | null>> = {
+  U1G4Q5: 'PTHR11360:SF130',
+  U1GCA1: 'PTHR21058:SF0',
+  U1HRR6: 'PTHR42765:SF2',
+  U1GLV9: 'PTHR28011',
+  U1GJ40: 'PTHR13401',
+  U1HQ27: null,
+}
+
+// The PANTHER ID for one ID: the golden's for the example's IDs; otherwise made up from the
+// sum of its character codes, so the same ID always gets the same answer, and about a third
+// get none.
 function mockPantherId(id: string): string | null {
+  if (Object.hasOwn(EXAMPLE_MAPPINGS, id)) return EXAMPLE_MAPPINGS[id] ?? null
   let sum = 0
   for (let i = 0; i < id.length; i += 1) sum += id.charCodeAt(i)
   return sum % 3 === 0 ? null : `PTHR00000:SF${sum % 10}`
 }
 
 /**
- * MOCK DATA, not a mapping. No engine or classification file produced it: PTHR00000 is no
+ * MOCK DATA, not a mapping, except for the example's six IDs (EXAMPLE_MAPPINGS), whatever the
+ * organism. For any other ID, no engine or classification file produced it: PTHR00000 is no
  * PANTHER family, and whether an ID maps is decided by its characters alone. One mapping per
  * ID, in order, repeats included, as the API returns them.
  */
-export function refmapResult(ids: readonly string[]): RefmapResult {
-  return { mappings: ids.map(id => ({ id, panther_id: mockPantherId(id) })) }
+export function refmapResult(ids: readonly string[], organism = 'ENDPU'): RefmapResult {
+  return { organism, mappings: ids.map(id => ({ id, panther_id: mockPantherId(id) })) }
 }
 
-/** A refmap job in the given status, mapping `ids` once it has succeeded. */
-export function refmapJob(id: string, status: JobStatus, ids: readonly string[] = []): RefmapJob {
+/** A refmap job in the given status, mapping `ids` against `organism` once it has succeeded. */
+export function refmapJob(
+  id: string,
+  status: JobStatus,
+  ids: readonly string[] = [],
+  organism = 'ENDPU'
+): RefmapJob {
   return {
-    ...jobFields(id, status),
+    ...jobFields(id, status, 'refmap'),
     service: 'refmap',
-    result: status === 'succeeded' ? refmapResult(ids) : null,
+    result: status === 'succeeded' ? refmapResult(ids, organism) : null,
   }
 }

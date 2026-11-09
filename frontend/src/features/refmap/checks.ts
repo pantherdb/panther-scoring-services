@@ -20,12 +20,16 @@ const MOST_NAMED = 10
 
 const number = new Intl.NumberFormat('en-US')
 
-/** Checks the organism, trimmed, as it will be sent. Only its shape: there's no list yet. */
-export function checkOrganism(text: string): string[] {
+/**
+ * Checks the organism, trimmed, as it will be sent. `codes` is the API's organism list, once it
+ * has loaded: the same codes the API accepts. Without it, only the shape is checked here.
+ */
+export function checkOrganism(text: string, codes?: ReadonlySet<string>): string[] {
   const organism = text.trim()
-  if (organism === '') return ['Enter a UniProt species code, such as HUMAN.']
+  if (codes) return codes.has(organism) ? [] : ['Choose an organism from the list.']
+  if (organism === '') return ['Enter the UniProt species code of an organism, such as ENDPU.']
   if (!ORGANISM.test(organism)) {
-    return ['Use a UniProt species code of 1 to 5 upper-case letters or digits, such as HUMAN.']
+    return ['Use a UniProt species code of 1 to 5 upper-case letters or digits, such as ENDPU.']
   }
   return []
 }
@@ -65,11 +69,18 @@ export function checkIds({ ids, lines }: SplitIds): string[] {
   ]
 }
 
-/** Every field's errors; a field with none is left out. `split` is the IDs box, split. */
-export function checkDraft(values: RefmapValues, split: SplitIds): DraftErrors['fields'] {
+/**
+ * Every field's errors; a field with none is left out. `split` is the IDs box, split; `codes`
+ * as for `checkOrganism`.
+ */
+export function checkDraft(
+  values: RefmapValues,
+  split: SplitIds,
+  codes?: ReadonlySet<string>
+): DraftErrors['fields'] {
   const errors: DraftErrors['fields'] = {}
   const ids = checkIds(split)
-  const organism = checkOrganism(values.organism)
+  const organism = checkOrganism(values.organism, codes)
   if (ids.length > 0) errors.ids = ids
   if (organism.length > 0) errors.organism = organism
   return errors

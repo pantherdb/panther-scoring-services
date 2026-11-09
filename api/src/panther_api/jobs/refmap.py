@@ -5,20 +5,36 @@ The input rules are openspec's `scoring-input`. The legacy website posted its in
 design.md of `add-refmap-job` gives the legacy line for each, and
 `docs/parity/refmap-legacy-behaviour.md` the quirks. No message quotes the submitted value.
 
-The result mirrors the dataclasses proposed for the engine's `panther_engine.refmap`, field for
-field. Until the engine maps IDs, the API answers a valid request with a 501, and nothing builds
-a result. A worker process imports this module, so keep its imports light and set up no state at
-import time.
+The result mirrors the engine's `panther_engine.refmap.RefmapResult`, field for field, and
+`run_refmap` calls the engine's `map_ids` in a worker. A worker process imports this module, so
+keep its imports light. Its import-time state is the engine's organism list and what checks the
+input: the compiled patterns and `ProteinId`'s `TypeAdapter`. None of it depends on the
+environment.
 """
 
-from typing import Annotated
+import re
+from typing import Annotated, Any, cast
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
+from panther_engine import refmap as engine
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    TypeAdapter,
+    ValidationError,
+    ValidatorFunctionWrapHandler,
+    WrapValidator,
+)
+from pydantic_core import InitErrorDetails, to_json
 
 from panther_api.jobs.fields import (
     LONGEST_SPECIES_CODE,
+    MOST_FIELD_ERRORS,
     PRINTABLE,
     SPECIES_CODE,
+    Unlisted,
     count,
     schema_pattern,
 )
@@ -30,11 +46,11 @@ LONGEST_ID = 64
 
 
 def _check_organism(value: str) -> str:
-    """A UniProt species mnemonic: the last `_` part of the legacy organism's long name."""
-    if not SPECIES_CODE.fullmatch(value):
+    """One of the engine's organisms: the UniProt species mnemonic ending its long name. The shape
+    is checked first, so no other value is looked up."""
+    if not SPECIES_CODE.fullmatch(value) or value not in engine.ORGANISM_CODES:
         raise ValueError(
-            "The organism must be a UniProt species code of 1 to 5 upper-case letters or "
-            "digits, such as HUMAN."
+            "The organism must be the code of an organism refmap maps for, such as ENDPU."
         )
     return value
 
@@ -57,6 +73,66 @@ ProteinId = Annotated[
     AfterValidator(_check_id),
     Field(json_schema_extra={"pattern": schema_pattern(PRINTABLE)}),
 ]
+_PROTEIN_ID: TypeAdapter[str] = TypeAdapter(ProteinId)
+
+VALID_ID = re.compile(rf"[!-~]{{1,{LONGEST_ID}}}")
+"""What `ProteinId` accepts, in one pattern: PRINTABLE's characters, 1 to LONGEST_ID of them.
+Use with `fullmatch`. tests/test_refmap_input.py checks the two agree."""
+
+# The JSON types Pydantic never accepts as a string. A list holding anything else, such as bytes,
+# which it does accept, is left to Pydantic, so the fast path can't reject what it would take.
+_NOT_STRINGS = frozenset({int, float, bool, type(None), list, dict})
+
+
+def _check_ids(value: Any, handler: ValidatorFunctionWrapHandler) -> list[str]:
+    """Check every ID in one pass, and raise at most MOST_FIELD_ERRORS errors (#41).
+
+    Pydantic's own check builds an error for every bad ID before the 422 can list only the first
+    100: about 0.9 s on the event loop for 100,000. Here a list of the right length is checked
+    against VALID_ID in one pass. A valid list is returned as it is. A list with bad IDs gets the
+    errors Pydantic would give for the first MOST_FIELD_ERRORS of them, each from `ProteinId`
+    itself at its index; when there are more, the last one's `input` says how many
+    (`Unlisted`), so the 422's `detail` still gives the total. Anything else, such as a list of
+    the wrong length, or an item of a type Pydantic might take as a string, is Pydantic's.
+    """
+    if not isinstance(value, list):
+        return handler(value)
+    items = cast(list[object], value)
+    if not 1 <= len(items) <= MOST_IDS:
+        return handler(value)
+    bad = [
+        index
+        for index, item in enumerate(items)
+        if type(item) is not str or not VALID_ID.fullmatch(item)
+    ]
+    if not bad:
+        return cast(list[str], items)
+    if any(
+        type(items[index]) is not str and type(items[index]) not in _NOT_STRINGS for index in bad
+    ):
+        return handler(value)
+    listed = bad[:MOST_FIELD_ERRORS]
+    errors: list[InitErrorDetails] = []
+    for index in listed:
+        try:
+            _PROTEIN_ID.validate_python(items[index])
+        except ValidationError as error:
+            for item in error.errors(include_url=False):
+                details = InitErrorDetails(
+                    type=item["type"], loc=(index, *item["loc"]), input=item["input"]
+                )
+                if "ctx" in item:
+                    details["ctx"] = item["ctx"]
+                errors.append(details)
+    if len(errors) != len(listed):
+        # VALID_ID and ProteinId disagree on an item: let Pydantic check every item, rather than
+        # list too few errors or miscount the rest.
+        return handler(value)
+    if len(bad) > len(listed):
+        errors[-1]["input"] = Unlisted(len(bad) - len(listed))
+    raise ValidationError.from_exception_data("ids", errors)
+
+
 Organism = Annotated[
     str,
     AfterValidator(_check_organism),
@@ -72,15 +148,18 @@ Organism = Annotated[
 class RefmapInput(BaseModel):
     """One organism, and the IDs to map to PANTHER IDs in it.
 
-    `organism` is a UniProt species code such as `HUMAN`. `ids` are the protein IDs, such as
-    UniProt accessions, each looked up exactly as given: not trimmed, not upper-cased, and
-    repeated IDs each get their own mapping, in order.
+    `organism` is the code of an organism refmap maps for, such as `ENDPU`. `ids` are the protein
+    IDs, such as UniProt accessions, each looked up exactly as given: not trimmed, not
+    upper-cased, and repeated IDs each get their own mapping, in order.
     """
 
     model_config = ConfigDict(extra="forbid")
 
     organism: Organism
-    ids: Annotated[list[ProteinId], Field(min_length=1, max_length=MOST_IDS)]
+    # The schema comes from `list[ProteinId]`; _check_ids checks it faster, with the same errors.
+    ids: Annotated[
+        list[ProteinId], Field(min_length=1, max_length=MOST_IDS), WrapValidator(_check_ids)
+    ]
 
     def log_summary(self) -> str:
         """The input's size for the log: the organism and a count, never the IDs."""
@@ -97,7 +176,28 @@ class IdMapping(BaseModel):
     panther_id: str | None
 
 
+# The schema's model. A job's result is serialised from the engine's own result (`run_refmap`),
+# which has the same fields, so no models are built for it.
 class RefmapResult(BaseModel):
-    """One mapping per submitted ID, in the order submitted, repeated IDs included."""
+    """The organism mapped against, and one mapping per submitted ID, in the order submitted,
+    repeated IDs included."""
 
+    organism: str
     mappings: list[IdMapping]
+
+
+def run_refmap(request: RefmapInput) -> bytes:
+    """Map the IDs with the engine, and return the result as a `RefmapResult`'s JSON. Runs in a
+    worker process, never on the event loop.
+
+    The engine's result is serialised as it is: its frozen dataclasses have `RefmapResult`'s
+    fields, in its order, so the bytes are the same as the model's, without building 100,000
+    models first (tests/test_refmap_jobs.py compares them).
+
+    The engine reads its data folder from `PANTHER_DATA_DIR`, which a worker inherits. Its
+    exceptions pass through: the input was checked here first, so the engine's `ValueError` is a
+    bug, and it, a missing data file (`MissingDataError`) and an unset `PANTHER_DATA_DIR`
+    (`DataFolderError`) fail the job with the generic 500.
+    """
+    result = engine.map_ids(engine.RefmapInput(organism=request.organism, ids=tuple(request.ids)))
+    return to_json(result)

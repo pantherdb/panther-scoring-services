@@ -40,6 +40,7 @@ With the dev server running:
 - `http://localhost:8000/api/v1/health` returns `{"status":"ok"}`.
 - `http://localhost:8000/api/v1/versions` returns the API, engine and tool versions. Run natively, every tool's `version` is `null`, because the external tools are only in the image.
 - `http://localhost:8000/api/v1/csnp/species` returns the species a `csnp` job accepts, with their names. See [The Species List](#the-species-list).
+- `http://localhost:8000/api/v1/refmap/organisms` returns the organisms a `refmap` job maps for, with their names and gene counts. See [The Organism List](#the-organism-list).
 - `http://localhost:8000/api/v1/docs` is the interactive documentation.
 - `http://localhost:8000/api/v1/openapi.json` is the schema.
 - `POST http://localhost:8000/api/v1/jobs` starts a job, and `GET http://localhost:8000/api/v1/jobs/{id}` polls it. See [Try the Jobs by Hand](#try-the-jobs-by-hand).
@@ -52,6 +53,7 @@ The API reads its settings from environment variables when it starts. An invalid
 | -------- | ------- | ----- | ------------ |
 | `PANTHER_API_JOB_WORKERS` | `2` | an integer ≥ 1 | Worker processes that run jobs. Jobs beyond that wait as `queued` |
 | `PANTHER_API_JOB_EXPIRY_SECONDS` | `86400` (24 hours) | an integer ≥ 1 | How long a finished job is kept. After that, polling it gets a 404 |
+| `PANTHER_API_RESULTS_BUDGET_MIB` | `256` | an integer ≥ 1 | The memory the finished jobs' results may take, in MiB, each counted by the size of its JSON. When a finishing job takes them over it, the largest results expire first, the oldest first among equal sizes, before their time; failed jobs free nothing, so they stay. A result larger than the budget on its own is still kept, after every other result. See [Limits](#limits) |
 | `PANTHER_API_MAX_QUEUED_JOBS` | `50` | an integer ≥ 0 | Jobs that may wait for a worker. Past that, a submission gets a `503` and no job is created. See [Limits](#limits) |
 | `PANTHER_API_MAX_BODY_BYTES` | `16777216` (16 MiB) | an integer ≥ 1 | The largest request body accepted. A larger one gets a `413`. See [Limits](#limits) |
 | `PANTHER_API_CORS_ORIGINS` | empty | comma-separated origins, such as `https://pantherdb.github.io`: a scheme and host, with no path, `*` or trailing `/` | The browser origins allowed to call the API from another site. Empty adds no CORS headers. See [CORS](#cors) |
@@ -59,7 +61,7 @@ The API reads its settings from environment variables when it starts. An invalid
 
 Set one for the native dev server with, for example, `PANTHER_API_JOB_WORKERS=1 uv run fastapi dev --port 8000`, and for the image with `docker run -e PANTHER_API_JOB_WORKERS=1 …`. The compose `api` service sets none, so it uses the defaults. Jobs are kept in memory, and are lost when the API restarts.
 
-At startup, the API checks the cSNP data folder with the engine's `check_data()`. If `PANTHER_DATA_DIR` isn't set, or the folder lacks part of the data, it logs an error such as `csnp jobs will fail until the cSNP data is in place: the cSNP data folder … lacks: …`, and starts anyway: everything but a `csnp` job works without the data. Natively without the data, expect that line.
+At startup, the API checks each service's data with the engine's `check_data()`: the cSNP data and the refmap data. If `PANTHER_DATA_DIR` isn't set, or the folder lacks part of a service's data, it logs an error for that service, such as `csnp jobs will fail until the cSNP data is in place: the cSNP data folder … lacks: …` or `refmap jobs will fail until the refmap data is in place: the refmap data folder … lacks 1,534 of 1,534 files: …`, and starts anyway: everything but that service's jobs works without it. The checks are independent, so one service's missing data doesn't stop the other's jobs. Natively without the data, expect both lines.
 
 ### CORS
 
@@ -72,10 +74,11 @@ curl -si -X OPTIONS http://localhost:8000/api/v1/jobs -H 'Origin: https://panthe
 
 ### Limits
 
-Two limits protect the API's memory and its queue. Both answer with problem details, in fixed text that never repeats the request:
+Three limits protect the API's memory and its queue. The first two answer with problem details, in fixed text that never repeats the request:
 
 - **A body over `PANTHER_API_MAX_BODY_BYTES` gets a `413`,** "The request body is larger than the API accepts, 16,777,216 bytes.", before it's parsed. A `Content-Length` over the limit is refused without reading the body; a body without one is refused as soon as it passes the limit. The default fits the largest valid request, a `refmap` job of 100,000 IDs of 64 characters, about 13 MB of JSON.
 - **A job that would wait past `PANTHER_API_MAX_QUEUED_JOBS` gets a `503`,** "Too many jobs are waiting to run. Try again later.", with `Retry-After: 30`, and no job is created. Up to `PANTHER_API_JOB_WORKERS` jobs run, and up to the cap wait. A request is validated first, so an invalid one is still a `422`.
+- **The finished jobs' results fit in `PANTHER_API_RESULTS_BUDGET_MIB`.** Each result is counted by the size of its JSON when its job finishes: about 4 MB for a `refmap` job of 100,000 IDs, a few kilobytes for a `csnp` job. A failed job counts nothing, and stays until its time. When a finishing job takes the total over the budget, the largest results expire first, the oldest first among equal sizes, before their 24 hours, so a burst of large jobs expires its own results rather than everyone's small ones. Polling an expired job gets the `404` any expired job gets. The default, 256 MiB, holds about 50 of the largest `refmap` jobs; the server sets the value that suits it. A `refmap` result is kept as the JSON its worker made, and a poll returns those bytes as they are.
 
 To see the `503`, start the dev server with one worker and no waiting allowed, then submit two `tools` jobs at once:
 
@@ -103,7 +106,7 @@ What each level writes:
 | `DEBUG` | Everything below, plus a line when each job is submitted, and every request |
 | `INFO` | One line per job when it finishes, with its service, the size of its input, its status, its wait and its run time. Every request except the routine ones below |
 | `WARNING` | Submissions refused because the queue is full, with the number of jobs and the cap, at most once a minute |
-| `ERROR` | A job that failed unexpectedly or whose worker died, and a startup without the cSNP data |
+| `ERROR` | A job that failed unexpectedly or whose worker died, and a startup without a service's data |
 
 - **Routine requests are left out below `DEBUG`:** a health check (`GET /api/v1/health`) or a poll (`GET /api/v1/jobs/{id}`) answered with a 2xx. A failed health check, a poll that gets a `404`, and every submission are logged. A submission's line is the only one at `INFO` with the client's address.
 - **The client's address is the one the API sees:** behind a proxy, the proxy's, unless Uvicorn trusts the proxy's forwarded headers. `fastapi run` trusts them from `127.0.0.1` only; set `FORWARDED_ALLOW_IPS` to the proxy's address to trust it. That's the server's setting (#34).
@@ -124,14 +127,14 @@ docker compose down                    # remove the container
 ```
 
 - **It's for the frontend to call,** through its dev proxy, with the real tools: `/api/v1/versions` then reports each tool's pinned version. It has no source mount and no reload, so rerun with `--build` after changing `api/` or `engine/`. Develop the API itself with the native dev server above.
-- **It reads the data folder,** `.data/` at the repository root, mounted read-only at `/data` with `PANTHER_DATA_DIR=/data`, as the `engine` service does. `csnp` jobs need the cSNP data sample there: see [The Data Sample](#the-data-sample).
+- **It reads the data folder,** `.data/` at the repository root, mounted read-only at `/data` with `PANTHER_DATA_DIR=/data`, as the `engine` service does. `csnp` jobs need the cSNP data sample there, and `refmap` jobs the refmap data: see [The Data Sample](#the-data-sample) and [The refmap Data](#the-refmap-data).
 - **Both use port 8000.** Run one at a time.
 - **Name the service.** A bare `docker compose up` also runs the `engine` service's checks.
 - **To wait for it in a script,** use `curl --retry 30 --retry-all-errors --retry-delay 1 localhost:8000/api/v1/health`. Docker's port proxy accepts the connection before the app listens, so the first requests get an empty reply, not a refused connection, and `--retry-connrefused` doesn't retry them. CI's `api-image` job waits this way.
 
 ## Try the Jobs by Hand
 
-There are two jobs: the built-in `tools` job, and `csnp`, which scores coding SNPs ([below](#the-csnp-job)). A `refmap` request is validated, then refused with a `501` until its mapping is ported ([The refmap Job](#the-refmap-job)). In a `tools` job, a worker process runs the engine's tool report and returns each tool's version. It checks that the API, the worker pool, the engine and the tools work together. Start the API in the image, so the tools are there, from the repository root:
+There are three jobs: the built-in `tools` job, `csnp`, which scores coding SNPs ([below](#the-csnp-job)), and `refmap`, which maps protein IDs to PANTHER IDs ([The refmap Job](#the-refmap-job)). In a `tools` job, a worker process runs the engine's tool report and returns each tool's version. It checks that the API, the worker pool, the engine and the tools work together. Start the API in the image, so the tools are there, from the repository root:
 
 ```sh
 docker compose up --build api
@@ -168,11 +171,11 @@ A finished job looks like this:
     ]
   },
   "error": null,
-  "versions": { "api": "0.1.0", "engine": "0.1.0", "tools": ["… as GET /api/v1/versions …"], "data": [{ "service": "csnp", "panther": "9" }] }
+  "versions": { "api": "0.1.0", "engine": "0.1.0", "tools": ["… as GET /api/v1/versions …"], "data": [] }
 }
 ```
 
-`versions.data` names the PANTHER release each service's data comes from: cSNP's frozen PANTHER 9 data. It's the release the engine reads, read from the engine at startup, not a check that the data is there.
+`GET /api/v1/versions` lists, in `data`, the PANTHER release each service's data comes from: cSNP's frozen PANTHER 9 data and refmap's PANTHER 19. It's the release the engine reads, read from the engine at startup, not a check that the data is there. A job's `versions.data` has only its own service's entry, such as `[{ "service": "refmap", "panther": "19" }]` for a `refmap` job, and a `tools` job, which reads no data, has none.
 
 What else to try:
 
@@ -293,27 +296,72 @@ curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
 
 ### The refmap Job
 
-A `refmap` job will map protein IDs, such as UniProt accessions, to PANTHER IDs for one organism. Its contract and input rules are in `openspec/specs/scoring-jobs/` and `openspec/specs/scoring-input/`, and the engine doesn't map yet. So a valid request gets a `501` problem, and no job is created:
+A `refmap` job maps protein IDs, such as UniProt accessions, to PANTHER IDs for one organism, with the engine's port of `map_panther.pl`: a worker reads the organism's classification file. Its contract and input rules are in `openspec/specs/scoring-jobs/` and `openspec/specs/scoring-input/`.
+
+#### The refmap Data
+
+The API reads the refmap data, PANTHER 19's generic mapping release, from `PANTHER_DATA_DIR`, under `refmap/19/`: one classification file per organism, and `stats`, 1,534 files, 523 MB. The compose `api` service mounts `.data/` there, so fetch the data into `.data/` once, from `engine/`. It downloads 157 MB; run again, it downloads nothing and checks the files:
+
+```sh
+uv run panther-engine refmap data fetch --data-dir ../.data
+uv run panther-engine refmap data verify --data-dir ../.data    # checks every file against the manifest
+```
+
+Without it, every `refmap` job fails with the generic `500`, and the API logs why at startup ([Settings](#settings)).
+
+#### The Organism List
+
+`GET /api/v1/refmap/organisms` lists the 1,533 organisms a `refmap` job's `organism` may name, in the engine's order (by code), each with its name and its gene counts: the genes in its classification file, and how many of them have a PANTHER ID. The form's organism selector reads it. It needs no data, so it works natively too:
+
+```sh
+curl -si localhost:8000/api/v1/refmap/organisms
+```
+
+ENDPU's entry is among them:
+
+```json
+{ "code": "ENDPU", "name": "Endocarpon pusillum", "genes": 9228, "genes_with_panther_id": 7665 }
+```
+
+The response has `Cache-Control: public, max-age=3600`: the list changes only with a new image. PANTHER's own 143 genomes, such as `HUMAN`, aren't in the generic mapping data, so they aren't listed (#52).
+
+#### A Job That Maps
+
+The form's example, six IDs from the release's own test list for the lichen *Endocarpon pusillum*, from the repository root:
 
 ```sh
 curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
-  -d '{"service": "refmap", "input": {"organism": "HUMAN", "ids": ["P04217", "P01023"]}}'
+  -d '{"service": "refmap", "input": {"organism": "ENDPU", "ids": ["U1G4Q5", "U1GCA1", "U1HRR6", "U1GLV9", "U1GJ40", "U1HQ27"]}}'
+curl -s localhost:8000/api/v1/jobs/<id>
 ```
+
+The job takes under a second once a worker has started. Its `result` names the organism, and gives one mapping per ID, in the order submitted, as `map_panther.pl` gives them (`engine/tests/golden/refmap/out/test_geneList.out`): three subfamilies, two families, and an ID with no PANTHER ID, whose `panther_id` is `null` where the legacy service said `NOHIT`:
 
 ```json
 {
-  "type": "about:blank",
-  "title": "Not Implemented",
-  "status": 501,
-  "detail": "refmap ID mapping isn't available yet."
+  "organism": "ENDPU",
+  "mappings": [
+    { "id": "U1G4Q5", "panther_id": "PTHR11360:SF130" },
+    { "id": "U1GCA1", "panther_id": "PTHR21058:SF0" },
+    { "id": "U1HRR6", "panther_id": "PTHR42765:SF2" },
+    { "id": "U1GLV9", "panther_id": "PTHR28011" },
+    { "id": "U1GJ40", "panther_id": "PTHR13401" },
+    { "id": "U1HQ27", "panther_id": null }
+  ]
 }
 ```
 
-An invalid request still gets the `422` validation problem first, without the submitted values. `organism` must be the shape of a UniProt species code, 1 to 5 upper-case letters or digits; whether the engine has the organism is checked once it exports its list. Each of `ids` must be 1 to 64 printable ASCII characters with no whitespace, and there can be up to 100,000. A `422` lists at most the first 100 failing fields, for any service; when there are more, its `detail` says how many there were in all, such as "Request validation failed: 100,000 fields are invalid, and the first 100 are listed." Here the organism is a long name and the second ID holds two:
+Each ID is looked up exactly as given, not trimmed or upper-cased, and a repeated ID gets a mapping each time. An ID the organism doesn't have is a `null` mapping, not an error. A job of 100,000 IDs runs in about 3 seconds, and its result is kept as about 4 MB of JSON, within the results budget ([Limits](#limits)).
+
+#### Requests That Are Refused (refmap)
+
+An invalid request gets the `422` validation problem, without the submitted values, and no job is created. `organism` must be one of the codes [the organism list](#the-organism-list) gives (`panther_engine.refmap.ORGANISM_CODES`): `HUMAN`, though of the right shape, gets "The organism must be the code of an organism refmap maps for, such as ENDPU." on `organism`. Each of `ids` must be 1 to 64 printable ASCII characters with no whitespace, and there can be up to 100,000.
+
+A `422` lists at most the first 100 failing fields, for any service; when there are more, its `detail` says how many there were in all, such as "Request validation failed: 100,000 fields are invalid, and the first 100 are listed." A list of 100,000 bad IDs is checked in one pass, so its `422` takes about as long as a valid list's (#41). Here the organism is `HUMAN` and the second ID holds two:
 
 ```sh
 curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
-  -d '{"service": "refmap", "input": {"organism": "Homo_sapiens_HUMAN", "ids": ["P04217", "P04217 P01023"]}}'
+  -d '{"service": "refmap", "input": {"organism": "HUMAN", "ids": ["P04217", "P04217 P01023"]}}'
 ```
 
 ```json
@@ -323,7 +371,7 @@ curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
   "status": 422,
   "detail": "Request validation failed",
   "errors": [
-    { "loc": ["body", "refmap", "input", "organism"], "msg": "The organism must be a UniProt species code of 1 to 5 upper-case letters or digits, such as HUMAN.", "type": "value_error" },
+    { "loc": ["body", "refmap", "input", "organism"], "msg": "The organism must be the code of an organism refmap maps for, such as ENDPU.", "type": "value_error" },
     { "loc": ["body", "refmap", "input", "ids", 1], "msg": "Each ID must be 1 to 64 printable ASCII characters, with no spaces, such as P04217.", "type": "value_error" }
   ]
 }
@@ -345,7 +393,7 @@ On Windows, the export writes CRLF line endings. Git stores the file with LF (`.
 
 ## Tests (pytest)
 
-Tests live in `tests/` and call the app through FastAPI's `TestClient`, so no server needs to be running. Only the tests in `tests/test_csnp_scoring.py` need the tools and data; see [Tests With the Tools and Data](#tests-with-the-tools-and-data).
+Tests live in `tests/` and call the app through FastAPI's `TestClient`, so no server needs to be running. Only the tests in `tests/test_csnp_scoring.py` and `tests/test_refmap_data.py` need the tools or data; see [Tests With the Tools and Data](#tests-with-the-tools-and-data).
 
 - **The `client` fixture** in `tests/conftest.py` gives a client for a fresh app.
 - **`TestClient` is built on `httpx2`, not `httpx`** (Starlette 1.x). Type a test's responses as `httpx2.Response`; `httpx.Response` fails the type check. `fastapi[standard]` installs both.
@@ -365,13 +413,15 @@ uv run pytest -k "outside_the_prefix"
 
 `tests/test_csnp_scoring.py` runs real `csnp` jobs end to end: the API, a `spawn` worker, the engine, `blastp` and the cSNP data sample. It submits the release sample's three proteins with their substitutions, and checks each job's scores against the engine's goldens (`engine/tests/golden/csnp/`, spec §7.3). It submits the form's example, human APOE, as the form sends it, and checks its four scores against the legacy scripts' (`example/apoe.out`). It also checks a species with no hit and a sequence `blastp` can't read.
 
-Its tests are marked as the engine's are, `tools("blastp")` and `data("csnp")` (`tests/markers.py`):
+`tests/test_refmap_data.py` runs real `refmap` jobs against the refmap data: the form's example, checked against `map_panther.pl`'s golden, and a job of 100,000 of ARAVE's own IDs, checked against the engine, whose kept result must stay under 8 MB and whose poll must take under 2 seconds. It needs no tools. `tests/test_refmap_jobs.py` runs the same kind of jobs everywhere, against a made-up data folder holding only ENDPU's file, written from the golden.
 
-- **Where `blastp` or the sample is missing,** they're skipped with the reason, as natively on Windows and in CI's `api` job. CI's `api-image` job runs them with the image's tools and data, on amd64, with both set, so a change that breaks the example or a sample protein fails CI. It runs the command below, so it tests the checkout's `api/` and `engine/`, not the packages the image ships.
+Their tests are marked as the engine's are, `tools("blastp")`, `data("csnp")` and `data("refmap")` (`tests/markers.py`):
+
+- **Where `blastp` or the data is missing,** they're skipped with the reason, as natively on Windows and in CI's `api` job. CI's `api-image` job runs the `refmap` data tests in the image on both architectures. On amd64, it also runs the real `csnp` jobs with the image's tools and data, with both set, so a change that breaks the example or a sample protein fails CI. It runs the command below, so it tests the checkout's `api/` and `engine/`, not the packages the image ships.
 - **With `PANTHER_REQUIRE_TOOLS=1` and `PANTHER_REQUIRE_DATA=1`,** missing tools or data fail them.
 - **The data folder is `PANTHER_DATA_DIR`,** or `.data/` at the repository root.
 
-To run the whole suite with them, with the API image's tools, which has `blastp` and uv but not the dev tools: from the repository root, with the sample in `.data/`:
+To run the whole suite with them, with the API image's tools, which has `blastp` and uv but not the dev tools: from the repository root, with the cSNP sample and the refmap data in `.data/`:
 
 ```sh
 docker build --target api -t panther-api .
@@ -381,6 +431,6 @@ docker run --rm -v "$PWD/api:/src/api:ro" -v "$PWD/engine:/src/engine:ro" -v "$P
   -w /src/api panther-api sh -c 'uv sync --locked -q && uv run --no-sync pytest -p no:cacheprovider'
 ```
 
-It installs the dev tools into the container's `/tmp`, and writes nothing to the mounts. The seven real jobs took under a minute on CI, `uv sync` included, and about four minutes on a laptop.
+It installs the dev tools into the container's `/tmp`, and writes nothing to the mounts. The seven real `csnp` jobs took under a minute on CI, `uv sync` included, and about four minutes on a laptop; the `refmap` ones take a few seconds.
 
 In Git Bash, start the `docker run` line with `MSYS_NO_PATHCONV=1`. Otherwise Git Bash rewrites container paths such as `/data` into Windows paths, and every `csnp` job fails with the generic error.

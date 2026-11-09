@@ -1,14 +1,23 @@
 import { Alert, Button, Textarea } from '@mantine/core'
 import { type FormEvent, useReducer } from 'react'
 
+import { CodeListField, type CodeListTexts } from '@/components/CodeListField'
 import { FilledFromJob, useEditedInput } from '@/features/jobs'
 
 import { checkDraft } from './checks'
 import { type CsnpField, draftReducer, startingDraft } from './draft'
-import { SpeciesField } from './SpeciesField'
 import { SubmitAlert } from './SubmitAlert'
 import { useCsnpSpecies } from './useCsnpSpecies'
 import { useSubmitCsnp } from './useSubmitCsnp'
+
+const SPECIES_TEXTS: CodeListTexts = {
+  label: 'Species',
+  description: 'Type part of a name or a code to find a species.',
+  loading: 'Loading species…',
+  nothingFound: 'No species matches',
+  failed: 'The list of species couldn’t be loaded. Type a PANTHER species code, such as HUMAN.',
+  retry: 'Load the list of species again',
+}
 
 // The cSNP form: the three fields, the example, and submitting. The client checks run
 // first; the API's errors then land on the same fields.
@@ -68,8 +77,9 @@ export function CsnpForm() {
         classNames={{ input: 'font-mono' }}
         {...field('substitutions')}
       />
-      <SpeciesField
+      <CodeListField
         list={species}
+        texts={SPECIES_TEXTS}
         value={values.species}
         onChange={code => edit('species', code)}
         error={errors.fields.species?.join(' ')}

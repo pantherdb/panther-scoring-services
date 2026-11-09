@@ -279,9 +279,10 @@ jobs:
           docker run --rm -v "$PWD/.data:/data:ro" -e PANTHER_DATA_DIR=/data
           -e PANTHER_REQUIRE_DATA=1 panther-engine:ci uv run --no-sync pytest
 
-  # Builds the API image natively on each architecture, starts it with the cSNP data sample mounted
-  # read-only, checks that the API reports a version for every tool, and runs a real csnp job. On
-  # amd64, it then runs the API's real-job tests with the image's tools and data.
+  # Builds the API image natively on each architecture, runs the API's refmap data tests in it, then
+  # starts it with the cSNP data sample and the refmap data mounted read-only, checks that the API
+  # reports a version for every tool, and runs a real csnp job. On amd64, it then runs the API's
+  # real-job tests with the image's tools and data.
   # engine-image checks the exact pinned versions on the same tools stage.
   api-image:
     name: api-image
@@ -320,6 +321,27 @@ jobs:
         run: >-
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" panther-api:ci
           panther-engine csnp sample fetch --data-dir /fetch
+      # The refmap data, from the cache the engine jobs fill. The fetch runs on every run: on a
+      # hit it downloads nothing and checks the cached files against the manifest, which the
+      # engine jobs do only when engine/ changes.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .data/refmap
+          key: refmap-data-${{ hashFiles('engine/src/panther_engine/refmap/data.json') }}
+      - name: refmap data
+        run: >-
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" panther-api:ci
+          panther-engine refmap data fetch --data-dir /fetch
+      # Only the tests marked data("refmap"), with the data required: the example and a job of
+      # 100,000 IDs against the release. The image has uv but not the dev tools, so they go in the
+      # container's /tmp, and nothing is written to the mounts.
+      - name: refmap data tests
+        run: >-
+          docker run --rm -v "$PWD/api:/src/api:ro" -v "$PWD/engine:/src/engine:ro"
+          -v "$PWD/.data:/data:ro" -e PANTHER_DATA_DIR=/data -e PANTHER_REQUIRE_DATA=1
+          -e UV_PROJECT_ENVIRONMENT=/tmp/venv -e UV_CACHE_DIR=/tmp/uv-cache -e PYTHONDONTWRITEBYTECODE=1
+          -w /src/api panther-api:ci
+          sh -c 'uv sync --locked -q && uv run --no-sync pytest -p no:cacheprovider -v tests/test_refmap_data.py'
       - name: Start the API
         run: >-
           docker run -d --name api -p 8000:8000 -v "$PWD/.data:/data:ro" -e PANTHER_DATA_DIR=/data

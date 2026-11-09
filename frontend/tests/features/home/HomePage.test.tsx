@@ -38,7 +38,7 @@ describe('the home page', () => {
     expect(csnp.queryByText(/coming soon/i)).not.toBeInTheDocument()
   })
 
-  it('links to the refmap form, and marks it coming soon', () => {
+  it('links to the refmap form, with no coming-soon mark', () => {
     renderRoute('/')
 
     const refmap = card(/protein id mapping/i)
@@ -46,7 +46,17 @@ describe('the home page', () => {
       'href',
       '/refmap'
     )
-    expect(refmap.getByText(/coming soon/i)).toBeInTheDocument()
+    expect(refmap.queryByText(/coming soon/i)).not.toBeInTheDocument()
+  })
+
+  it('marks only HMM scoring and tree grafting coming soon', () => {
+    renderRoute('/')
+
+    const marked = main()
+      .getAllByRole('heading', { level: 2 })
+      .filter(heading => within(heading.closest('section')!).queryByText(/coming soon/i))
+      .map(heading => heading.textContent)
+    expect(marked).toEqual(['HMM scoring', 'Tree grafting'])
   })
 
   it.each([

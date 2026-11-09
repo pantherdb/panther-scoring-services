@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 from panther_engine.core.tools import TOOLS, ToolReport
 from panther_engine.csnp import DATA_VERSION as CSNP_DATA_VERSION
+from panther_engine.refmap import DATA_VERSION as REFMAP_DATA_VERSION
 
 from panther_api.main import create_app
 from panther_api.versions import read_versions
@@ -47,18 +48,33 @@ def test_missing_and_unreadable_tools_are_null(monkeypatch: pytest.MonkeyPatch) 
     assert tools == {"blastp": None, "hmmscan": None}
 
 
-def test_read_versions_names_the_engines_csnp_data_version() -> None:
+def test_read_versions_names_each_services_data_version() -> None:
     assert [(item.service, item.panther) for item in read_versions().data] == [
-        ("csnp", CSNP_DATA_VERSION)
+        ("csnp", CSNP_DATA_VERSION),
+        ("refmap", REFMAP_DATA_VERSION),
     ]
-    # The frozen PANTHER 9 data (CLAUDE.md), whatever the engine calls the constant.
-    assert CSNP_DATA_VERSION == "9"
+    # cSNP's frozen PANTHER 9 data (CLAUDE.md), and refmap's PANTHER 19, whatever the engine
+    # calls the constants.
+    assert (CSNP_DATA_VERSION, REFMAP_DATA_VERSION) == ("9", "19")
 
 
 def test_the_data_version_doesnt_need_the_data(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("PANTHER_DATA_DIR", raising=False)
 
-    assert read_versions().data[0].panther == "9"
+    assert [item.panther for item in read_versions().data] == ["9", "19"]
+
+
+@pytest.mark.parametrize(
+    ("service", "data"),
+    [("csnp", [("csnp", "9")]), ("refmap", [("refmap", "19")]), ("tools", [])],
+)
+def test_a_job_carries_only_its_services_data(service: str, data: list[tuple[str, str]]) -> None:
+    versions = read_versions()
+
+    for_job = versions.for_service(service)
+
+    assert [(item.service, item.panther) for item in for_job.data] == data
+    assert for_job.model_dump(exclude={"data"}) == versions.model_dump(exclude={"data"})
 
 
 def test_read_versions_leaves_out_the_paths() -> None:
@@ -79,7 +95,7 @@ def test_versions_lists_every_tool(client: TestClient) -> None:
             {"name": "hmmsearch", "version": "3.4"},
             {"name": "epa-ng", "version": "0.3.8"},
         ],
-        "data": [{"service": "csnp", "panther": "9"}],
+        "data": [{"service": "csnp", "panther": "9"}, {"service": "refmap", "panther": "19"}],
     }
 
 

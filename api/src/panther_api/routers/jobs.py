@@ -11,7 +11,7 @@ from fastapi import APIRouter, Body, HTTPException, Request, Response, status
 from panther_api.jobs.models import JOB_ADAPTER, Job
 from panther_api.jobs.runner import JobRunner, QueueFullError
 from panther_api.jobs.store import JobRecord
-from panther_api.jobs.work import UNAVAILABLE, JobRequest
+from panther_api.jobs.work import UNAVAILABLE, JobRequest, SerializedResult
 from panther_api.problems import Problem
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -59,6 +59,8 @@ def _runner(request: Request) -> JobRunner:
 
 
 def _job(record: JobRecord) -> Job:
+    """The job as a model. A serialised result is left out, as `null`: `_job_json` adds it."""
+    result = None if isinstance(record.result, SerializedResult) else record.result
     return JOB_ADAPTER.validate_python(
         {
             "id": record.id,
@@ -67,11 +69,29 @@ def _job(record: JobRecord) -> Job:
             "created_at": record.created_at,
             "started_at": record.started_at,
             "finished_at": record.finished_at,
-            "result": record.result,
+            "result": result,
             "error": record.error,
             "versions": record.versions,
         }
     )
+
+
+_NULL_RESULT = b'"result":null'
+
+
+def _job_json(record: JobRecord) -> bytes:
+    """The job's JSON. A serialised result's bytes are put in as they are, not validated and
+    serialised again: they're a `RefmapResult`'s, made in the worker (jobs/work.py)."""
+    job = JOB_ADAPTER.dump_json(_job(record))
+    if not isinstance(record.result, SerializedResult):
+        return job
+    # The fields before `result` are the job's id, service, status and times, none of which can
+    # hold this text. Exactly one match is required, so a reordered or new field that could hold
+    # it fails loudly here, and in the tests, rather than splicing into the wrong place.
+    if job.count(_NULL_RESULT) != 1:
+        raise ValueError("the job's JSON doesn't have exactly one null result to replace")
+    before, _, after = job.partition(_NULL_RESULT)
+    return b"".join((before, b'"result":', record.result.json, after))
 
 
 @router.post(
@@ -84,8 +104,7 @@ async def create_job(
 
     An input the job can't run with is a 422, and no job is created. A problem only the work can
     find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid
-    `refmap` request gets a 501 until its mapping is available; its input is still validated first.
-    A valid request is a 503 when too many jobs are already waiting for a worker.
+    request is a 503 when too many jobs are already waiting for a worker.
     """
     unavailable = UNAVAILABLE.get(job_request.service)
     if unavailable is not None:
@@ -102,10 +121,11 @@ async def create_job(
     return _job(record)
 
 
-@router.get("/{job_id}", summary="A job's status and result")
-async def get_job(job_id: str, request: Request) -> Job:
+# The response is built by _job_json, so FastAPI documents `Job` but doesn't serialise it again.
+@router.get("/{job_id}", summary="A job's status and result", response_model=Job)
+async def get_job(job_id: str, request: Request) -> Response:
     """The job's current state. An unknown, invalid or expired id is a 404."""
     record = _runner(request).store.get(job_id)
     if record is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=JOB_NOT_FOUND)
-    return _job(record)
+    return Response(_job_json(record), media_type="application/json")

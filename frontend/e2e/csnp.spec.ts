@@ -5,7 +5,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { csnpResult } from '../src/mocks/data/jobs'
 import { species as mockedSpecies } from '../src/mocks/data/species'
-import { versions as mockedVersions } from '../src/mocks/data/versions'
+import { jobVersions } from '../src/mocks/data/versions'
 import { expectNoSidewaysScroll } from './layout'
 
 const BUILD_DETAILS = /localhost|127\.0\.0\.1|:\d{4,5}\b|VITE_|API_PROXY|npm |npx /
@@ -108,8 +108,8 @@ test(
     await expect(main.getByRole('term')).toHaveText([
       'API',
       'Engine',
-      ...mockedVersions.tools.map(tool => tool.name),
-      ...mockedVersions.data.map(data => `${data.service} data`),
+      ...jobVersions('csnp').tools.map(tool => tool.name),
+      ...jobVersions('csnp').data.map(data => `${data.service} data`),
     ])
     await expectNoBuildDetails(page)
     await expectNoSidewaysScroll(page)

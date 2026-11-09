@@ -94,7 +94,7 @@ The setup is in [docs/testing/api.md](../docs/testing/api.md), "Tests (pytest)".
 - **The autouse `fake_tools` fixture** fakes the engine's tool report, so tests pass with or without the tools installed.
 - **`TestClient` doesn't go through Uvicorn,** so there's no access log. A test of the request log serves the app with a real Uvicorn server on a free port (`tests/serving.py`).
 - **The root logger is at `INFO` once an app has started,** so `caplog` also captures the test client's own request lines, which contain job ids. Select records by `record.name`. The autouse `restore_logging` fixture undoes each app's logging setup after the test.
-- **Real jobs** (`tests/test_csnp_scoring.py`, `tests/test_refmap_data.py`) are marked `tools` and `data`, and skipped where `blastp` or the data is missing, as natively on Windows. Run them in the API image, by the command in the testing doc. `tests/test_refmap_jobs.py` runs real `refmap` jobs everywhere, against a made-up data folder written from the engine's golden (`refmap_golden.py`).
+- **Real jobs** (`tests/test_csnp_scoring.py`, `tests/test_refmap_data.py`) are marked `tools` and `data`, and skipped where `blastp` or the data is missing, as natively on Windows. CI's `api-image` job runs them: the `refmap` data tests on both architectures, and the `csnp` real jobs on amd64, with the image's tools and data. Run them by hand with the API image's tools, by the command in the testing doc. `tests/test_refmap_jobs.py` runs real `refmap` jobs everywhere, against a made-up data folder written from the engine's golden (`refmap_golden.py`).
 - **Keep a success test beside every failure test.** A test that expects an error also passes when everything fails for another reason.
 
 ## Running It With Docker

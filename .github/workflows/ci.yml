@@ -281,7 +281,8 @@ jobs:
 
   # Builds the API image natively on each architecture, runs the API's refmap data tests in it, then
   # starts it with the cSNP data sample and the refmap data mounted read-only, checks that the API
-  # reports a version for every tool, and runs a real csnp job.
+  # reports a version for every tool, and runs a real csnp job. On amd64, it then runs the API's
+  # real-job tests with the image's tools and data.
   # engine-image checks the exact pinned versions on the same tools stage.
   api-image:
     name: api-image
@@ -383,6 +384,22 @@ jobs:
       - name: API logs
         if: failure()
         run: docker logs api
+      # The API's real-job tests, which the `api` job skips without blastp: the release sample's
+      # proteins and the cSNP form's example, against their goldens. They test the checkout's api/
+      # and engine/, installed into the container's /tmp/venv, with the image's tools, Python and
+      # data, not the packages the image ships in /opt/venv (the curl step above runs those).
+      # Nothing is written to the mounts. The same code on both architectures, so amd64 only. After
+      # the API logs step, so a failure here doesn't print the unrelated container's logs.
+      - name: The API's real-job tests
+        if: matrix.arch == 'amd64'
+        timeout-minutes: 10
+        run: >-
+          docker run --rm -v "$PWD/api:/src/api:ro" -v "$PWD/engine:/src/engine:ro"
+          -v "$PWD/.data:/data:ro" -e PANTHER_DATA_DIR=/data
+          -e PANTHER_REQUIRE_TOOLS=1 -e PANTHER_REQUIRE_DATA=1
+          -e UV_PROJECT_ENVIRONMENT=/tmp/venv -e UV_CACHE_DIR=/tmp/uv-cache -e PYTHONDONTWRITEBYTECODE=1
+          -w /src/api panther-api:ci
+          sh -c 'uv sync --locked -q && uv run --no-sync pytest -p no:cacheprovider tests/test_csnp_scoring.py'
 
   # Builds the frontend's web image (frontend/Dockerfile), runs it beside a stand-in for the API,
   # and checks what it serves: the site, a deep link, an asset's caching, and /api/ forwarded. The

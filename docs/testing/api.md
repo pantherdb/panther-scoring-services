@@ -411,17 +411,17 @@ uv run pytest -k "outside_the_prefix"
 
 ### Tests With the Tools and Data
 
-`tests/test_csnp_scoring.py` runs real `csnp` jobs end to end: the API, a `spawn` worker, the engine, `blastp` and the cSNP data sample. It submits the release sample's three proteins with their substitutions, and checks each job's scores against the engine's goldens (`engine/tests/golden/csnp/`, spec §7.3). It also checks a species with no hit and a sequence `blastp` can't read.
+`tests/test_csnp_scoring.py` runs real `csnp` jobs end to end: the API, a `spawn` worker, the engine, `blastp` and the cSNP data sample. It submits the release sample's three proteins with their substitutions, and checks each job's scores against the engine's goldens (`engine/tests/golden/csnp/`, spec §7.3). It submits the form's example, human APOE, as the form sends it, and checks its four scores against the legacy scripts' (`example/apoe.out`). It also checks a species with no hit and a sequence `blastp` can't read.
 
 `tests/test_refmap_data.py` runs real `refmap` jobs against the refmap data: the form's example, checked against `map_panther.pl`'s golden, and a job of 100,000 of ARAVE's own IDs, checked against the engine, whose kept result must stay under 8 MB and whose poll must take under 2 seconds. It needs no tools. `tests/test_refmap_jobs.py` runs the same kind of jobs everywhere, against a made-up data folder holding only ENDPU's file, written from the golden.
 
 Their tests are marked as the engine's are, `tools("blastp")`, `data("csnp")` and `data("refmap")` (`tests/markers.py`):
 
-- **Where `blastp` or the data is missing,** they're skipped with the reason, as natively on Windows and in CI's `api` job. CI's `api-image` job runs the `refmap` data tests in the image, and a real `csnp` job against it.
+- **Where `blastp` or the data is missing,** they're skipped with the reason, as natively on Windows and in CI's `api` job. CI's `api-image` job runs the `refmap` data tests in the image on both architectures. On amd64, it also runs the real `csnp` jobs with the image's tools and data, with both set, so a change that breaks the example or a sample protein fails CI. It runs the command below, so it tests the checkout's `api/` and `engine/`, not the packages the image ships.
 - **With `PANTHER_REQUIRE_TOOLS=1` and `PANTHER_REQUIRE_DATA=1`,** missing tools or data fail them.
 - **The data folder is `PANTHER_DATA_DIR`,** or `.data/` at the repository root.
 
-To run the whole suite with them, in the API image, which has `blastp` and uv but not the dev tools: from the repository root, with the cSNP sample and the refmap data in `.data/`:
+To run the whole suite with them, with the API image's tools, which has `blastp` and uv but not the dev tools: from the repository root, with the cSNP sample and the refmap data in `.data/`:
 
 ```sh
 docker build --target api -t panther-api .
@@ -431,6 +431,6 @@ docker run --rm -v "$PWD/api:/src/api:ro" -v "$PWD/engine:/src/engine:ro" -v "$P
   -w /src/api panther-api sh -c 'uv sync --locked -q && uv run --no-sync pytest -p no:cacheprovider'
 ```
 
-It installs the dev tools into the container's `/tmp`, and writes nothing to the mounts. The five real `csnp` jobs take about a minute and a half; the `refmap` ones, a few seconds.
+It installs the dev tools into the container's `/tmp`, and writes nothing to the mounts. The seven real `csnp` jobs took under a minute on CI, `uv sync` included, and about four minutes on a laptop; the `refmap` ones take a few seconds.
 
 In Git Bash, start the `docker run` line with `MSYS_NO_PATHCONV=1`. Otherwise Git Bash rewrites container paths such as `/data` into Windows paths, and every `csnp` job fails with the generic error.

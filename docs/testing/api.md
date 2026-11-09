@@ -53,7 +53,7 @@ The API reads its settings from environment variables when it starts. An invalid
 | -------- | ------- | ----- | ------------ |
 | `PANTHER_API_JOB_WORKERS` | `2` | an integer ≥ 1 | Worker processes that run jobs. Jobs beyond that wait as `queued` |
 | `PANTHER_API_JOB_EXPIRY_SECONDS` | `86400` (24 hours) | an integer ≥ 1 | How long a finished job is kept. After that, polling it gets a 404 |
-| `PANTHER_API_RESULTS_BUDGET_MIB` | `256` | an integer ≥ 1 | The memory the finished jobs' results may take, in MiB, each counted by the size of its JSON. When a finishing job takes them over it, the oldest finished jobs with a result expire first, before their time; failed jobs free nothing, so they stay. A result larger than the budget on its own is still kept, after every older result. See [Limits](#limits) |
+| `PANTHER_API_RESULTS_BUDGET_MIB` | `256` | an integer ≥ 1 | The memory the finished jobs' results may take, in MiB, each counted by the size of its JSON. When a finishing job takes them over it, the largest results expire first, the oldest first among equal sizes, before their time; failed jobs free nothing, so they stay. A result larger than the budget on its own is still kept, after every other result. See [Limits](#limits) |
 | `PANTHER_API_MAX_QUEUED_JOBS` | `50` | an integer ≥ 0 | Jobs that may wait for a worker. Past that, a submission gets a `503` and no job is created. See [Limits](#limits) |
 | `PANTHER_API_MAX_BODY_BYTES` | `16777216` (16 MiB) | an integer ≥ 1 | The largest request body accepted. A larger one gets a `413`. See [Limits](#limits) |
 | `PANTHER_API_CORS_ORIGINS` | empty | comma-separated origins, such as `https://pantherdb.github.io`: a scheme and host, with no path, `*` or trailing `/` | The browser origins allowed to call the API from another site. Empty adds no CORS headers. See [CORS](#cors) |
@@ -78,7 +78,7 @@ Three limits protect the API's memory and its queue. The first two answer with p
 
 - **A body over `PANTHER_API_MAX_BODY_BYTES` gets a `413`,** "The request body is larger than the API accepts, 16,777,216 bytes.", before it's parsed. A `Content-Length` over the limit is refused without reading the body; a body without one is refused as soon as it passes the limit. The default fits the largest valid request, a `refmap` job of 100,000 IDs of 64 characters, about 13 MB of JSON.
 - **A job that would wait past `PANTHER_API_MAX_QUEUED_JOBS` gets a `503`,** "Too many jobs are waiting to run. Try again later.", with `Retry-After: 30`, and no job is created. Up to `PANTHER_API_JOB_WORKERS` jobs run, and up to the cap wait. A request is validated first, so an invalid one is still a `422`.
-- **The finished jobs' results fit in `PANTHER_API_RESULTS_BUDGET_MIB`.** Each result is counted by the size of its JSON when its job finishes: about 4 MB for a `refmap` job of 100,000 IDs, a few kilobytes for a `csnp` job. A failed job counts nothing, and stays until its time. When a finishing job takes the total over the budget, the oldest finished jobs with a result expire first, before their 24 hours, and polling one gets the `404` an expired job gets. The default, 256 MiB, holds about 50 of the largest `refmap` jobs; the server sets the value that suits it. A `refmap` result is kept as the JSON its worker made, and a poll returns those bytes as they are.
+- **The finished jobs' results fit in `PANTHER_API_RESULTS_BUDGET_MIB`.** Each result is counted by the size of its JSON when its job finishes: about 4 MB for a `refmap` job of 100,000 IDs, a few kilobytes for a `csnp` job. A failed job counts nothing, and stays until its time. When a finishing job takes the total over the budget, the largest results expire first, the oldest first among equal sizes, before their 24 hours, so a burst of large jobs expires its own results rather than everyone's small ones. Polling an expired job gets the `404` any expired job gets. The default, 256 MiB, holds about 50 of the largest `refmap` jobs; the server sets the value that suits it. A `refmap` result is kept as the JSON its worker made, and a poll returns those bytes as they are.
 
 To see the `503`, start the dev server with one worker and no waiting allowed, then submit two `tools` jobs at once:
 
@@ -171,11 +171,11 @@ A finished job looks like this:
     ]
   },
   "error": null,
-  "versions": { "api": "0.1.0", "engine": "0.1.0", "tools": ["… as GET /api/v1/versions …"], "data": [{ "service": "csnp", "panther": "9" }] }
+  "versions": { "api": "0.1.0", "engine": "0.1.0", "tools": ["… as GET /api/v1/versions …"], "data": [] }
 }
 ```
 
-`versions.data` names the PANTHER release each service's data comes from: cSNP's frozen PANTHER 9 data. It's the release the engine reads, read from the engine at startup, not a check that the data is there.
+`GET /api/v1/versions` lists, in `data`, the PANTHER release each service's data comes from: cSNP's frozen PANTHER 9 data and refmap's PANTHER 19. It's the release the engine reads, read from the engine at startup, not a check that the data is there. A job's `versions.data` has only its own service's entry, such as `[{ "service": "refmap", "panther": "19" }]` for a `refmap` job, and a `tools` job, which reads no data, has none.
 
 What else to try:
 
@@ -355,7 +355,7 @@ Each ID is looked up exactly as given, not trimmed or upper-cased, and a repeate
 
 #### Requests That Are Refused (refmap)
 
-An invalid request gets the `422` validation problem, without the submitted values, and no job is created. `organism` must be one of the codes [the organism list](#the-organism-list) gives (`panther_engine.refmap.ORGANISM_CODES`): `HUMAN`, though of the right shape, gets "The organism must be the code of an organism refmap maps for, such as ENDPU. GET /api/v1/refmap/organisms lists them." on `organism`. Each of `ids` must be 1 to 64 printable ASCII characters with no whitespace, and there can be up to 100,000.
+An invalid request gets the `422` validation problem, without the submitted values, and no job is created. `organism` must be one of the codes [the organism list](#the-organism-list) gives (`panther_engine.refmap.ORGANISM_CODES`): `HUMAN`, though of the right shape, gets "The organism must be the code of an organism refmap maps for, such as ENDPU." on `organism`. Each of `ids` must be 1 to 64 printable ASCII characters with no whitespace, and there can be up to 100,000.
 
 A `422` lists at most the first 100 failing fields, for any service; when there are more, its `detail` says how many there were in all, such as "Request validation failed: 100,000 fields are invalid, and the first 100 are listed." A list of 100,000 bad IDs is checked in one pass, so its `422` takes about as long as a valid list's (#41). Here the organism is `HUMAN` and the second ID holds two:
 
@@ -371,7 +371,7 @@ curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
   "status": 422,
   "detail": "Request validation failed",
   "errors": [
-    { "loc": ["body", "refmap", "input", "organism"], "msg": "The organism must be the code of an organism refmap maps for, such as ENDPU. GET /api/v1/refmap/organisms lists them.", "type": "value_error" },
+    { "loc": ["body", "refmap", "input", "organism"], "msg": "The organism must be the code of an organism refmap maps for, such as ENDPU.", "type": "value_error" },
     { "loc": ["body", "refmap", "input", "ids", 1], "msg": "Each ID must be 1 to 64 printable ASCII characters, with no spaces, such as P04217.", "type": "value_error" }
   ]
 }

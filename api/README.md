@@ -38,7 +38,7 @@ Two limits protect a public API: a request body over 16 MiB gets a `413` before 
 
 The log goes to standard error, one line per record with a UTC timestamp, at the level `PANTHER_API_LOG_LEVEL` sets, `INFO` by default. Each job gets one line when it finishes, with its size, status and times, never what was submitted. Health checks, successful polls and accepted submissions are left out of the request log below `DEBUG`.
 
-Jobs run in a pool of worker processes and are kept in memory, so a restart loses them. The finished jobs' results share a memory budget, `PANTHER_API_RESULTS_BUDGET_MIB`; over it, the oldest expire first. There are three:
+Jobs run in a pool of worker processes and are kept in memory, so a restart loses them. The finished jobs' results share a memory budget, `PANTHER_API_RESULTS_BUDGET_MIB`; over it, the largest expire first. There are three:
 
 - **`csnp`** (`{"sequence", "substitutions", "species"}`) scores coding SNPs in one protein with the engine's PANTHER-PSEP port. It needs `blastp` and the cSNP data, in the folder `PANTHER_DATA_DIR` names; the compose `api` service mounts `.data/` there. A sequence the engine can't read fails the job with a `422` and the engine's message; any other error fails it with a generic `500`.
 - **`refmap`** (`{"organism", "ids"}`) maps up to 100,000 protein IDs to PANTHER IDs for one organism, with the engine's port of `map_panther.pl`. It needs the refmap data in the same folder. `GET /api/v1/refmap/organisms` lists the organisms it maps for. Its result is kept as the JSON its worker made.

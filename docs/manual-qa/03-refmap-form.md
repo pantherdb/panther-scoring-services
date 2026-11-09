@@ -63,7 +63,7 @@ Then open `http://localhost:5173` in a browser.
 - [ ] A **Mappings** table has six rows numbered 1 to 6, in the order of the example, with columns **#**, **ID** and **PANTHER ID**: `U1G4Q5` `PTHR11360:SF130`, `U1GCA1` `PTHR21058:SF0`, `U1HRR6` `PTHR42765:SF2`, `U1GLV9` `PTHR28011`, `U1GJ40` `PTHR13401`, and `U1HQ27` **No PANTHER ID**.
 - [ ] There are no page buttons under the table: six rows fit one page.
 - [ ] Click **Download the mappings (TSV)**. The browser saves `panther-id-mapping-` followed by the job's id and `.tsv`. Open it in a text editor: the first line is `id` and `panther_id` with a tab between, then the six IDs in order, each with its PANTHER ID after a tab, and nothing after `U1HQ27`'s tab.
-- [ ] **Versions used** lists the API, the engine, the four tools and **csnp data** `PANTHER 9`, matching the footer.
+- [ ] **Versions used** lists the API, the engine and the four tools, matching the footer, and only this job's data: **refmap data** `PANTHER 19`, not cSNP's `PANTHER 9`.
 - [ ] Go back to `/refmap`, load a file of more than 100 IDs (for example, `ids.txt`'s lines copied 50 times), choose **Endocarpon pusillum (ENDPU)**, and click **Map IDs**. The results show 100 rows, "Rows 1 to 100 of", and page buttons. Click page 2: the rows go on from 101.
 - [ ] On a phone, or with the browser window narrowed to phone width, the form and the results don't scroll sideways, the organism selector's list opens under it without the page jumping, and the page buttons fit.
 

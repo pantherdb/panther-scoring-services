@@ -26,14 +26,14 @@
 
 ### 1. The job calls `map_ids` in the worker, as `csnp` calls `score`
 
-`jobs/refmap.py` gains `run_refmap(RefmapInput) -> RefmapResult`, called from `run_job`'s refmap case in the worker. It passes `organism` and `tuple(ids)` to the engine unchanged, and lets its exceptions through: the runner already turns an `InputError` into a 422 and anything else, `MissingDataError` and the engine's `ValueError` included, into the generic 500. The engine raises no `InputError` for refmap: the API rejects everything it would refuse first, so reaching it with one is a bug, and a 500 is right.
+`jobs/refmap.py` gains `run_refmap(RefmapInput)`, called from `run_job`'s refmap case in the worker. It passes `organism` and `tuple(ids)` to the engine unchanged, and lets its exceptions through: the runner already turns an `InputError` into a 422 and anything else into the generic 500: `MissingDataError` for a missing file, `DataFolderError` when `PANTHER_DATA_DIR` isn't set, and the engine's `ValueError`. Nothing about the exception reaches the job, so a file path stays in the log. The engine raises no `InputError` for refmap: the API rejects everything it would refuse first, so reaching it with one is a bug, and a 500 is right.
 
 - **`UNAVAILABLE` keeps its mechanism** with no rows: `hmmscore` and `treegrafter` may use it for their contracts. With no row, the router never answers 501 and the schema drops the 501, as `add-refmap-job` decision 6 planned.
 - **The worker imports the engine's refmap module lazily** inside `run_refmap`, as `run_csnp` does, so the API process only pays for `organisms.json` where it validates.
 
 ### 2. `organism` is checked against `ORGANISM_CODES`
 
-The `Organism` validator in `jobs/refmap.py` checks membership after the shape, with one message for both: "The organism must be the code of an organism refmap maps for, such as ENDPU. GET /api/v1/refmap/organisms lists them." It doesn't quote the value, as every message here doesn't. The schema keeps the shape's `pattern` and `maxLength`; it doesn't list 1,533 codes as an `enum`, which would bloat the schema and the generated types for no check the form can't do from the endpoint.
+The `Organism` validator in `jobs/refmap.py` checks membership after the shape, with one message for both: "The organism must be the code of an organism refmap maps for, such as ENDPU." It doesn't quote the value, as every message here doesn't. It names no API path either: when the organism list fails to load, the form falls back to a box for the code, and a typed `HUMAN` shows this message on the field, which `frontend/CLAUDE.md` keeps free of build details. cSNP's species message names none (review of #64). The schema keeps the shape's `pattern` and `maxLength`; it doesn't list 1,533 codes as an `enum`, which would bloat the schema and the generated types for no check the form can't do from the endpoint.
 
 - **The import cost** is reading a 200 KB JSON file once, in the API process. `ORGANISM_CODES` needs no data folder, so validation works without the data, as cSNP's `SPECIES_CODES` does.
 
@@ -41,17 +41,21 @@ The `Organism` validator in `jobs/refmap.py` checks membership after the shape, 
 
 A new `routers/refmap.py`, shaped like `routers/csnp.py`: `RefmapOrganism` (`code`, `name`, `genes`, `genes_with_panther_id`), built once from `ORGANISM_NAMES` and `ORGANISM_GENES` in the engine's order (by long name, as the website listed them), with `Cache-Control: public, max-age=3600`. About 110 KB of JSON, 20 KB compressed.
 
+- **Serialised once, at import** (review of #64): the list never changes, so the route returns the same bytes on every request, with `response_model` keeping the schema, rather than validating and serialising 1,533 entries each time. cSNP's species list does the same, and the two share `routers/reference.py`: the cache header, the documented 200 and the response.
+
 - **The gene counts** are what the website read from `stats` (`map_panther_stats`, `OrganismHelper.getMappingOrgs`) for its enrichment tests. The engine exports them for that (#63, second review). They cost nothing here, and save the website's port another source. Whether it uses them is an open question.
 - **Alternative: names only,** as cSNP's list. Rejected: a second endpoint for the counts later would duplicate this one.
 
 ### 4. A finished refmap result is kept as JSON, built in the worker
 
-The worker returns the result already serialised: `run_job`'s refmap case serialises `run_refmap`'s `RefmapResult` in the worker and returns its JSON bytes, wrapped in a small `SerializedResult` type that the store keeps as is. (`SerializedResult` sits in `work.py`, beside `run_job`, to avoid a circular import.) `get_job` builds the job's JSON around those bytes and returns it as a `Response`, without validating the result again. The route keeps `Job` as its documented response model, so the schema and the generated types don't change.
+The worker returns the result already serialised: `run_refmap` serialises the engine's own result in the worker, with `pydantic_core.to_json`, and returns its JSON bytes, wrapped in a small `SerializedResult` type that the store keeps as is. (`SerializedResult` sits in `work.py`, beside `run_job`, to avoid a circular import.) `get_job` builds the job's JSON around those bytes and returns it as a `Response`, without validating the result again. The route keeps `Job` as its documented response model, so the schema and the generated types don't change.
 
 - **Memory:** about 4.3 MB of bytes for 100,000 mappings instead of about 48 MB of models, as measured (`add-refmap-job` estimated 59 MB). The job's record never holds the request's IDs: the runner holds the request until the job finishes, and the record keeps only its service and its input's log summary, which is all that's read afterwards.
 - **Polling:** each poll of a finished large job copies 4.3 MB instead of validating and serialising 100,000 models on the event loop.
 - **In the worker,** not the API process: serialising 100,000 models takes about 0.1 s, which the event loop shouldn't pay, and bytes cross the process boundary cheaper than 100,000 pickled objects.
-- **A results budget** bounds the total: the API shares the team server with its BLAST workers, the site and image builds, so the finished jobs' results may take 256 MiB by default, a starting point the server sets to suit it (`PANTHER_API_RESULTS_BUDGET_MIB`), counted by each result's JSON size, measured once when the job finishes. Over it, the oldest finished jobs with a result expire first (a failed job frees nothing, so it stays until its time), before their 24 hours. That's about 50 jobs of 100,000 IDs, or tens of thousands of cSNP jobs. A result larger than the budget on its own is still kept, after expiring every older one, so its user can read it. The sweep runs when a job finishes, as expiry already runs in the store, so no background task is needed.
+- **No models are built** (review of #64): the engine's frozen dataclasses have `RefmapResult`'s fields in its order, so `to_json` on them gives the same bytes, in 0.02 s against 0.13 s for 100,000 mappings, without holding 100,000 models. `RefmapResult` stays as the schema's model; a test compares the bytes with its `model_dump_json()` for every golden ID.
+- **A results budget** bounds the total: the API shares the team server with its BLAST workers, the site and image builds, so the finished jobs' results may take 256 MiB by default, a starting point the server sets to suit it (`PANTHER_API_RESULTS_BUDGET_MIB`), counted by each result's JSON size, measured once when the job finishes. Over it, the largest results expire first, the oldest first among equal sizes (a failed job frees nothing, so it stays until its time), before their 24 hours. That's about 50 jobs of 100,000 IDs, or tens of thousands of cSNP jobs. A result larger than the budget on its own is still kept, after expiring every other one, so its user can read it.
+- **Largest first, not oldest first** (review of #64): dropping the oldest let about 50 large jobs from one client expire everyone else's results minutes after they finished. Dropping the largest makes a burst of large jobs expire each other, and leaves the small ones, which free little, to their 24 hours. A cap on one job's result was the alternative; it would refuse work the API can do. The sort costs a few microseconds per finished job, and runs only when the budget is exceeded. The sweep runs when a job finishes, as expiry already runs in the store, so no background task is needed.
 - **Only refmap's result** is kept this way. cSNP's and tools' results are small, so they keep the plain path; the store and the router handle both.
 - **Alternatives:** parallel tuples (`organism`, a tuple of `panther_id`s aligned with the request's IDs) halve the memory but still cost a full serialisation per poll; a shorter expiry for large jobs bounds the total but not each job's size. Either can be added later.
 - **The test:** a 100,000-ID result polled through the API validates against the `Job` union, and is equal to the engine's result field for field.
@@ -62,7 +66,8 @@ Pydantic spends about 0.9 s building 100,000 error dicts before the 100-error ca
 
 - **The schema keeps each item's `pattern`, `minLength` and `maxLength`,** from `json_schema_extra`, so the contract and the generated types don't change.
 - **How the total reaches the handler,** and how the validator raises errors at item `loc`s, is settled first in a short spike (tasks 2.1), against Pydantic's behaviour: raising a `ValidationError` built with `from_exception_data` from a list validator, or validating `ids` with a `TypeAdapter` and re-raising. The fallback is to leave the per-item path for small lists and take the fast path only when the list is long.
-- **Acceptance:** 100,000 empty IDs answer their 422 in no more than twice the time of 100,000 valid IDs for an unknown organism, measured in the same test run, and the body matches today's byte for byte.
+- **Acceptance:** 100,000 empty IDs answer their 422 in no more than three times the time of 100,000 valid IDs for an unknown organism plus 0.1 s, measured in the same test run, and the body matches today's byte for byte. Pydantic's own check took about seven times as long; the bound was twice at first, and loosened on review (#64) so a loaded runner can't fail it on measurements of about 0.1 s.
+- **Every list with a bad ID takes the one pass** (review of #64), from 1 bad ID to 100,000: the errors are built for the first 100 bad IDs, with the uncounted rest only when there are more. Pydantic checks the list itself only for what the pass can't settle: a list of the wrong length, an item of a type it might take as a string, or an item `VALID_ID` and `ProteinId` disagree on.
 
 ### 6. Startup: one check per service
 
@@ -75,6 +80,7 @@ Pydantic spends about 0.9 s building 100,000 error dicts before the 100-error ca
 - **The example** is six IDs from the data's own ENDPU test list (`test_geneList`, which #63 commits as a golden input): `U1G4Q5`, `U1GCA1` and `U1HRR6` map to subfamilies, `U1GLV9` and `U1GJ40` to families, and `U1HQ27` to no PANTHER ID. So the example shows every kind of answer, and its expected mappings come from `map_panther.pl`, not from us.
 - **The 501 path goes:** `useSubmitRefmap`'s `unavailable` problem, its alert and the e2e spec that expected it. A 501 from an older API gets "couldn't be started", as any other error.
 - **`services.ts`:** refmap's `comingSoon` becomes `false`, so its tab and card drop the mark.
+- **A code not in the list** (review of #64), such as a resubmitted job's `HUMAN`, or the example's code while the list loads, is shown as the code itself, an option of its own, not as a blank field; the form's check, or the API's 422, says what's wrong with it.
 - **The job page** reads `result.organism`, and shows "Mapped against Endocarpon pusillum (ENDPU)", using the cached organism list, or the code alone when it can't load.
 - **The mocks** serve a short organism list of real entries (ENDPU, ARAVE, ECO57 and a few more, with their real names and counts) and map the example's IDs to the golden's values, so the mocked build shows real answers. Other IDs keep `refmapResult`'s mock behaviour.
 
@@ -84,11 +90,18 @@ Pydantic spends about 0.9 s building 100,000 error dicts before the 100-error ca
 - **With the data** (marked `data("refmap")`): the example job against the real release, and a 100,000-ID job's memory and poll time. The `refmap` entry joins the API's `DATA_MANIFESTS`. CI's `api-image` job mounts the refmap data, from the cache the engine jobs fill.
 - **Frontend:** unit tests for the field's three states, the example, the organism on the job page, and the removed 501 path; e2e mocked specs for the selector and the example; the `@api` refmap spec submits the example and checks its six mappings.
 
+### 9. Each job names its own service's data
+
+`GET /api/v1/versions` lists every ported service's data: `csnp` PANTHER 9 and `refmap` PANTHER 19 (`panther_engine.refmap.DATA_VERSION`). A job's `versions` carry only its own service's entry, and a `tools` job's none, so a mapping traces to PANTHER 19 and a cSNP score to PANTHER 9 (review of #64). `Versions.for_service` filters it when the store adds a job, so a job keeps the versions it was made with, as before.
+
+- **Alternative: every job carries every service's data.** Rejected: a refmap job's page then names cSNP's PANTHER 9 beside its own, and the reader must know which applies. The footer still shows all of them, from the versions report.
+- **The frontend needs no change** to show it: the job page lists whatever `data` the job reports. The mocks give each job its own service's entry, as the API does.
+
 ## Risks / Trade-offs
 
-- **[A busy day expires jobs early]** → With the budget full, a user's job may be gone before 24 hours: its page says the job expired, as it would at 24 hours. 256 MiB holds about 50 of the largest jobs; most are far smaller. The budget is a setting, so the server can raise it.
-- **[The splice drifts from the model]** → `get_job` writes JSON around stored bytes, which could disagree with the `Job` schema. A test validates a polled large job against `JOB_ADAPTER`, and the bytes come from the same `RefmapResult` model.
+- **[A busy day expires jobs early]** → With the budget full, a user's job may be gone before 24 hours: its page says the job expired, as it would at 24 hours. 256 MiB holds about 50 of the largest jobs; most are far smaller, and the largest go first. The budget is a setting, so the server can raise it.
+- **[The splice drifts from the model]** → `get_job` writes JSON around stored bytes, which could disagree with the `Job` schema. A test validates a polled large job against `JOB_ADAPTER`, and a test checks the worker's bytes equal `RefmapResult`'s.
 - **[The fast list validator changes an error]** → Its errors must match today's `loc`, `msg` and `type`. The existing 422 tests for `ids` stay as they are and must pass unchanged.
 - **[The data isn't on the server]** → `refmap` jobs fail with the generic 500, and the startup log says why. `docs/deployment/runbook-server.md` gains the fetch step, beside what `docs/design/hosting.md` says the server holds; doing it is the engine developer's.
-- **[A user wanted `HUMAN`]** → It never had refmap data (#52). The form only offers what the engine maps for; a typed `HUMAN` gets the organism error, which points to the list.
+- **[A user wanted `HUMAN`]** → It never had refmap data (#52). The form only offers what the engine maps for; a typed `HUMAN` gets the organism error, which names an example code, and the field offers the list once it loads.
 - **[The shared field breaks cSNP]** → cSNP's form tests and e2e specs run unchanged against the shared component.

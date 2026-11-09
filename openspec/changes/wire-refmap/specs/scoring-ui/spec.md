@@ -122,7 +122,7 @@ When a `refmap` job has succeeded, the job page SHALL say which organism the IDs
 #### Scenario: A mapped job
 
 - **WHEN** the user opens the page of a succeeded `refmap` job for `ENDPU` whose mappings are `U1G4Q5` to `PTHR11360:SF130`, `U1HQ27` to `null`, and `U1G4Q5` to `PTHR11360:SF130`
-- **THEN** the page says the IDs were mapped against "Endocarpon pusillum (ENDPU)", says 3 IDs, 2 with a PANTHER ID and 1 with none, shows the three rows in that order, and shows the job's API, engine and tool versions
+- **THEN** the page says the IDs were mapped against "Endocarpon pusillum (ENDPU)", says 3 IDs, 2 with a PANTHER ID and 1 with none, shows the three rows in that order, and shows the job's API, engine and tool versions, and its refmap data as PANTHER 19
 
 #### Scenario: The organism without the list
 

@@ -62,7 +62,7 @@ Next, the species list. With mock data it has only 8 species; against the real A
 - [ ] The page shows **PANTHER family** `PTHR00000`.
 - [ ] A **Scores** table has four rows, in the order you typed: `L46P`, `C130R`, `R163C`, `R176C`, with columns **Substitution**, **Age (Mya)**, **Prediction or message** and **pDel**.
 - [ ] The `R176C` row reads "Not scored: Invalid substitution", with its age and pDel empty.
-- [ ] **Versions used** lists the API, the engine, the four tools and **csnp data** `PANTHER 9`, matching the footer.
+- [ ] **Versions used** lists the API, the engine and the four tools, matching the footer, and only this job's data: **csnp data** `PANTHER 9`.
 - [ ] The **cSNP scoring** tab is underlined while the job's page is shown.
 - [ ] Click **Edit and resubmit**. The form opens filled in with the example, and says it was filled in from your earlier job. Change a substitution and submit: a new job opens, at a different address.
 - [ ] On that job's page, click **New cSNP search**. The form opens empty.
@@ -96,7 +96,7 @@ The data sample holds 16 PANTHER families. This test case uses a protein of one 
 - [ ] Click **Score substitutions**. A job page opens, and within about 10 seconds the status shows **Succeeded**, without a reload.
 - [ ] The page shows **PANTHER family** `PTHR10366`.
 - [ ] The **Scores** table has four rows, in this order: `A10E`, `220`, "possibly damaging", `0.50`; `G15D`, `4200`, "probably damaging", `0.95`; `S213G`, `91`, "probably benign", `0.19`; `M1V`, an empty age, "Not scored: Invalid substitution", an empty pDel.
-- [ ] **Versions used** lists the API, the engine, the four tools and **csnp data** `PANTHER 9`, matching the footer.
+- [ ] **Versions used** lists the API, the engine and the four tools, matching the footer, and only this job's data: **csnp data** `PANTHER 9`.
 - [ ] Reload the page. It shows the same job and scores.
 - [ ] Go back to `/csnp`, click **Use an example**, then **Score substitutions**. The example is human APOE, whose family the sample holds too: the job succeeds with **PANTHER family** `PTHR18976`, and the **Scores** table has four rows, in this order: `L46P`, `91`, "probably benign", `0.19`; `C130R`, `6`, "probably benign", `0.02`; `R163C`, `220`, "possibly damaging", `0.50`; `R176C`, `220`, "possibly damaging", `0.50`.
 - [ ] Go back to `/csnp`, type `1234567890` as the sequence, `A10E` as the substitution, and submit. The job page says the job failed, and that the sequence can't be read as a protein sequence. It shows no scores.

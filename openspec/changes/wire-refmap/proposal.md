@@ -13,7 +13,7 @@ The engine maps protein IDs since #63 (`port-refmap`), with full parity against 
 - **The result names its organism:** `{"organism", "mappings"}`, as the engine's `RefmapResult` does.
 - **`GET /api/v1/refmap/organisms`** lists every organism with its code, name and gene counts, from the engine, with no data needed, cacheable for an hour, as `GET /api/v1/csnp/species` does.
 - **The startup check covers refmap's data,** logging an error, without stopping, when the folder lacks a file, as for cSNP.
-- **A large result is kept compactly, within a budget.** 100,000 mappings take about 59 MB as models; the job keeps them for 24 hours. The result is kept serialised instead, about a tenth of that, and each poll stops re-serialising it. The finished jobs' results share a memory budget, 256 MiB by default: over it, the oldest finished jobs expire first.
+- **A large result is kept compactly, within a budget.** 100,000 mappings take about 59 MB as models; the job keeps them for 24 hours. The result is kept serialised instead, about a tenth of that, and each poll stops re-serialising it. The finished jobs' results share a memory budget, 256 MiB by default: over it, the largest results expire first, so a burst of large jobs doesn't expire everyone's smaller ones.
 - **A request with 100,000 bad IDs answers its `422` in about the time a valid one takes** (#41), about 0.2 s instead of 1.1 s on the event loop, with the same body: the first 100 errors at their `loc`s, and the total in `detail`.
 - **The form:** a searchable organism selector fed by the new endpoint, as cSNP's species selector is, with a box to type a code when the list can't load; the example becomes six IDs from the data's own ENDPU test list; the "not available yet" path goes; ID mapping is no longer "coming soon".
 - **The job page says which organism** the IDs were mapped against.
@@ -27,9 +27,9 @@ None.
 
 ### Modified Capabilities
 
-- `scoring-jobs`: a valid `refmap` request starts a job that maps with the engine (the "not available yet" requirement is removed); the result carries `organism`; the startup check covers the refmap data; finished jobs' results share a configurable memory budget.
+- `scoring-jobs`: a valid `refmap` request starts a job that maps with the engine (the "not available yet" requirement is removed); the result carries `organism`; the startup check covers the refmap data; finished jobs' results share a configurable memory budget; a job's versions name only its own service's data.
 - `scoring-input`: a refmap `organism` must be one of the engine's organisms.
-- `api-service`: the organism list endpoint; a large invalid list gets its `422` as fast as a valid one.
+- `api-service`: the organism list endpoint; a large invalid list gets its `422` as fast as a valid one; the versions report names refmap's PANTHER 19 data beside cSNP's PANTHER 9.
 - `scoring-ui`: the organism selector and its fallback, the ENDPU example, the organism on the job page, the submit failures without the `501`, and ID mapping no longer coming soon.
 
 ## Parity

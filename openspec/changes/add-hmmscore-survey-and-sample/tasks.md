@@ -263,7 +263,7 @@
 
 ## 11. Final Check
 
-- [ ] 11.1 From a clean clone of the branch, with the three data sets fetched into `.data/`, run these checks:
+- [x] 11.1 From a clean clone of the branch, with the three data sets fetched into `.data/`, run these checks:
   - in `engine/`: `uv sync --locked && uv run ruff check && uv run ruff format --check && uv run basedpyright && PANTHER_REQUIRE_DATA=1 uv run pytest` passes, with only the `tools` tests skipped;
   - from the root, `docker compose run --rm engine` passes with nothing skipped;
   - from `api/`, which imports the engine, `uv sync --locked && uv run pytest` passes;
@@ -297,7 +297,7 @@
 
 ### Next action
 
-Task 11.1: the final checks, from a clean clone of the branch. Then open the implementation's pull request (Workflow follow-up).
+Every task is done. Next, open the implementation's pull request, once the engine developer asks for it, and check CI on it as Workflow follow-up says.
 
 The hosting server's memory is too small for hmmscore at the website's 50,000 residues (task 10.2). That's for `port-hmmscore` to settle with the API developer (Workflow follow-up), not this change.
 
@@ -313,10 +313,16 @@ The engine developer asked for the commits on 2026-11-10. They're on `feat/add-h
 | `b1a6db6` | The sample, `sample.json`, the `hmmscore` data marker and the committed tables | 1.5, 8.1 to 8.6 |
 | `739caad` | CI | 9.1 to 9.3 |
 | `d5dff79` | The docs, the survey doc naming the engine commits | 1.1 to 1.4, 5.3, 6.6, 7.1 to 7.4, 8.8, 10.1, 10.2 |
-| The next one | This change's artifacts and notes | |
+| `bff0575` | This change's artifacts and notes | |
+| The next one | Task 11.1 ticked, with its results below | 11.1 |
 
 - **`hmmscore/cli.py` grew with the commits:** `72012f7`'s has only `survey`, and `b560b8e`'s adds `data`. Each version is the final file with the later commands' blocks left out. Only the module's docstring and `panther-engine --help`'s line for `hmmscore` were written for it, to name the commands it has.
 - **The survey's code, at `72012f7`, is unchanged since.** Run again on 2026-11-10 with the engine at `b1a6db6`, it gave yesterday's report, byte for byte (task 5.3).
+- **The final check (task 11.1),** on 2026-11-10, from `git clone --branch feat/add-hmmscore-survey-and-sample-apply` at `bff0575`, with the three data sets fetched into its `.data/` in 29 s. Everything passed:
+  - in `engine/`: ruff, the formatter and basedpyright; `PANTHER_REQUIRE_DATA=1 uv run pytest`: 1,272 passed, and the 35 skipped are all `tools` tests (BLAST+ and EPA-ng aren't installed natively, and this Mac's HMMER is 3.1b2);
+  - `docker compose run --rm --build engine`, with `PANTHER_REQUIRE_DATA=1` and `PANTHER_REQUIRE_TOOLS=1`, so any skip would fail: 1,307 passed;
+  - in `api/`: 393 passed, and the 7 skipped are `blastp`'s;
+  - `npx markdownlint-cli2`, and `npx openspec validate --all --no-interactive`: 15 passed.
 - **Left out:** six files in the working tree that aren't this change's. They're `docs/code-review/2026-10-30-whole-repo-review.md`, `docs/code-review/2026-11-02-refmap-form.md` and the four `panther-api-*.tar.gz` at the root.
 
 ### Approvals

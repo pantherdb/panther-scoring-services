@@ -219,6 +219,36 @@ docker compose run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" engine
 - **`--from FILE`** takes a local copy of the tarball instead of downloading it.
 - **`--user "$(id -u):$(id -g)"`** makes you the owner of the fetched files. On Linux, files written by the image's user would otherwise belong to that user, and you couldn't delete them.
 
+### The hmmscore Data Sample
+
+The hmmscore tests read a sample of PANTHER 19's HMM library: 14 whole families, chosen for the site's example, for `test.fasta`'s hits and for each variant the [library survey](../parity/hmmscore-library-survey.md#the-sample) found. It holds their `names.tab` lines, their models pressed by HMMER 3.4, and the library's README. The full library is 67 GB, too big for a laptop or a CI runner.
+
+- **Where it lives:** a public release asset of this repository, `hmmscore-sample-1.tar.gz` (33 MB, 135 MB unpacked), pinned by `engine/src/panther_engine/hmmscore/sample.json`. The manifest holds the tarball's URL and sha256, the library tarball it was built from, the HMMER that pressed it, the families, and the sha256 of each file.
+- **What it holds:** under `hmmscore/19/`, laid out as the full library:
+  - the README;
+  - `globals/names.tab`;
+  - the four pressed files, `globals/binHmm.h3f`, `.h3i`, `.h3m` and `.h3p`;
+  - each family's model files in `books/`.
+
+  Like the library, it has no flat `binHmm`. Given the path `globals/binHmm`, `hmmscan` reads the pressed files beside it.
+- **Where it goes:** the data folder, under `hmmscore/19/`, beside the cSNP sample.
+
+Fetch it natively, from `engine/`:
+
+```sh
+uv run panther-engine hmmscore sample fetch --data-dir ../.data
+uv run panther-engine hmmscore sample verify --data-dir ../.data    # optional: check every file again
+```
+
+Or through compose, from the repository root, with `.data/` mounted writable at another path:
+
+```sh
+docker compose run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" engine \
+  panther-engine hmmscore sample fetch --data-dir /fetch
+```
+
+`fetch` and `verify` work as they do for the cSNP sample. They check before they unpack, do nothing when the folder already matches, and take `--from FILE` for a local copy of the tarball.
+
 ### The refmap Data
 
 The refmap tests read the whole PANTHER 19 release of the classification files refmap maps against: one file for each of 1,533 Reference Proteome organisms, and the `stats` that lists them. At 157 MB it's the size of the cSNP sample, so there's no refmap sample.
@@ -272,9 +302,13 @@ def test_reads_every_sample_family(csnp_data: Path) -> None: ...
 
 @pytest.mark.data("refmap")
 def test_every_file_matches_the_manifest(refmap_data: Path) -> None: ...
+
+
+@pytest.mark.data("hmmscore")
+def test_every_names_tab_line_reads(hmmscore_data: Path) -> None: ...
 ```
 
-- **The data folder is `PANTHER_DATA_DIR`,** or `.data/` at the repository root where it isn't set. The `csnp_data` fixture is its `csnp/9/` folder, and `refmap_data` its `refmap/19/` folder. compose mounts `.data/` read-only at `/data` and sets `PANTHER_DATA_DIR=/data`, so the same tests run in the image.
+- **The data folder is `PANTHER_DATA_DIR`,** or `.data/` at the repository root where it isn't set. The `csnp_data` fixture is its `csnp/9/` folder, `hmmscore_data` its `hmmscore/19/` folder, and `refmap_data` its `refmap/19/` folder. compose mounts `.data/` read-only at `/data` and sets `PANTHER_DATA_DIR=/data`, so the same tests run in the image.
 - **Where the data isn't there,** the test is skipped, and the reason names the data and `PANTHER_DATA_DIR`: `needs the refmap data, not found in …`.
 - **With `PANTHER_REQUIRE_DATA=1`,** missing data fails the test instead. CI sets it. compose doesn't, so without the data `docker compose run --rm engine` still passes, listing the skips.
 - **Each test checks only that the files are there.** `test_the_sample_matches_its_manifest`, and refmap's `test_every_file_matches_the_manifest`, hash every file against their manifests. `test_the_organism_list_is_the_one_the_data_folders_stats_gives` regenerates the organism list from the folder's `stats`, and fails if it differs from the committed one.
@@ -306,6 +340,68 @@ uv run panther-engine csnp data manifest ../../panther_build/PAML_RST.tar.gz \
 git diff --exit-code src/panther_engine/csnp/full.json
 ```
 
+### The hmmscore Full Library
+
+PANTHER 19's HMM library is what production scores against. No test needs it; the hosting server will, and [the survey doc](../parity/hmmscore-library-survey.md#the-full-library) has what was measured on it.
+
+- **What's pinned:** `engine/src/panther_engine/hmmscore/data.json` pins `PANTHER19.0_hmmscoring.tgz` on `data.pantherdb.org` by URL, size (18,494,793,691 bytes) and sha256. It also pins the sha256 of the README, of each `globals/` file, and of `books.sha256`, which lists the sha256 of each of the 143,693 model files.
+- **Where it goes:** the data folder, under `hmmscore/19/`:
+  - the README and `books.sha256`;
+  - `globals/`: `names.tab`, and the four pressed `binHmm` files as the release ships them;
+  - `books/`: each family's `hmmer.hmm`, and each subfamily's.
+
+  Each family's `cluster.pir` and `tree.tree` (9.8 GB in all) stay out: nothing in scoring reads them.
+
+Fetch it from `engine/`:
+
+```sh
+uv run panther-engine hmmscore data fetch --data-dir ~/panther-data
+uv run panther-engine hmmscore data verify --data-dir ~/panther-data    # optional: check every file again
+```
+
+- **It streams the tarball,** writing only the kept files into a temporary folder in the data folder. It checks the tarball's size and sha256, and every file, before moving them under `hmmscore/19/`. If anything fails, `hmmscore/19/` is left as it was.
+- **It never presses.** The release's pressed files are kept as they are: HMMER 3.4 can't reproduce them, and its own would move a few scores ([the press check](../parity/hmmscore-library-survey.md#the-press-check)). So fetching needs no HMMER.
+- **The disk:** 67.1 GB for `hmmscore/19/`, and as much again while a new copy replaces an older one. Downloading doesn't keep the tarball.
+- **The time:**
+  - on CARC's Endeavour cluster, 19 minutes from the URL and 15 from a local copy, with 330 MiB of memory;
+  - at the 6 MB/s measured from a developer's network, the download alone takes about 50 minutes;
+  - checking the 143,700 files took about 96 minutes there, on a shared file system, with under 2 minutes of CPU. A server's own disk wasn't measured.
+- **Run it again any time.** When the folder already matches the pin, it downloads nothing. It checks every file first, which takes as long as `verify`.
+
+**With a download made first.** `curl -C -` resumes a download that was interrupted. The tarball needs 18.5 GB more, until it's deleted:
+
+```sh
+curl -fL -C - -o PANTHER19.0_hmmscoring.tgz https://data.pantherdb.org/ftp/hmm_scoring/19.0/PANTHER19.0_hmmscoring.tgz
+uv run panther-engine hmmscore data fetch --data-dir ~/panther-data --tarball PANTHER19.0_hmmscoring.tgz
+```
+
+`--tarball` checks the local copy against the same pin.
+
+**On a server whose container can't reach `data.pantherdb.org`,** such as the hosting server behind its TLS-inspecting proxy, the host downloads the tarball. Then `fetch` runs in the image, with the tarball's folder mounted read-only, as [the runbook](../deployment/runbook-server.md#the-apis-data) does for refmap's data. From a new folder with 18.5 GB free:
+
+```bash
+curl -fL -C - -O https://data.pantherdb.org/ftp/hmm_scoring/19.0/PANTHER19.0_hmmscoring.tgz
+docker run --rm --user "$(id -u):$(id -g)" -v <the data folder>:/fetch -v "$PWD:/release:ro" <the API image> \
+  panther-engine hmmscore data fetch --data-dir /fetch --tarball /release/PANTHER19.0_hmmscoring.tgz
+```
+
+The tarball can be deleted afterwards.
+
+**Checking it.** `data verify` checks every file against the pin, each model file through `books.sha256`. It prints how many files are missing and how many differ, names the first 20 of each (`missing: PATH`, `differs: PATH`), and exits with status 1 if there is any. To check the model files by hand, in `hmmscore/19/`, run `shasum -a 256 -c books.sha256`, or `sha256sum -c books.sha256` on Linux.
+
+**Why the pin is two files.** A sha256 for each of the 143,700 files would make `data.json` 15 MB, in the package and in the API image. So `data.json` pins the README, the `globals/` files and `books.sha256`. `fetch` writes `books.sha256` into the data folder, where it pins each model file. Its own sha256 is in `data.json`, so it can't change unnoticed, and `data manifest` regenerates it from the tarball.
+
+**Pinning a new release.** `data.json` is generated from the release's tarball, never edited by hand. From `engine/`, with the tarball downloaded:
+
+```sh
+uv run panther-engine hmmscore data manifest PANTHER19.0_hmmscoring.tgz \
+  --url https://data.pantherdb.org/ftp/hmm_scoring/19.0/PANTHER19.0_hmmscoring.tgz
+```
+
+- **It reads the tarball once, as a stream,** in about 4 minutes. It writes nothing, and names the problem, if the tarball has an unexpected member, a member outside its prefix, or a model file that doesn't read.
+- **A new release has its own prefix,** the folder its members are below. Pass it with `--prefix`. A new PANTHER version also changes `VERSION` in `src/panther_engine/hmmscore/data.py`, so the files go under `hmmscore/<version>/`.
+- **The same tarball gives the same bytes.** Commit `data.json`.
+
 ### Publishing a New Sample
 
 A new sample is a new release tag and a new manifest. Old releases stay, so old commits can still fetch their sample. Never replace the asset of an existing release: the manifests that pin it would fail to fetch.
@@ -332,6 +428,34 @@ A new sample is a new release tag and a new manifest. Old releases stay, so old 
    `--prerelease` keeps the sample from becoming the repository's Latest release. `--latest=false` isn't enough: GitHub makes the only release Latest anyway, as it did with `csnp-sample-1`.
 4. **Fetch it** into an empty folder with `fetch --data-dir`, to check the upload.
 5. **Commit the manifest.** CI's cache is keyed on it, so the next run fetches the new sample.
+
+### Publishing a New hmmscore Sample
+
+As for the cSNP sample, a new sample is a new release tag and a new manifest, and an existing release's asset is never replaced.
+
+1. **Choose the families,** and record them in [hmmscore-library-survey.md](../parity/hmmscore-library-survey.md#the-sample). To rebuild the current sample, list its families with `jq -r '.families[]' engine/src/panther_engine/hmmscore/sample.json > families.txt`.
+2. **Build in the engine image for amd64,** which has the pinned HMMER. On amd64, production's architecture, pressing the library's records gives back its `.h3f` byte for byte. On an Apple Silicon Mac, build that image first, then run the build under emulation, from the repository root:
+
+   ```sh
+   docker buildx build --platform linux/amd64 --target engine --load -t panther-engine:amd64 .
+   docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" -v "$PWD/engine:/work/engine" \
+     -v <the library tarball's folder>:/library:ro -v <a folder outside the repository>:/out panther-engine:amd64 \
+     panther-engine hmmscore sample build /library/PANTHER19.0_hmmscoring.tgz \
+     --families /out/families.txt --tag hmmscore-sample-2 --out /out/hmmscore-sample-2.tar.gz
+   ```
+
+   - **What it writes:** the tarball in that folder, and `engine/src/panther_engine/hmmscore/sample.json` through the mount. `hmmscore-sample-1` took 6 minutes under emulation, and a second build gave the same bytes.
+   - **What it checks:** the library tarball against `data.json`, and that `hmmpress` is HMMER 3.4. It also checks that the sample's `binHmm.h3m` is the library's records, byte for byte. Otherwise it writes nothing.
+3. **Fetch it** into `.data/` with `sample fetch --from` the tarball, and regenerate both `sample-hmmscan` tables ([`engine/tests/golden/hmmscore/README.md`](../../engine/tests/golden/hmmscore/README.md#regenerating)).
+4. **Publish** the tarball. It needs write access to the repository. From the folder the tarball is in, which is outside the repository, so `gh` needs `--repo`:
+
+   ```sh
+   gh release create hmmscore-sample-2 hmmscore-sample-2.tar.gz --repo pantherdb/panther-scoring-services \
+     --prerelease --title "hmmscore data sample 2" --notes "See docs/parity/hmmscore-library-survey.md"
+   ```
+
+5. **Fetch it** into an empty folder with `fetch --data-dir`, to check the upload.
+6. **Commit the manifest and the tables.** CI's cache is keyed on the manifest, so the next run fetches the new sample.
 
 ### Tool Version Fixtures
 

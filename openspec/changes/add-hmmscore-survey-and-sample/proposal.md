@@ -59,12 +59,12 @@ This change surveys the tarball once and pins it. It adds fetching and verifying
     - the shapes of model names;
     - each model whose legacy ID isn't its own path's ID.
 
-    A first look at PANTHER 19's files on 2026-11-09 found 5,450 families with one subfamily. In each of the five checked, that subfamily's file is a byte-for-byte copy of the family's model, named `PTHRnnnnn.orig.30.pir`. So the legacy rule reports such a hit as the family.
+    A first look at PANTHER 19's files on 2026-11-09 found 5,450 families with one subfamily. In each of the five checked, that subfamily's file is a byte-for-byte copy of the family's model, named `PTHRnnnnn.orig.30.pir`. So the legacy rule reports such a hit as the family. The survey then found that `binHmm` also holds each such subfamily's own model, `PTHRnnnnn.SFn.pir`, whose hits the legacy rule reports as the subfamily's (design.md, decision 3).
   - **`binHmm`:**
     - its model count and duplicate names;
     - every model has the books file the CGI aligns with (`scoreAlignXml.cgi:137` dies without one);
     - each model is the same as its books file;
-    - which books models it leaves out;
+    - which books models it leaves out, and which of its models no books file holds;
     - the format of each pressed file.
 - **The pinned library:**
   - **`hmmscore/data.json`** pins:
@@ -88,7 +88,7 @@ This change surveys the tarball once and pins it. It adds fetching and verifying
     - the library's README, whose copyright statement must go with each copy.
   - **Where it's published:** as a pre-release asset of this repository, `hmmscore-sample-<n>`, pinned by a committed `sample.json`.
   - **Commands:** `sample build`, `fetch` and `verify`, as for cSNP's sample.
-  - **The sample on both architectures:** a test runs `hmmscan` on the site's example against the sample. Its table must equal a committed one on amd64 and on arm64.
+  - **The sample on both architectures:** a test runs `hmmscan` on the site's example against the sample. Its table must equal the committed one for its architecture, amd64 or arm64, as HMMER 3.4 computes a few numbers differently on each.
 - **Measurements, recorded in a new `docs/parity/hmmscore-library-survey.md`:**
   - the size unpacked, and how long fetching takes;
   - `hmmscan`'s time and memory per query on the full library, alone and with two or three queries at once. These inform the API's time limit for a job and how many hmmscore jobs run at once;
@@ -184,16 +184,22 @@ Needs team verification:
 Settled by the engine developer on 2026-11-09:
 
 - **Publishing the sample:** approved (see Impact).
-
-For review, proposed but not yet confirmed by the engine developer:
-
 - **Pin `hmm_scoring/19.0/`, not `current_release/`.** The latter will change with the next release.
 - **`books.sha256` beside a small `data.json`,** instead of a 15 MB per-file manifest in the package.
 - **Fetch keeps only what scoring reads.** It skips each family's `cluster.pir` and `tree.tree`.
 - **Which pressed files each copy uses:**
   - the full library uses the shipped ones, unless the press check finds a difference;
   - the sample's are pressed by HMMER 3.4.
-- **The sample's families,** chosen in apply from:
+
+Settled by the engine developer on 2026-11-10, from the press check on the full library:
+
+- **The full library keeps its shipped pressed files,** though 3.4 can't reproduce them. On amd64, 3.1b2 and 3.4 give exactly their tables, and re-pressed files move a few domains.
+- **The sample presses the shipped records cut out of `binHmm.h3m` as they are,** with no text step, so its `.h3m` is the library's.
+- **The committed sample table is per architecture,** as 3.4's `hmmscan` computes a few numbers differently on amd64 and arm64.
+
+Chosen in apply, and recorded in the survey doc:
+
+- **The sample's families,** from:
   - the survey's variants;
   - the families the site's example (human APOE) hits on the full library;
   - the families hit by `test.fasta`, the sample input published with `pantherScore2.2`.

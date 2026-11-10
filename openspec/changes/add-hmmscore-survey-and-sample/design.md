@@ -69,7 +69,7 @@ The README says the `cluster.pir` and `tree.tree` in each family were for coding
   | `globals/binHmm.h3i` | 6,929,429 |
   | `globals/binHmm.h3p` | 15,826,161,352 |
 
-  The rest is unread: `binHmm.h3m`, which `hmmscan` needs, perhaps the flat `binHmm`, then `books/`.
+  The rest was unread then. The survey has read it all (task 5.1): `binHmm.h3m`, 13,554,818,829 bytes, then `books/`. There's no flat `binHmm`. Its results are in [hmmscore-library-survey.md](../../../docs/parity/hmmscore-library-survey.md).
 - **The README:**
   - it counts 15,683 family and 128,012 subfamily HMMs;
   - it gives the layout and `names.tab`'s format;
@@ -93,6 +93,8 @@ Checked in its source on 2026-11-09, the tarball the `Dockerfile` pins (`ca70d94
   - Both write the same fields in the same order, as 16-byte vectors.
 - **It reads format 3/f,** the shipped files' format, and 3.1b2's.
 - **`hmmscan` doesn't need the flat file.** `src/p7_hmmfile.c` opens `<name>.h3m` when `<name>` itself is absent, and requires `.h3f`, `.h3p` and `.h3i` beside it.
+- **Measured in apply (2026-11-10), it doesn't compute quite the same numbers on each architecture.** From the same pressed files, `hmmscan` on arm64 gives a few last-digit differences from amd64, and a domain near a cutoff can move its envelope. Production's numbers are amd64's ([the survey doc](../../../docs/parity/hmmscore-library-survey.md)).
+- **It reads a text model's probabilities in single precision,** `expf(-1.0 * atof(tok1))`. So it can't press the shipped text models into the shipped `.h3m`'s floats.
 
 ## Goals / Non-Goals
 
@@ -178,6 +180,8 @@ The survey opens the tarball with `core/archive.py`'s `open_stream`, through a `
   - **Without one,** from `binHmm.h3i`, the 6.9 MB index `hmmpress` writes in Easel's SSI format (`easel/esl_ssi.c`): a header, then each name with its offset in `.h3m`. Ordering by offset gives `binHmm`'s order.
 
   Without the text, the survey can compare models with `books/` by name only. So the same check runs once on the unpacked library, with `hmmconvert` writing `binHmm.h3m` out as text (task 7.1).
+
+  By name, it reports each name `binHmm` holds that no model file does (`binhmm-not-in-books`), with the model file the CGI would align its hits with. PANTHER 19's `binHmm` holds 6,118: in each one-subfamily family the subfamily's own model, and in 668 families a second family-level model named `PTHRnnnnn..pir` (tasks.md, Notes).
 - **The pressed files:** the survey reads each one's first 4 bytes for its magic number, then reads past it.
 - **Pinning and the sample read the tarball in the same way:** `data manifest` and `sample build` share the member classification and the stream.
 - **A local copy is the norm.** Each pass reads 18.5 GB, which takes about 50 minutes from the network, so the commands that read the whole tarball take a local file. The developer downloads once, with `curl -C -` to resume.
@@ -271,23 +275,29 @@ data.json --> verify the data folder: it matches? --> done, nothing downloaded
   3. If they differ, compare `hmmscan`'s tables for the example and `test.fasta` against both sets.
 
   If the tables differ, that's recorded in the survey doc. Pressing at fetch is then decided before `port-hmmscore` starts (Notes, Decisions during apply).
-- **The sample is pressed by `sample build`,** since models can't be cut out of pressed files.
-  1. The build writes the sample's text `globals/binHmm`.
+
+  **The outcome (2026-11-10):** 3.4 can't reproduce the shipped files, and its re-pressed files move a few `hmmscan` domains near a cutoff. On amd64, 3.1b2 and 3.4 give exactly the shipped files' tables. So the full library keeps the shipped files, and fetch never presses (engine developer, 2026-11-10).
+- **The sample is pressed by `sample build`,** since no tool cuts models out of pressed files.
+  1. The build writes the chosen families' models to `binHmm` in its temporary folder.
   2. It presses that with the pinned `hmmpress` in the engine image.
-  3. The tarball carries the four pressed files, pinned like every file.
+  3. The tarball carries the four pressed files, pinned like every file. It carries `binHmm` itself only when the library has a flat one.
 - **`fetch` never presses.** So CI's native job and machines without HMMER can fetch, and every pressed file has a pin.
 - **Making the build reproducible:**
   - `hmmpress` runs inside the build's temporary folder on the relative name `binHmm`, so the `.h3i` records `binHmm.h3m`, not a temporary path;
   - the build refuses an `hmmpress` whose version line isn't the pinned 3.4.
-- **The sample's text `binHmm`:**
-  - **With a flat `binHmm` in the tarball,** its models for the chosen families, byte for byte, in its order.
-  - **Without one,** the chosen families' model files, in the index's order. That's valid only if the `hmmconvert` check (task 7.1) shows `binHmm`'s models are the books'.
-- **Built on one architecture, read on both.** The test in the spec's "both architectures" requirement runs on both `engine-image` legs.
+- **What the build presses:**
+  - **With a flat `binHmm` in the tarball,** its text models for the chosen families, byte for byte, in its order.
+  - **Without one,** as for PANTHER 19, the chosen families' records cut out of `binHmm.h3m`. The index gives each model's offset in `binHmm.h3m`, whose records are contiguous, so the build cuts them as the tarball streams past, before `books/`.
+
+    `hmmpress` reads the records as a binary model file. It gives them back in the sample's `binHmm.h3m` byte for byte, which the build checks, and it gives back the shipped `.h3f` too. Only `.h3p` differs, as from any 3.4 press, so a few domains near a cutoff can score differently from the full library (decision 7).
+
+    The model files can't stand in: `binHmm` holds models that no model file holds (decision 3). Nor can `hmmconvert`'s text of the records. It's each model file byte for byte, apart from the format line, but 3.4 reads text in single precision (Context), so pressing it would change about 1 probability in 1,000 by one unit in the last place (engine developer, 2026-11-10).
+- **Built on one architecture, read on both, with a committed table for each.** The test in the spec's "both architectures" requirement runs on both `engine-image` legs. Each leg checks its own architecture's table, as 3.4 computes a few numbers differently on each (Context; engine developer, 2026-11-10).
 
 **Rejected:**
 
 - **Pressing at fetch.** Machines without HMMER couldn't fetch, and the files pressed there couldn't be pinned.
-- **Shipping the shipped pressed files cut down.** No tool cuts a pressed database.
+- **Shipping the shipped pressed files cut down.** No tool cuts a pressed database. The `.h3f` and `.h3p` records hold offsets into the other files, which such a tool would have to rewrite.
 
 ### 7. The sample: families, E-values and the release
 
@@ -300,13 +310,15 @@ data.json --> verify the data folder: it matches? --> done, nothing downloaded
   With these, the best-scoring model for each is the full library's (spec, "The example's best hit").
 - **The smallest family that shows each family- or model-level check** the survey finds non-zero.
 - **A one-subfamily family,** and **a family with many subfamilies.**
+- **A family with a `PTHRnnnnn..pir` model.** `binhmm-not-in-books` counts both kinds of model together, so its smallest example alone would leave one kind out.
 
 Each family is whole: its family model and every subfamily's. So the best-hit choice between them is as in the full library.
 
 **E-values differ from the full library's,** and that's expected.
 
 - `hmmscan` multiplies each P-value by the number of models searched. The sample holds hundreds, the library about 140,000.
-- Scores and the best-scoring model don't change. E-values do, and so do the hits that pass a cutoff.
+- E-values change, and so do the hits that pass a cutoff. The best-scoring model doesn't.
+- Scores barely change. The sample's `.h3p` is 3.4's, not the shipped one (decision 6), so a few domains near a cutoff can score differently, as when the full library is re-pressed.
 - The Perl and the port will read the same sample, so parity holds.
 - Production's numbers come from the full library, in `port-hmmscore`'s staging run.
 - Passing `-Z` isn't an option. The CGI doesn't, and the reference must run as it is.
@@ -361,7 +373,7 @@ Each number is recorded with its machine, its architecture, and whether it ran n
 - **The press check** (decision 6).
 - **HMMER 3.1b2 against 3.4.**
   - **The setup:** 3.1b2 from Bioconda's `linux-64` build, in a throwaway `linux/amd64` container, not a `Dockerfile` stage.
-  - **The runs:** on the sample, each version presses its own copy of the sample's `binHmm`, and runs:
+  - **The runs:** on the sample, each version presses its own copy of the sample's models, its `binHmm.h3m`, and runs:
     - `hmmscan` on the example and `test.fasta`;
     - `hmmsearch` of each best hit's model file against the example, as the CGI runs it.
   - **What's compared:**
@@ -384,8 +396,8 @@ Each number is recorded with its machine, its architecture, and whether it ran n
     - it holds the help page's ten lines as written (`tips_exampleHmmScoreInput_content.jsp`);
     - they go under `>sequence`, the name `scoreAlignXml.cgi` gives a sequence without a header (93 to 95);
     - they're the same 317 residues as cSNP's `example/apoe.fasta` (checked 2026-11-09), but each service's tests read their own file, so a change to one service's example never changes the other's tests;
-  - the committed table is `engine/tests/golden/hmmscore/sample-hmmscan/apoe.domtblout`, with its `#` lines removed;
-  - `engine/tests/golden/hmmscore/README.md` says where each file comes from, as cSNP's does, and that the table is regenerated when the sample or HMMER changes.
+  - the committed tables are `engine/tests/golden/hmmscore/sample-hmmscan/amd64/apoe.domtblout` and `arm64/apoe.domtblout`, with their `#` lines removed. Each leg checks its own architecture's;
+  - `engine/tests/golden/hmmscore/README.md` says where each file comes from, as cSNP's does, and that both tables are regenerated when the sample or HMMER changes.
 
   It guards the sample and the tool, like cSNP's step-1 BLAST golden. It isn't parity.
 - **Fixtures:**
@@ -396,7 +408,7 @@ Each number is recorded with its machine, its architecture, and whether it ran n
 | ------ | ------------- |
 | None | The readers and legacy readings on the fixtures. The survey, `data manifest`, `data fetch` and `verify`, and the sample's build, fetch and verify, on small built tarballs. The moved helpers. The command line |
 | `data("hmmscore")` | The sample against its manifest. Every sample model file against the pin's `books.sha256` lines, committed with the sample's families. The survey on the sample tarball ("Every variant") |
-| `tools("hmmscan")`, `data("hmmscore")` | The committed table on both architectures. The example's best model |
+| `tools("hmmscan")`, `data("hmmscore")` | Each architecture's committed table. The example's best model |
 
 ### 11. The shared docs
 
@@ -420,14 +432,14 @@ Each answer names the engine developer and the date, as earlier answers do.
 - **[The tarball holds something unexpected after `.h3p`]** Examples: no `.h3m`, another `globals/` file, or members out of order. → The survey lists every member before anything depends on it. `data manifest` and `fetch` refuse what they don't expect. The design is adjusted in apply, and recorded in the Notes.
 - **[A pass takes too long from the network]** → Download once and pass the local copy. Each pass's time goes in the Notes.
 - **[The survey uses too much memory]** → It holds names and hashes, never model text. Peak memory goes in the Notes.
-- **[3.4's `hmmpress` doesn't reproduce the shipped files, and the tables differ]** → Recorded. Pressing at fetch is decided before the port (decision 6).
-- **[The sample's pressed files behave differently on amd64 and arm64]** → The cross-architecture test fails on one leg. The source says they shouldn't (Context). If they do, ship per-architecture pressed files or press in the image, decided then.
+- **[3.4's `hmmpress` doesn't reproduce the shipped files, and the tables differ]** → It happened. The full library keeps the shipped files, and the sample presses the shipped records as they are (decision 6).
+- **[The sample's pressed files behave differently on amd64 and arm64]** → The files don't, but `hmmscan` does: it computes a few numbers differently on each architecture, from the same files. Each architecture has its own committed table (decision 6).
 - **[The sample's E-values aren't production's]** → Expected (decision 7). The staging run on the full library gives production's.
 - **[`data.pantherdb.org` changes or drops the tarball]** → The pin fails loudly. CI needs only the sample, a GitHub release.
   - A release asset can't mirror the full tarball: GitHub limits each asset to 2 GiB.
   - So the fallback is a team copy, such as the one the hosting server will hold.
 - **[`books.sha256` lives only in the data folder]** → Its digest is pinned, and `data manifest` regenerates it from the tarball.
-- **[The developer's disk]** → The tarball is 18.5 GB. The kept files, for the measurements, are a further amount the survey reports first.
+- **[The developer's disk]** → The tarball is 18.5 GB, and the kept files, for the measurements, 67 GB (the survey). The press check needs about 48 GB besides, and task 6.5's fetch another 67 GB. Where a laptop lacks the room, the full-library tasks run on a cluster, or one after another, each one's files removed before the next.
 - **[One large pull request]** → It splits as the proposal says.
 
 ## Migration Plan

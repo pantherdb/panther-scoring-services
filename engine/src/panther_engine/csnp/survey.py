@@ -23,8 +23,8 @@ from collections import Counter
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
-from typing import IO, cast
 
+from panther_engine.core.archive import ArchiveError, member_lines, open_stream
 from panther_engine.core.manifest import HashingReader
 from panther_engine.csnp import legacy
 from panther_engine.csnp.library import CARRIAGE_RETURN, ENCODING, LibraryFormatError
@@ -39,7 +39,6 @@ SPLIT_PART = re.compile(r"(PTHR[0-9]+)(?:_[0-9]+)+")
 FAMILY_NAME = re.compile(r"PTHR[0-9]+(?:_[0-9]+)*")
 KINDS = ("paml", "rst", "orig.tree")
 EXAMPLES = 5
-READ_SIZE = 1 << 20
 SPECIATION = "0>1"
 EVENTS = ("0>1", "1>0", "0>0")
 
@@ -221,30 +220,6 @@ class Family:
         self.findings.append((key, detail, items))
 
 
-def open_stream(reader: HashingReader) -> tarfile.TarFile:
-    """A gzipped tar read as a stream, front to back, through `reader`.
-
-    tarfile's default buffer is kept: with a large one, each small read of a member copies the
-    rest of a large decompressed buffer, and the pass runs many times slower.
-    """
-    return tarfile.open(fileobj=cast(IO[bytes], reader), mode="r|gz")
-
-
-def member_lines(tar: tarfile.TarFile, member: tarfile.TarInfo) -> Iterator[bytes]:
-    """A member's lines, with their line feeds, read in large chunks."""
-    stream = tar.extractfile(member)
-    if stream is None:
-        raise SurveyError(f"can't read {member.name}")
-    rest = b""
-    while chunk := stream.read(READ_SIZE):
-        lines = (rest + chunk).split(b"\n")
-        rest = lines.pop()
-        for line in lines:
-            yield line + b"\n"
-    if rest:
-        yield rest
-
-
 Progress = Callable[[int, int], None]
 """Called now and then with the members and the compressed bytes read so far."""
 
@@ -267,7 +242,7 @@ def survey(
                     if progress is not None and survey.report.members % 500 == 0:
                         progress(survey.report.members, reader.size)
             reader.drain()
-        except (tarfile.TarError, EOFError, zlib.error, OSError) as error:
+        except (tarfile.TarError, EOFError, zlib.error, OSError, ArchiveError) as error:
             raise SurveyError(f"can't read {archive} to the end: {error}") from error
     survey.report.archive = Source(str(archive), reader.digest.hexdigest(), reader.size)
     survey.finish()
@@ -317,7 +292,7 @@ class Survey:
                             self.blast_headers(member_lines(tar, member))
                             found = True
                 reader.drain()
-            except (tarfile.TarError, EOFError, zlib.error, OSError) as error:
+            except (tarfile.TarError, EOFError, zlib.error, OSError, ArchiveError) as error:
                 raise SurveyError(f"can't read {path} to the end: {error}") from error
         if not found:
             raise SurveyError(f"{path} has no blast/blast.fasta")

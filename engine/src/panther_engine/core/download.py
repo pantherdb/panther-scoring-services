@@ -7,6 +7,8 @@ The caller checks what arrives against its pin. Network and HTTP errors are `OSE
 import shutil
 import urllib.parse
 import urllib.request
+from collections.abc import Generator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import IO, cast
 
@@ -19,8 +21,13 @@ class DownloadError(Exception):
     """A URL, or the URL a redirect led to, that isn't HTTPS."""
 
 
-def download(url: str, target: Path) -> Path:
-    """Download `url` to `target` over HTTPS only, redirects included."""
+@contextmanager
+def open_https(url: str) -> Generator[IO[bytes]]:
+    """The response to `url`, over HTTPS only, redirects included, as a stream to read from.
+
+    The timeout applies to each read from the socket, not to the whole download, so a long
+    download that keeps flowing doesn't time out. The response is closed on leaving.
+    """
     if urllib.parse.urlsplit(url).scheme != "https":
         raise DownloadError(f"refusing to download {url}: only https is allowed")
     # S310 flags opening a URL, for its file: and other schemes. The URL is https, checked
@@ -30,6 +37,11 @@ def download(url: str, target: Path) -> Path:
         final = cast(str, response.geturl())
         if urllib.parse.urlsplit(final).scheme != "https":
             raise DownloadError(f"refusing to download {final}: only https is allowed")
-        with target.open("wb") as out:
-            shutil.copyfileobj(cast(IO[bytes], response), out, CHUNK)
+        yield cast(IO[bytes], response)
+
+
+def download(url: str, target: Path) -> Path:
+    """Download `url` to `target` over HTTPS only, redirects included."""
+    with open_https(url) as response, target.open("wb") as out:
+        shutil.copyfileobj(response, out, CHUNK)
     return target

@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from panther_engine import __version__
 from panther_engine.core.tools import report_tools
 from panther_engine.csnp import cli as csnp_cli
+from panther_engine.hmmscore import cli as hmmscore_cli
 from panther_engine.refmap import cli as refmap_cli
 
 
@@ -39,6 +40,13 @@ def build_parser() -> argparse.ArgumentParser:
             "files it reads, and parity with the legacy map_panther.pl.",
         )
     )
+    hmmscore_cli.configure(
+        commands.add_parser(
+            "hmmscore",
+            help="hmmscore: survey the HMM library",
+            description="The hmmscore service: the survey of the PANTHER 19 HMM library's tarball.",
+        )
+    )
     return parser
 
 
@@ -65,5 +73,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return csnp_cli.run(args)
         case "refmap":
             return refmap_cli.run(args)
+        case "hmmscore":
+            return hmmscore_cli.run(args)
         case _:
             raise AssertionError(f"unhandled command: {args.command}")

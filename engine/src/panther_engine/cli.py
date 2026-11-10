@@ -43,9 +43,10 @@ def build_parser() -> argparse.ArgumentParser:
     hmmscore_cli.configure(
         commands.add_parser(
             "hmmscore",
-            help="hmmscore: survey the HMM library, the pinned library",
+            help="hmmscore: survey the HMM library, the pinned library, the data sample",
             description="The hmmscore service: the survey of the PANTHER 19 HMM library's "
-            "tarball, and the pinned library with fetching and checking it.",
+            "tarball, the pinned library with fetching and checking it, and the data sample that "
+            "developers and CI test against.",
         )
     )
     return parser

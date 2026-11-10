@@ -103,11 +103,11 @@ Checked in its source on 2026-11-09, the tarball the `Dockerfile` pins (`ca70d94
   - its memory stays bounded;
   - it never unpacks to disk.
 - **A pin that checks all of the roughly 144,000 model files,** without a 15 MB manifest in the package and the API image.
-- **A fetch that never leaves a half-written `hmmscore/19/`,** and needs no disk for the 18.5 GB tarball itself.
+- **A fetch that never leaves a half-written `hmmscore/19/`,** and, when it downloads, needs no disk for the 18.5 GB tarball.
 - **A sample small enough for CI:**
   - it covers every variant the survey finds, and the example inputs;
   - its pressed files work on both architectures.
-- **The numbers the port and the server need:**
+- **The numbers the port, the API and the server need:**
   - sizes, times and memory;
   - whether HMMER 3.4 changes anything that 3.1b2 gave.
 
@@ -180,7 +180,12 @@ The survey opens the tarball with `core/archive.py`'s `open_stream`, through a `
   Without the text, the survey can compare models with `books/` by name only. So the same check runs once on the unpacked library, with `hmmconvert` writing `binHmm.h3m` out as text (task 7.1).
 - **The pressed files:** the survey reads each one's first 4 bytes for its magic number, then reads past it.
 - **Pinning and the sample read the tarball in the same way:** `data manifest` and `sample build` share the member classification and the stream.
-- **A local copy is the norm.** Each pass reads 18.5 GB, which takes about 50 minutes from the network, so the commands that read the whole tarball take a local file. Only `data fetch` downloads by itself, for a server. The developer downloads once, with `curl -C -` to resume.
+- **A local copy is the norm.** Each pass reads 18.5 GB, which takes about 50 minutes from the network, so the commands that read the whole tarball take a local file. The developer downloads once, with `curl -C -` to resume.
+- **Only `data fetch` downloads by itself,** and only where its container can reach `data.pantherdb.org`. On the hosting server it can't:
+  - the server's outbound HTTPS goes through a TLS-inspecting proxy whose CA the image doesn't trust;
+  - a CA given to the build as a secret leaves nothing in the image.
+
+  So there, as for refmap's data (`docs/deployment/runbook-server.md`), the host downloads the tarball with `curl -C -`, which also resumes, and `fetch` reads it with `--tarball`.
 
 **Rejected:**
 
@@ -251,8 +256,9 @@ data.json --> verify the data folder: it matches? --> done, nothing downloaded
 - **The tarball is never saved,** unlike refmap's 157 MB. So files are written before the tarball's sha256 is known, but only into the temporary folder in the data root. That folder is removed unless every check passes, so nothing unchecked reaches `hmmscore/19/`.
 - **Disk:**
   - the kept files once, since `os.replace` within one filesystem doesn't copy;
-  - twice while replacing an older copy.
-- **Time:** mostly the download. With no resume, a dropped connection starts over. On a slow or unreliable link, download with `curl -C -` and pass `--tarball`.
+  - twice while replacing an older copy;
+  - plus the 18.5 GB tarball until the fetch ends, wherever it's downloaded first, as on the hosting server (decision 3).
+- **Time:** mostly the download. With no resume, a dropped connection starts over. On a slow or unreliable link, and on the hosting server, download with `curl -C -` and pass `--tarball`.
 - **Already fetched:** `verify` runs first and hashes everything. That's minutes, for a command run once per release.
 
 ### 6. Pressed files: the shipped ones for the full library, the pinned `hmmpress` for the sample
@@ -340,9 +346,18 @@ Each number is recorded with its machine, its architecture, and whether it ran n
   - the example (317 residues);
   - `test.fasta`'s sequences;
   - a sequence of about 5,000 residues;
-  - one at the API's 50,000-residue limit.
+  - one of 50,000 residues, the website's limit for HMM scoring (`SequenceSearchForm.java:84`, once the header and whitespace are removed). The API has no hmmscore input rule yet. Its cSNP limit is the same.
 
-  For each: wall time with the file cache cold and warm, with the default `--cpu` and with `--cpu 1`, and peak memory. Each query reads all of `binHmm.h3f`, so the RAM needed to keep it cached is part of the answer.
+  For each: wall time with the file cache cold and warm, and peak memory, at each of these settings:
+  - **`--cpu 0`, no worker threads.** It's 3.4's default for `hmmscan` (`src/hmmscan.c`: "hmmscan is i/o bound on almost all systems"), and `pantherScore.pl` passes no `--cpu` (377). Its `-c` option is read but never used;
+  - **`--cpu 2` and `--cpu 4`,** to show whether threads shorten one job.
+
+  The tables must be the same at every setting.
+- **Queries at once:** two and then three copies of the example, and of the 5,000-residue query, run together with the cache warm and `--cpu 0`. Each one's wall time, against its time alone, shows how many hmmscore jobs a server can run at once.
+- **What a server needs,** stated in the survey doc for the API and the deploy:
+  - **memory:** `binHmm.h3f` kept cached, since every query reads all of it, plus each running query's peak. A query reads from `binHmm.h3p` only the models that pass the first filters (`src/p7_pipeline.c`, 739 to 742), so how much of it is read depends on the query;
+  - **disk:** the kept files, plus the tarball while it's on the host, plus the kept files again while replacing an older copy (decision 5);
+  - **time:** the 50,000-residue query's, which sets the API's time limit for a job.
 - **The press check** (decision 6).
 - **HMMER 3.1b2 against 3.4.**
   - **The setup:** 3.1b2 from Bioconda's `linux-64` build, in a throwaway `linux/amd64` container, not a `Dockerfile` stage.
@@ -365,8 +380,12 @@ Each number is recorded with its machine, its architecture, and whether it ran n
 - **The `engine-image` legs:** the same key, with the fetch run in the image into `/fetch`, as for the other data.
 - **The cross-architecture test:**
   - it's marked `tools("hmmscan")` and `data("hmmscore")`, so it runs where the tools are, in both image legs;
-  - the query is the example, named `sequence` as the CGI names it, read from `engine/tests/golden/csnp/example/apoe.fasta`. That's the same 317 residues as the site's HMM scoring example, checked 2026-11-09;
-  - the committed table is `engine/tests/golden/hmmscore/sample-hmmscan/apoe.domtblout`, with its `#` lines removed.
+  - the query is the site's HMM scoring example, in hmmscore's own copy, `engine/tests/golden/hmmscore/example/apoe.fasta`:
+    - it holds the help page's ten lines as written (`tips_exampleHmmScoreInput_content.jsp`);
+    - they go under `>sequence`, the name `scoreAlignXml.cgi` gives a sequence without a header (93 to 95);
+    - they're the same 317 residues as cSNP's `example/apoe.fasta` (checked 2026-11-09), but each service's tests read their own file, so a change to one service's example never changes the other's tests;
+  - the committed table is `engine/tests/golden/hmmscore/sample-hmmscan/apoe.domtblout`, with its `#` lines removed;
+  - `engine/tests/golden/hmmscore/README.md` says where each file comes from, as cSNP's does, and that the table is regenerated when the sample or HMMER changes.
 
   It guards the sample and the tool, like cSNP's step-1 BLAST golden. It isn't parity.
 - **Fixtures:**

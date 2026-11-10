@@ -91,7 +91,8 @@ This change surveys the tarball once and pins it. It adds fetching and verifying
   - **The sample on both architectures:** a test runs `hmmscan` on the site's example against the sample. Its table must equal a committed one on amd64 and on arm64.
 - **Measurements, recorded in a new `docs/parity/hmmscore-library-survey.md`:**
   - the size unpacked, and how long fetching takes;
-  - `hmmscan`'s time and memory per query on the full library;
+  - `hmmscan`'s time and memory per query on the full library, alone and with two or three queries at once. These inform the API's time limit for a job and how many hmmscore jobs run at once;
+  - the memory and disk a server needs for the full library;
   - whether HMMER 3.4's `hmmpress` reproduces the shipped pressed files;
   - whether HMMER 3.1b2 and 3.4 give the same tables and alignments.
 - **Shared code into `core/`:**
@@ -170,7 +171,7 @@ None. `engine-core`'s data folder, checksum manifests and data-marked tests alre
   - The survey measures how `pantherScore.pl` reads the files, for the port to match.
   - If HMMER 3.1b2 and 3.4 differ, the difference goes in the survey doc. `port-hmmscore` then proposes it as a divergence row.
 - **API contract:** not affected. The `engine` compose service already mounts `.data/`.
-- **Size:** well over the 400-line norm, as cSNP's survey change was. If reviewers prefer, it splits in two:
+- **Size:** well over the 400-line norm, as cSNP's survey change was. The API developer is fine with one pull request, since the task groups make reviewable commits (review of 2026-11-09). If the frontend developer prefers, it splits in two:
   - the readers, the survey and the moves to `core/`;
   - the pin, the sample, CI and the measurements.
 

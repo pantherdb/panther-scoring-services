@@ -29,6 +29,9 @@
 
   Verify that `npx markdownlint-cli2` and `npx openspec validate --all --no-interactive` pass
 - [ ] 1.4 In `CONTRIBUTING.md`'s Spec Layout, add `hmmscore-data`: "The hmmscore data: reading the PANTHER 19 HMM library's `names.tab` and models, the library survey, the pinned library with fetching and verifying it, and the data sample". Verify `npx markdownlint-cli2` passes
+- [ ] 1.5 Write hmmscore's copy of the site's example, `engine/tests/golden/hmmscore/example/apoe.fasta` (design.md, decision 10). It holds the HMM scoring help page's ten lines as written (`tips_exampleHmmScoreInput_content.jsp`), under `>sequence`. Start `engine/tests/golden/hmmscore/README.md` with where the file comes from. Verify that:
+  - its residues are the 317 of cSNP's `example/apoe.fasta`;
+  - `npx markdownlint-cli2` passes
 
 ## 2. Shared Helpers in core/
 
@@ -139,8 +142,13 @@
   - a second fetch downloads nothing
 - [ ] 6.5 Once, fetch from the URL itself into an empty folder, with no `--tarball`. It takes about 50 minutes at the 6 MB/s measured here, so run it in the background. Verify that it ends with the same files as task 6.4, and record the time in the Notes
 - [ ] 6.6 Write the "hmmscore Full Library" section of `docs/testing/engine.md`:
-  - fetching it, and the disk and time it takes;
+  - fetching it, and the disk and time it takes, with the tarball's 18.5 GB wherever it's downloaded first;
   - `--tarball` for a download made with `curl -C -`;
+  - a server whose container can't reach `data.pantherdb.org`, such as the hosting server behind its TLS-inspecting proxy (design.md, decision 3):
+    - the host downloads the tarball;
+    - `fetch` runs in the image, with the tarball's folder mounted read-only, as `docs/deployment/runbook-server.md` does for refmap's data.
+
+    Give that command, so the runbook can start from it;
   - `data verify`, and checking by hand with `shasum -a 256 -c books.sha256`, or `sha256sum -c` on Linux;
   - why the pin is `data.json` plus `books.sha256`;
   - pinning a new release with `data manifest`.
@@ -157,12 +165,18 @@
 
   Record in the survey doc which ran, and where. Verify that either the files are identical, or the tables are. If neither is, record the decision on pressing at fetch under Decisions during apply before going on
 - [ ] 7.3 The `hmmscan` measurements of design.md, decision 9, in the engine image against the fetched library:
-  - the example (`engine/tests/golden/csnp/example/apoe.fasta`, named `sequence`);
+  - the example, task 1.5's `engine/tests/golden/hmmscore/example/apoe.fasta`;
   - each sequence of `test.fasta`, with its URL and sha256 recorded (`https://data.pantherdb.org/ftp/hmm_scoring/19.0/pantherScore2.2/test.fasta`);
   - a sequence of about 5,000 residues;
-  - one of 50,000 residues.
+  - one of 50,000 residues, the website's limit.
 
-  For each: the cache cold and warm, the default `--cpu` and `--cpu 1`, and peak memory. Record the numbers, the machine and the architecture in the survey doc, and keep the example's and `test.fasta`'s tables for task 7.4. Verify that the doc gives, for each query, the time and memory needed, and the RAM needed to keep `binHmm.h3f` cached
+  For each: the cache cold and warm, at `--cpu 0` (the default), `--cpu 2` and `--cpu 4`, and peak memory. Then run two and three copies of the example, and of the 5,000-residue query, at once, warm, at `--cpu 0`. Record the numbers, the machine and the architecture in the survey doc, and keep the example's and `test.fasta`'s tables for task 7.4. Verify that:
+  - each query's tables are the same at every `--cpu`;
+  - the doc gives each query's time and memory, alone and at once;
+  - the doc says what a server needs (design.md, decision 9):
+    - the RAM to keep `binHmm.h3f` cached;
+    - the disk for the kept files, plus the tarball while fetching;
+    - the time at 50,000 residues
 - [ ] 7.4 Choose the sample's families (design.md, decision 7):
   - from task 7.3's tables, the families of the example's and `test.fasta`'s hits that pass 1e-3, up to ten for each sequence;
   - from the survey, the smallest family showing each non-zero family- or model-level check;
@@ -194,7 +208,7 @@
   - surveying the sample, tarred up in `tmp_path`, finds every family- or model-level check that was non-zero for the full library ("Every variant").
 
   Verify that it passes, with none skipped, against the sample unpacked by `fetch --from` the local tarball
-- [ ] 8.6 Add the committed table `engine/tests/golden/hmmscore/sample-hmmscan/apoe.domtblout`: `hmmscan --domtblout` for the example, named `sequence`, against the sample, without the `#` lines. Add tests marked `tools("hmmscan")` and `data("hmmscore")` that check:
+- [ ] 8.6 Add the committed table `engine/tests/golden/hmmscore/sample-hmmscan/apoe.domtblout`: `hmmscan --domtblout` for task 1.5's example against the sample, without the `#` lines. In `golden/hmmscore/README.md`, say how it's made, and that it's regenerated when the sample or HMMER changes. Add tests marked `tools("hmmscan")` and `data("hmmscore")` that check:
   - the table equals it ("The sample's pressed files on both architectures");
   - its highest-scoring model is task 7.4's full-library best ("The example's best hit").
 
@@ -241,7 +255,8 @@
   - what the findings mean for `port-hmmscore`:
     - the legacy readings to match;
     - how the one-subfamily copies are reported;
-    - any HMMER difference to propose as a divergence row.
+    - any HMMER difference to propose as a divergence row;
+    - whether the hosting server has what a server needs (task 7.3), from its memory and free disk, read on the server.
 
   In `tech-stack.md`'s Pinning Tool Versions, add a HMMER note: production most likely ran 3.1b2 (engine developer, 2026-11-09), 3.4 reads the shipped format, and the comparison's result, with a link to the survey doc. Verify that `npx markdownlint-cli2` passes
 
@@ -274,7 +289,7 @@
   - an input error for a sequence `hmmscan` can't read;
   - trimming before the header is removed;
   - any difference task 10.1 finds.
-- **Before the port's scoring,** agree the engine's hmmscore interface with the API developer, in a change of its own.
+- **Before the port's scoring,** agree the engine's hmmscore interface with the API developer, in a change of its own. It includes hmmscore's `DATA_VERSION`, `"19"`, for the per-service `versions.data` that #64 added, as `refmap` exports its own.
 
 ## Notes
 

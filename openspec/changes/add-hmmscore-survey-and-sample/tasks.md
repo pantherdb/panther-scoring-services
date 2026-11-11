@@ -272,7 +272,7 @@
 ## Workflow follow-up
 
 - **Review first.** Open a pull request with this change's artifacts, as CLAUDE.md's Development Workflow says. All three developers approve it, because it changes `CLAUDE.md`, `tech-stack.md` and `ci.yml`. The API developer reviews the CI changes, which the API's jobs share.
-- **When the implementation's pull request is open,** confirm on it that:
+- **When the implementation's pull request is open,** confirm on it that (done on #67, 2026-11-10: Notes, "CI on #67"):
   - the `engine` job and both `engine-image` legs fetch the hmmscore sample, missing the cache on the first run and hitting it on a re-run;
   - no data test is skipped in any of them (check the logs, not just the result);
   - the committed-table test passes on both `engine-image` legs;
@@ -297,7 +297,7 @@
 
 ### Next action
 
-Every task is done. Next, open the implementation's pull request, once the engine developer asks for it, and check CI on it as Workflow follow-up says.
+Every task is done. The implementation's pull request is #67, and CI on it confirmed everything Workflow follow-up asks ("CI on #67", below). Next: the other two developers' reviews, since the change is cross-cutting. After it merges, archive it with `/opsx:archive`.
 
 The hosting server's memory is too small for hmmscore at the website's 50,000 residues (task 10.2). That's for `port-hmmscore` to settle with the API developer (Workflow follow-up), not this change.
 
@@ -445,6 +445,21 @@ Two Slurm jobs, 6921723 (`full-library.sbatch`) and 6921729 (`measure.sbatch`), 
   - the hmmscore fetch into an empty folder downloaded and checked the sample, as on a cache miss;
   - the fetch into `.data/` did nothing, as on a hit;
   - the test step passed 1,307 tests, with none skipped.
+
+### CI on #67
+
+Run `42925973857`, on `0d19188`, on 2026-11-10. Every check passed, `ci-passed` included, on the first run. The engine jobs were then re-run one at a time, as GitHub won't re-run a job while another in the run is going. The hmmscore sample's cache key was `hmmscore-sample-9ecb5b6faad73a0cf195b64039815d8c3fd8625e9829ca152adaebfea991ca0e`.
+
+| Job | First run | Re-run | Tests, both times |
+| --- | --------- | ------ | ----------------- |
+| `engine` | Cache miss. The fetch downloaded and checked the sample, and the job saved the cache | Cache hit: "the hmmscore sample is already there: nothing to fetch" | 1,272 passed, 35 skipped |
+| `engine-image (amd64, ubuntu-latest)` | Cache miss. The fetch, in the image, downloaded and checked the sample | Cache hit: nothing to fetch | 1,307 passed, none skipped |
+| `engine-image (arm64, ubuntu-24.04-arm)` | The same | Cache hit: nothing to fetch | 1,307 passed, none skipped |
+
+- **No data test was skipped.** The `engine` job's 35 skips are all `tools` tests, as the runner has no BLAST+, HMMER or EPA-ng: 28 need `blastp`, 2 `blastdbcmd`, 2 `hmmpress`, 2 `hmmscan`, and 1 `blastp`, `hmmscan`, `hmmsearch` and `epa-ng`.
+- **The committed table passed on both architectures.** Each `engine-image` leg ran all 1,307 tests, its own architecture's `sample-hmmscan` table among them, with tools and data required.
+- **The other jobs passed:** `api`, both `api-image` legs, `frontend`, `web-image`, `repo`, `dependency-review` and `openspec-change`.
+- **Two cache saves were refused, harmlessly.** On the first run, both `engine-image` legs reported "Unable to reserve cache … another job may be creating this cache": they share the key with the `engine` job, which saved it first.
 
 ### Blockers
 

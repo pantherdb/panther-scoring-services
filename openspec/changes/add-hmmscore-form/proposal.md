@@ -5,7 +5,7 @@
 **Depends on:**
 
 - **`add-hmmscore-job`:** the `hmmscore` job contract, its `422`s and its `501`, and the regenerated `frontend/src/app/api/schema.d.ts`. This change merges after it.
-- **`wire-refmap`**, archived first: this change modifies two `scoring-ui` requirements that `wire-refmap` also modifies ("Services that aren't available yet" and "The home page shows every service"). Its text here starts from `wire-refmap`'s.
+- **`wire-refmap`**, archived in #69: this change modifies two `scoring-ui` requirements that `wire-refmap` also modifies ("Services that aren't available yet" and "The home page shows every service"). Its text here starts from `wire-refmap`'s.
 
 ## Why
 

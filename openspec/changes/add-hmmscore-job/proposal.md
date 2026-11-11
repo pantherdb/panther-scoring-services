@@ -2,7 +2,7 @@
 
 **Area:** cross-cutting. The code is in `api/`, plus the regenerated `frontend/src/app/api/schema.d.ts`. Nothing in `engine/` changes, but design.md proposes the engine's `hmmscore` interface, so the engine developer approves it, and the frontend developer reviews the contract (CONTRIBUTING.md, Review Rules). The form and results are `add-hmmscore-form`.
 
-**Depends on** `wire-refmap` archiving first: both modify `scoring-jobs`' "Configuration from the environment", and its text here starts from `wire-refmap`'s.
+**Built on** `wire-refmap`'s archived text: both modify `scoring-jobs`' "Configuration from the environment", and `wire-refmap` was archived in #69.
 
 ## Why
 

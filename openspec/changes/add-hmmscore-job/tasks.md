@@ -35,7 +35,6 @@
 
 ## Workflow follow-up
 
-- `wire-refmap` archives before this change does.
 - Reviewers: the API developer approves; the frontend developer reviews the contract; the engine developer reviews decision 4, answers the engine Open Questions, and approves or rejects rows 11 and 12. That closes the contract part of #42.
 - `port-hmmscore` adds `score()`, its dataclasses, `DATA_VERSION`, `check_data()`, a reference image and the goldens. The wiring change then removes the `501`.
 - After this merges, archive with `/opsx:archive`.
@@ -48,7 +47,6 @@ The engine developer reviewed #70 on 2026-11-11, and the review is addressed (be
 
 ### Blockers
 
-- `wire-refmap` must archive first: both modify "Configuration from the environment".
 - The residue limit's default and maximum wait for the product owner.
 
 ### Failed approaches

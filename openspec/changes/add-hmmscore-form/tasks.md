@@ -27,7 +27,7 @@
 
 ## Workflow follow-up
 
-- **Merge order:** `add-hmmscore-job` first. `wire-refmap` archives before this change does.
+- **Merge order:** `add-hmmscore-job` first.
 - Open a pull request against `main`. The frontend developer approves the code, the `scoring-ui` delta and design.md's decisions.
 - After this merges, archive with `/opsx:archive`. The wiring change turns HMM scoring's "coming soon" off and removes the `501` path.
 
@@ -40,7 +40,6 @@ Split out of `add-hmmscore-job` on 2026-11-11, at the engine developer's request
 ### Blockers
 
 - `add-hmmscore-job` must merge first: the form reads its generated types.
-- `wire-refmap` must archive first: both modify the same two `scoring-ui` requirements.
 
 ### Failed approaches
 

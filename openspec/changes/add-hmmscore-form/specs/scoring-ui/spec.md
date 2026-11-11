@@ -18,7 +18,7 @@ The UI SHALL offer an HMM scoring form at `/hmmscore`, linked from the home page
 
 ### Requirement: hmmscore form checks the input before sending
 
-Before sending, the HMM scoring form SHALL check the sequence against `scoring-input`'s hmmscore rules, with the website's limit of 50,000 residues; the API checks its own residue limit. A broken rule MUST be shown on the sequence field, without quoting the sequence, and no request MUST be sent. The form MUST NOT reject a sequence the rules accept.
+Before sending, the HMM scoring form SHALL check the sequence against `scoring-input`'s hmmscore rules, with the most residues the API's setting allows, 50,000; the API checks the server's own limit. A broken rule MUST be shown on the sequence field, without quoting the sequence, and no request MUST be sent. The form MUST NOT reject a sequence the rules accept.
 
 #### Scenario: Empty hmmscore form
 
@@ -30,10 +30,15 @@ Before sending, the HMM scoring form SHALL check the sequence against `scoring-i
 - **WHEN** the user submits `">one\nMKV\n>two\nMKV"`
 - **THEN** the sequence field says to submit one protein, and no request is sent
 
-#### Scenario: Past the website's limit in the hmmscore form
+#### Scenario: Past the most residues in the hmmscore form
 
 - **WHEN** the user submits a sequence of 50,001 residues
 - **THEN** the sequence field says it's longer than 50,000 residues, and no request is sent
+
+#### Scenario: A character hmmscan doesn't read, in the hmmscore form
+
+- **WHEN** the user submits `MKV1L` or `MKV-L`
+- **THEN** the sequence field says which characters a sequence may hold, without quoting it, and no request is sent
 
 #### Scenario: A valid sequence is sent for hmmscore
 
@@ -46,12 +51,12 @@ When the API answers an HMM scoring request with 422, the form SHALL show each e
 
 #### Scenario: Past the server's residue limit
 
-- **WHEN** the user submits a sequence of 6,000 residues and the API answers 422 with an error on `["body", "hmmscore", "input", "sequence"]` that names its limit of 5,000 residues
+- **WHEN** the user submits a sequence of 20,001 residues and the API answers 422 with an error on `["body", "hmmscore", "input", "sequence"]` that names the server's limit of 20,000 residues
 - **THEN** the sequence field shows that message, and the sequence is unchanged
 
 #### Scenario: An hmmscore error on no field
 
-- **WHEN** the API answers 422 with an error whose `loc` is `["body", "hmmscore", "input", "species"]`
+- **WHEN** the API answers 422 with an error whose `loc` is `["body", "hmmscore", "input", "opType"]`
 - **THEN** the form shows that error's message with the form
 
 ### Requirement: HMM scoring not yet available

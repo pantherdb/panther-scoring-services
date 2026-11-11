@@ -11,15 +11,10 @@ The API SHALL accept an `hmmscore` job request, `{"service": "hmmscore", "input"
 - **WHEN** a client sends `POST /api/v1/jobs` with an `hmmscore` request whose `sequence` is `">one\nMKVQWERTY\n>two\nMKV"`
 - **THEN** the API responds with status 422, one error whose `loc` is `["body", "hmmscore", "input", "sequence"]`, no job is created, and the body doesn't contain `MKVQWERTY`
 
-#### Scenario: No sequence in an hmmscore request
-
-- **WHEN** a client sends `POST /api/v1/jobs` with `{"service": "hmmscore", "input": {}}`
-- **THEN** the API responds with status 422 and an error on `sequence`
-
 #### Scenario: A field the hmmscore input doesn't take
 
-- **WHEN** a client sends an `hmmscore` request whose `input` also has `"species": "HUMAN"`
-- **THEN** the API responds with status 422 and an error whose `loc` names `species`
+- **WHEN** a client sends an `hmmscore` request whose `input` also has `"opType": "hmm"`, as the website's form sent
+- **THEN** the API responds with status 422 and an error whose `loc` names `opType`
 
 ### Requirement: hmmscore not available yet
 
@@ -34,11 +29,6 @@ Until the engine's hmmscore scoring is wired in, the API SHALL answer a valid `h
 
 - **WHEN** a client fetches `/api/v1/openapi.json`
 - **THEN** `POST /api/v1/jobs` lists a 501 response whose body is the problem-details schema and whose description names `hmmscore`
-
-#### Scenario: Other jobs still run after an hmmscore 501
-
-- **WHEN** a client has had a 501 for an `hmmscore` request and then submits a `tools` job
-- **THEN** the `tools` job reaches `succeeded`
 
 ### Requirement: hmmscore job shape
 
@@ -77,7 +67,7 @@ The API SHALL read the number of worker processes, the job expiry time, the resu
 #### Scenario: Defaults
 
 - **WHEN** the API starts with no job settings in the environment
-- **THEN** it runs jobs with 2 worker processes, keeps finished jobs for 24 hours within a results budget of 256 MiB, lets 50 jobs wait for a worker, accepts request bodies of up to 16 MiB, takes hmmscore sequences of up to 5,000 residues, gives an hmmscore job 300 seconds, runs 1 hmmscore job at a time, and runs `hmmscan` with `--cpu 0`
+- **THEN** it runs jobs with 2 worker processes, keeps finished jobs for 24 hours within a results budget of 256 MiB, lets 50 jobs wait for a worker, accepts request bodies of up to 16 MiB, takes hmmscore sequences of up to 50,000 residues, gives an hmmscore job 3,600 seconds, runs 1 hmmscore job at a time, and runs `hmmscan` with `--cpu 0`
 
 #### Scenario: Invalid setting
 

@@ -1,0 +1,21 @@
+{
+  "books": {
+    "files": 143693
+  },
+  "files": {
+    "hmmscore/19/README": "040ff6497ff122eca7769692b5076743d5f4c9bebf15e7d60b99b47c4872885f",
+    "hmmscore/19/books.sha256": "a81aa3a318d76ebb7b20b547906ecd1c04f4df4f9bfc92217f8f79b9eb67f046",
+    "hmmscore/19/globals/binHmm.h3f": "09493c360ed3fc70ba53c97b69ebc4b94746b099f926778b9308ccc94b13d7f6",
+    "hmmscore/19/globals/binHmm.h3i": "e4b0462912d9a4b181da6251e9357d8991dd6bd7602ef6814c90b5ca785be39a",
+    "hmmscore/19/globals/binHmm.h3m": "67c91d653052147f7d164c2ba43283b553fed1520c2a0fc36c8cee85163b0791",
+    "hmmscore/19/globals/binHmm.h3p": "4a1d3fcb10c5de21297a3ff32f96d5f07d20b8a0c6d7ca23f1b2f13e5640d4f2",
+    "hmmscore/19/globals/names.tab": "a0dfad734bb28e8649d26e226b01741bba21c57929adfd4aecbeed13cb72650b"
+  },
+  "prefix": "target/famlib/rel/PANTHER19.0_altVersion/hmmscoring/PANTHER19.0/",
+  "tarball": {
+    "bytes": 18494793691,
+    "sha256": "77b3a9eae1d4d1baeaf345368b861f2474893711f0187a9767397a1a1d0e87c8",
+    "url": "https://data.pantherdb.org/ftp/hmm_scoring/19.0/PANTHER19.0_hmmscoring.tgz"
+  },
+  "version": "19"
+}

@@ -193,6 +193,15 @@ With the flat file, it MUST also report each model whose text differs from the `
 - **WHEN** `binHmm` holds two models named `PTHR38402.orig.30.pir`
 - **THEN** the survey reports the name as repeated
 
+### Requirement: Survey of binHmm's models without a model file
+
+The survey SHALL report each `binHmm` model whose name no `books/` model file holds, with the model file its legacy ID leads to: the file the CGI aligns its hits with.
+
+#### Scenario: A model no model file holds
+
+- **WHEN** `binHmm` holds a model named `PTHR35774.SF1.pir`, and `books/PTHR35774/SF1/hmmer.hmm` holds one named `PTHR35774.orig.30.pir`
+- **THEN** the survey reports `PTHR35774.SF1.pir`, with that model file
+
 ### Requirement: Survey of the pressed files
 
 The survey SHALL report, for each pressed `binHmm` file in the tarball (`.h3f`, `.h3i`, `.h3m`, `.h3p`), its size and the HMMER format that its first bytes declare.
@@ -314,8 +323,7 @@ The data sample SHALL hold, under `hmmscore/19/` and laid out as the full librar
 - the README;
 - each chosen family's model files, byte for byte;
 - their `names.tab` lines, in the full file's order;
-- a `globals/binHmm` of the models the full `binHmm` holds for those families, in its order;
-- that file's four pressed files, made by the pinned HMMER.
+- four pressed files, made by the pinned HMMER, of the models the full `binHmm` holds for those families, in its order.
 
 #### Scenario: The library's files
 
@@ -331,6 +339,15 @@ The data sample SHALL hold, under `hmmscore/19/` and laid out as the full librar
 
 - **WHEN** `hmmscan` runs the site's example, human APOE, against the sample
 - **THEN** its highest-scoring model is the one it is against the full library
+
+### Requirement: The sample's models as shipped
+
+The sample's pressed files SHALL be pressed from the library's own models. When the library has a flat `globals/binHmm`, they're pressed from its text, which the sample then holds too. When it has none, they're pressed from those models' records in `binHmm.h3m`, as they are.
+
+#### Scenario: The models as shipped
+
+- **WHEN** the sample is built from a library without a flat `binHmm`
+- **THEN** the sample's `binHmm.h3m` is the chosen families' records from the library's `binHmm.h3m`, byte for byte, and the sample holds no `globals/binHmm`
 
 ### Requirement: Building the sample
 
@@ -394,12 +411,12 @@ The engine's command line SHALL check a data folder against the sample manifest,
 
 ### Requirement: The sample's pressed files on both architectures
 
-`hmmscan` from the pinned HMMER SHALL search the sample's pressed files on `linux/amd64` and on `linux/arm64`. On both, its table for the site's example, without the table's `#` lines, MUST equal the committed table.
+`hmmscan` from the pinned HMMER SHALL search the sample's pressed files on `linux/amd64` and on `linux/arm64`. On each, its table for the site's example, without the table's `#` lines, MUST equal the committed table for that architecture. The two tables can differ: HMMER 3.4 computes a few scores differently on each.
 
 #### Scenario: Each architecture
 
 - **WHEN** the engine's tests run in the engine image on `linux/amd64` and on `linux/arm64`, with the sample in the data folder
-- **THEN** `hmmscan`'s table for the site's example against the sample equals the committed table on both
+- **THEN** `hmmscan`'s table for the site's example against the sample equals that architecture's committed table
 
 ### Requirement: The hmmscore sample in CI
 

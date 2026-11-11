@@ -107,6 +107,7 @@ Specs are organized by capability, not by developer. This is the starting layout
 | `psep-engine` | cSNP scoring: pipeline behaviour, thresholds, and parity with the Perl |
 | `refmap-data` | The PANTHER 19 classification files refmap maps against: the pinned release, the organism list generated from it, fetching and verifying |
 | `refmap-engine` | Mapping IDs as `map_panther.pl` did, the organisms the engine publishes, the `map` command, and parity with the Perl |
+| `hmmscore-data` | The hmmscore data: reading the PANTHER 19 HMM library's `names.tab` and models, the library survey, the pinned library with fetching and verifying it, and the data sample |
 
 ## Where Things Go
 

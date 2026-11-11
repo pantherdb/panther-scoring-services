@@ -217,6 +217,14 @@ jobs:
           key: refmap-data-${{ hashFiles('engine/src/panther_engine/refmap/data.json') }}
       # Always runs, and on a cache hit only checks the files.
       - run: uv run panther-engine refmap data fetch --data-dir ../.data
+      # The hmmscore data sample, keyed on its manifest and shared with both engine-image legs, as
+      # the cSNP sample is. Its pressed files are made once and read on both architectures.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .data/hmmscore
+          key: hmmscore-sample-${{ hashFiles('engine/src/panther_engine/hmmscore/sample.json') }}
+      # Always runs, and on a cache hit only checks the files.
+      - run: uv run panther-engine hmmscore sample fetch --data-dir ../.data
       # The tests marked `tools` skip here; engine-image runs them with the tools. The tests marked
       # `data` fail if their data is missing.
       - run: uv run pytest
@@ -274,6 +282,14 @@ jobs:
         run: >-
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" panther-engine:ci
           panther-engine refmap data fetch --data-dir /fetch
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .data/hmmscore
+          key: hmmscore-sample-${{ hashFiles('engine/src/panther_engine/hmmscore/sample.json') }}
+      - name: hmmscore data sample
+        run: >-
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" panther-engine:ci
+          panther-engine hmmscore sample fetch --data-dir /fetch
       - name: Tests, with the tools and the data required
         run: >-
           docker run --rm -v "$PWD/.data:/data:ro" -e PANTHER_DATA_DIR=/data

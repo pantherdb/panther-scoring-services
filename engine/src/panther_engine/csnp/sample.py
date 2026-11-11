@@ -19,7 +19,6 @@ A different zlib can compress differently, so the tarball's sha256 only matters 
 per-file checksums are the lasting contract.
 """
 
-import gzip
 import json
 import os
 import shutil
@@ -30,6 +29,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import cast
 
+from panther_engine.core.archive import ArchiveError, open_stream, unpack, write_tarball
 from panther_engine.core.data import data_root
 from panther_engine.core.download import download
 from panther_engine.core.manifest import (
@@ -41,7 +41,7 @@ from panther_engine.core.manifest import (
     sha256_file,
     verify,
 )
-from panther_engine.csnp.survey import FAMILY_FILE, FAMILY_NAME, open_stream
+from panther_engine.csnp.survey import FAMILY_FILE, FAMILY_NAME
 
 SERVICE = "csnp"
 VERSION = "9"
@@ -221,34 +221,6 @@ def extract_blast(archive: Path, folder: Path) -> str:
     return reader.digest.hexdigest()
 
 
-def write_tarball(path: Path, files: dict[str, Path], compresslevel: int = 9) -> None:
-    """A reproducible tarball: members sorted by path, USTAR, owned by 0 and dated 0, modes 0644
-    and 0755, gzip level 9 with no name or date in its header. Tests can compress less."""
-    folders = {str(parent) for name in files for parent in PurePosixPath(name).parents}
-    folders.discard(".")
-    with (
-        path.open("wb") as raw,
-        gzip.GzipFile(
-            filename="", mode="wb", fileobj=raw, compresslevel=compresslevel, mtime=0
-        ) as compressed,
-        tarfile.open(fileobj=compressed, mode="w", format=tarfile.USTAR_FORMAT) as tar,
-    ):
-        for name in sorted(folders | set(files)):
-            info = tarfile.TarInfo(name)
-            info.mtime = 0
-            info.uid = info.gid = 0
-            info.uname = info.gname = ""
-            if name in folders:
-                info.type = tarfile.DIRTYPE
-                info.mode = 0o755
-                tar.addfile(info)
-                continue
-            info.mode = 0o644
-            info.size = files[name].stat().st_size
-            with files[name].open("rb") as source:
-                tar.addfile(info, source)
-
-
 # fetch and verify
 
 
@@ -285,7 +257,10 @@ def fetch(
                 )
             unpacked = Path(work) / "unpacked"
             unpacked.mkdir()
-            unpack(tarball, unpacked)
+            try:
+                unpack(tarball, unpacked, SERVICE)
+            except ArchiveError as error:
+                raise SampleError(str(error)) from error
             mismatches = verify(unpacked, files)
             if not mismatches.ok:
                 raise SampleError(
@@ -301,24 +276,3 @@ def fetch(
             root.rmdir()
         raise
     return True
-
-
-def unpack(tarball: Path, folder: Path) -> None:
-    """Unpack `tarball` into `folder`, after checking that every member is a regular file or a
-    folder at a relative path under `csnp/`. Nothing is unpacked if one isn't."""
-    try:
-        with tarfile.open(tarball, "r:gz") as tar:
-            members = tar.getmembers()
-            for member in members:
-                path = PurePosixPath(member.name)
-                if (
-                    not (member.isfile() or member.isdir())
-                    or path.is_absolute()
-                    or ".." in path.parts
-                    or path.parts[:1] != (SERVICE,)
-                ):
-                    raise SampleError(f"unsafe member in {tarball.name}: {member.name!r}")
-            # The data filter refuses such members too, and anything else unsafe.
-            tar.extractall(folder, members, filter="data")
-    except (tarfile.TarError, EOFError, OSError) as error:
-        raise SampleError(f"can't unpack {tarball}: {error}") from error

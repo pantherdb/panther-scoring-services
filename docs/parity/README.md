@@ -32,6 +32,7 @@ Parity is the acceptance test for **milestone M1** of each service. It does not 
 | [inputs.md](inputs.md) | Each test input, by service, and why it's in the set |
 | [divergences.md](divergences.md) | The divergence log (format below) |
 | [csnp-library-survey.md](csnp-library-survey.md) | The survey of the cSNP PAML_RST library: what each check found across all 8,607 families, how the Perl's readings differ from the strict readers', and the families chosen for the cSNP data sample |
+| [hmmscore-library-survey.md](hmmscore-library-survey.md) | The survey of PANTHER 19's HMM library: what its tarball holds, how `pantherScore.pl`'s readings differ from the strict readers', and the models `binHmm` holds that no model file does. Also what was measured on the full library (the press check, `hmmscan`'s time and memory, HMMER 3.1b2 against 3.4, and its numbers on arm64), and the families chosen for the hmmscore data sample |
 | [refmap-legacy-behaviour.md](refmap-legacy-behaviour.md) | What the legacy `refmap` service does, as its code runs it: the lookup, what the website called and how it used the answers, the data, the quirks (`REFMAP-1`, …) with their parity calls, and the proposed golden inputs |
 
 The golden files themselves are test fixtures, so they live with the engine's tests in `engine/`. This folder explains them.

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from panther_engine.core.archive import write_tarball
 from panther_engine.core.manifest import sha256_file
 from panther_engine.core.process import run_tool
 from panther_engine.csnp import legacy, sample
@@ -13,7 +14,6 @@ from panther_engine.csnp.library import LibraryFormatError, open_lines
 from panther_engine.csnp.orig_tree import read_orig_tree
 from panther_engine.csnp.paml import read_header, read_paml
 from panther_engine.csnp.rst import read_rst
-from panther_engine.csnp.sample import write_tarball
 from panther_engine.csnp.species import read_species
 from panther_engine.csnp.survey import BLAST_CHECKS, survey
 

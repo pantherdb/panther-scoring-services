@@ -1,6 +1,6 @@
 # Tech Stack Proposal
 
-**Status:** Proposed, 2026-10-27; revised 2026-10-28 for four services. Not final until the [open questions](#open-questions) are answered and the [reviewers](#review) sign off. The frontend part was split out and accepted on 2026-10-28: see [frontend-stack.md](frontend-stack.md). The API's tooling (uv, Python version, lint, types, tests, error format) was split out and accepted on 2026-10-28: see [api-stack.md](api-stack.md); the API's architecture stays here. Revised 2026-10-29: [pinned tool versions](#pinning-tool-versions) in the container image (BLAST+ 2.17.0 tested against the PANTHER9 database), worker processes (API recommendation 1), the site moving to the JSON API (API recommendation 2), the parity oracle image (Engine condition 3), cSNP data regeneration as a separate project, and the environments and cSNP data sample (Shared Concerns). Revised again 2026-10-29 (`add-csnp-survey-and-sample`): the service priority, with `csnp` first; the origin of `PAML_RST.tar.gz`, production's library build; and following the legacy code where it and its docs disagree, which keeps the code's cSNP thresholds and pDel bounds for M1 (Engine condition 7). Also the cSNP data sample's storage, a release asset unpacked under `PANTHER_DATA_DIR` (Shared Concerns, Data). Revised 2026-10-29 (`port-csnp`): the cSNP reference image takes the legacy scripts from a developer's checkout, because the repository is private (Engine condition 3); two new open questions, on making the original repositories public and on a licence. Revised 2026-11-06 (`port-refmap`): refmap's data under its own root, `refmap/19/`, with the whole release used by developers and CI (Shared Concerns, Data); the refmap reference image, which downloads its public script (Engine condition 3).
+**Status:** Proposed, 2026-10-27; revised 2026-10-28 for four services. Not final until the [open questions](#open-questions) are answered and the [reviewers](#review) sign off. The frontend part was split out and accepted on 2026-10-28: see [frontend-stack.md](frontend-stack.md). The API's tooling (uv, Python version, lint, types, tests, error format) was split out and accepted on 2026-10-28: see [api-stack.md](api-stack.md); the API's architecture stays here. Revised 2026-10-29: [pinned tool versions](#pinning-tool-versions) in the container image (BLAST+ 2.17.0 tested against the PANTHER9 database), worker processes (API recommendation 1), the site moving to the JSON API (API recommendation 2), the parity oracle image (Engine condition 3), cSNP data regeneration as a separate project, and the environments and cSNP data sample (Shared Concerns). Revised again 2026-10-29 (`add-csnp-survey-and-sample`): the service priority, with `csnp` first; the origin of `PAML_RST.tar.gz`, production's library build; and following the legacy code where it and its docs disagree, which keeps the code's cSNP thresholds and pDel bounds for M1 (Engine condition 7). Also the cSNP data sample's storage, a release asset unpacked under `PANTHER_DATA_DIR` (Shared Concerns, Data). Revised 2026-10-29 (`port-csnp`): the cSNP reference image takes the legacy scripts from a developer's checkout, because the repository is private (Engine condition 3); two new open questions, on making the original repositories public and on a licence. Revised 2026-11-06 (`port-refmap`): refmap's data under its own root, `refmap/19/`, with the whole release used by developers and CI (Shared Concerns, Data); the refmap reference image, which downloads its public script (Engine condition 3). Revised 2026-11-09 (`add-hmmscore-survey-and-sample`): hmmscore's data, the PANTHER 19 HMM library, under its own root, `hmmscore/19/` (Shared Concerns, Data); the two `hmmscore` open questions, answered. Revised 2026-11-10 (`add-hmmscore-survey-and-sample`): the hmmscore data sample (Shared Concerns, Data); HMMER 3.1b2 against 3.4, the shipped pressed files, and HMMER's numbers on arm64 (Pinning Tool Versions).
 
 ## Summary
 
@@ -45,9 +45,9 @@ Scores protein sequences against the PANTHER HMM library with HMMER3 (`hmmscan` 
 - **Entry points:**
   - `pantherScore.pl`: the batch CLI, with best-hit, all-hits and InterProScan output
   - `scoreAlignXml.cgi`: scores and aligns, returns XML
-  - `alignOnTheFly.cgi`: one alignment, returns HTML
+  - `alignOnTheFly.cgi`: one alignment, returns HTML. Not used any more
 - **Library:** about 8,000 lines in `lib/`. Most of it is the `FamLibBuilder`/`FamLibEntry` classes in prod and build variants. `Blast.pm`, `Hit.pm` and `Hsp.pm` appear unused.
-- **Data:** the HMM library (`books/`, `globals/`, the concatenated `binHmm`) and a FASTA file with a DBM index.
+- **Data:** the HMM library (`books/`, `globals/`, the concatenated `binHmm`), which for PANTHER 19 is `PANTHER19.0_hmmscoring.tgz`. The FASTA file with a DBM index was only for `alignOnTheFly.cgi`'s `seqId` lookup. `binHmm` had its own folder in production only to put the big files on another volume (engine developer, 2026-11-09).
 
 Sources: `legacy/pantherScoring/` and `docs/phase1/developer-guide/panther-scoring.md`.
 
@@ -254,6 +254,12 @@ A tool's version is part of each service's reference, like the data version: a d
 
   `PANTHER9.blast.tar.gz` also ships the FASTA the database was built from (`blast/blast.fasta`). If a later BLAST+ drops format v4, `makeblastdb` can rebuild the database. A rebuilt database no longer matches the archive pinned in spec §7.1, so then pin the FASTA's checksum too.
 - **cSNP's BLAST step has a golden made with 2.17.0** (`port-csnp`): `engine/tests/golden/csnp/blast/`, the output for the three sample proteins against the data sample's database, the same on arm64 and amd64. Each protein's best hit matches its first row in the legacy `HUMAN` fixture in subject id, starts and aligned sequences. With the old version unknown, that golden can't prove parity with old production. It guards against later version changes picking a different best hit ([golden-setup.md](../parity/golden-setup.md#the-step-1-golden)).
+- **HMMER 3.4 gives hmmscore production's numbers, on amd64** (`add-hmmscore-survey-and-sample`, [the survey doc](../parity/hmmscore-library-survey.md#hmmer-31b2-against-34)).
+  - **Production most likely ran 3.1b2** (engine developer, 2026-11-09). PANTHER 19's model files say they're `HMMER3/f [3.1b2 | February 2015]`.
+  - **3.4 reads the shipped format:** the pressed files are format 3/f, which 3.1b2 wrote.
+  - **The comparison:** on amd64, 3.1b2 and 3.4 gave identical `hmmscan` tables on the full library's shipped pressed files, and identical tables and best-hit alignments on the data sample. So there's no HMMER divergence to propose.
+  - **The pressed files stay as shipped.** Neither version reproduces the shipped `.h3p`, and a re-pressed copy moves a few domains near a cutoff, so the full library keeps the release's own (engine developer, 2026-11-10).
+  - **arm64 differs.** 3.4's arm64 build gives some scores a different last digit, and can move a domain near a cutoff. So the sample's committed `hmmscan` table has a version for each architecture, and production's numbers are amd64's.
 - **Report each tool's version in responses** (API recommendation 3).
 
 ### cSNP's M2: HMMER or Grafting for PSEP
@@ -276,11 +282,18 @@ The other three services have no M2 defined.
 
   | Root | Contents | Used by |
   | ---- | -------- | ------- |
-  | `/data/panther/<version>/` | The current PANTHER release (19 today): HMM library, family MSAs and trees, PAINT annotations, and treegrafter's `prepare` output | `hmmscore`, `treegrafter` |
+  | `/data/panther/<version>/` | The current PANTHER release (19 today): HMM library, family MSAs and trees, PAINT annotations, and treegrafter's `prepare` output | `treegrafter` |
+  | `/data/hmmscore/<version>/` | The current release's HMM library (19 today), from `PANTHER19.0_hmmscoring.tgz`: `globals/` and every family and subfamily model, pinned by `engine/src/panther_engine/hmmscore/data.json` (`add-hmmscore-survey-and-sample`) | `hmmscore` |
   | `/data/refmap/<version>/` | The current release's classification files (19 today), one per Reference Proteome organism and saved under its code, and their `stats`, pinned by `engine/src/panther_engine/refmap/data.json` (`port-refmap`) | `refmap` |
   | `/data/csnp/<version>/` | Frozen precomputed data from PANTHER 9: BLAST database, PAML library, species tree (checksums pinned in the legacy behaviour spec §7.1) | `csnp` |
 
   - **Developers and CI use the whole refmap release:** 157 MB, 523 MB unpacked, the size of the cSNP sample, so there's no refmap sample. `panther-engine refmap data fetch` downloads it from `data.pantherdb.org` and checks every file. Fetching it is in [engine.md](../testing/engine.md#the-refmap-data).
+  - **Developers and CI use a sample of the hmmscore library,** which is 67 GB fetched (`add-hmmscore-survey-and-sample`).
+    - **What it holds:** 14 whole families chosen from the [library survey](../parity/hmmscore-library-survey.md#the-sample), their `names.tab` lines, their models as the library's `binHmm.h3m` holds them, pressed by HMMER 3.4, and the library's README.
+    - **Where it lives:** a public release asset of this repository, `hmmscore-sample-1`, approved for publishing by the engine developer on 2026-11-09: 33 MB, 135 MB unpacked. `engine/src/panther_engine/hmmscore/sample.json` pins it.
+    - **Where it goes:** under `PANTHER_DATA_DIR` at `hmmscore/19/`, in the full library's layout.
+
+    Fetching it, fetching the full library, and publishing a new sample are in [engine.md](../testing/engine.md#the-hmmscore-data-sample).
   - **cSNP's BLAST database must stay matched to its PAML library.** It can't use the current release's sequences, or the family and node IDs won't line up.
   - **Regenerating the cSNP data is out of scope here.** Rebuilding PAML_RST for newer PANTHER libraries is a separate project, once the service is up. Until then, the frozen files are used as they are, including the two empty `.rst` files (`PTHR11711`, `PTHR19241`).
   - **The cSNP PAML library is 2.35 GB compressed and 19.2 GB unpacked:** 8,607 families, three files each. The developer copy, `panther_build/PAML_RST.tar.gz` beside `panther-workspace`, matches the checksum pinned in spec §7.1 (checked 2026-10-29). It was tarballed from the legacy production server before that was shut down, so it is the library build production ran (engine developer, 2026-10-29).
@@ -293,7 +306,7 @@ The other three services have no M2 defined.
 - **Developer platforms.** Everything that calls the engine's tools runs in the containers, so no machine needs native BLAST+, HMMER or EPA-ng. HMMER and EPA-ng have no Windows builds at all.
   - **Windows:** Docker Desktop with WSL2. Clone the repo, and `panther-workspace` beside it, inside the WSL2 filesystem (for example `~/panther/`), and run git, npm, uv and `docker compose` from the WSL2 shell. Bind mounts from `C:\` cross a slow file-sharing bridge, and file watching (Vite, server reload) misses changes made across it. x86-64 laptops run the amd64 image natively. The engine's compose checks were run this way on 2026-10-29, and pass (`scaffold-engine`).
   - **Apple Silicon and Windows on Arm:** the `linux/arm64` image ([Pinning Tool Versions](#pinning-tool-versions)). CI builds and tests it natively on GitHub's `ubuntu-24.04-arm` runners, which this repository can use.
-  - **Data:** developers use the sample of the cSNP data (Data, above), not the full 19.2 GB PAML library (decided 2026-10-29), and the whole refmap release.
+  - **Data:** developers use the sample of the cSNP data (Data, above), not the full 19.2 GB PAML library (decided 2026-10-29), the whole refmap release, and the sample of the hmmscore library.
 - **Environments.** Decided 2026-10-29:
 
   | Environment | cSNP data | Runs |
@@ -344,8 +357,8 @@ The legacy behaviour spec's §8 lists these in full.
 
 ### `hmmscore`
 
-- **Production CGIs:** which copy of `scoreAlignXml.cgi` and `alignOnTheFly.cgi` runs? The copies in `pantherScoring/` and `panther-site-java/scoring/` differ, by 55 and 109 lines even ignoring whitespace.
-- **Library modes:** how do the prod and build library variants (`FamLibBuilder_prod` vs `_build`) differ, and do we need both?
+- **Production CGIs:** answered. The copies in `pantherScoring/` and `panther-site-java/scoring/` differ, by 55 and 109 lines even ignoring whitespace. The site's copies are from the HMMER2 era (`use Algs::Hmmer`, `./PANTHER7.2`, `-B ./blastall`), so they can't have served PANTHER 19. Production ran `pantherScoring`'s `scoreAlignXml.cgi`, and `alignOnTheFly.cgi` isn't used any more (engine developer, 2026-11-09).
+- **Library modes:** answered from the code. Only prod is used: `scoreAlignXml.cgi:63` builds the library as `"prod"`, and `pantherScore.pl`'s `-P` defaults to prod (56 and 138). The build variant isn't needed (`add-hmmscore-survey-and-sample`).
 
 ### `refmap`
 

@@ -107,11 +107,11 @@ Paths below are relative to `../panther-workspace`.
 | ---- | ---- |
 | `pantherScore.pl` | Batch CLI: HMMER3 `hmmscan` or `hmmsearch`; best-hit, all-hits or InterProScan output |
 | `scoreAlignXml.cgi` | Web entry point: scores and aligns one sequence, returns XML |
-| `alignOnTheFly.cgi` | Web entry point: one alignment, returns HTML |
+| `alignOnTheFly.cgi` | Web entry point: one alignment, returns HTML. Not used any more |
 | `lib/` | `FamLibBuilder*`, `FamLibEntry*` (prod and build library variants), `FastaFile.pm`. `Blast.pm`, `Hit.pm` and `Hsp.pm` appear unused |
 | `config.example.yaml` | `library_directory`, `binHmm_library_directory`, `fasta_file`, `fasta_idx`, `tmp_directory`, `hmmer_bin_directory` |
 
-Data it needs: the PANTHER HMM library (`books/`, `globals/`, `binHmm`) and a FASTA file with a DBM index.
+Data it needs: the PANTHER HMM library (`books/`, `globals/`, `binHmm`), which for PANTHER 19 is `PANTHER19.0_hmmscoring.tgz`. The FASTA file with a DBM index in `config.example.yaml` was only for `alignOnTheFly.cgi`'s `seqId` lookup. `binHmm` had its own folder in production only to put the big files on another volume (engine developer, 2026-11-09).
 
 ### `refmap`: `legacy/RefProteomeMapper/`
 
@@ -206,7 +206,7 @@ Don't read or reuse these:
 - **Wrong start node for about 17% of genes (`SCORE-2`).** `PANTHER_PSEP1.01.pl` takes the *last* `.paml` header match. Internal-node labels collide with leaf labels, so the trace-back often starts from an unrelated node. Matching the goldens byte for byte reproduces this; it's a keep-or-fix decision.
 - **Batch results depend on input order (`SCORE-7`, `SCORE-8`).** There's no `use strict`, the state is package globals that are never reset, and `getYear` keeps the first family's `$i`. The CGI scores one protein per request, so it's unaffected; CLI batches spanning families are not.
 - **Some residues are never mapped (`MAP-4`).** The residue at the alignment start (every `M1x`) and the one right after a query-side gap come back "Invalid substitution".
-- **Two copies of the HMM scoring CGIs that differ too.** `scoreAlignXml.cgi` and `alignOnTheFly.cgi` exist in `legacy/pantherScoring/` and in `legacy/panther-site-java/scoring/`, and differ by 55 and 109 lines even ignoring whitespace. Which copies run in production needs team verification.
+- **Two copies of the HMM scoring CGIs that differ too.** `scoreAlignXml.cgi` and `alignOnTheFly.cgi` exist in `legacy/pantherScoring/` and in `legacy/panther-site-java/scoring/`, and differ by 55 and 109 lines even ignoring whitespace. The site's copies are from the HMMER2 era (`use Algs::Hmmer`, `./PANTHER7.2`, `-B ./blastall`), so they can't have served PANTHER 19. Production ran `pantherScoring`'s `scoreAlignXml.cgi`, and `alignOnTheFly.cgi` isn't used any more (engine developer, 2026-11-09).
 - **`treeGrafter.cgi` is missing.** The site calls `tree_grafter_url` (`/treegrafting19/treeGrafter.cgi`), but its source isn't in `panther-workspace`. Needs team verification.
 - **Two PANTHER versions.** The site's URLs for `hmmscore`, `refmap` and `treegrafter` use PANTHER 19. `csnp` runs on frozen PANTHER 9 data. Its species tree (`species_pthr8_time.nhx`) is older still and lacks Perissodactyla, Artiodactyla and Sauria, so 40,506 speciation nodes are aged as duplications (`DATA-3`).
 - **`README_snp` describes the old method.** `legacy/panther-site-java/scoring/README_snp` and `grabSnpScoringFiles.pl` are for the 2007 subPSEC/HMM tool (`snp_analysis.pl`, `pantherScore.pl`), not PSEP. Don't use them as a spec for `csnp`.

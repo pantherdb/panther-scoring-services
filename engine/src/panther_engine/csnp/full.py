@@ -19,6 +19,7 @@ import json
 import tarfile
 from pathlib import Path
 
+from panther_engine.core.archive import open_stream
 from panther_engine.core.manifest import (
     CHUNK,
     HashingReader,
@@ -29,7 +30,6 @@ from panther_engine.core.manifest import (
     sha256_file,
 )
 from panther_engine.csnp import sample
-from panther_engine.csnp.survey import open_stream
 
 MANIFEST = Path(__file__).with_name("full.json")
 

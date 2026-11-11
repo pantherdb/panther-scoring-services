@@ -29,7 +29,9 @@ engine/src/panther_engine/csnp/full.json linguist-generated=true
 engine/src/panther_engine/refmap/data.json linguist-generated=true
 engine/src/panther_engine/refmap/organisms.json linguist-generated=true
 
-# Stored byte for byte, never converted. The cSNP fixtures are hand-written library files, some
-# with CRLF on purpose. The golden files are compared exactly by the parity tests.
+# Stored byte for byte, never converted. The cSNP and hmmscore fixtures are library files, some
+# with CRLF on purpose, and hmmscore's include pressed binary files. The golden files are compared
+# exactly by the parity tests.
 engine/tests/fixtures/csnp/** -text
+engine/tests/fixtures/hmmscore/** -text
 engine/tests/golden/** -text

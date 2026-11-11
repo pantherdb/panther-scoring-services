@@ -6,7 +6,7 @@ from typing import Self
 import pytest
 
 from panther_engine.core import download as module
-from panther_engine.core.download import DOWNLOAD_TIMEOUT, DownloadError, download
+from panther_engine.core.download import DOWNLOAD_TIMEOUT, DownloadError, download, open_https
 
 
 class Response(io.BytesIO):
@@ -76,3 +76,38 @@ def test_a_redirect_to_http_is_refused(opened: list[tuple[object, float]], tmp_p
         download("https://example.org/redirect-to-http", tmp_path / "file")
 
     assert not (tmp_path / "file").exists()
+
+
+# open_https
+
+
+def test_a_response_is_read_as_a_stream_and_closed_after(
+    opened: list[tuple[object, float]],
+) -> None:
+    with open_https("https://example.org/file") as response:
+        assert response.read(3) == b"pay"
+        assert response.read() == b"load\n"
+
+    assert response.closed
+    request, timeout = opened[0]
+    assert getattr(request, "full_url", None) == "https://example.org/file"
+    assert getattr(request, "headers", {}) == {"User-agent": "panther-engine"}
+    assert timeout == DOWNLOAD_TIMEOUT
+
+
+@pytest.mark.parametrize("url", ["http://example.org/file", "file:///etc/passwd"])
+def test_a_stream_from_a_url_that_isnt_https_is_refused_before_any_request(
+    url: str, opened: list[tuple[object, float]]
+) -> None:
+    with pytest.raises(DownloadError, match="only https"), open_https(url):
+        pytest.fail("a response was given")
+
+    assert opened == []
+
+
+def test_a_stream_redirected_to_http_is_refused(opened: list[tuple[object, float]]) -> None:
+    with (
+        pytest.raises(DownloadError, match="refusing to download http://elsewhere"),
+        open_https("https://example.org/redirect-to-http"),
+    ):
+        pytest.fail("a response was given")

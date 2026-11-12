@@ -37,7 +37,7 @@ Before sending, the HMM scoring form SHALL check the sequence against `scoring-i
 
 #### Scenario: A character hmmscan doesn't read, in the hmmscore form
 
-- **WHEN** the user submits `MKV1L` or `MKV-L`
+- **WHEN** the user submits `MKV1L`, `MKV-L` or `MKV*L`
 - **THEN** the sequence field says which characters a sequence may hold, without quoting it, and no request is sent
 
 #### Scenario: A valid sequence is sent for hmmscore
@@ -94,7 +94,7 @@ When the API accepts an HMM scoring request with 202, the UI SHALL open `/jobs/{
 
 ### Requirement: hmmscore results on the job page
 
-When an `hmmscore` job has succeeded with a hit, the job page SHALL show the hit's PANTHER ID, linking to its page on pantherdb.org, its name, or no name when `name` is `null`, its E-value and its bit score, each exactly as the API gives it, and the alignment. With a `null` hit, it MUST say there were no hits to PANTHER for the sequence. The job's versions MUST be shown with it.
+When an `hmmscore` job has succeeded with a hit, the job page SHALL show the hit's PANTHER ID, linking to its page on pantherdb.org, its name, its E-value and its bit score, each exactly as the API gives it, and the alignment. With a `null` hit, it MUST say there were no hits to PANTHER for the sequence. The job's versions MUST be shown with it.
 
 #### Scenario: A job with a hit
 

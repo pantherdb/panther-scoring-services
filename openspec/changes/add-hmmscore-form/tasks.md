@@ -14,7 +14,7 @@
 ## 3. hmmscore Results on the Job Page
 
 - [ ] 3.1 Implement `src/features/jobs/HmmscoreHit.tsx` and `AlignmentText.tsx`, render them from `JobResult`, title the job "HMM scoring" in `JobDetails`, and add its next step to `JobNextSteps` (design.md, decision 3).
-- [ ] 3.2 Write `tests/features/jobs/HmmscoreHit.test.tsx`: the PANTHER ID and its link, the name, a `null` name, the E-value and score as given, the alignment's spaces and line breaks kept, no hit, no hit or alignment while running, the versions; and the next step's link to an empty form. Verify `npm test -- --run` passes.
+- [ ] 3.2 Write `tests/features/jobs/HmmscoreHit.test.tsx`: the PANTHER ID and its link, the name, the E-value and score as given, the alignment's spaces and line breaks kept, no hit, no hit or alignment while running, the versions; and the next step's link to an empty form. Verify `npm test -- --run` passes.
 
 ## 4. End to End and Docs
 

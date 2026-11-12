@@ -3,13 +3,13 @@
 ## 1. The Legacy Service, Recorded
 
 - [ ] 1.1 Write `docs/parity/hmmscore-legacy-behaviour.md`, following `docs/parity/README.md`: what `scoreAlignXml.cgi` ran and returned, what the site sent and showed, the quirks `HMMSCORE-1` to `HMMSCORE-10` with file, line and a parity call (design.md, decision 9), the engine developer's character measurements of 2026-11-11, and proposed golden inputs. Link to the survey rather than repeating it. List it in `docs/parity/README.md`. Verify `npx markdownlint-cli2` passes.
-- [ ] 1.2 Add proposed rows to `docs/parity/divergences.md`, with no approver: 11, a server's residue limit below the reference's 50,000, approved with that value (or the product owner's limit, if they lower it); 12, the sequences the API refuses where the reference answered no hit (empty, a character other than a letter, `*`, `.`, `_`, `~`, `-` included), with the website's posting changes and the header after a blank line. Add a footer line for `HMMSCORE-` IDs. Verify `npx markdownlint-cli2` passes.
+- [ ] 1.2 Add proposed rows to `docs/parity/divergences.md`, with no approver: 11, a server's residue limit below the reference's 50,000, approved with that value (or the product owner's limit, if they lower it); 12, the sequences the API refuses where the reference answered no hit (empty, a character other than a letter, a `*` before the end, `-`, `.`, `_` and `~` included, with the engine developer's 3.1b2 and 3.4 scores), with the website's posting changes and the header after a blank line. Add a footer line for `HMMSCORE-` IDs. Verify `npx markdownlint-cli2` passes.
 
 ## 2. The hmmscore Input and Result Models
 
 - [ ] 2.1 Move cSNP's sequence normalising from `api/src/panther_api/jobs/csnp.py` to `jobs/fields.py`, with each service's messages and characters passed in. Verify `uv run pytest tests/test_csnp_input.py` passes unchanged.
-- [ ] 2.2 Add `api/src/panther_api/jobs/hmmscore.py`: `HmmscoreInput` with the rules in design.md, decision 3, and `log_summary()`; `HmmHit` and `HmmscoreResult`, every field required, nullable where decision 4's dataclass is. Verify `uv run basedpyright` passes.
-- [ ] 2.3 Write `api/tests/test_hmmscore_input.py` for every scenario of `scoring-input`'s hmmscore requirements, the header after a blank line and each rejected character included. Each rejection asserts its `loc`, and that no message contains a distinctive part of the sequence. Verify they pass.
+- [ ] 2.2 Add `api/src/panther_api/jobs/hmmscore.py`: `HmmscoreInput` with the rules in design.md, decision 3, and `log_summary()`; `HmmHit` and `HmmscoreResult`, every field required, only `hit` nullable. Verify `uv run basedpyright` passes.
+- [ ] 2.3 Write `api/tests/test_hmmscore_input.py` for every scenario of `scoring-input`'s hmmscore requirements, the header after a blank line, each rejected character, the final `*` and the 1,000,001 characters that normalise to one residue included. Each rejection asserts its `loc`, and that no message contains a distinctive part of the sequence. Verify they pass.
 
 ## 3. The Settings
 
@@ -43,7 +43,7 @@
 
 ### Next action
 
-The engine developer reviewed #70 on 2026-11-11, and the review is addressed (below). Next: his answers on ties, `evalue` and `score` as strings and the name, and the product owner's answer on 50,000 residues. Code starts after the area owners approve.
+The engine developer reviewed #70 on 2026-11-11, and the review is addressed (below). His follow-up and his engine answers (ties, strings, the name) are folded in too. Next: the product owner's answer on 50,000 residues. Code starts after the area owners approve.
 
 ### Blockers
 
@@ -63,5 +63,7 @@ The engine developer reviewed #70 on 2026-11-11, and the review is addressed (be
   - `DATA_VERSION` is a plain string, `"19"`;
   - ties come from up to 5,279 families, not 5,450;
   - a header after a blank line is where trimming first differs from the website.
+- **His follow-up, 2026-11-11:** 3.1b2 split a hit at `.`, `_`, `~` and an inner `*`, as at `-`, and 3.4 doesn't, so only letters and a final `*` are accepted; ties go to the subfamily, then the lowest ID; `evalue` and `score` stay strings; `name` is always a string.
+- **Measure each character in both versions, not only whether it's read.** "Read" by both hid a different score.
 - **Check the reference's failure path, not only its success.** "The CGI died" was assumed from a `die`; the line that mattered was the unchecked `system` before it.
 - **The CGI's XML is thinner than the site's page:** the name came from the site's database, and the page's "score" was the E-value.

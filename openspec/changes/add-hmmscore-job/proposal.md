@@ -11,7 +11,7 @@
 ## What Changes
 
 - **An `hmmscore` job request:** `{"service": "hmmscore", "input": {"sequence": "MKVLWAALLV..."}}`. One protein per job, as `scoreAlignXml.cgi` scored one (design.md, decision 1).
-- **The sequence is normalised as cSNP's** (trimmed, one FASTA header removed, whitespace removed, upper-cased), and **holds only what `hmmscan` 3.4 reads:** letters, `*`, `.`, `_` and `~`. Anything else is a `422` before any job starts (design.md, decision 3).
+- **The sequence is normalised as cSNP's** (trimmed, one FASTA header removed, whitespace removed, upper-cased), and **holds only letters, and a single `*` at the end,** which HMMER 3.1b2 and 3.4 score alike. Anything else is a `422` before any job starts (design.md, decision 3).
 - **An `hmmscore` job** with a `result` of `{"hit": null}`, or `{"hit": {"panther_id", "name", "evalue", "score", "alignment"}}`. `panther_id`, `evalue` and `alignment` are what the CGI's XML carried; `name` and `score` are new (design.md, decision 2).
 - **Not available yet:** a valid request gets `501`, "HMM scoring isn't available yet.", and no job, through `UNAVAILABLE`, as refmap's did. Validation comes first. The wiring change removes it.
 - **Four settings,** read at startup and checked like the others:
@@ -47,7 +47,7 @@ None.
 - **Engine:** no code change. The engine developer reviews decision 4 before `port-hmmscore`.
 - **Parity with the reference:** this change scores nothing. Where the API answers differently from the reference, it's a proposed row, which may not ship without an approver:
   - **Row 11:** a server's residue limit below the reference's 50,000, approved with that value. If the product owner lowers the limit for hmmscore itself, row 11 records their limit instead.
-  - **Row 12:** the sequences the API refuses with a `422` where the reference answered "no hit": an empty sequence, a character `hmmscan` refused, and `-`, which 3.1b2 read as a position and scored differently. With them, what the website's posting changed before the CGI saw it, and a header after a blank line, which the website's form left in (design.md, decision 3).
+  - **Row 12:** the sequences the API refuses with a `422` where the reference answered "no hit": an empty sequence, a character `hmmscan` refused, and `-`, `.`, `_`, `~` and a `*` before the end, which 3.1b2 read as positions, splitting the hit, and 3.4 doesn't. With them, what the website's posting changed before the CGI saw it, and a header after a blank line, which the website's form left in (design.md, decision 3).
 
 ## Open Questions
 
@@ -59,9 +59,12 @@ For the team and the product owner:
 - **The server's values** for the four settings come from measuring there with the full library (#68).
 - **The website's port to the JSON API:** it reads `panther_id`, `evalue` and `alignment` where it read `<id>`, `<eval>` and `<align>`, and can drop its own name lookup.
 
-For the engine developer (answers to come in a separate comment on #70):
+For `port-hmmscore`'s goldens to confirm:
 
-- **Tied best hits (`HMMSCORE-1`).** The CGI showed whichever tied model came first in Perl's hash order. In up to 5,279 of the 5,450 one-subfamily families, the family and subfamily models can tie as printed. Which one should the port report, or all? Either is a proposed row for `port-hmmscore`.
-- **`evalue` and `score` as strings,** as `hmmscan` printed them, or numbers?
-- **`name`:** `null` for an ID `names.tab` lacks? The survey found a line for every model file.
-- **Upper-casing:** HMMER reads lower-case residues as upper-case, so no hit should change. The port's goldens confirm it.
+- **Upper-casing, and refusing `.`, `_`, `~` and an inner `*`:** measured on a test model built from APOE; the goldens confirm both on PANTHER's own models.
+
+Answered by the engine developer on #70, 2026-11-11:
+
+- **Tied best hits (`HMMSCORE-1`):** the subfamily before its family, then the lowest PANTHER ID. The CGI picked one at random. A proposed row for `port-hmmscore`; the contract keeps one `hit`.
+- **`evalue` and `score`:** strings, as printed (design.md, decision 2).
+- **`name`:** always a string; "No name" if `names.tab` ever lacks the ID.

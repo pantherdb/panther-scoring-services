@@ -5,7 +5,7 @@
 This change relies on these decisions and doesn't repeat them:
 
 - **Jobs, the unions tagged by `service`, `work.py`, and adding a service:** `openspec/specs/scoring-jobs/`, and `api/CLAUDE.md`, "Adding a Service".
-- **A contract with a `501` first, then the port, then the wiring:** the archived [add-refmap-job](../archive/2026-10-30-add-refmap-job/design.md) (decision 6, `UNAVAILABLE`), and how [wire-refmap](../wire-refmap/design.md) removed it.
+- **A contract with a `501` first, then the port, then the wiring:** the archived [add-refmap-job](../archive/2026-10-30-add-refmap-job/design.md) (decision 6, `UNAVAILABLE`), and how [wire-refmap](../archive/2026-11-10-wire-refmap/design.md) removed it.
 - **cSNP's sequence rules,** after the website's form: the archived [add-csnp-job design](../archive/2026-10-29-add-csnp-job/design.md), and `scoring-input`.
 - **Problem details, `422`s that never echo a value, the committed schema:** `openspec/specs/api-service/` and [docs/design/api-stack.md](../../../docs/design/api-stack.md).
 - **The engine is a library; the website moves to the JSON API; scoring goes through jobs:** [docs/design/tech-stack.md](../../../docs/design/tech-stack.md).
@@ -31,7 +31,7 @@ Legacy paths are under `../panther-workspace/legacy/`, with `pantherScoring/` at
 
 ```text
 request: { "service": "hmmscore", "input": { "sequence": string } }
-result:  { "hit": { "panther_id": string, "name": string | null, "evalue": string,
+result:  { "hit": { "panther_id": string, "name": string, "evalue": string,
                     "score": string, "alignment": string } | null }
 ```
 
@@ -43,18 +43,18 @@ The CGI printed `<scores>` holding, for the first line of `pantherScore.pl -D B`
 | `panther_id` | `<id>`, the HMM ID `runHmmscan` reads (`pantherScore.pl` 387 to 389) | No |
 | `evalue` | `<eval>`, the full-sequence E-value as printed; the site's "HMM E-value score" (`HMMScoreXMLParser.java` 100 to 104) | No |
 | `alignment` | `<align>`: `hmmsearch` of the hit's model file, from after "Domain annotation for each sequence" to before "Internal pipeline statistics summary:" (`scoreAlignXml.cgi` 133 to 156), unescaped as the site's parser did | No |
-| `name` | `names.tab`'s name. The CGI ran without `-n` (111), and the site looked names up in its database (`HMMScoreXMLParser.java` 97), with which `names.tab` is in sync (#67) | Yes |
+| `name` | `names.tab`'s name, always a string: the survey found a line for every model file, and a missing one would read "No name". The CGI ran without `-n` (111), and the site looked names up in its database (`HMMScoreXMLParser.java` 97), with which `names.tab` is in sync (#67) | Yes |
 | `score` | The full-sequence bit score, which `getBestHit` ranks by. `pantherScore.pl` printed it; the CGI dropped it | Yes |
 
 - **Left out:** the sequence ID, always `sequence` (decision 3), and the range, which the CGI dropped.
-- **`evalue` and `score` are strings,** as printed: `getBestHit` compares them so, and goldens compare text. Open for the engine developer.
+- **`evalue` and `score` are strings,** as printed, as cSNP's `pdel` is (engine developer, 2026-11-11). As numbers, a browser would show `1.2e-05` as `0.000012` and `439.0` as `439`, which `hmmscan` never printed, and goldens compare text. The engine still compares them as numbers to pick the best hit, as `getBestHit`'s `<=>` did. A client that needs a number parses the string.
 - **`alignment` is text,** as the site showed it. Parsed fields can be added beside it later.
-- **One hit,** whatever the tie rule (`HMMSCORE-1`).
-- **Every field is required, nullable where the engine's is.** Union order: `tools`, `csnp`, `refmap`, `hmmscore`.
+- **One hit.** On a tie as printed, the subfamily before its family, then the lowest PANTHER ID (decision 9, `HMMSCORE-1`).
+- **Every field is required; only `hit` is nullable.** Union order: `tools`, `csnp`, `refmap`, `hmmscore`.
 
 ### 3. Validation, rule by rule
 
-The website's form normalised the sequence (`SequenceSearchForm.java` 51 to 89), and then its posting changed it again (`scoreAlignXml.cgi` 79 to 87). The API applies cSNP's normalising, moved to `jobs/fields.py`, then accepts only what `hmmscan` 3.4 reads.
+The website's form normalised the sequence (`SequenceSearchForm.java` 51 to 89), and then its posting changed it again (`scoreAlignXml.cgi` 79 to 87). The API applies cSNP's normalising, moved to `jobs/fields.py`, then accepts only what 3.1b2 and 3.4 score alike: letters, and a single `*` at the end.
 
 | Rule | The website | Here |
 | ---- | ----------- | ---- |
@@ -64,21 +64,23 @@ The website's form normalised the sequence (`SequenceSearchForm.java` 51 to 89),
 | Whitespace removed | 76 to 79 | Same |
 | At most 50,000 residues | 83 to 86 | The configured limit, 50,000 by default and at most (decision 7). Row 11 for a lower one |
 | Upper-cased | Not done | New, as cSNP's. HMMER reads either case alike |
-| Letters, `*`, `.`, `_`, `~` only | Not checked | New. Measured by the engine developer, 2026-11-11 (below). Row 12 |
+| Letters, and one `*` at the end, only | Not checked | New. Measured by the engine developer, 2026-11-11 (below). Row 12 |
 | At most 1,000,000 characters before normalising | None | New, as cSNP's |
 
 **The characters** (engine developer, 2026-11-11, one-sequence test model built from APOE):
 
 | In the sequence | 3.1b2 (production, most likely) | 3.4 (the port) |
 | --- | --- | --- |
-| Letters, either case; `*`, `.`, `_`, `~` | Read | Read |
+| Letters, either case; `*` at the end | Read | Read |
+| `.`, `_`, `~` or `*` inside the sequence | Read, as a position, splitting the hit | Read, one domain |
 | `-` | Read, as a position | Refused |
 | `>` inside the sequence | Refused | Read |
 | Empty | Refused | Read, no hit |
 | Digits, `+`, `#`, `!`, `?`, `@` | Refused | Refused |
 
 - **What the reference did with a refused sequence:** answered no hit. `runHmmscan` never checks `hmmscan`'s exit status (`pantherScore.pl` 381), and 3.1b2 leaves an empty `--domtblout`, so `pantherScore.pl` exits 0 and the CGI prints an empty `<scores>` (`HMMSCORE-8`). The API's `422` is row 12. Refusing before a job starts saves a job that reads all of `binHmm.h3f` only to fail.
-- **`-` matters most.** 3.1b2 counted it as a query position: APOE with three `-` inserted scored 667.1 in three domains, against 721.8 in one. Neither refusing nor stripping it reproduces the reference; the API refuses it, in row 12.
+- **What "as a position" means.** 3.1b2 split the hit at each one: APOE with three inserted scored 667.1 in three domains, against 721.8 in one. 3.4 scored the same insertions 708.5 in one domain. `B`, `J`, `O`, `U`, `X` and `Z` scored alike in both (708.9 to 710.1, and 709.1 to 710.3, in one domain), as did lower case and a final `*`. The 0.2-bit gap on every row comes from pressing the model again in 3.4 (the survey, "The Press Check"); the split doesn't.
+- **So the API refuses `-`, `.`, `_`, `~` and any `*` but a final one,** in row 12: neither refusing nor stripping them reproduces 3.1b2, and 3.4 can't. A final `*` is kept, since translated sequences often end with one. `port-hmmscore`'s goldens confirm this on PANTHER's own models.
 - **The website's posting** changed the text before `hmmscan` saw it: `&` and `=` cut it short (79, 82), `+` became a space (85), `%xx` was decoded (86) and `<!--…-->` was removed (87). The API refuses all those characters, so they're in row 12 too.
 - **The query's name** is `sequence`, as the CGI's (93 to 95), so the alignment text matches.
 - **The engine's `InputError`** for an unreadable sequence is then only for a later HMMER that refuses something 3.4 reads.
@@ -98,7 +100,7 @@ class HmmscoreInput:
 @dataclass(frozen=True)
 class HmmHit:
     panther_id: str
-    name: str | None
+    name: str                            # "No name" if names.tab lacks the ID
     evalue: str
     score: str
     alignment: str
@@ -151,7 +153,7 @@ As `add-refmap-job`: `jobs/hmmscore.py` (Pydantic only, with `log_summary()` giv
 
 | ID | Quirk | Where | Call |
 | -- | ----- | ----- | ---- |
-| `HMMSCORE-1` | Tied best hits in hash order; the CGI shows the first. Up to 5,279 one-subfamily families: 324 whose two models differ only in their header always tie, 4,955 differing in the fifth decimal often tie as printed; 114 differ more and 57 in length | `pantherScore.pl` 225 to 233, 337; `scoreAlignXml.cgi` 161 | **Decide** |
+| `HMMSCORE-1` | Tied best hits in hash order; the CGI shows the first. Up to 5,279 one-subfamily families: 324 whose two models differ only in their header always tie, 4,955 differing in the fifth decimal often tie as printed; 114 differ more and 57 in length | `pantherScore.pl` 225 to 233, 337; `scoreAlignXml.cgi` 161 | The subfamily before its family, then the lowest ID: a proposed row for `port-hmmscore` |
 | `HMMSCORE-2` | No name or bit score in the XML | `scoreAlignXml.cgi` 111, 124 to 127; `HMMScoreXMLParser.java` 97 | New fields |
 | `HMMSCORE-3` | The site's "score" is the E-value | `HMMScoreXMLParser.java` 100 to 104; `hmmScoreResults.jsp` 48 | Named `evalue` |
 | `HMMSCORE-4` | The page says no hit when the E-value is *less* than 1e-3; the code, when greater | `hmmScoreResults.jsp` 38; `getBestHit` 338 | Follow the code |
@@ -170,7 +172,7 @@ As `add-refmap-job`: `jobs/hmmscore.py` (Pydantic only, with `log_summary()` giv
 
 - **[A 50,000-residue job needs more than a server has]** → The server sets a lower limit (#68), recorded by row 11; the product owner's answer may lower the default.
 - **[Settings that do nothing yet]** → The time limit and `--cpu` reach the engine with the wiring; `docs/testing/api.md` says so.
-- **[Ties make the reported hit unstable]** → Open for the engine developer; the contract has one hit.
+- **[Ties made the reported hit unstable]** → The port reports the subfamily first, then the lowest ID. With the data sample, `pantherScore.pl -D B` on PTHR35774's consensus gave `PTHR35774:SF1` five times in ten and `PTHR35774` five times, at the same E-value and score; the subfamily's model file is a copy of the family's, so only the ID changes, and the subfamily's ID carries the family's.
 
 ## Migration Plan
 

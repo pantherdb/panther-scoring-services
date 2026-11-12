@@ -32,12 +32,12 @@ Until the engine's hmmscore scoring is wired in, the API SHALL answer a valid `h
 
 ### Requirement: hmmscore job shape
 
-An `hmmscore` job SHALL have the shape every job has, with `service` `hmmscore` and a `result` that is `null` or `{"hit"}`. `hit` MUST be `null` when no model passes the cutoff, or have `panther_id` (a string), `name` (a string, or `null`), `evalue` (a string), `score` (a string) and `alignment` (a string). Every field MUST be present, even when `null`.
+An `hmmscore` job SHALL have the shape every job has, with `service` `hmmscore` and a `result` that is `null` or `{"hit"}`. `hit` MUST be `null` when no model passes the cutoff, or have `panther_id`, `name`, `evalue`, `score` and `alignment`, each a string. `hit` MUST be present, even when `null`.
 
 #### Scenario: The hmmscore result in the schema
 
 - **WHEN** a client fetches `/api/v1/openapi.json`
-- **THEN** the job union has an `hmmscore` member whose `result` is the hmmscore result or `null`, `hit` is required and is the hit or `null`, and the hit requires `panther_id`, `evalue`, `score` and `alignment` as strings and `name` as a string or `null`
+- **THEN** the job union has an `hmmscore` member whose `result` is the hmmscore result or `null`, `hit` is required and is the hit or `null`, and the hit requires `panther_id`, `name`, `evalue`, `score` and `alignment`, each a string
 
 ### Requirement: A cap on hmmscore jobs running at once
 

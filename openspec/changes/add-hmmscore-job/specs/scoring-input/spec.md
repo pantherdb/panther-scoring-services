@@ -21,9 +21,9 @@ An hmmscore input's `sequence` SHALL be normalised before scoring as a cSNP inpu
 - **WHEN** an hmmscore input's `sequence` is `"\n  >sp|P02649|APOE_HUMAN\nMKVLWAALLV\n"`
 - **THEN** it is accepted, and the sequence scored is `MKVLWAALLV`
 
-### Requirement: hmmscore sequence holds only what hmmscan reads
+### Requirement: hmmscore sequence holds only letters and a final stop
 
-An hmmscore input SHALL be rejected when its `sequence`, after normalising, is empty or holds a character other than a letter, `*`, `.`, `_` or `~`. It MUST also be rejected when the submitted `sequence` contains more than one `>`, or is longer than 1,000,000 characters before normalising. Each error is on `sequence`, doesn't contain the sequence, and comes before any job starts.
+An hmmscore input SHALL be rejected when its `sequence`, after normalising, is empty, or holds a character other than a letter, except a single `*` as its last character. It MUST also be rejected when the submitted `sequence` contains more than one `>`, or is longer than 1,000,000 characters before normalising. Each error is on `sequence`, doesn't contain the sequence, and comes before any job starts.
 
 #### Scenario: An hmmscore header with no residues
 
@@ -40,10 +40,20 @@ An hmmscore input SHALL be rejected when its `sequence`, after normalising, is e
 - **WHEN** an hmmscore input's `sequence` is `MKV1L`, `MKV-L`, `MKV+L`, `MKV>LW` or `MKVÄL`
 - **THEN** it is rejected, with an error on `sequence` that doesn't contain the sequence
 
-#### Scenario: The other characters hmmscan reads
+#### Scenario: Characters the two HMMER versions score differently
 
-- **WHEN** an hmmscore input's `sequence` is `MKV*L` or `mkv.l_~x`
-- **THEN** it is accepted, and the sequences scored are `MKV*L` and `MKV.L_~X`
+- **WHEN** an hmmscore input's `sequence` is `MKV*L`, `MKV.L`, `MKV_L`, `MKV~L` or `MKVL**`
+- **THEN** it is rejected, with an error on `sequence` that doesn't contain the sequence
+
+#### Scenario: A stop at the end, and the uncommon letters
+
+- **WHEN** an hmmscore input's `sequence` is `"mkvbjouxz*\n"`
+- **THEN** it is accepted, and the sequence scored is `MKVBJOUXZ*`
+
+#### Scenario: Too long before normalising
+
+- **WHEN** an hmmscore input's `sequence` is 1,000,001 characters, `M` followed by 1,000,000 spaces, which would normalise to one residue
+- **THEN** it is rejected, with an error on `sequence`, and the residue limit isn't what rejects it
 
 ### Requirement: hmmscore residue limit
 

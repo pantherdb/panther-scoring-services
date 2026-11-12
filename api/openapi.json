@@ -414,6 +414,76 @@
           }
         }
       }
+    },
+    "/api/v1/refmap/organisms/{code}/classification": {
+      "get": {
+        "tags": [
+          "refmap"
+        ],
+        "summary": "Every gene of an organism, with its PANTHER ID",
+        "description": "Every gene of the organism and its PANTHER ID, in the shape of a `refmap` job's result, from\nthe same classification file a job reads. For clients that need the whole organism rather\nthan some IDs: the PANTHER website uses it as the reference list of a gene list analysis,\nwhere it read data.pantherdb.org's `generic_mapping/panther_classification/<long name>`.\n\nThe code is checked against the engine's organisms before any path is built from it. A\nmissing file fails with the generic 500, as a `refmap` job does. Nothing is kept: each\nrequest reads the file and builds its response, and no cache header is sent.",
+        "operationId": "refmap_classification_api_v1_refmap_organisms__code__classification_get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The organism's UniProt species code, such as `ENDPU`.",
+              "pattern": "^[A-Z0-9]{1,5}$",
+              "maxLength": 5,
+              "title": "Code"
+            },
+            "description": "The organism's UniProt species code, such as `ENDPU`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Every gene in the organism's classification file, in the file's order, with its PANTHER ID, or null where the file says `NOHIT`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefmapResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as problem details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No organism refmap maps for has that code."
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

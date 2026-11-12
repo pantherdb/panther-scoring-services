@@ -133,6 +133,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/refmap/organisms/{code}/classification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every gene of an organism, with its PANTHER ID
+         * @description Every gene of the organism and its PANTHER ID, in the shape of a `refmap` job's result, from
+         *     the same classification file a job reads. For clients that need the whole organism rather
+         *     than some IDs: the PANTHER website uses it as the reference list of a gene list analysis,
+         *     where it read data.pantherdb.org's `generic_mapping/panther_classification/<long name>`.
+         *
+         *     The code is checked against the engine's organisms before any path is built from it. A
+         *     missing file fails with the generic 500, as a `refmap` job does. Nothing is kept: each
+         *     request reads the file and builds its response, and no cache header is sent.
+         */
+        get: operations["refmap_classification_api_v1_refmap_organisms__code__classification_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -760,6 +787,63 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RefmapOrganism"][];
+                };
+            };
+            /** @description Unexpected error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Error, as problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    refmap_classification_api_v1_refmap_organisms__code__classification_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The organism's UniProt species code, such as `ENDPU`. */
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every gene in the organism's classification file, in the file's order, with its PANTHER ID, or null where the file says `NOHIT`. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefmapResult"];
+                };
+            };
+            /** @description No organism refmap maps for has that code. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
                 };
             };
             /** @description Unexpected error */

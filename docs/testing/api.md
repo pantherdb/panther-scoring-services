@@ -40,7 +40,7 @@ With the dev server running:
 - `http://localhost:8000/api/v1/health` returns `{"status":"ok"}`.
 - `http://localhost:8000/api/v1/versions` returns the API, engine and tool versions. Run natively, every tool's `version` is `null`, because the external tools are only in the image.
 - `http://localhost:8000/api/v1/csnp/species` returns the species a `csnp` job accepts, with their names. See [The Species List](#the-species-list).
-- `http://localhost:8000/api/v1/refmap/organisms` returns the organisms a `refmap` job maps for, with their names and gene counts. See [The Organism List](#the-organism-list).
+- `http://localhost:8000/api/v1/refmap/organisms` returns the organisms a `refmap` job maps for, with their names and gene counts. See [The Organism List](#the-organism-list). `http://localhost:8000/api/v1/refmap/organisms/ENDPU/classification` returns every gene of one of them with its PANTHER ID, with the refmap data. See [An Organism's Classification](#an-organisms-classification).
 - `http://localhost:8000/api/v1/docs` is the interactive documentation.
 - `http://localhost:8000/api/v1/openapi.json` is the schema.
 - `POST http://localhost:8000/api/v1/jobs` starts a job, and `GET http://localhost:8000/api/v1/jobs/{id}` polls it. See [Try the Jobs by Hand](#try-the-jobs-by-hand).
@@ -324,6 +324,20 @@ ENDPU's entry is among them:
 ```
 
 The response has `Cache-Control: public, max-age=3600`: the list changes only with a new image. PANTHER's own 143 genomes, such as `HUMAN`, aren't in the generic mapping data, so they aren't listed (#52).
+
+#### An Organism's Classification
+
+`GET /api/v1/refmap/organisms/{code}/classification` gives every gene of one listed organism with its PANTHER ID, in the shape of a `refmap` job's result: one mapping per line of its classification file, in the file's order, with `null` where the file says `NOHIT` (#72). The PANTHER website uses it as the reference list of an overrepresentation analysis against a whole proteome, where it read data.pantherdb.org's `generic_mapping/panther_classification/<long name>`. It needs the refmap data:
+
+```sh
+curl -si localhost:8000/api/v1/refmap/organisms/ENDPU/classification
+```
+
+```json
+{ "organism": "ENDPU", "mappings": [{ "id": "U1GLA3", "panther_id": "PTHR47338:SF27" }, { "id": "U1GCM7", "panther_id": "PTHR19303:SF62" }, …] }
+```
+
+ENDPU gives 9,228 mappings, about 390 KB; ARAVE, the largest, 246,021, about 10.6 MB. Each request reads the file and builds its response; nothing is kept, and no `Cache-Control` is sent. A code not in the list, such as `HUMAN` or `endpu`, gets a `404` problem; without the data, a listed code gets the generic `500`, and the startup log says why.
 
 #### A Job That Maps
 

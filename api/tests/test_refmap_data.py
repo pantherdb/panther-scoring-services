@@ -1,5 +1,6 @@
 """`refmap` jobs against the real PANTHER 19 release: the API, a real worker, the engine and the
-refmap data (openspec scoring-jobs, refmap job maps with the engine; refmap job shape).
+refmap data (openspec scoring-jobs, refmap job maps with the engine; refmap job shape; api-service,
+refmap organism classification).
 
 Skipped without the data, as in CI's `api` job; fetch it with `panther-engine refmap data fetch`
 (docs/testing/api.md, "The refmap Data"). CI's `api-image` job runs them with the data required.
@@ -94,3 +95,26 @@ def test_a_job_of_100000_ids_is_kept_small_and_polls_fast(client: TestClient) ->
     assert kept == len(to_json(parsed.result))
     assert kept < MOST_RESULT_BYTES
     assert poll_seconds < MOST_POLL_SECONDS
+
+
+def test_every_organisms_classification_rebuilds_its_published_file(client: TestClient) -> None:
+    """`GET /refmap/organisms/{code}/classification` for each of the 1,533 organisms: its
+    mappings, written back as `<id>`, a tab and the PANTHER ID or `NOHIT`, one a line, are the
+    file the PANTHER website read from data.pantherdb.org, byte for byte, and their counts are
+    `stats`'s (openspec api-service, refmap organism classification)."""
+    folder = data_folder() / "refmap" / engine.DATA_VERSION / "panther_classification"
+    for code in sorted(engine.ORGANISM_CODES):
+        response = client.get(f"/api/v1/refmap/organisms/{code}/classification")
+        assert response.status_code == 200, code
+        result = response.json()
+        assert result["organism"] == code
+        mappings = result["mappings"]
+        rebuilt = "".join(
+            f"{item['id']}\t{'NOHIT' if item['panther_id'] is None else item['panther_id']}\n"
+            for item in mappings
+        )
+        assert rebuilt.encode("latin-1") == (folder / code).read_bytes(), code
+        counts = engine.ORGANISM_GENES[code]
+        assert len(mappings) == counts.genes, code
+        with_id = sum(item["panther_id"] is not None for item in mappings)
+        assert with_id == counts.genes_with_panther_id, code

@@ -18,8 +18,8 @@
 
   | Variable | Default | What it sets |
   | -------- | ------- | ------------ |
-  | `PANTHER_API_HMMSCORE_MAX_RESIDUES` | 50,000, pending the Open Question | The longest sequence hmmscore takes, at most 50,000 |
-  | `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` | 3,600 | How long one hmmscore job may run |
+  | `PANTHER_API_HMMSCORE_MAX_RESIDUES` | 10,000, the product owner's | The longest sequence hmmscore takes, at most 10,000 |
+  | `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` | 720 | How long one hmmscore job may run |
   | `PANTHER_API_HMMSCORE_MAX_RUNNING` | 1 | hmmscore jobs running at once; more wait, `queued` |
   | `PANTHER_API_HMMSCORE_CPU` | 0 | `hmmscan`'s `--cpu` |
 
@@ -45,23 +45,24 @@ None.
 - **API:** a new `jobs/hmmscore.py`; `jobs/fields.py` (cSNP's normalising, shared); `jobs/work.py`, `jobs/models.py`, `jobs/runner.py`, `routers/jobs.py`, `settings.py`; tests.
 - **API contract:** new components `HmmscoreJobRequest`, `HmmscoreInput`, `HmmscoreJob`, `HmmscoreResult` and `HmmHit`, and the `501` on `POST /api/v1/jobs` again, naming `hmmscore`. Existing shapes don't change.
 - **Engine:** no code change. The engine developer reviews decision 4 before `port-hmmscore`.
-- **Parity with the reference:** this change scores nothing. Where the API answers differently from the reference, it's a proposed row, which may not ship without an approver:
-  - **Row 11:** a server's residue limit below the reference's 50,000, approved with that value. If the product owner lowers the limit for hmmscore itself, row 11 records their limit instead.
+- **Parity with the reference:** this change scores nothing. Where the API answers differently from the reference, it's a row in `divergences.md`, and a proposed row may not ship without an approver:
+  - **Row 11, approved:** hmmscore takes at most 10,000 residues, where the website took 50,000. The product owner set it on 2026-11-12. A server that sets a lower value (#68) records it in the row, approved with that value.
   - **Row 12:** the sequences the API refuses with a `422` where the reference answered "no hit": an empty sequence, a character `hmmscan` refused, and `-`, `.`, `_`, `~` and a `*` before the end, which 3.1b2 read as positions, splitting the hit, and 3.4 doesn't. With them, what the website's posting changed before the CGI saw it, and a header after a blank line, which the website's form left in (design.md, decision 3).
 
 ## Open Questions
 
-For the team and the product owner:
+For the team:
 
-- **Does hmmscore keep the website's 50,000 residues?** `titin-50000` needed 21 GiB at `--cpu 0` (the survey). The engine developer has asked the product owner. The setting stays either way; its default and maximum follow the answer:
-  - **If 50,000 stays,** the default is 50,000, the reference's, and a server sets it lower (#68). Row 11 covers only that lower value. This draft assumes this.
-  - **If not,** the product owner's limit replaces 50,000 as the most the setting allows, and row 11 records it. The time limit's default then follows the new limit.
-- **The server's values** for the four settings come from measuring there with the full library (#68).
+- **The server's values** for the four settings come from measuring there with the full library (#68). A 10,000-residue query belongs among them: none was measured, so its time and memory there are unknown.
 - **The website's port to the JSON API:** it reads `panther_id`, `evalue` and `alignment` where it read `<id>`, `<eval>` and `<align>`, and can drop its own name lookup.
 
 For `port-hmmscore`'s goldens to confirm:
 
 - **Upper-casing, and refusing `.`, `_`, `~` and an inner `*`:** measured on a test model built from APOE; the goldens confirm both on PANTHER's own models.
+
+Answered by the product owner, 2026-11-12:
+
+- **The residue limit: 10,000,** to start, in place of the website's 50,000, which `titin-50000` showed needs 21 GiB at `--cpu 0` (the survey). The product owner expects it to cover 99% of queries. It's the setting's default and the most it allows, and row 11 records it, approved. The time limit's default follows, at 720 s (design.md, decision 5). Raising the limit later is the product owner's call, and the time limit's default moves with it.
 
 Answered by the engine developer on #70, 2026-11-11:
 

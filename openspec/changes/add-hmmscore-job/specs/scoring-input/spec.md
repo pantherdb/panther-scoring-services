@@ -57,19 +57,19 @@ An hmmscore input SHALL be rejected when its `sequence`, after normalising, is e
 
 ### Requirement: hmmscore residue limit
 
-An hmmscore input SHALL be rejected when its normalised `sequence` is longer than the residue limit the API is configured with, 50,000 by default and never more. The API MUST check it before any job starts, and answer with status 422 and an error on `sequence` that names the limit and doesn't contain the sequence.
+An hmmscore input SHALL be rejected when its normalised `sequence` is longer than the residue limit the API is configured with, 10,000 by default and never more. The API MUST check it before any job starts, and answer with status 422 and an error on `sequence` that names the limit and doesn't contain the sequence.
 
 #### Scenario: At the default residue limit
 
-- **WHEN** the API runs with the default settings and an hmmscore request's `sequence` has 50,000 residues after normalising
+- **WHEN** the API runs with the default settings and an hmmscore request's `sequence` has 10,000 residues after normalising
 - **THEN** the request passes validation
 
 #### Scenario: Past the default residue limit
 
-- **WHEN** the API runs with the default settings and an hmmscore request's `sequence` has 50,001 residues after normalising
-- **THEN** the API responds with status 422, one error whose `loc` is `["body", "hmmscore", "input", "sequence"]` and whose message names 50,000 residues, and no job is created
+- **WHEN** the API runs with the default settings and an hmmscore request's `sequence` has 10,001 residues after normalising
+- **THEN** the API responds with status 422, one error whose `loc` is `["body", "hmmscore", "input", "sequence"]` and whose message names 10,000 residues, and no job is created
 
 #### Scenario: A lower residue limit the server sets
 
-- **WHEN** the API runs with the hmmscore residue limit set to 20,000 and an hmmscore request's `sequence` has 20,000 residues
-- **THEN** the request passes validation, and one of 20,001 residues gets the 422, naming 20,000
+- **WHEN** the API runs with the hmmscore residue limit set to 5,000 and an hmmscore request's `sequence` has 5,000 residues
+- **THEN** the request passes validation, and one of 5,001 residues gets the 422, naming 5,000

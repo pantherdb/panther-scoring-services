@@ -67,7 +67,7 @@ The API SHALL read the number of worker processes, the job expiry time, the resu
 #### Scenario: Defaults
 
 - **WHEN** the API starts with no job settings in the environment
-- **THEN** it runs jobs with 2 worker processes, keeps finished jobs for 24 hours within a results budget of 256 MiB, lets 50 jobs wait for a worker, accepts request bodies of up to 16 MiB, takes hmmscore sequences of up to 50,000 residues, gives an hmmscore job 3,600 seconds, runs 1 hmmscore job at a time, and runs `hmmscan` with `--cpu 0`
+- **THEN** it runs jobs with 2 worker processes, keeps finished jobs for 24 hours within a results budget of 256 MiB, lets 50 jobs wait for a worker, accepts request bodies of up to 16 MiB, takes hmmscore sequences of up to 10,000 residues, gives an hmmscore job 720 seconds, runs 1 hmmscore job at a time, and runs `hmmscan` with `--cpu 0`
 
 #### Scenario: Invalid setting
 
@@ -76,7 +76,7 @@ The API SHALL read the number of worker processes, the job expiry time, the resu
 
 #### Scenario: Invalid hmmscore setting
 
-- **WHEN** the API starts with the hmmscore residue limit set to 0 or to 50,001, the hmmscore time limit set to 0, the cap on running hmmscore jobs set to 0, or the `hmmscan` thread count set to -1
+- **WHEN** the API starts with the hmmscore residue limit set to 0 or to 10,001, the hmmscore time limit set to 0, the cap on running hmmscore jobs set to 0, or the `hmmscan` thread count set to -1
 - **THEN** the API fails to start
 
 ### Requirement: The size of a job's input

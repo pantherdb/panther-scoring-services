@@ -62,7 +62,7 @@ The website's form normalised the sequence (`SequenceSearchForm.java` 51 to 89),
 | At most one `>` | 62 to 67 | Same |
 | One header line removed | `^>[^\n]*`, without trimming first (69 to 74) | After trimming. A header after a blank line or spaces was left in, joined to the residues, so the CGI got one header line and no sequence, and answered no hit (`HMMSCORE-6`). Row 12 |
 | Whitespace removed | 76 to 79 | Same |
-| At most 50,000 residues | 83 to 86 | The configured limit, 50,000 by default and at most (decision 7). Row 11 for a lower one |
+| At most 50,000 residues | 83 to 86 | The configured limit, 10,000 by default and at most, the product owner's (decisions 5 and 7). Row 11 |
 | Upper-cased | Not done | New, as cSNP's. HMMER reads either case alike |
 | Letters, and one `*` at the end, only | Not checked | New. Measured by the engine developer, 2026-11-11 (below). Row 12 |
 | At most 1,000,000 characters before normalising | None | New, as cSNP's |
@@ -122,15 +122,15 @@ def check_data(data_dir: Path | str | None = None) -> None: ...
 
 | Setting | Default | Allowed | Used from |
 | ------- | ------- | ------- | --------- |
-| `hmmscore_max_residues` | 50,000 | 1 to 50,000 | This change: the router (decision 7) |
-| `hmmscore_time_limit_seconds` | 3,600 | 1 or more | The wiring: `score(timeout=…)` |
+| `hmmscore_max_residues` | 10,000 | 1 to 10,000 | This change: the router (decision 7) |
+| `hmmscore_time_limit_seconds` | 720 | 1 or more | The wiring: `score(timeout=…)` |
 | `hmmscore_max_running` | 1 | 1 or more | This change: the runner (decision 6) |
 | `hmmscore_cpu` | 0 | 0 or more | The wiring: `score(cpu=…)` |
 
-The defaults come only from the survey's measurements on the full library. The server sets its own (#68).
+The residue limit is the product owner's; the other defaults come only from the survey's measurements on the full library. The server sets its own (#68).
 
-- **50,000 residues, pending the product owner** (proposal, Open Questions). It's the reference's limit, so by default the API takes what the website took. A server sets it lower (row 11). If the product owner lowers it for hmmscore itself, their limit becomes the default and the most allowed.
-- **3,600 seconds.** The time limit has to cover the residue limit, or a sequence the API accepted fails with "Try a shorter sequence". `titin-50000` took 1,153 to 1,186 s at `--cpu 0`; about three times that, for a slower disk, a busier machine and the `hmmsearch` step, is 3,600 s. A server that lowers the residue limit lowers this with it: Q14204's 4,646 residues took 93 s cold.
+- **10,000 residues, the product owner's** (2026-11-12): a starting limit, in place of the website's 50,000, expected to cover 99% of queries. It's the default and the most allowed, and row 11 records it, approved. A server may set it lower (#68), and records that value in row 11. Raising it is the product owner's call, and the time limit's default moves with it.
+- **720 seconds.** The time limit has to cover the residue limit, or a sequence the API accepted fails with "Try a shorter sequence". No 10,000-residue query was measured, so this is scaled. Per residue at `--cpu 0`, `titin-50000` took 24 ms (1,186 s warm) and Q14204 20 ms (93 s cold for 4,646), so 10,000 residues should take about 240 s. About three times that, for a slower disk, a busier machine and the `hmmsearch` step, as 3,600 s was for 50,000, is 720 s. `port-hmmscore` or the server's measuring (#68) checks it with a 10,000-residue query. A server that lowers the residue limit lowers this with it.
 - **One running at once.** Every `hmmscan` reads all of `binHmm.h3f`, 5.3 GB, and memory grows with length. The survey's runs at once came from a shared file system and can't size this.
 - **`--cpu 0`.** The tables were the same at every `--cpu`. At 0 a query uses the least memory (Q14204: 512 MiB, against 1,503 MiB at `--cpu 2` and 2,857 MiB at `--cpu 4`; `titin-50000`: 21 GiB, against 42 GiB at `--cpu 2`). `pantherScore.pl` passed none (377); which default production's build used needs team verification.
 - *Alternative:* a time limit that grows with length, as cSNP's `blastp` limit does. Not now: four measured queries make the slope a guess.
@@ -170,7 +170,8 @@ As `add-refmap-job`: `jobs/hmmscore.py` (Pydantic only, with `log_summary()` giv
 
 ## Risks / Trade-offs
 
-- **[A 50,000-residue job needs more than a server has]** → The server sets a lower limit (#68), recorded by row 11; the product owner's answer may lower the default.
+- **[A 10,000-residue job may need more memory than a server has]** → Not measured: at `--cpu 0`, Q14204's 4,646 residues needed 0.5 GiB and `titin-50000` 21 GiB, and the hosting server has 5 GiB available (the survey). The server measures it and sets a lower limit if it must (#68), recorded in row 11.
+- **[The time limit's default is scaled, not measured]** → 720 s is three times an estimate (decision 5). A 10,000-residue query in `port-hmmscore` or #68 checks it before the wiring makes it take effect.
 - **[Settings that do nothing yet]** → The time limit and `--cpu` reach the engine with the wiring; `docs/testing/api.md` says so.
 - **[Ties made the reported hit unstable]** → The port reports the subfamily first, then the lowest ID. With the data sample, `pantherScore.pl -D B` on PTHR35774's consensus gave `PTHR35774:SF1` five times in ten and `PTHR35774` five times, at the same E-value and score; the subfamily's model file is a copy of the family's, so only the ID changes, and the subfamily's ID carries the family's.
 

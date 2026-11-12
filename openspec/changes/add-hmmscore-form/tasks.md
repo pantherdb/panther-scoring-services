@@ -48,3 +48,4 @@ None yet.
 ### Lessons learned
 
 - **The legacy page's "score" was the E-value,** and its sentence about the cutoff is backwards (`HMMSCORE-3`, `HMMSCORE-4`). The new page shows the API's fields by their real names, and no threshold.
+- **The product owner set hmmscore's residue limit at 10,000 on 2026-11-12** (`add-hmmscore-job`, #70), in place of the website's 50,000. The form checks 10,000, the most the setting allows. The server-limit scenario is now 5,000, since 20,001 residues would fail the form's own check first.

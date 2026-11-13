@@ -23,7 +23,7 @@ The API SHALL answer `GET /api/v1/refmap/organisms/{code}/classification`, for a
 
 ### Requirement: refmap classification sent from its built file
 
-The API SHALL send an organism's classification from the gzipped JSON built ahead of time (`refmap data build-json`), a piece at a time, without building it or keeping it in memory. A request whose `Accept-Encoding` accepts gzip MUST get the file as it is, with `Content-Encoding: gzip`; any other MUST get it decompressed. The response MUST NOT carry `Cache-Control`, `ETag` or `Last-Modified`.
+The API SHALL send an organism's classification from the gzipped JSON built ahead of time (`refmap data build-json`). A request whose `Accept-Encoding` accepts gzip MUST get the file as it is, with `Content-Encoding: gzip`; any other MUST get it decompressed. The response MUST NOT carry `Cache-Control`, `ETag` or `Last-Modified`.
 
 #### Scenario: A client that accepts gzip
 
@@ -47,7 +47,7 @@ The API MUST check the `code` of `GET /api/v1/refmap/organisms/{code}/classifica
 #### Scenario: An organism refmap doesn't map for
 
 - **WHEN** a client sends `GET /api/v1/refmap/organisms/{code}/classification` with a code that isn't in the list, such as `NOPE1`, `endpu`, `ENDPUX`, `HUMAN` or `%2E%2E`
-- **THEN** the API responds with status 404 and a problem-details body saying no organism refmap maps for has that code, and builds no path from the code
+- **THEN** the API responds with status 404 and a problem-details body saying refmap doesn't map for an organism with that code and naming the organism list, and builds no path from the code
 
 ### Requirement: refmap classification without its file
 

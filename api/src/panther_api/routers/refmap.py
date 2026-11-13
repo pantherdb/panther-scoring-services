@@ -79,7 +79,11 @@ async def refmap_organisms() -> Response:
     return list_response(_ORGANISMS_JSON)
 
 
-ORGANISM_NOT_FOUND = "There is no organism with that code that refmap maps for, such as ENDPU."
+# No form shows it, so it can name the list (unlike a job's organism message, review of #64).
+ORGANISM_NOT_FOUND = (
+    "refmap doesn't map for an organism with that code. "
+    "GET /api/v1/refmap/organisms lists every code it does."
+)
 # What the file is sent in, read a piece at a time.
 CHUNK = 64 * 1024
 # A missing file is logged at most once in this long, as a job's unexpected error is

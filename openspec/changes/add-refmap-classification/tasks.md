@@ -32,7 +32,7 @@
 
 ### Next action
 
-The review of #73 is answered (2026-11-13). Waiting for the engine developer's re-review.
+The engine developer's review of #73 is answered in `c7dad98` (2026-11-13). The frontend developer's review, written against the commit before it, is answered too: the 404 message names the organism list, and the spec's memory requirement became design.md's property (decision 4); the data version in the response is left for a later issue. Waiting for both re-reviews.
 
 ### Blockers
 

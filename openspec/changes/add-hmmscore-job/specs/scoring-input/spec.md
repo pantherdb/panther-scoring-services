@@ -23,11 +23,16 @@ An hmmscore input's `sequence` SHALL be normalised before scoring as a cSNP inpu
 
 ### Requirement: hmmscore sequence holds only letters and a final stop
 
-An hmmscore input SHALL be rejected when its `sequence`, after normalising, is empty, or holds a character other than a letter, except a single `*` as its last character. It MUST also be rejected when the submitted `sequence` contains more than one `>`, or is longer than 1,000,000 characters before normalising. Each error is on `sequence`, doesn't contain the sequence, and comes before any job starts.
+An hmmscore input SHALL be rejected when its `sequence`, after normalising, has no letters, or holds a character other than a letter, except a single `*` as its last character. It MUST also be rejected when the submitted `sequence` contains more than one `>`, or is longer than 1,000,000 characters before normalising. Each error is on `sequence`, doesn't contain the sequence, and comes before any job starts.
 
 #### Scenario: An hmmscore header with no residues
 
 - **WHEN** an hmmscore input's `sequence` is `">only a header"`
+- **THEN** it is rejected, with an error on `sequence`
+
+#### Scenario: A stop with no residues
+
+- **WHEN** an hmmscore input's `sequence` is `">only a header\n*"`
 - **THEN** it is rejected, with an error on `sequence`
 
 #### Scenario: Two sequences for hmmscore
@@ -57,11 +62,16 @@ An hmmscore input SHALL be rejected when its `sequence`, after normalising, is e
 
 ### Requirement: hmmscore residue limit
 
-An hmmscore input SHALL be rejected when its normalised `sequence` is longer than the residue limit the API is configured with, 10,000 by default and never more. The API MUST check it before any job starts, and answer with status 422 and an error on `sequence` that names the limit and doesn't contain the sequence.
+An hmmscore input SHALL be rejected when its normalised `sequence` has more residues than the limit the API is configured with, 10,000 by default and never more. Residues are its letters: a final `*` isn't counted. The API MUST check it before any job starts, and answer with status 422 and an error on `sequence` that names the limit and doesn't contain the sequence.
 
 #### Scenario: At the default residue limit
 
 - **WHEN** the API runs with the default settings and an hmmscore request's `sequence` has 10,000 residues after normalising
+- **THEN** the request passes validation
+
+#### Scenario: A stop after the last residue
+
+- **WHEN** the API runs with the default settings and an hmmscore request's `sequence` is 10,000 letters and a final `*` after normalising
 - **THEN** the request passes validation
 
 #### Scenario: Past the default residue limit

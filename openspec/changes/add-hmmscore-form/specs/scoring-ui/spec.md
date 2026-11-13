@@ -31,7 +31,7 @@ Before sending, the HMM scoring form SHALL check the sequence against `scoring-i
 
 #### Scenario: Empty hmmscore form
 
-- **WHEN** the user submits the HMM scoring form with no sequence, or with only a FASTA header
+- **WHEN** the user submits the HMM scoring form with no sequence, with only a FASTA header, or with a header and a lone `*`
 - **THEN** the sequence field shows an error, and no request is sent
 
 #### Scenario: Two sequences in the hmmscore form

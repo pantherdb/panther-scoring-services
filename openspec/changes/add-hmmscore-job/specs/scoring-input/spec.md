@@ -23,11 +23,16 @@ An hmmscore input's `sequence` SHALL be normalised before scoring as a cSNP inpu
 
 ### Requirement: hmmscore sequence holds only letters and a final stop
 
-An hmmscore input SHALL be rejected when its `sequence`, after normalising, is empty, or holds a character other than a letter, except a single `*` as its last character. It MUST also be rejected when the submitted `sequence` contains more than one `>`, or is longer than 1,000,000 characters before normalising. Each error is on `sequence`, doesn't contain the sequence, and comes before any job starts.
+An hmmscore input SHALL be rejected when its `sequence`, after normalising, has no letters, or holds a character other than a letter, except a single `*` as its last character. It MUST also be rejected when the submitted `sequence` contains more than one `>`, or is longer than 1,000,000 characters before normalising. Each error is on `sequence`, doesn't contain the sequence, and comes before any job starts.
 
 #### Scenario: An hmmscore header with no residues
 
 - **WHEN** an hmmscore input's `sequence` is `">only a header"`
+- **THEN** it is rejected, with an error on `sequence`
+
+#### Scenario: A stop with no residues
+
+- **WHEN** an hmmscore input's `sequence` is `">only a header\n*"`
 - **THEN** it is rejected, with an error on `sequence`
 
 #### Scenario: Two sequences for hmmscore

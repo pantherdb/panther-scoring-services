@@ -179,8 +179,9 @@ class IdMapping(BaseModel):
 # The schema's model. A job's result is serialised from the engine's own result (`run_refmap`),
 # which has the same fields, so no models are built for it.
 class RefmapResult(BaseModel):
-    """The organism mapped against, and one mapping per submitted ID, in the order submitted,
-    repeated IDs included."""
+    """The organism, and its mappings: for a `refmap` job, one per submitted ID, in the order
+    submitted, repeated IDs included; for an organism's classification, one per line of its
+    classification file, in the file's order."""
 
     organism: str
     mappings: list[IdMapping]

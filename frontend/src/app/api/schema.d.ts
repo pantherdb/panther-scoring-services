@@ -142,14 +142,16 @@ export interface paths {
         };
         /**
          * Every gene of an organism, with its PANTHER ID
-         * @description Every gene of the organism and its PANTHER ID, in the shape of a `refmap` job's result, from
-         *     the same classification file a job reads. For clients that need the whole organism rather
-         *     than some IDs: the PANTHER website uses it as the reference list of a gene list analysis,
-         *     where it read data.pantherdb.org's `generic_mapping/panther_classification/<long name>`.
+         * @description Every gene of the organism and its PANTHER ID, one mapping per line of its classification
+         *     file, in the file's order, in the shape of a `refmap` job's result. For clients that need the
+         *     whole organism rather than some IDs: the PANTHER website uses it as the reference list of a
+         *     gene list analysis, where it read data.pantherdb.org's
+         *     `generic_mapping/panther_classification/<long name>`.
          *
-         *     The code is checked against the engine's organisms before any path is built from it. A
-         *     missing file fails with the generic 500, as a `refmap` job does. Nothing is kept: each
-         *     request reads the file and builds its response, and no cache header is sent.
+         *     The response is built ahead of time (`panther-engine refmap data build-json`) and sent from
+         *     disk as it is, a piece at a time: nothing is built or kept in memory, and no cache header or
+         *     ETag is sent. The code is checked against the engine's organisms before any path is built
+         *     from it. Without the built file, the request fails with the generic 500.
          */
         get: operations["refmap_classification_api_v1_refmap_organisms__code__classification_get"];
         put?: never;
@@ -379,8 +381,9 @@ export interface components {
         };
         /**
          * RefmapResult
-         * @description The organism mapped against, and one mapping per submitted ID, in the order submitted,
-         *     repeated IDs included.
+         * @description The organism, and its mappings: for a `refmap` job, one per submitted ID, in the order
+         *     submitted, repeated IDs included; for an organism's classification, one per line of its
+         *     classification file, in the file's order.
          */
         RefmapResult: {
             /** Organism */
@@ -821,7 +824,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Every gene in the organism's classification file, in the file's order, with its PANTHER ID, or null where the file says `NOHIT`. */
+            /** @description Every gene in the organism's classification file, one mapping per line, in the file's order, with its PANTHER ID, or null where the file says `NOHIT`. Sent gzipped (`Content-Encoding: gzip`) when the request accepts gzip. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -835,15 +838,8 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
-            };
-            /** @description Request validation failed */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
                 content: {
-                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description Unexpected error */

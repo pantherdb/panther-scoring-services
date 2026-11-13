@@ -324,12 +324,32 @@ def test_refmap_data_without_csnp_data_logs_only_csnps_error(
 ) -> None:
     monkeypatch.setenv("PANTHER_DATA_DIR", str(tmp_path))
     monkeypatch.setattr("panther_engine.refmap.check_data", complete)
+    monkeypatch.setattr("panther_engine.refmap.check_classification_json", complete)
 
     with TestClient(create_app()) as client:
         assert client.get("/api/v1/health").status_code == 200
 
     [record] = main_records(caplog)
     assert "csnp jobs will fail until the cSNP data is in place" in record.getMessage()
+
+
+def test_refmap_data_without_its_classification_json_logs_only_that(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setenv("PANTHER_DATA_DIR", str(tmp_path))
+    monkeypatch.setattr("panther_engine.csnp.check_data", complete)
+    monkeypatch.setattr("panther_engine.refmap.check_data", complete)
+
+    with TestClient(create_app()) as client:
+        assert client.get("/api/v1/health").status_code == 200
+
+    [record] = main_records(caplog)
+    assert record.levelno == logging.ERROR
+    assert record.getMessage().startswith(
+        "refmap classifications will fail until the classification JSON is built "
+        "(panther-engine refmap data build-json): "
+    )
+    assert "lacks 1,533 of 1,533 files" in record.getMessage()
 
 
 def test_an_unset_data_folder_is_logged_and_the_api_starts(
@@ -351,11 +371,14 @@ def test_complete_data_logs_nothing(
     calls: list[str] = []
     monkeypatch.setattr("panther_engine.csnp.check_data", lambda: calls.append("csnp"))
     monkeypatch.setattr("panther_engine.refmap.check_data", lambda: calls.append("refmap"))
+    monkeypatch.setattr(
+        "panther_engine.refmap.check_classification_json", lambda: calls.append("json")
+    )
 
     with TestClient(create_app()) as client:
         assert client.get("/api/v1/health").status_code == 200
 
-    assert calls == ["csnp", "refmap"]
+    assert calls == ["csnp", "refmap", "json"]
     assert main_records(caplog) == []
 
 

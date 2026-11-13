@@ -97,24 +97,31 @@ def test_a_job_of_100000_ids_is_kept_small_and_polls_fast(client: TestClient) ->
     assert poll_seconds < MOST_POLL_SECONDS
 
 
-def test_every_organisms_classification_rebuilds_its_published_file(client: TestClient) -> None:
-    """`GET /refmap/organisms/{code}/classification` for each of the 1,533 organisms: its
-    mappings, written back as `<id>`, a tab and the PANTHER ID or `NOHIT`, one a line, are the
-    file the PANTHER website read from data.pantherdb.org, byte for byte, and their counts are
-    `stats`'s (openspec api-service, refmap organism classification)."""
-    folder = data_folder() / "refmap" / engine.DATA_VERSION / "panther_classification"
+@pytest.mark.skipif(
+    not engine.classification_json_file(ORGANISM, data_folder()).is_file(),
+    reason="needs the classification JSON: panther-engine refmap data build-json",
+)
+def test_every_organisms_classification_is_its_file_as_the_engine_reads_it(
+    client: TestClient,
+) -> None:
+    """`GET /refmap/organisms/{code}/classification` for each of the 1,533 organisms, gzipped and
+    not: its mappings are the engine's `classification_mappings` of the organism's file, which
+    the engine's release tests check rebuild the published file byte for byte (openspec
+    api-service, refmap organism classification)."""
     for code in sorted(engine.ORGANISM_CODES):
         response = client.get(f"/api/v1/refmap/organisms/{code}/classification")
         assert response.status_code == 200, code
-        result = response.json()
-        assert result["organism"] == code
-        mappings = result["mappings"]
-        rebuilt = "".join(
-            f"{item['id']}\t{'NOHIT' if item['panther_id'] is None else item['panther_id']}\n"
-            for item in mappings
-        )
-        assert rebuilt.encode("latin-1") == (folder / code).read_bytes(), code
-        counts = engine.ORGANISM_GENES[code]
-        assert len(mappings) == counts.genes, code
-        with_id = sum(item["panther_id"] is not None for item in mappings)
-        assert with_id == counts.genes_with_panther_id, code
+        assert response.headers["content-encoding"] == "gzip", code
+        assert response.json() == {
+            "organism": code,
+            "mappings": [
+                {"id": item.id, "panther_id": item.panther_id}
+                for item in engine.classification_mappings(code, data_folder())
+            ],
+        }, code
+    plain = client.get(
+        f"/api/v1/refmap/organisms/{ORGANISM}/classification",
+        headers={"Accept-Encoding": "identity"},
+    )
+    assert "content-encoding" not in plain.headers
+    assert len(plain.json()["mappings"]) == engine.ORGANISM_GENES[ORGANISM].genes

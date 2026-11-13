@@ -421,7 +421,7 @@
           "refmap"
         ],
         "summary": "Every gene of an organism, with its PANTHER ID",
-        "description": "Every gene of the organism and its PANTHER ID, in the shape of a `refmap` job's result, from\nthe same classification file a job reads. For clients that need the whole organism rather\nthan some IDs: the PANTHER website uses it as the reference list of a gene list analysis,\nwhere it read data.pantherdb.org's `generic_mapping/panther_classification/<long name>`.\n\nThe code is checked against the engine's organisms before any path is built from it. A\nmissing file fails with the generic 500, as a `refmap` job does. Nothing is kept: each\nrequest reads the file and builds its response, and no cache header is sent.",
+        "description": "Every gene of the organism and its PANTHER ID, one mapping per line of its classification\nfile, in the file's order, in the shape of a `refmap` job's result. For clients that need the\nwhole organism rather than some IDs: the PANTHER website uses it as the reference list of a\ngene list analysis, where it read data.pantherdb.org's\n`generic_mapping/panther_classification/<long name>`.\n\nThe response is built ahead of time (`panther-engine refmap data build-json`) and sent from\ndisk as it is, a piece at a time: nothing is built or kept in memory, and no cache header or\nETag is sent. The code is checked against the engine's organisms before any path is built\nfrom it. Without the built file, the request fails with the generic 500.",
         "operationId": "refmap_classification_api_v1_refmap_organisms__code__classification_get",
         "parameters": [
           {
@@ -440,7 +440,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Every gene in the organism's classification file, in the file's order, with its PANTHER ID, or null where the file says `NOHIT`.",
+            "description": "Every gene in the organism's classification file, one mapping per line, in the file's order, with its PANTHER ID, or null where the file says `NOHIT`. Sent gzipped (`Content-Encoding: gzip`) when the request accepts gzip.",
             "content": {
               "application/json": {
                 "schema": {
@@ -470,14 +470,11 @@
             }
           },
           "404": {
-            "description": "No organism refmap maps for has that code."
-          },
-          "422": {
-            "description": "Request validation failed",
+            "description": "No organism refmap maps for has that code.",
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValidationProblem"
+                  "$ref": "#/components/schemas/Problem"
                 }
               }
             }
@@ -951,7 +948,7 @@
           "mappings"
         ],
         "title": "RefmapResult",
-        "description": "The organism mapped against, and one mapping per submitted ID, in the order submitted,\nrepeated IDs included."
+        "description": "The organism, and its mappings: for a `refmap` job, one per submitted ID, in the order\nsubmitted, repeated IDs included; for an organism's classification, one per line of its\nclassification file, in the file's order."
       },
       "SubstitutionScore": {
         "properties": {

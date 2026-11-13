@@ -16,6 +16,52 @@ or digits. Use with `fullmatch`."""
 
 LONGEST_SPECIES_CODE = 5
 
+LONGEST_RAW_SEQUENCE = 1_000_000
+"""Characters as submitted, before normalising: every service's limit on a protein sequence.
+Bounds the work one request can cause."""
+
+# Java's String.trim() removes every character up to U+0020 from both ends.
+_TRIMMED = "".join(chr(code) for code in range(0x21))
+# One header line, only at the very start, as the form's `^>[^\n]*` without MULTILINE.
+_HEADER = re.compile(r"\A>[^\n]*")
+# Java's `\s`: space, tab, LF, VT, FF and CR.
+_WHITESPACE = re.compile(r"[ \t\n\x0b\x0c\r]+")
+
+
+@dataclass(frozen=True)
+class SequenceRules:
+    """The characters a service's sequence may hold once normalised, and its messages, none of
+    which may quote the submitted value."""
+
+    characters: re.Pattern[str]
+    """The whole sequence once normalised, before upper-casing. Used with `fullmatch`."""
+    more_than_one: str
+    """The message for more than one `>`."""
+    no_residues: str
+    """The message for nothing left once the header and whitespace are removed."""
+    not_residues: str
+    """The message for a character `characters` doesn't allow."""
+
+
+def normalise_sequence(value: str, rules: SequenceRules) -> str:
+    """Normalise a protein sequence as cSNP's website form did, and check its characters: trim,
+    refuse a second `>`, drop one header line and all whitespace, then upper-case.
+
+    cSNP's form is `CsnpScoreForm.java` (openspec add-csnp-job, design.md); hmmscore applies the
+    same normalising (openspec add-hmmscore-job, design.md, decision 3). Each service checks its
+    own length after this.
+    """
+    value = value.strip(_TRIMMED)
+    if value.count(">") > 1:
+        raise ValueError(rules.more_than_one)
+    residues = _WHITESPACE.sub("", _HEADER.sub("", value))
+    if not residues:
+        raise ValueError(rules.no_residues)
+    if not rules.characters.fullmatch(residues):
+        raise ValueError(rules.not_residues)
+    # After the character check: str.upper() turns some other letters into ASCII ones (ß into SS).
+    return residues.upper()
+
 
 def schema_pattern(shape: re.Pattern[str]) -> str:
     """The shape as a JSON Schema `pattern`, which matches anywhere unless it's anchored."""

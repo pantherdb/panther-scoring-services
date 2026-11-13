@@ -15,46 +15,43 @@ from typing import Annotated
 from panther_engine import csnp as engine
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
 
-from panther_api.jobs.fields import PRINTABLE, SPECIES_CODE, count
+from panther_api.jobs.fields import (
+    LONGEST_RAW_SEQUENCE,
+    PRINTABLE,
+    SPECIES_CODE,
+    SequenceRules,
+    count,
+    normalise_sequence,
+)
 
 LONGEST_SEQUENCE = 50_000
 """Residues, after normalising: the website's limit (`errors.sequence.too.long`)."""
 
-LONGEST_RAW_SEQUENCE = 1_000_000
-"""Characters as submitted, before normalising. Bounds the work one request can cause."""
-
 MOST_SUBSTITUTIONS = 1_000
 LONGEST_SUBSTITUTION = 32
 
-# Java's String.trim() removes every character up to U+0020 from both ends.
-_TRIMMED = "".join(chr(code) for code in range(0x21))
-# One header line, only at the very start, as the form's `^>[^\n]*` without MULTILINE.
-_HEADER = re.compile(r"\A>[^\n]*")
-# Java's `\s`: space, tab, LF, VT, FF and CR.
-_WHITESPACE = re.compile(r"[ \t\n\x0b\x0c\r]+")
+# The website's form checked only the length, so any printable ASCII reached the CGI.
+_SEQUENCE_RULES = SequenceRules(
+    characters=PRINTABLE,
+    more_than_one=(
+        "The sequence has more than one '>', so it holds more than one sequence. "
+        "Submit one protein."
+    ),
+    no_residues="The sequence has no residues.",
+    not_residues=(
+        "The sequence has a character that isn't printable ASCII. Use one-letter residue codes."
+    ),
+)
 # The legacy CGI's substitution form, after upper-casing: wild-type residue, position, residue.
 _SUBSTITUTION = re.compile(r"[A-Z][0-9]+[A-Z]")
 
 
 def _normalise_sequence(value: str) -> str:
     """Normalise as the website's form did: trim, drop one header line and all whitespace."""
-    value = value.strip(_TRIMMED)
-    if value.count(">") > 1:
-        raise ValueError(
-            "The sequence has more than one '>', so it holds more than one sequence. "
-            "Submit one protein."
-        )
-    residues = _WHITESPACE.sub("", _HEADER.sub("", value))
-    if not residues:
-        raise ValueError("The sequence has no residues.")
-    if not PRINTABLE.fullmatch(residues):
-        raise ValueError(
-            "The sequence has a character that isn't printable ASCII. Use one-letter residue codes."
-        )
+    residues = normalise_sequence(value, _SEQUENCE_RULES)
     if len(residues) > LONGEST_SEQUENCE:
         raise ValueError(f"The sequence has more than {LONGEST_SEQUENCE:,} residues.")
-    # After the ASCII check: str.upper() turns some other letters into ASCII ones (ß into SS).
-    return residues.upper()
+    return residues
 
 
 def _normalise_substitution(value: str) -> str:

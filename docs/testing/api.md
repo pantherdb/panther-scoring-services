@@ -58,8 +58,14 @@ The API reads its settings from environment variables when it starts. An invalid
 | `PANTHER_API_MAX_BODY_BYTES` | `16777216` (16 MiB) | an integer ≥ 1 | The largest request body accepted. A larger one gets a `413`. See [Limits](#limits) |
 | `PANTHER_API_CORS_ORIGINS` | empty | comma-separated origins, such as `https://pantherdb.github.io`: a scheme and host, with no path, `*` or trailing `/` | The browser origins allowed to call the API from another site. Empty adds no CORS headers. See [CORS](#cors) |
 | `PANTHER_API_LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING` or `ERROR`, in any case | The lowest level logged. See [Logs](#logs) |
+| `PANTHER_API_HMMSCORE_MAX_RESIDUES` | `10000` | an integer from 1 to 10,000 | The most residues an `hmmscore` sequence may have; a final `*` isn't counted. A longer one gets a `422` naming the limit. 10,000 is the product owner's limit, and the most allowed ([divergence 11](../parity/divergences.md)) |
+| `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` | `720` | an integer ≥ 1 | How long one `hmmscore` job may run. Takes effect when hmmscore's scoring is wired in |
+| `PANTHER_API_HMMSCORE_MAX_RUNNING` | `1` | an integer ≥ 1 | `hmmscore` jobs that may run at once. More wait as `queued`, without holding a worker, so other services' jobs still run |
+| `PANTHER_API_HMMSCORE_CPU` | `0` | an integer ≥ 0 | `hmmscan`'s `--cpu` for each `hmmscore` job. Takes effect when hmmscore's scoring is wired in |
 
 Set one for the native dev server with, for example, `PANTHER_API_JOB_WORKERS=1 uv run fastapi dev --port 8000`, and for the image with `docker run -e PANTHER_API_JOB_WORKERS=1 …`. The compose `api` service sets none, so it uses the defaults. Jobs are kept in memory, and are lost when the API restarts.
+
+The four `hmmscore` settings' defaults are starting points: the server sets its own once they're measured there with the full library (#68). The time limit's 720 s is scaled from the [library survey](../parity/hmmscore-library-survey.md)'s times, since no 10,000-residue query was measured (`add-hmmscore-job`, design.md, decision 5). Until hmmscore's scoring is wired in, a valid `hmmscore` request gets a `501` ([The hmmscore Job](#the-hmmscore-job)), so only the residue limit acts yet. The running cap is in the job runner, ready for the first `hmmscore` job; the time limit and `--cpu` take effect with the wiring.
 
 At startup, the API checks each service's data with the engine's `check_data()`: the cSNP data and the refmap data. If `PANTHER_DATA_DIR` isn't set, or the folder lacks part of a service's data, it logs an error for that service, such as `csnp jobs will fail until the cSNP data is in place: the cSNP data folder … lacks: …` or `refmap jobs will fail until the refmap data is in place: the refmap data folder … lacks 1,534 of 1,534 files: …`, and starts anyway: everything but that service's jobs works without it. The checks are independent, so one service's missing data doesn't stop the other's jobs. Natively without the data, expect both lines.
 
@@ -134,7 +140,7 @@ docker compose down                    # remove the container
 
 ## Try the Jobs by Hand
 
-There are three jobs: the built-in `tools` job, `csnp`, which scores coding SNPs ([below](#the-csnp-job)), and `refmap`, which maps protein IDs to PANTHER IDs ([The refmap Job](#the-refmap-job)). In a `tools` job, a worker process runs the engine's tool report and returns each tool's version. It checks that the API, the worker pool, the engine and the tools work together. Start the API in the image, so the tools are there, from the repository root:
+There are three jobs: the built-in `tools` job, `csnp`, which scores coding SNPs ([below](#the-csnp-job)), and `refmap`, which maps protein IDs to PANTHER IDs ([The refmap Job](#the-refmap-job)). An `hmmscore` request is validated, then refused with a `501` until its scoring is ported ([The hmmscore Job](#the-hmmscore-job)). In a `tools` job, a worker process runs the engine's tool report and returns each tool's version. It checks that the API, the worker pool, the engine and the tools work together. Start the API in the image, so the tools are there, from the repository root:
 
 ```sh
 docker compose up --build api
@@ -373,6 +379,43 @@ curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
   "errors": [
     { "loc": ["body", "refmap", "input", "organism"], "msg": "The organism must be the code of an organism refmap maps for, such as ENDPU.", "type": "value_error" },
     { "loc": ["body", "refmap", "input", "ids", 1], "msg": "Each ID must be 1 to 64 printable ASCII characters, with no spaces, such as P04217.", "type": "value_error" }
+  ]
+}
+```
+
+### The hmmscore Job
+
+An `hmmscore` job will score one protein against PANTHER's HMM library, with the engine's port of `scoreAlignXml.cgi`. Its contract is settled (`openspec/changes/add-hmmscore-job/`) and its input rules are in `openspec/specs/scoring-input/`, but the engine doesn't score yet. So a valid request gets a `501` problem, and no job is created. It needs no data, so it works natively too:
+
+```sh
+curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
+  -d '{"service": "hmmscore", "input": {"sequence": ">sp|P02649|APOE_HUMAN\nMKVLWAALLVTFLAGCQAKV"}}'
+```
+
+```json
+{
+  "type": "about:blank",
+  "title": "Not Implemented",
+  "status": 501,
+  "detail": "HMM scoring isn't available yet."
+}
+```
+
+An invalid request still gets the `422` validation problem first, without the submitted sequence. The sequence is normalised as a `csnp` one is: trimmed, one FASTA header removed, whitespace removed and upper-cased. Then it may hold only letters, and a single `*` at the end, which HMMER 3.1b2 and 3.4 score alike ([divergence 12](../parity/divergences.md)). It may have at most `PANTHER_API_HMMSCORE_MAX_RESIDUES` residues, 10,000 by default, not counting a final `*`; a longer one gets "The sequence has more than 10,000 residues." Here the sequence has a digit:
+
+```sh
+curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
+  -d '{"service": "hmmscore", "input": {"sequence": "MKVLWAALLV1TFLAGCQAKV"}}'
+```
+
+```json
+{
+  "type": "about:blank",
+  "title": "Unprocessable Content",
+  "status": 422,
+  "detail": "Request validation failed",
+  "errors": [
+    { "loc": ["body", "hmmscore", "input", "sequence"], "msg": "The sequence must be one-letter residue codes, the letters A to Z, and may end with one *. Remove any digit, gap, punctuation or other character.", "type": "value_error" }
   ]
 }
 ```

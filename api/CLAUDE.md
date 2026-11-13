@@ -82,7 +82,12 @@ The order that worked for `csnp`:
 3. **The port and its parity goldens,** in the engine (#24).
 4. **Wiring:** the `UNAVAILABLE` row goes, `run_job` calls the engine, and the code check against the engine's list lands in the same change (#26).
 
-`refmap` has been through all four: its contract (#30), its form (#35), the engine's port (#63), and its wiring (`wire-refmap`, #40). Its wiring also checks its data at startup and keeps its large results as JSON. `UNAVAILABLE` is empty, and keeps its mechanism for `hmmscore` and `treegrafter`.
+`refmap` has been through all four: its contract (#30), its form (#35), the engine's port (#63), and its wiring (`wire-refmap`, #40). Its wiring also checks its data at startup and keeps its large results as JSON.
+
+`hmmscore` has its contract (`add-hmmscore-job`, #42), so `UNAVAILABLE` holds its row; its form is `add-hmmscore-form` (#71). It adds two things to the pattern:
+
+- **A limit that's a setting is checked in the router,** after the model and before the `501`, as a `RequestValidationError` on the field (`_check_hmmscore_residues`): the schema is committed, so the model can't hold a value read at startup.
+- **A cap on a service's running jobs** (`JobRunner`'s `max_running`, `PANTHER_API_HMMSCORE_MAX_RUNNING`): its job takes the service's place before a worker slot, so a job waiting for the cap holds no worker. While the router answers `501`, it's tested on a `JobRunner` with a stand-in `run_job`.
 
 ## Tests
 

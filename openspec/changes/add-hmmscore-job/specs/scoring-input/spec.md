@@ -57,11 +57,16 @@ An hmmscore input SHALL be rejected when its `sequence`, after normalising, is e
 
 ### Requirement: hmmscore residue limit
 
-An hmmscore input SHALL be rejected when its normalised `sequence` is longer than the residue limit the API is configured with, 10,000 by default and never more. The API MUST check it before any job starts, and answer with status 422 and an error on `sequence` that names the limit and doesn't contain the sequence.
+An hmmscore input SHALL be rejected when its normalised `sequence` has more residues than the limit the API is configured with, 10,000 by default and never more. Residues are its letters: a final `*` isn't counted. The API MUST check it before any job starts, and answer with status 422 and an error on `sequence` that names the limit and doesn't contain the sequence.
 
 #### Scenario: At the default residue limit
 
 - **WHEN** the API runs with the default settings and an hmmscore request's `sequence` has 10,000 residues after normalising
+- **THEN** the request passes validation
+
+#### Scenario: A stop after the last residue
+
+- **WHEN** the API runs with the default settings and an hmmscore request's `sequence` is 10,000 letters and a final `*` after normalising
 - **THEN** the request passes validation
 
 #### Scenario: Past the default residue limit

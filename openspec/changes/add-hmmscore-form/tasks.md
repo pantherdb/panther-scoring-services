@@ -41,7 +41,7 @@ Split out of `add-hmmscore-job` on 2026-11-11, at the engine developer's request
 
 ### Blockers
 
-- **`add-hmmscore-job` applied and merged,** by whoever owns the API after the handover (#48): the form reads its regenerated `schema.d.ts`, `api:types:check` needs its components, and `test:e2e:api` needs its `501`.
+- **`add-hmmscore-job` applied and merged:** the form reads its regenerated `schema.d.ts`, `api:types:check` needs its components, and `test:e2e:api` needs its `501`.
 - **The refused-sequences row approved:** the divergence `add-hmmscore-job` adds for the sequences the API refuses where the reference answered no hit, which this form's checks ship. The engine developer is asked to approve it.
 
 ### Failed approaches

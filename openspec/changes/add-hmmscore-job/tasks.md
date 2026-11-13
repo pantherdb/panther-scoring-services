@@ -2,36 +2,36 @@
 
 ## 1. The Legacy Service, Recorded
 
-- [ ] 1.1 Write `docs/parity/hmmscore-legacy-behaviour.md`, following `docs/parity/README.md`: what `scoreAlignXml.cgi` ran and returned, what the site sent and showed, the quirks `HMMSCORE-1` to `HMMSCORE-10` with file, line and a parity call (design.md, decision 9), the engine developer's character measurements of 2026-11-11, and proposed golden inputs. Link to the survey rather than repeating it. List it in `docs/parity/README.md`. Verify `npx markdownlint-cli2` passes.
-- [ ] 1.2 Add two rows to `docs/parity/divergences.md`. 11, approved by the product owner on 2026-11-12: hmmscore takes at most 10,000 residues where the reference took 50,000, expected to cover 99% of queries, and a server's lower value (#68) is recorded in it when set. 12, proposed with no approver: the sequences the API refuses where the reference answered no hit (empty, a character other than a letter, a `*` before the end, `-`, `.`, `_` and `~` included, with the engine developer's 3.1b2 and 3.4 scores), with the website's posting changes and the header after a blank line. Add a footer line for `HMMSCORE-` IDs. Verify `npx markdownlint-cli2` passes.
+- [x] 1.1 Write `docs/parity/hmmscore-legacy-behaviour.md`, following `docs/parity/README.md`: what `scoreAlignXml.cgi` ran and returned, what the site sent and showed, the quirks `HMMSCORE-1` to `HMMSCORE-10` with file, line and a parity call (design.md, decision 9), the engine developer's character measurements of 2026-11-11, and proposed golden inputs. Link to the survey rather than repeating it. List it in `docs/parity/README.md`. Verify `npx markdownlint-cli2` passes.
+- [x] 1.2 Add two rows to `docs/parity/divergences.md`. 11, approved by the product owner on 2026-11-12: hmmscore takes at most 10,000 residues where the reference took 50,000, expected to cover 99% of queries, and a server's lower value (#68) is recorded in it when set. 12, proposed with no approver: the sequences the API refuses where the reference answered no hit (empty, a character other than a letter, a `*` before the end, `-`, `.`, `_` and `~` included, with the engine developer's 3.1b2 and 3.4 scores), with the website's posting changes and the header after a blank line. Add a footer line for `HMMSCORE-` IDs. Verify `npx markdownlint-cli2` passes.
 
 ## 2. The hmmscore Input and Result Models
 
-- [ ] 2.1 Move cSNP's sequence normalising from `api/src/panther_api/jobs/csnp.py` to `jobs/fields.py`, with each service's messages and characters passed in. Verify `uv run pytest tests/test_csnp_input.py` passes unchanged.
-- [ ] 2.2 Add `api/src/panther_api/jobs/hmmscore.py`: `HmmscoreInput` with the rules in design.md, decision 3, and `log_summary()`; `HmmHit` and `HmmscoreResult`, every field required, only `hit` nullable. Verify `uv run basedpyright` passes.
-- [ ] 2.3 Write `api/tests/test_hmmscore_input.py` for every scenario of `scoring-input`'s hmmscore requirements, the header after a blank line, each rejected character, the final `*` and the 1,000,001 characters that normalise to one residue included. Each rejection asserts its `loc`, and that no message contains a distinctive part of the sequence. Verify they pass.
+- [x] 2.1 Move cSNP's sequence normalising from `api/src/panther_api/jobs/csnp.py` to `jobs/fields.py`, with each service's messages and characters passed in. Verify `uv run pytest tests/test_csnp_input.py` passes unchanged.
+- [x] 2.2 Add `api/src/panther_api/jobs/hmmscore.py`: `HmmscoreInput` with the rules in design.md, decision 3, and `log_summary()`; `HmmHit` and `HmmscoreResult`, every field required, only `hit` nullable. Verify `uv run basedpyright` passes.
+- [x] 2.3 Write `api/tests/test_hmmscore_input.py` for every scenario of `scoring-input`'s hmmscore requirements, the header after a blank line, each rejected character, the final `*` and the 1,000,001 characters that normalise to one residue included. Each rejection asserts its `loc`, and that no message contains a distinctive part of the sequence. Verify they pass.
 
 ## 3. The Settings
 
-- [ ] 3.1 Add `hmmscore_max_residues` (10,000, 1 to 10,000), `hmmscore_time_limit_seconds` (720, at least 1), `hmmscore_max_running` (1, at least 1) and `hmmscore_cpu` (0, at least 0) to `api/src/panther_api/settings.py`, each pointing at design.md, decision 5. Pass the residue limit to the router and the cap to `JobRunner`; keep the other two on the app's state for the wiring.
-- [ ] 3.2 Extend `api/tests/test_settings.py`: the four defaults, each set from its variable, and each invalid value stopping startup. Verify they pass.
-- [ ] 3.3 In `docs/testing/api.md`, list the four variables, their defaults as starting points the server sets (#68), and that the time limit and `--cpu` take effect with the wiring. Verify `npx markdownlint-cli2` passes.
+- [x] 3.1 Add `hmmscore_max_residues` (10,000, 1 to 10,000), `hmmscore_time_limit_seconds` (720, at least 1), `hmmscore_max_running` (1, at least 1) and `hmmscore_cpu` (0, at least 0) to `api/src/panther_api/settings.py`, each pointing at design.md, decision 5. Pass the residue limit to the router and the cap to `JobRunner`; keep the other two on the app's state for the wiring.
+- [x] 3.2 Extend `api/tests/test_settings.py`: the four defaults, each set from its variable, and each invalid value stopping startup. Verify they pass.
+- [x] 3.3 In `docs/testing/api.md`, list the four variables, their defaults as starting points the server sets (#68), and that the time limit and `--cpu` take effect with the wiring. Verify `npx markdownlint-cli2` passes.
 
 ## 4. The hmmscore Job in the API
 
-- [ ] 4.1 Add `HmmscoreJobRequest` and `HmmscoreResult` to the unions in `jobs/work.py`, hmmscore's `UNAVAILABLE` row with a comment on what the wiring adds, `run_job`'s case raising `NotImplementedError`, and `HmmscoreJob` in `jobs/models.py`. In `routers/jobs.py`, check the configured limit after the model and before the `501` (decision 7). Verify the existing tests still pass.
-- [ ] 4.2 Add the running cap to `jobs/runner.py`, taken before the worker slot (decision 6). Verify the existing tests still pass.
-- [ ] 4.3 Write the tests in `api/tests/test_jobs.py`: two `>` (422, the residues not in the body, no job); no sequence; `opType` as an extra field; 10,000 residues, alone or with a final `*`, get the `501` and 10,001 the `422` naming 10,000; with the limit at 5,000, 5,000 get the `501` and 5,001 the `422`; a valid request's `501` with no `Location` and no job; a `tools` job after it; `run_job` refusing; the running cap's three scenarios on a `JobRunner` with a stand-in `run_job`. In `test_job_logs.py`, an hmmscore job's line gives its residues only. Verify they pass.
+- [x] 4.1 Add `HmmscoreJobRequest` and `HmmscoreResult` to the unions in `jobs/work.py`, hmmscore's `UNAVAILABLE` row with a comment on what the wiring adds, `run_job`'s case raising `NotImplementedError`, and `HmmscoreJob` in `jobs/models.py`. In `routers/jobs.py`, check the configured limit after the model and before the `501` (decision 7). Verify the existing tests still pass.
+- [x] 4.2 Add the running cap to `jobs/runner.py`, taken before the worker slot (decision 6). Verify the existing tests still pass.
+- [x] 4.3 Write the tests in `api/tests/test_jobs.py`: two `>` (422, the residues not in the body, no job); no sequence; `opType` as an extra field; 10,000 residues, alone or with a final `*`, get the `501` and 10,001 the `422` naming 10,000; with the limit at 5,000, 5,000 get the `501` and 5,001 the `422`; a valid request's `501` with no `Location` and no job; a `tools` job after it; `run_job` refusing; the running cap's three scenarios on a `JobRunner` with a stand-in `run_job`. In `test_job_logs.py`, an hmmscore job's line gives its residues only. Verify they pass.
 
 ## 5. The Contract Files
 
-- [ ] 5.1 Regenerate `api/openapi.json`, and update `api/tests/test_openapi.py`: both unions list `hmmscore` fourth; the request, input, result and hit components; the `501` naming `hmmscore`. Verify `uv run pytest` passes, `test_committed_schema_is_current` included.
-- [ ] 5.2 Run `npm run api:types` in `frontend/`. Verify `api:types:check` and `type-check` pass, and only `schema.d.ts` changed there.
-- [ ] 5.3 In `docs/testing/api.md`, add "The hmmscore Job": a valid request and its `501`, a sequence with a digit and its `422`, with `curl`. Add `hmmscore` to `api/README.md` and to `api/CLAUDE.md`, "Adding a Service". Verify `npx markdownlint-cli2` passes.
+- [x] 5.1 Regenerate `api/openapi.json`, and update `api/tests/test_openapi.py`: both unions list `hmmscore` fourth; the request, input, result and hit components; the `501` naming `hmmscore`. Verify `uv run pytest` passes, `test_committed_schema_is_current` included.
+- [x] 5.2 Run `npm run api:types` in `frontend/`. Verify `api:types:check` and `type-check` pass, and only `schema.d.ts` changed there.
+- [x] 5.3 In `docs/testing/api.md`, add "The hmmscore Job": a valid request and its `501`, a sequence with a digit and its `422`, with `curl`. Add `hmmscore` to `api/README.md` and to `api/CLAUDE.md`, "Adding a Service". Verify `npx markdownlint-cli2` passes.
 
 ## 6. Final Check
 
-- [ ] 6.1 In `api/`: `uv sync --locked && uv run ruff check && uv run ruff format --check && uv run basedpyright && uv run pytest`. In `frontend/`: `npm run api:types:check`, `type-check` and `npm test -- --run`. From the root: `npx markdownlint-cli2`, `npx openspec validate --all --no-interactive`, `npx openspec validate add-hmmscore-job --strict --no-interactive` and `docker build --target api .`. Record the results in Notes.
+- [x] 6.1 In `api/`: `uv sync --locked && uv run ruff check && uv run ruff format --check && uv run basedpyright && uv run pytest`. In `frontend/`: `npm run api:types:check`, `type-check` and `npm test -- --run`. From the root: `npx markdownlint-cli2`, `npx openspec validate --all --no-interactive`, `npx openspec validate add-hmmscore-job --strict --no-interactive` and `docker build --target api .`. Record the results in Notes.
 
 ## Workflow follow-up
 
@@ -44,7 +44,17 @@
 
 ### Next action
 
-The engine developer reviewed #70 on 2026-11-11, and the review is addressed (below). His follow-up and his engine answers (ties, strings, the name) are folded in too, and so is the product owner's residue limit of 2026-11-12: 10,000, with the time limit's default at 720 s. On 2026-11-13, from #71's review, a final `*` stopped counting toward the residue limit, and the Risks name the busy `503`'s `Retry-After`. Next: the area owners approve; code starts after.
+The engine developer reviewed #70 on 2026-11-11, and the review is addressed (below). His follow-up and his engine answers (ties, strings, the name) are folded in too, and so is the product owner's residue limit of 2026-11-12: 10,000, with the time limit's default at 720 s. On 2026-11-13, from #71's review, a final `*` stopped counting toward the residue limit, and the Risks name the busy `503`'s `Retry-After`.
+
+Applied on 2026-11-13: every task is done, and 6.1's checks pass. In `api/`: `uv sync --locked`, `ruff check`, `ruff format --check` and `basedpyright` clean, and `pytest` 469 passed, 9 skipped (the `blastp` and refmap-data tests, natively on Windows). In `frontend/`: `api:types:check` and `type-check` pass, and `npm test -- --run` 408 passed in 31 files; only `schema.d.ts` changed there. From the root: `markdownlint-cli2` 0 issues in 201 files, `openspec validate --all` 14 passed (the long-requirement warnings are the main specs', from before), `openspec validate add-hmmscore-job --strict` valid, and `docker build --target api .` built. Next: review in the pull request: the API developer approves, the frontend developer reviews the contract, and the engine developer reviews decision 4 and approves or rejects row 12. Then `/opsx:archive`.
+
+Decided while applying, for the reviewers:
+
+- **The shared normalising** is `fields.normalise_sequence()` with a `SequenceRules` of each service's characters and messages; `LONGEST_RAW_SEQUENCE` moved to `fields.py` with it. cSNP's length check stays in `csnp.py`.
+- **A lone `*`,** as in `">only a header\n*"`, gets the characters message ("must be one-letter residue codes … and may end with one *"), not "has no residues": the shared check for no residues is for an empty sequence.
+- **The router reads the residue limit from the app's settings** (`app.state.settings`), where the time limit and `--cpu` also wait for the wiring; `JobRunner` takes the cap as `max_running={"hmmscore": …}`.
+- **The hmmscore log-line test lifts the `501`** for that test (`monkeypatch.delitem(UNAVAILABLE, "hmmscore")`) and stands in for the work, so the line comes through the real router and runner.
+- **Row 12 doesn't list more than one `>`:** the website refused that too, so it isn't a difference.
 
 ### Blockers
 
@@ -53,6 +63,7 @@ The engine developer reviewed #70 on 2026-11-11, and the review is addressed (be
 ### Failed approaches
 
 - **Citing `SequenceSearchForm.java` from a `cat -n` of two files at once (2026-11-10).** `cat -n` numbers lines across files, so every citation was off by `SequenceSearchAction.java`'s 116 lines. Fixed on 2026-11-11; number one file at a time.
+- **Editing Python through a Git Bash heredoc (2026-11-13).** A quoted heredoc still turned `\n` and `\t` inside a script's strings into real line breaks and tabs, which broke `fields.py`'s patterns. Use the editor, or a script file, for text with backslashes.
 
 ### Lessons learned
 
@@ -69,3 +80,5 @@ The engine developer reviewed #70 on 2026-11-11, and the review is addressed (be
 - **Measure each character in both versions, not only whether it's read.** "Read" by both hid a different score.
 - **Check the reference's failure path, not only its success.** "The CGI died" was assumed from a `die`; the line that mattered was the unchecked `system` before it.
 - **The CGI's XML is thinner than the site's page:** the name came from the site's database, and the page's "score" was the E-value.
+- **From reading the legacy code for 1.1 (2026-11-13):** `panther-site-java/scoring/scoreAlignXml.cgi` reads `./PANTHER7.2` with HMMER2, so it's most likely not what PANTHER 19 ran; `pantherScore.pl` reads `-c` but never passes `--cpu`; and the website's form checked emptiness before normalising, so a sequence of only a header reached the CGI empty. All are in `docs/parity/hmmscore-legacy-behaviour.md`.
+- **Test a cap by taking it away.** The three running-cap tests fail with the cap replaced by `nullcontext()`, and the one beside a tools job fails too if the cap were taken after the worker slot.

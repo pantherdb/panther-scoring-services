@@ -16,9 +16,18 @@ The UI SHALL offer an HMM scoring form at `/hmmscore`, linked from the home page
 - **WHEN** the user chooses to use an example on `/hmmscore`
 - **THEN** the sequence box holds the 317 residues of human APOE that start `MKVLWAALLVTFLAGCQAKV`, in lines of 35 as the help page shows them
 
+### Requirement: HMM scoring form says it isn't available yet
+
+While HMM scoring is marked "coming soon", its form SHALL say, before the sequence box, that HMM scoring isn't available yet, so a sequence submitted now won't be scored. The form MUST stay usable.
+
+#### Scenario: The notice
+
+- **WHEN** the user opens `/hmmscore`
+- **THEN** the form says HMM scoring isn't available yet, before the sequence box, and the box and the submit action can be used
+
 ### Requirement: hmmscore form checks the input before sending
 
-Before sending, the HMM scoring form SHALL check the sequence against `scoring-input`'s hmmscore rules, with the most residues the API's setting allows, 10,000; the API checks the server's own limit. A broken rule MUST be shown on the sequence field, without quoting the sequence, and no request MUST be sent. The form MUST NOT reject a sequence the rules accept.
+Before sending, the HMM scoring form SHALL check the sequence against `scoring-input`'s hmmscore rules, with the most residues the API's setting allows, 10,000; the API checks the server's own limit. Letters are A to Z, in either case. Residues are the letters: a final `*` isn't counted. A broken rule MUST be shown on the sequence field, without quoting the sequence, and no request MUST be sent. The form MUST NOT reject a sequence the rules accept.
 
 #### Scenario: Empty hmmscore form
 
@@ -32,13 +41,28 @@ Before sending, the HMM scoring form SHALL check the sequence against `scoring-i
 
 #### Scenario: Past the most residues in the hmmscore form
 
-- **WHEN** the user submits a sequence of 10,001 residues
+- **WHEN** the user submits a sequence of 10,001 letters
 - **THEN** the sequence field says it's longer than 10,000 residues, and no request is sent
+
+#### Scenario: The most residues and a final stop
+
+- **WHEN** the user submits a sequence of 10,000 letters followed by `*`
+- **THEN** no error is shown, and the request is sent
+
+#### Scenario: Too long before normalising, in the hmmscore form
+
+- **WHEN** the user submits `M` followed by 1,000,000 spaces
+- **THEN** the sequence field says it's longer than 1,000,000 characters, and no request is sent
 
 #### Scenario: A character hmmscan doesn't read, in the hmmscore form
 
-- **WHEN** the user submits `MKV1L`, `MKV-L` or `MKV*L`
+- **WHEN** the user submits `MKV1L`, `MKV-L`, `MKV+L`, `MKV>LW`, `MKVÄL`, `MKV*L`, `MKV.L`, `MKV_L`, `MKV~L` or `MKVL**`
 - **THEN** the sequence field says which characters a sequence may hold, without quoting it, and no request is sent
+
+#### Scenario: A stop at the end, and the uncommon letters, in the hmmscore form
+
+- **WHEN** the user submits `"mkvbjouxz*\n"`
+- **THEN** no error is shown, and the request is sent with that sequence as typed
 
 #### Scenario: A valid sequence is sent for hmmscore
 
@@ -61,12 +85,26 @@ When the API answers an HMM scoring request with 422, the form SHALL show each e
 
 ### Requirement: HMM scoring not yet available
 
-When the API answers an HMM scoring request with 501, the form SHALL say that HMM scoring isn't available yet, in fixed text, keep the sequence, and stay at `/hmmscore`. When the API can't be reached, it MUST say so, as the other forms do; when it answers with any other error, it MUST say the job couldn't be started. No message MUST show a status code or build details, and the form MUST stay usable.
+When the API answers an HMM scoring request with 501 and problem details, the form SHALL say that HMM scoring isn't available yet, in fixed text, keep the sequence, stay at `/hmmscore`, and stay usable. A 501 without problem details didn't come from the API, and MUST be shown as the scoring service being unreachable.
 
 #### Scenario: The API answers 501 (hmmscore)
 
-- **WHEN** the user submits a valid sequence and the API answers 501
+- **WHEN** the user submits a valid sequence and the API answers 501 with problem details
 - **THEN** the form says HMM scoring isn't available yet, the sequence is unchanged, the UI stays at `/hmmscore`, and the form can be submitted again
+
+#### Scenario: A 501 from something in between (hmmscore)
+
+- **WHEN** the user submits a valid sequence and the answer is 501 with no problem-details body
+- **THEN** the form says the scoring service can't be reached, and keeps the sequence
+
+### Requirement: hmmscore submit failures
+
+When the API answers an HMM scoring request with 503 and problem details, the form SHALL say HMM scoring is busy, and when to try again from `Retry-After`, or in a few minutes without it. When the API can't be reached, it MUST say so; for any other error but a 422, 501 or 503, that the job couldn't be started. No message MUST show a status code or build details. The form MUST keep the sequence, stay at `/hmmscore`, and stay usable.
+
+#### Scenario: The API is busy (hmmscore)
+
+- **WHEN** the user submits a valid sequence and the API answers 503 with problem details and `Retry-After: 30`
+- **THEN** the form says HMM scoring is busy and to try again in about 30 seconds, with no status code, and the sequence is unchanged
 
 #### Scenario: The API answers 500 (hmmscore)
 
@@ -94,7 +132,7 @@ When the API accepts an HMM scoring request with 202, the UI SHALL open `/jobs/{
 
 ### Requirement: hmmscore results on the job page
 
-When an `hmmscore` job has succeeded with a hit, the job page SHALL show the hit's PANTHER ID, linking to its page on pantherdb.org, its name, its E-value and its bit score, each exactly as the API gives it, and the alignment. With a `null` hit, it MUST say there were no hits to PANTHER for the sequence. The job's versions MUST be shown with it.
+When an `hmmscore` job has succeeded with a hit, the job page SHALL show the hit's PANTHER ID, linking to its page on pantherdb.org, its name, its E-value and its bit score, each exactly as the API gives it, and the alignment. With a `null` hit, the page MUST say there were no hits to PANTHER for the sequence. The job's versions MUST be shown with it.
 
 #### Scenario: A job with a hit
 
@@ -111,9 +149,18 @@ When an `hmmscore` job has succeeded with a hit, the job page SHALL show the hit
 - **WHEN** the user opens the page of a running `hmmscore` job
 - **THEN** the page shows no hit and no alignment
 
+### Requirement: hmmscore family link opens in a new tab
+
+The link from an `hmmscore` hit's PANTHER ID SHALL go to pantherdb.org's family page for that ID, encoded in the query, and open in a new tab, without giving that page a reference back to the app's page. Its accessible name MUST say that it opens in a new tab.
+
+#### Scenario: The family link
+
+- **WHEN** the page shows a hit whose PANTHER ID is `PTHR00000:SF1`
+- **THEN** the ID links to pantherdb.org's family page with `clsAccession` `PTHR00000:SF1`, encoded, in a new tab, and its accessible name says so
+
 ### Requirement: hmmscore alignment as text
 
-The job page SHALL show an `hmmscore` hit's alignment as monospaced text, exactly as the API gives it, with its line breaks and spaces kept and no line wrapped. A long line MUST scroll within the alignment's own box, so the page doesn't scroll sideways at mobile widths.
+The job page SHALL show an `hmmscore` hit's alignment as monospaced text, exactly as the API gives it, with its line breaks and spaces kept and no line wrapped. A long line MUST scroll within the alignment's own box, so the page doesn't scroll sideways at mobile widths. The box MUST be reachable with the keyboard, with a name, so it can be scrolled without a pointer.
 
 #### Scenario: Columns kept
 
@@ -124,6 +171,11 @@ The job page SHALL show an `hmmscore` hit's alignment as monospaced text, exactl
 
 - **WHEN** the user opens the page of an `hmmscore` job whose alignment has lines of 200 characters, at mobile width
 - **THEN** the alignment scrolls sideways within its box, and the page does not
+
+#### Scenario: The alignment from the keyboard
+
+- **WHEN** the user moves through the job page with the Tab key
+- **THEN** the alignment's box takes the focus, named as the alignment, and the arrow keys scroll it
 
 ## MODIFIED Requirements
 

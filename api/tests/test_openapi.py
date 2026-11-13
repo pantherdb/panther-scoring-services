@@ -103,6 +103,7 @@ def test_job_request_is_a_union_tagged_by_service(client: TestClient) -> None:
         {"$ref": f"{SCHEMAS}ToolsJobRequest"},
         {"$ref": f"{SCHEMAS}CsnpJobRequest"},
         {"$ref": f"{SCHEMAS}RefmapJobRequest"},
+        {"$ref": f"{SCHEMAS}HmmscoreJobRequest"},
     ]
     assert body["discriminator"] == {
         "propertyName": "service",
@@ -110,6 +111,7 @@ def test_job_request_is_a_union_tagged_by_service(client: TestClient) -> None:
             "tools": f"{SCHEMAS}ToolsJobRequest",
             "csnp": f"{SCHEMAS}CsnpJobRequest",
             "refmap": f"{SCHEMAS}RefmapJobRequest",
+            "hmmscore": f"{SCHEMAS}HmmscoreJobRequest",
         },
     }
 
@@ -124,6 +126,7 @@ def test_submitting_documents_202_with_location(client: TestClient) -> None:
         "tools": f"{SCHEMAS}ToolsJob",
         "csnp": f"{SCHEMAS}CsnpJob",
         "refmap": f"{SCHEMAS}RefmapJob",
+        "hmmscore": f"{SCHEMAS}HmmscoreJob",
     }
     assert list(responses["422"]["content"]) == [PROBLEM]
 
@@ -136,6 +139,7 @@ def test_polling_documents_the_job_and_problems(client: TestClient) -> None:
         {"$ref": f"{SCHEMAS}ToolsJob"},
         {"$ref": f"{SCHEMAS}CsnpJob"},
         {"$ref": f"{SCHEMAS}RefmapJob"},
+        {"$ref": f"{SCHEMAS}HmmscoreJob"},
     ]
     assert responses["default"]["content"][PROBLEM]["schema"] == {"$ref": f"{SCHEMAS}Problem"}
 
@@ -148,7 +152,12 @@ def test_job_status_is_a_named_enum(client: TestClient) -> None:
 
 @pytest.mark.parametrize(
     ("job_model", "result_model"),
-    [("ToolsJob", "ToolsResult"), ("CsnpJob", "CsnpResult"), ("RefmapJob", "RefmapResult")],
+    [
+        ("ToolsJob", "ToolsResult"),
+        ("CsnpJob", "CsnpResult"),
+        ("RefmapJob", "RefmapResult"),
+        ("HmmscoreJob", "HmmscoreResult"),
+    ],
 )
 def test_job_result_and_error_are_required_and_nullable(
     client: TestClient, job_model: str, result_model: str
@@ -211,13 +220,7 @@ def test_the_csnp_result_in_the_schema(client: TestClient) -> None:
     }
 
 
-# The refmap job: its contract. No 501 is left: every service runs.
-
-
-def test_no_501_is_documented(client: TestClient) -> None:
-    responses = served_schema(client)["paths"]["/api/v1/jobs"]["post"]["responses"]
-
-    assert "501" not in responses
+# The refmap job: its contract.
 
 
 def test_the_refmap_request_and_input(client: TestClient) -> None:
@@ -318,6 +321,59 @@ def test_the_refmap_result_in_the_schema(client: TestClient) -> None:
     assert properties(schema, "IdMapping") == {
         "id": {"type": "string"},
         "panther_id": NULLABLE_STRING,
+    }
+
+
+# The hmmscore job: its contract, and the 501 until the engine scores.
+
+
+def test_the_hmmscore_501_is_documented_as_a_problem(client: TestClient) -> None:
+    responses = served_schema(client)["paths"]["/api/v1/jobs"]["post"]["responses"]
+
+    assert list(responses["501"]["content"]) == [PROBLEM]
+    assert responses["501"]["content"][PROBLEM]["schema"] == {"$ref": f"{SCHEMAS}Problem"}
+    # Only hmmscore: the other services run.
+    assert "`hmmscore`" in responses["501"]["description"]
+    for service in ("tools", "csnp", "refmap"):
+        assert service not in responses["501"]["description"]
+
+
+def test_the_hmmscore_request_and_input(client: TestClient) -> None:
+    schema = served_schema(client)
+    components = schema["components"]["schemas"]
+
+    assert properties(schema, "HmmscoreJobRequest") == {
+        "service": {"type": "string", "const": "hmmscore"},
+        "input": {"$ref": f"{SCHEMAS}HmmscoreInput"},
+    }
+    hmmscore_input = components["HmmscoreInput"]
+    assert hmmscore_input["required"] == ["sequence"]
+    assert hmmscore_input["additionalProperties"] is False
+    assert properties(schema, "HmmscoreInput") == {
+        "sequence": {"type": "string", "maxLength": 1_000_000},
+    }
+    # The configured residue limit isn't in the schema, which must equal the committed one; the
+    # description gives it in words (openspec add-hmmscore-job, design.md, decision 7).
+    assert "10,000 by default" in hmmscore_input["description"]
+
+
+def test_the_hmmscore_result_in_the_schema(client: TestClient) -> None:
+    schema = served_schema(client)
+    components = schema["components"]["schemas"]
+
+    assert components["HmmscoreResult"]["required"] == ["hit"]
+    assert properties(schema, "HmmscoreResult") == {
+        "hit": {"anyOf": [{"$ref": f"{SCHEMAS}HmmHit"}, {"type": "null"}]},
+    }
+    assert components["HmmHit"]["required"] == [
+        "panther_id",
+        "name",
+        "evalue",
+        "score",
+        "alignment",
+    ]
+    assert properties(schema, "HmmHit") == {
+        name: {"type": "string"} for name in ("panther_id", "name", "evalue", "score", "alignment")
     }
 
 

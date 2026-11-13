@@ -1,8 +1,9 @@
+import asyncio
 import json
 import logging
 import pickle
 import time
-from collections.abc import Iterator
+from collections.abc import Awaitable, Callable, Iterator
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, cast
@@ -14,6 +15,7 @@ from clock import Clock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from job_helpers import (
+    FAILING_SEQUENCE,
     FAKE_AGE,
     FAKE_FAMILY,
     FAKE_MESSAGE,
@@ -25,6 +27,7 @@ from job_helpers import (
     exit_worker,
     fail,
     fake_score,
+    hold_hmmscore_jobs,
     input_error_for_csnp,
     raise_input_error,
     report_fake_tools,
@@ -37,6 +40,8 @@ from polling import poll
 from pydantic import ValidationError
 
 from panther_api.jobs.csnp import CsnpInput, CsnpResult, SubstitutionScore, run_csnp
+from panther_api.jobs.hmmscore import HmmscoreInput
+from panther_api.jobs.models import JobStatus
 from panther_api.jobs.refmap import MOST_IDS
 from panther_api.jobs.runner import (
     INPUT_ERROR_OUTCOME,
@@ -44,10 +49,12 @@ from panther_api.jobs.runner import (
     WORKER_STOPPED_DETAIL,
     JobRunner,
 )
+from panther_api.jobs.store import JobRecord
 from panther_api.jobs.tools import ToolsInput, run_tools
-from panther_api.jobs.work import CsnpJobRequest, ToolsJobRequest, run_job
+from panther_api.jobs.work import CsnpJobRequest, HmmscoreJobRequest, ToolsJobRequest, run_job
 from panther_api.main import create_app
 from panther_api.problems import MOST_FIELD_ERRORS
+from panther_api.versions import read_versions
 
 # The directory in conftest's fake report paths. No job may contain it.
 FAKE_TOOLS_DIR = "fake-tools"
@@ -722,3 +729,235 @@ def test_a_refmap_job_without_the_data_fails_with_the_generic_500(
     assert job["result"] is None
     assert job["error"]["status"] == 500
     assert str(tmp_path) not in str(job)
+
+
+# The hmmscore job: validated, the configured residue limit checked, then a 501 until the engine
+# scores. No hit is made up.
+
+HMMSCORE_SEQUENCE = "MKVLWAALLVTFLAGCQAKV"
+HMMSCORE_LOC: list[str | int] = ["body", "hmmscore", "input", "sequence"]
+HMMSCORE_UNAVAILABLE = {
+    "type": "about:blank",
+    "title": "Not Implemented",
+    "status": 501,
+    "detail": "HMM scoring isn't available yet.",
+}
+
+
+def hmmscore_job(sequence: object = HMMSCORE_SEQUENCE, **changes: object) -> dict[str, object]:
+    return {"service": "hmmscore", "input": {"sequence": sequence, **changes}}
+
+
+def assert_unavailable(client: TestClient, body: object) -> None:
+    """Valid: the 501 problem, with no `Location`, and no job stored."""
+    response = client.post("/api/v1/jobs", json=body)
+
+    assert response.status_code == 501, response.text
+    assert response.headers["content-type"] == PROBLEM
+    assert "location" not in response.headers
+    assert response.json() == HMMSCORE_UNAVAILABLE
+    assert len(runner(client).store) == 0
+
+
+def assert_over_the_residue_limit(client: TestClient, residues: int, limit: str) -> None:
+    """A 422 on `sequence` naming the limit, without the sequence, and no job stored."""
+    response = client.post("/api/v1/jobs", json=hmmscore_job("W" * residues))
+
+    assert response.status_code == 422
+    assert response.headers["content-type"] == PROBLEM
+    [error] = response.json()["errors"]
+    assert error["loc"] == HMMSCORE_LOC
+    assert error["msg"] == f"The sequence has more than {limit} residues."
+    assert "WWWWWWWWWW" not in response.text
+    assert len(runner(client).store) == 0
+
+
+def test_a_valid_hmmscore_request_is_a_501_and_creates_no_job(client: TestClient) -> None:
+    assert_unavailable(client, hmmscore_job())
+
+
+def test_a_fasta_hmmscore_request_with_a_final_stop_is_a_501(client: TestClient) -> None:
+    assert_unavailable(client, hmmscore_job(">sp|P02649|APOE_HUMAN\nmkvlwaallv\ntflagcqakv*\n"))
+
+
+def test_tools_jobs_still_run_after_an_hmmscore_501(client: TestClient) -> None:
+    assert client.post("/api/v1/jobs", json=hmmscore_job()).status_code == 501
+
+    job = poll(client, submit(client)["id"])[-1]
+
+    assert job["status"] == "succeeded"
+    assert len(runner(client).store) == 1
+
+
+def test_two_hmmscore_sequences_are_a_422_without_the_residues(client: TestClient) -> None:
+    response = client.post("/api/v1/jobs", json=hmmscore_job(">one\nMKVQWERTY\n>two\nMKV"))
+
+    assert response.status_code == 422
+    assert [error["loc"] for error in response.json()["errors"]] == [HMMSCORE_LOC]
+    assert "MKVQWERTY" not in response.text
+    assert len(runner(client).store) == 0
+
+
+@pytest.mark.parametrize(
+    "sequence",
+    [">xyzzy\nMKV1XYZZY", "MKV-XYZZY", "MKV*XYZZY", ">only a header xyzzy\n*", "", 12345],
+    ids=["digit", "dash", "inner stop", "a stop with no residues", "empty", "not a string"],
+)
+def test_each_invalid_hmmscore_sequence_is_a_422_without_the_value(
+    client: TestClient, sequence: object
+) -> None:
+    assert_rejected(client, hmmscore_job(sequence), [HMMSCORE_LOC])
+
+
+def test_no_hmmscore_sequence_is_a_422(client: TestClient) -> None:
+    assert_rejected(client, {"service": "hmmscore", "input": {}}, [HMMSCORE_LOC])
+
+
+def test_a_field_the_hmmscore_input_doesnt_take_is_a_422(client: TestClient) -> None:
+    # The website's form sent `opType` beside the sequence.
+    assert_rejected(client, hmmscore_job(opType="hmm"), [["body", "hmmscore", "input", "opType"]])
+
+
+def test_the_default_residue_limit_takes_10000(client: TestClient) -> None:
+    assert_unavailable(client, hmmscore_job("W" * 10_000))
+
+
+def test_a_final_stop_isnt_counted_toward_the_limit(client: TestClient) -> None:
+    assert_unavailable(client, hmmscore_job("W" * 10_000 + "*"))
+
+
+def test_past_the_default_residue_limit_is_a_422_naming_it(client: TestClient) -> None:
+    assert_over_the_residue_limit(client, 10_001, "10,000")
+
+
+def test_a_lower_residue_limit_the_server_sets(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PANTHER_API_HMMSCORE_MAX_RESIDUES", "5000")
+    with TestClient(create_app()) as client:
+        assert_unavailable(client, hmmscore_job("W" * 5_000))
+        assert_over_the_residue_limit(client, 5_001, "5,000")
+
+
+def test_the_residue_limit_counts_after_normalising(client: TestClient) -> None:
+    # 10,000 residues in lines of 50, after a header.
+    sequence = ">header\n" + "\n".join(["W" * 50] * 200)
+
+    assert_unavailable(client, hmmscore_job(sequence))
+
+
+def test_run_job_refuses_an_hmmscore_job() -> None:
+    request = HmmscoreJobRequest(
+        service="hmmscore", input=HmmscoreInput.model_validate({"sequence": HMMSCORE_SEQUENCE})
+    )
+
+    with pytest.raises(NotImplementedError):
+        run_job(request)
+
+
+# The cap on hmmscore jobs running at once, on a JobRunner, since the router answers 501
+# (openspec add-hmmscore-job, design.md, decision 6). hold_hmmscore_jobs() stands in for the work.
+
+HOLD_TIMEOUT = 60.0
+
+
+def hmmscore_request(sequence: str = HMMSCORE_SEQUENCE) -> HmmscoreJobRequest:
+    return HmmscoreJobRequest(
+        service="hmmscore", input=HmmscoreInput.model_validate({"sequence": sequence})
+    )
+
+
+async def until(job: JobRecord, *statuses: JobStatus) -> None:
+    """Wait on the loop until the job's status is one of `statuses`."""
+    deadline = time.monotonic() + HOLD_TIMEOUT
+    while job.status not in statuses:
+        assert time.monotonic() < deadline, f"job still {job.status}"
+        await asyncio.sleep(0.02)
+
+
+async def stays_queued(job: JobRecord) -> None:
+    """The job is still queued however long the loop turns."""
+    for _ in range(10):
+        assert job.status == JobStatus.QUEUED
+        await asyncio.sleep(0.05)
+
+
+def run_with_a_capped_runner(gate: Path, test: Callable[[JobRunner], Awaitable[None]]) -> None:
+    """Run `test` against a JobRunner of 2 workers and a cap of 1 running hmmscore job, as the
+    API's defaults give, on a loop of its own. The gate opens at the end, whatever happens."""
+
+    async def main() -> None:
+        jobs = JobRunner(
+            workers=2,
+            max_queued=50,
+            expiry=timedelta(hours=1),
+            results_budget=1024 * 1024,
+            versions=read_versions(),
+            max_running={"hmmscore": 1},
+        )
+        try:
+            await test(jobs)
+        finally:
+            gate.touch()
+            await jobs.close()
+
+    asyncio.run(main())
+
+
+@pytest.fixture
+def hmmscore_gate(gate: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """hmmscore jobs stay running until the gate opens; others succeed at once."""
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", hold_hmmscore_jobs)
+    return gate
+
+
+def test_a_second_hmmscore_job_waits_for_the_first(hmmscore_gate: Path) -> None:
+    async def test(jobs: JobRunner) -> None:
+        first = jobs.submit(hmmscore_request())
+        await until(first, JobStatus.RUNNING)
+        second = jobs.submit(hmmscore_request())
+
+        # A worker is free, but the cap holds the second.
+        await stays_queued(second)
+
+        hmmscore_gate.touch()
+        await until(second, JobStatus.SUCCEEDED, JobStatus.FAILED)
+
+        assert (first.status, second.status) == (JobStatus.SUCCEEDED, JobStatus.SUCCEEDED)
+        assert first.finished_at is not None
+        assert second.started_at is not None
+        assert second.started_at >= first.finished_at
+
+    run_with_a_capped_runner(hmmscore_gate, test)
+
+
+def test_another_service_runs_beside_a_waiting_hmmscore_job(hmmscore_gate: Path) -> None:
+    async def test(jobs: JobRunner) -> None:
+        running = jobs.submit(hmmscore_request())
+        await until(running, JobStatus.RUNNING)
+        waiting = jobs.submit(hmmscore_request())
+        await stays_queued(waiting)
+
+        tools = jobs.submit(ToolsJobRequest(service="tools", input=ToolsInput()))
+        await until(tools, JobStatus.SUCCEEDED, JobStatus.FAILED)
+
+        # The waiting hmmscore job held no worker, so the tools job had the free one.
+        assert tools.status == JobStatus.SUCCEEDED
+        assert waiting.status == JobStatus.QUEUED
+        assert running.status == JobStatus.RUNNING
+
+    run_with_a_capped_runner(hmmscore_gate, test)
+
+
+def test_a_failed_hmmscore_job_frees_its_place(hmmscore_gate: Path) -> None:
+    async def test(jobs: JobRunner) -> None:
+        failing = jobs.submit(hmmscore_request(FAILING_SEQUENCE))
+        await until(failing, JobStatus.RUNNING)
+        waiting = jobs.submit(hmmscore_request())
+        await stays_queued(waiting)
+
+        hmmscore_gate.touch()
+        await until(waiting, JobStatus.SUCCEEDED, JobStatus.FAILED)
+
+        assert failing.status == JobStatus.FAILED
+        assert waiting.status == JobStatus.SUCCEEDED
+
+    run_with_a_capped_runner(hmmscore_gate, test)

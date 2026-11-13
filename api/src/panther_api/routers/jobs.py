@@ -7,12 +7,14 @@ Both handlers are `async def`, so they run on the event loop, the only place tha
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, HTTPException, Request, Response, status
+from fastapi.exceptions import RequestValidationError
 
 from panther_api.jobs.models import JOB_ADAPTER, Job
 from panther_api.jobs.runner import JobRunner, QueueFullError
 from panther_api.jobs.store import JobRecord
-from panther_api.jobs.work import UNAVAILABLE, JobRequest, SerializedResult
+from panther_api.jobs.work import UNAVAILABLE, HmmscoreJobRequest, JobRequest, SerializedResult
 from panther_api.problems import Problem
+from panther_api.settings import Settings
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -56,6 +58,30 @@ if UNAVAILABLE:
 
 def _runner(request: Request) -> JobRunner:
     return request.app.state.jobs
+
+
+def _settings(request: Request) -> Settings:
+    return request.app.state.settings
+
+
+def _check_hmmscore_residues(job_request: HmmscoreJobRequest, most: int) -> None:
+    """Refuse a sequence over the configured residue limit with a 422 on `sequence`, as any
+    invalid field is.
+
+    The limit is a setting, read at startup, and the committed schema must equal the served one,
+    so the model can't hold it (openspec add-hmmscore-job, design.md, decision 7). The message
+    names the limit, which is configuration, never the sequence.
+    """
+    if job_request.input.residues > most:
+        raise RequestValidationError(
+            [
+                {
+                    "type": "value_error",
+                    "loc": ("body", "hmmscore", "input", "sequence"),
+                    "msg": f"The sequence has more than {most:,} residues.",
+                }
+            ]
+        )
 
 
 def _job(record: JobRecord) -> Job:
@@ -104,8 +130,12 @@ async def create_job(
 
     An input the job can't run with is a 422, and no job is created. A problem only the work can
     find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid
-    request is a 503 when too many jobs are already waiting for a worker.
+    request is a 503 when too many jobs are already waiting for a worker. A valid `hmmscore`
+    request gets a 501 until its scoring is available; its input, and its residue limit, are still
+    validated first.
     """
+    if isinstance(job_request, HmmscoreJobRequest):
+        _check_hmmscore_residues(job_request, _settings(request).hmmscore_max_residues)
     unavailable = UNAVAILABLE.get(job_request.service)
     if unavailable is not None:
         raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, detail=unavailable.detail)

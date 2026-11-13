@@ -12,8 +12,10 @@ import asyncio
 import logging
 import multiprocessing
 import re
+from collections.abc import Mapping
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from http import HTTPStatus
@@ -161,13 +163,20 @@ class JobRunner:
         expiry: timedelta,
         results_budget: int,
         versions: Versions,
+        max_running: Mapping[str, int] | None = None,
     ) -> None:
+        """`max_running` caps the jobs of a service that may run at once, such as
+        `{"hmmscore": 1}`; a service it doesn't name is capped only by the workers."""
         self.store = JobStore(expiry, results_budget=results_budget)
         self._versions = versions
         self._workers = workers
         self._max_queued = max_queued
         self._pool = self._new_pool()
         self._slots = asyncio.Semaphore(workers)
+        # One per capped service (openspec add-hmmscore-job, design.md, decision 6).
+        self._running_caps = {
+            service: asyncio.Semaphore(most) for service, most in (max_running or {}).items()
+        }
         self._tasks: set[asyncio.Task[None]] = set()
         # Jobs submitted and not yet finished, running or waiting.
         self._unfinished = 0
@@ -210,8 +219,11 @@ class JobRunner:
 
     async def _run(self, job: JobRecord, request: JobRequest) -> None:
         # The pool gets at most one job per worker, so a job it has been given is running, not
-        # waiting in the pool's own queue. The rest wait here, `queued`.
-        async with self._slots:
+        # waiting in the pool's own queue. The rest wait here, `queued`. A capped service's job
+        # takes its service's place before a worker slot, so while it waits for the cap it holds
+        # no worker, and another service's job runs on the free one.
+        cap = self._running_caps.get(request.service, nullcontext())
+        async with cap, self._slots:
             job.start()
             pool = self._pool
             try:

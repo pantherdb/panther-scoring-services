@@ -32,7 +32,7 @@
 
 ### Next action
 
-The engine developer's review of #73 is answered in `c7dad98` (2026-11-13). The frontend developer's review, written against the commit before it, is answered too: the 404 message names the organism list, and the spec's memory requirement became design.md's property (decision 4); the data version in the response is left for a later issue. Waiting for both re-reviews.
+The engine developer's review of #73 is answered in `c7dad98` (2026-11-13). The frontend developer's review, written against the commit before it, is answered too: the 404 message names the organism list, and the spec's memory requirement became design.md's property (decision 4); the data version in the response is left for a later issue. Both approved #73 (2026-11-13), with non-blocking notes, now done: `build-json` refuses an organism list naming a code the engine doesn't map for, with a one-line error; the route opens the file before taking its size; the runbook copies the JSON with `rsync --delay-updates`, never in place; and the engine tests accept either path separator and skip the file-mode check on Windows. #73 merged on 2026-11-14 (`eff9eb1`); these notes' follow-ups go in their own pull request. Next: build the classification JSON on the HPC system and copy it to the server (runbook), then archive with `/opsx:archive`.
 
 ### Blockers
 

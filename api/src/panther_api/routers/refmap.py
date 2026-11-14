@@ -3,11 +3,11 @@ counts, and each organism's whole classification file."""
 
 import gzip
 import logging
+import os
 import time
 from collections.abc import Iterator
 from http import HTTPStatus
-from pathlib import Path as FilePath
-from typing import Annotated
+from typing import Annotated, BinaryIO
 
 from fastapi import APIRouter, Header, HTTPException, Path, Response, status
 from fastapi.responses import StreamingResponse
@@ -19,6 +19,7 @@ from panther_engine.refmap import (
     classification_json_file,
 )
 from pydantic import BaseModel, ConfigDict
+from starlette.background import BackgroundTask
 
 from panther_api.jobs.fields import LONGEST_SPECIES_CODE, SPECIES_CODE, schema_pattern
 from panther_api.jobs.refmap import RefmapResult
@@ -119,15 +120,15 @@ def accepts_gzip(accept_encoding: str | None) -> bool:
     return False
 
 
-def _chunks(path: FilePath) -> Iterator[bytes]:
-    with path.open("rb") as stream:
+def _chunks(stream: BinaryIO) -> Iterator[bytes]:
+    with stream:
         while chunk := stream.read(CHUNK):
             yield chunk
 
 
-def _gunzipped_chunks(path: FilePath) -> Iterator[bytes]:
-    with gzip.open(path, "rb") as stream:
-        while chunk := stream.read(CHUNK):
+def _gunzipped_chunks(stream: BinaryIO) -> Iterator[bytes]:
+    with stream, gzip.GzipFile(fileobj=stream, mode="rb") as unzipped:
+        while chunk := unzipped.read(CHUNK):
             yield chunk
 
 
@@ -177,8 +178,10 @@ async def refmap_classification(
     if code not in ORGANISM_CODES:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=ORGANISM_NOT_FOUND)
     try:
-        path = classification_json_file(code)
-        size = path.stat().st_size
+        # Opened first, and its size taken from the open file: a copy replacing the file by
+        # renaming it into place can't change what this response sends, or its length.
+        stream: BinaryIO = classification_json_file(code).open("rb")
+        size = os.fstat(stream.fileno()).st_size
     except (DataFolderError, OSError) as error:
         _missing.error("can't send the classification of %s: %s", code, error)
         failed = HTTPStatus.INTERNAL_SERVER_ERROR
@@ -187,7 +190,14 @@ async def refmap_classification(
     headers = {"Vary": "Accept-Encoding"}
     if accepts_gzip(accept_encoding):
         headers |= {"Content-Encoding": "gzip", "Content-Length": str(size)}
-        chunks = _chunks(path)
+        chunks = _chunks(stream)
     else:
-        chunks = _gunzipped_chunks(path)
-    return StreamingResponse(chunks, media_type="application/json", headers=headers)
+        chunks = _gunzipped_chunks(stream)
+    # The generators close the file when they finish; the background task closes it too if the
+    # response ends before they start.
+    return StreamingResponse(
+        chunks,
+        media_type="application/json",
+        headers=headers,
+        background=BackgroundTask(stream.close),
+    )

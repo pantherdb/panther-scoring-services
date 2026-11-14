@@ -329,7 +329,7 @@ The response has `Cache-Control: public, max-age=3600`: the list changes only wi
 
 `GET /api/v1/refmap/organisms/{code}/classification` gives every gene of one listed organism with its PANTHER ID, in the shape of a `refmap` job's result: one mapping per line of its classification file, in the file's order, with `null` where the file says `NOHIT` (#72). A repeated ID appears once for each of its lines, where a job gives the last line's value each time; the published files repeat none. The PANTHER website uses it as the reference list of an overrepresentation analysis against a whole proteome, where it read data.pantherdb.org's `generic_mapping/panther_classification/<long name>`.
 
-The API doesn't build the response: it sends a gzipped JSON file per organism, built ahead of time from the classification files by the engine, a piece at a time from disk. Build them once the refmap data is fetched, from `engine/` (about a minute, 176 MB, at `refmap/19/classification_json/<code>.json.gz`), or on any machine with the data, such as the HPC system, and copy the folder beside `panther_classification/`:
+The API doesn't build the response: it sends a gzipped JSON file per organism, built ahead of time from the classification files by the engine, a piece at a time from disk. Build them once the refmap data is fetched, from `engine/` (about a minute, 176 MB, at `refmap/19/classification_json/<code>.json.gz`), or on any machine with the data, such as the HPC system, and copy the folder beside `panther_classification/` (to a running server, as [the runbook](../deployment/runbook-server.md#the-apis-data) says, so no file is half-written while it's served):
 
 ```sh
 uv run panther-engine refmap data build-json --data-dir ../.data

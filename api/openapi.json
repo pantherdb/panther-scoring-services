@@ -95,7 +95,7 @@
           "jobs"
         ],
         "summary": "Start a job",
-        "description": "Start a job for `service` with its `input`. The job runs after this request returns.\n\nAn input the job can't run with is a 422, and no job is created. A problem only the work can\nfind, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid\nrequest is a 503 when too many jobs are already waiting for a worker.",
+        "description": "Start a job for `service` with its `input`. The job runs after this request returns.\n\nAn input the job can't run with is a 422, and no job is created. A problem only the work can\nfind, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid\nrequest is a 503 when it would wait and too many jobs are already waiting. A valid `hmmscore`\nrequest gets a 501 until its scoring is available; its input, and its residue limit, are still\nvalidated first.",
         "operationId": "create_job_api_v1_jobs_post",
         "requestBody": {
           "content": {
@@ -110,6 +110,9 @@
                   },
                   {
                     "$ref": "#/components/schemas/RefmapJobRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/HmmscoreJobRequest"
                   }
                 ],
                 "title": "Job Request",
@@ -118,7 +121,8 @@
                   "mapping": {
                     "tools": "#/components/schemas/ToolsJobRequest",
                     "csnp": "#/components/schemas/CsnpJobRequest",
-                    "refmap": "#/components/schemas/RefmapJobRequest"
+                    "refmap": "#/components/schemas/RefmapJobRequest",
+                    "hmmscore": "#/components/schemas/HmmscoreJobRequest"
                   }
                 }
               }
@@ -149,6 +153,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/RefmapJob"
+                    },
+                    {
+                      "$ref": "#/components/schemas/HmmscoreJob"
                     }
                   ],
                   "title": "Response Create Job Api V1 Jobs Post",
@@ -157,7 +164,8 @@
                     "mapping": {
                       "tools": "#/components/schemas/ToolsJob",
                       "csnp": "#/components/schemas/CsnpJob",
-                      "refmap": "#/components/schemas/RefmapJob"
+                      "refmap": "#/components/schemas/RefmapJob",
+                      "hmmscore": "#/components/schemas/HmmscoreJob"
                     }
                   }
                 }
@@ -185,7 +193,7 @@
             }
           },
           "503": {
-            "description": "As many jobs are waiting for a worker as the API allows (`PANTHER_API_MAX_QUEUED_JOBS`). The request was valid, and no job was created.",
+            "description": "The job would have to wait, for a worker or for its service's cap on running jobs (`PANTHER_API_HMMSCORE_MAX_RUNNING`), and as many jobs are already waiting as the API allows (`PANTHER_API_MAX_QUEUED_JOBS`). The request was valid, and no job was created.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before submitting again",
@@ -194,6 +202,16 @@
                 }
               }
             },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "The service can't run jobs yet: `hmmscore`, until its scoring is ported. The request was valid, and no job was created.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -259,6 +277,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/RefmapJob"
+                    },
+                    {
+                      "$ref": "#/components/schemas/HmmscoreJob"
                     }
                   ],
                   "discriminator": {
@@ -266,7 +287,8 @@
                     "mapping": {
                       "tools": "#/components/schemas/ToolsJob",
                       "csnp": "#/components/schemas/CsnpJob",
-                      "refmap": "#/components/schemas/RefmapJob"
+                      "refmap": "#/components/schemas/RefmapJob",
+                      "hmmscore": "#/components/schemas/HmmscoreJob"
                     }
                   },
                   "title": "Response Get Job Api V1 Jobs  Job Id  Get"
@@ -700,6 +722,178 @@
           "status"
         ],
         "title": "Health"
+      },
+      "HmmHit": {
+        "properties": {
+          "panther_id": {
+            "type": "string",
+            "title": "Panther Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "evalue": {
+            "type": "string",
+            "title": "Evalue"
+          },
+          "score": {
+            "type": "string",
+            "title": "Score"
+          },
+          "alignment": {
+            "type": "string",
+            "title": "Alignment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "panther_id",
+          "name",
+          "evalue",
+          "score",
+          "alignment"
+        ],
+        "title": "HmmHit",
+        "description": "The best-scoring PANTHER HMM, as the legacy service reported it, with its name and score.\n\n`panther_id` is the family or subfamily, such as `PTHR10000:SF1`. `name` is its name in the\nlibrary's `names.tab`. `evalue` and `score` are the full-sequence E-value and bit score as\n`hmmscan` printed them. `alignment` is `hmmsearch`'s domain annotation of the sequence against\nthe model, as the legacy page showed it."
+      },
+      "HmmscoreInput": {
+        "properties": {
+          "sequence": {
+            "type": "string",
+            "maxLength": 1000000,
+            "title": "Sequence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sequence"
+        ],
+        "title": "HmmscoreInput",
+        "description": "One protein to score against PANTHER's HMM library.\n\n`sequence` is the protein, as plain residues or FASTA with one header line. Whitespace and the\nheader are removed and letters upper-cased before scoring. It may hold only the letters A to\nZ, `.`, `_`, `~` and `*`, and at least one letter. It may have at most as many residues as the\nAPI is configured to take, 10,000 by default and never more. Residues here are the positions\n`hmmscan` reads: every character but a final `*`, so `.`, `_`, `~` and an inner `*` count. A\nlonger sequence is a 422 naming the limit."
+      },
+      "HmmscoreJob": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "service": {
+            "type": "string",
+            "const": "hmmscore",
+            "title": "Service"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HmmscoreResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Problem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "versions": {
+            "$ref": "#/components/schemas/Versions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "service",
+          "status",
+          "created_at",
+          "started_at",
+          "finished_at",
+          "result",
+          "error",
+          "versions"
+        ],
+        "title": "HmmscoreJob",
+        "description": "An `hmmscore` job, with the same fields as every job. `result` is the best-scoring\nPANTHER HMM, or a null `hit`.\n\nNone is created until the engine's scoring is wired in: a valid request gets a 501."
+      },
+      "HmmscoreJobRequest": {
+        "properties": {
+          "service": {
+            "type": "string",
+            "const": "hmmscore",
+            "title": "Service"
+          },
+          "input": {
+            "$ref": "#/components/schemas/HmmscoreInput"
+          }
+        },
+        "type": "object",
+        "required": [
+          "service",
+          "input"
+        ],
+        "title": "HmmscoreJobRequest",
+        "description": "Start an `hmmscore` job: score one protein against PANTHER's HMM library.\n\nUntil the engine's hmmscore scoring is wired in, a valid request gets a 501, and no job."
+      },
+      "HmmscoreResult": {
+        "properties": {
+          "hit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HmmHit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "hit"
+        ],
+        "title": "HmmscoreResult",
+        "description": "The best hit, or null when there's none, or the best hit's full-sequence E-value is over\n1e-3, as the legacy service applied its cutoff."
       },
       "IdMapping": {
         "properties": {

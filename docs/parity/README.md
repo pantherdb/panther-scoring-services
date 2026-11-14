@@ -33,6 +33,7 @@ Parity is the acceptance test for **milestone M1** of each service. It does not 
 | [divergences.md](divergences.md) | The divergence log (format below) |
 | [csnp-library-survey.md](csnp-library-survey.md) | The survey of the cSNP PAML_RST library: what each check found across all 8,607 families, how the Perl's readings differ from the strict readers', and the families chosen for the cSNP data sample |
 | [hmmscore-library-survey.md](hmmscore-library-survey.md) | The survey of PANTHER 19's HMM library: what its tarball holds, how `pantherScore.pl`'s readings differ from the strict readers', and the models `binHmm` holds that no model file does. Also what was measured on the full library (the press check, `hmmscan`'s time and memory, HMMER 3.1b2 against 3.4, and its numbers on arm64), and the families chosen for the hmmscore data sample |
+| [hmmscore-legacy-behaviour.md](hmmscore-legacy-behaviour.md) | What the legacy `hmmscore` service does, as its code runs it: what `scoreAlignXml.cgi` ran and returned, what the website sent and showed, what `hmmscan` does with each character, the quirks (`HMMSCORE-1`, …) with their parity calls, and the proposed golden inputs |
 | [refmap-legacy-behaviour.md](refmap-legacy-behaviour.md) | What the legacy `refmap` service does, as its code runs it: the lookup, what the website called and how it used the answers, the data, the quirks (`REFMAP-1`, …) with their parity calls, and the proposed golden inputs |
 
 The golden files themselves are test fixtures, so they live with the engine's tests in `engine/`. This folder explains them.
@@ -49,6 +50,10 @@ The legacy repository already has the reference material. Paths are relative to 
 - `docs/2026-10-28-parity-review.md`: the defects and the keep-or-fix decisions, which are logged here as proposed divergences.
 
 **Matching those goldens byte for byte reproduces known defects.** Until a proposed row is approved, the Python matches the legacy output, defects included. [golden-setup.md](golden-setup.md) and [inputs.md](inputs.md) start from spec §7 rather than redo it.
+
+### Where to start for `hmmscore`
+
+[hmmscore-legacy-behaviour.md](hmmscore-legacy-behaviour.md) for the service, and [hmmscore-library-survey.md](hmmscore-library-survey.md) for the library it scores with. The legacy code is in `panther-workspace/legacy/pantherScoring/`, with no spec of its own, so that doc is the reference for its quirk IDs.
 
 ### Where to start for `refmap`
 

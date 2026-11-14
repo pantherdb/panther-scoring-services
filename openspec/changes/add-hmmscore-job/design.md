@@ -54,7 +54,7 @@ The CGI printed `<scores>` holding, for the first line of `pantherScore.pl -D B`
 
 ### 3. Validation, rule by rule
 
-The website's form normalised the sequence (`SequenceSearchForm.java` 51 to 89), and then its posting changed it again (`scoreAlignXml.cgi` 79 to 87). The API applies cSNP's normalising, moved to `jobs/fields.py`, then accepts only what 3.1b2 and 3.4 score alike: letters, and a single `*` at the end.
+The website's form normalised the sequence (`SequenceSearchForm.java` 51 to 89), and then its posting changed it again (`scoreAlignXml.cgi` 79 to 87). The API applies cSNP's normalising, moved to `jobs/fields.py`, then accepts only what 3.1b2 and 3.4 score alike: letters, `.`, `_`, `~` and `*`, anywhere, with at least one letter.
 
 | Rule | The website | Here |
 | ---- | ----------- | ---- |
@@ -62,25 +62,25 @@ The website's form normalised the sequence (`SequenceSearchForm.java` 51 to 89),
 | At most one `>` | 62 to 67 | Same |
 | One header line removed | `^>[^\n]*`, without trimming first (69 to 74) | After trimming. A header after a blank line or spaces was left in, joined to the residues, so the CGI got one header line and no sequence, and answered no hit (`HMMSCORE-6`). Row 12 |
 | Whitespace removed | 76 to 79 | Same |
-| At most 50,000 residues | 83 to 86 | The configured limit, 10,000 by default and at most, the product owner's (decisions 5 and 7). Row 11 |
+| At most 50,000 residues | 83 to 86 | The configured limit, 10,000 by default and at most, the product owner's (decisions 5 and 7). It counts every position `hmmscan` reads, letters, `.`, `_`, `~` and an inner `*`, but not a final `*` (engine developer, 2026-11-13). Row 11 |
 | Upper-cased | Not done | New, as cSNP's. HMMER reads either case alike |
-| Letters, and one `*` at the end, only | Not checked | New. Measured by the engine developer, 2026-11-11 (below). Row 12 |
+| Letters, `.`, `_`, `~` and `*` only | Not checked | New. Measured by the engine developer, 2026-11-13 (below). `-` and the rest are row 12 |
+| At least one letter | Not checked | New: "The sequence has no residues." The reference answered no hit. Row 12 |
 | At most 1,000,000 characters before normalising | None | New, as cSNP's |
 
-**The characters** (engine developer, 2026-11-11, one-sequence test model built from APOE):
+**The characters** (engine developer, 2026-11-13, on amd64: Bioconda's 3.1b2 at the survey's digest and the engine image's 3.4, with a one-sequence APOE model built by 3.1b2 and pressed by each; the query as the CGI wrote it, `hmmscan` with only `--domtblout`, and three of each character inserted, after residues 80, 160 and 240):
 
-| In the sequence | 3.1b2 (production, most likely) | 3.4 (the port) |
+| Query | 3.1b2, amd64 (production, most likely) | 3.4, amd64 (the port) |
 | --- | --- | --- |
-| Letters, either case; `*` at the end | Read | Read |
-| `.`, `_`, `~` or `*` inside the sequence | Read, as a position, splitting the hit | Read, one domain |
-| `-` | Read, as a position | Refused |
-| `>` inside the sequence | Refused | Read |
-| Empty | Refused | Read, no hit |
-| Digits, `+`, `#`, `!`, `?`, `@` | Refused | Refused |
+| APOE | 722.0 bits, one domain | 722.0 bits, one domain |
+| `.`, `_`, `~` or an inner `*` | 703.3 bits, one domain, read as 320 positions (`L=320`) | Same |
+| `-` | 703.3 bits, one domain | Refused: "illegal character -" |
+| `>` inside the sequence | Scores the 80 residues before it (175.2 bits), then exits 1 | Scores the 80 residues before it (175.2 bits) |
+| No letters: a lone `*` | `L=1`, exit 0, no hit | Same |
 
-- **What the reference did with a refused sequence:** answered no hit. `runHmmscan` never checks `hmmscan`'s exit status (`pantherScore.pl` 381), and 3.1b2 leaves an empty `--domtblout`, so `pantherScore.pl` exits 0 and the CGI prints an empty `<scores>` (`HMMSCORE-8`). The API's `422` is row 12. Refusing before a job starts saves a job that reads all of `binHmm.h3f` only to fail.
-- **What "as a position" means.** 3.1b2 split the hit at each one: APOE with three inserted scored 667.1 in three domains, against 721.8 in one. 3.4 scored the same insertions 708.5 in one domain. `B`, `J`, `O`, `U`, `X` and `Z` scored alike in both (708.9 to 710.1, and 709.1 to 710.3, in one domain), as did lower case and a final `*`. The 0.2-bit gap on every row comes from pressing the model again in 3.4 (the survey, "The Press Check"); the split doesn't.
-- **So the API refuses `-`, `.`, `_`, `~` and any `*` but a final one,** in row 12: neither refusing nor stripping them reproduces 3.1b2, and 3.4 can't. A final `*` is kept, since translated sequences often end with one. `port-hmmscore`'s goldens confirm this on PANTHER's own models.
+- **So `.`, `_`, `~` and `*` are accepted anywhere,** as typed: 3.4 scores them as 3.1b2 did, so they need no row. `port-hmmscore`'s goldens include one, to confirm it on PANTHER's own models. Measurements of 2026-11-11 on a Mac build of 3.1b2 for CPUs without SSE (`impl_dummy`) split hits at these characters; that build was set aside.
+- **What the reference did with a refused sequence:** answered no hit. `runHmmscan` never checks `hmmscan`'s exit status (`pantherScore.pl` 381), and 3.1b2 leaves an empty `--domtblout`, so `pantherScore.pl` exits 0 and the CGI prints an empty `<scores>` (`HMMSCORE-8`). That covers digits, `+` and other characters, which both versions refused on 2026-11-11, and a sequence with no letters.
+- **So the API refuses, in row 12:** `-`, which 3.4 refuses, so the reference's score can't be reproduced; a sequence with no letters; any other character; and a `>` inside the sequence, where the reference scored only the part before it. Refusing before a job starts saves one that reads all of `binHmm.h3f` to find nothing.
 - **The website's posting** changed the text before `hmmscan` saw it: `&` and `=` cut it short (79, 82), `+` became a space (85), `%xx` was decoded (86) and `<!--…-->` was removed (87). The API refuses all those characters, so they're in row 12 too.
 - **The query's name** is `sequence`, as the CGI's (93 to 95), so the alignment text matches.
 - **The engine's `InputError`** for an unreadable sequence is then only for a later HMMER that refuses something 3.4 reads.
@@ -137,7 +137,10 @@ The residue limit is the product owner's; the other defaults come only from the 
 
 ### 6. The running cap
 
-`JobRunner` gets a semaphore per capped service, `hmmscore` only for now. An `hmmscore` job takes it **before** a worker slot, so a waiting job holds no worker and stays `queued`, and another service's job runs on the free worker. The waiting cap still counts unfinished jobs past one per worker, so with a waiting cap of 0 a tools job can get a `503` while an hmmscore job waits; harmless at the default of 50. Tested on a `JobRunner` with a stand-in `run_job`, since the router answers `501`.
+`JobRunner` gets a semaphore per capped service, `hmmscore` only for now. An `hmmscore` job takes it **before** a worker slot, so a waiting job holds no worker and stays `queued`, and another service's job runs on the free worker. Tested on a `JobRunner` with a stand-in `run_job`, since the router answers `501`.
+
+- **A job waiting for the cap counts as waiting** toward `PANTHER_API_MAX_QUEUED_JOBS` (#76). The runner counts unfinished jobs by service: min(unfinished, cap) of a capped service's jobs hold its cap, and the rest wait for it, holding nothing; the holders and every uncapped job take worker slots, so min(workers, Σ min(unfinished, cap)) run, and the rest wait. A new job is refused only when it would wait and the waiting cap is full. With the defaults (2 workers, a cap of 1, 50 waiting), 51 hmmscore jobs are accepted, 1 running and 50 waiting, and a cSNP job still runs on the second worker; with a waiting cap of 0, a second hmmscore job gets the `503`.
+- **The cap's keys are the services `JobRequest` has** (`work.Service`): `JobRunner` raises on any other, so a misspelled key can't leave a service uncapped.
 
 ### 7. The configured residue limit is a `422`
 
@@ -166,13 +169,14 @@ As `add-refmap-job`: `jobs/hmmscore.py` (Pydantic only, with `log_summary()` giv
 
 ### 10. Tests
 
-`test_hmmscore_input.py` for every `scoring-input` scenario, each rejection without a distinctive part of the value; `test_jobs.py` for the `422`s, the configured limit, the `501`, `run_job` refusing, and the running cap on a `JobRunner`; `test_settings.py`; `test_job_logs.py`; `test_openapi.py` for the unions, the result's fields and the `501`. No test builds an `HmmHit` with real-looking values.
+`test_hmmscore_input.py` for every `scoring-input` scenario, each rejection without a distinctive part of the value; `test_jobs.py` for the `422`s, the configured limit, the `501`, `run_job` refusing, and the running cap and the waiting count on a `JobRunner`; `test_settings.py`; `test_job_logs.py`; `test_openapi.py` for the unions, the result's fields, the `501`, and no `501` once `UNAVAILABLE` is empty. No test builds an `HmmHit` with real-looking values.
 
 ## Risks / Trade-offs
 
 - **[A 10,000-residue job may need more memory than a server has]** → Not measured: at `--cpu 0`, Q14204's 4,646 residues needed 0.5 GiB and `titin-50000` 21 GiB, and the hosting server has 5 GiB available (the survey). The server measures it and sets a lower limit if it must (#68), recorded in row 11.
 - **[The time limit's default is scaled, not measured]** → 720 s is three times an estimate (decision 5). A 10,000-residue query in `port-hmmscore` or #68 checks it before the wiring makes it take effect.
 - **[Settings that do nothing yet]** → The time limit and `--cpu` reach the engine with the wiring; `docs/testing/api.md` says so.
+- **[The busy `503` is sized for cSNP]** → Its `Retry-After` is a fixed 30 s, about a cSNP job (`routers/jobs.py` 21), and the waiting cap of 50 is shared, so a backlog of `hmmscore` jobs gets cSNP and refmap refused too (decision 6). An hmmscore `Retry-After`, sized by `port-hmmscore`'s 10,000-residue timing, and whether hmmscore needs its own waiting cap, are for the wiring.
 - **[Ties made the reported hit unstable]** → The port reports the subfamily first, then the lowest ID. With the data sample, `pantherScore.pl -D B` on PTHR35774's consensus gave `PTHR35774:SF1` five times in ten and `PTHR35774` five times, at the same E-value and score; the subfamily's model file is a copy of the family's, so only the ID changes, and the subfamily's ID carries the family's.
 
 ## Migration Plan

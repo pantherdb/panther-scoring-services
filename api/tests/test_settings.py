@@ -14,6 +14,11 @@ def test_defaults() -> None:
     assert settings.max_body_bytes == 16 * 1024 * 1024
     assert settings.cors_origins == ()
     assert settings.log_level == "INFO"
+    # hmmscore's (openspec add-hmmscore-job, design.md, decision 5).
+    assert settings.hmmscore_max_residues == 10_000
+    assert settings.hmmscore_time_limit_seconds == 720
+    assert settings.hmmscore_max_running == 1
+    assert settings.hmmscore_cpu == 0
 
 
 @pytest.mark.parametrize(
@@ -64,6 +69,24 @@ def test_environment_overrides_the_defaults(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 @pytest.mark.parametrize(
+    ("name", "value", "field"),
+    [
+        ("PANTHER_API_HMMSCORE_MAX_RESIDUES", "5000", "hmmscore_max_residues"),
+        ("PANTHER_API_HMMSCORE_MAX_RESIDUES", "1", "hmmscore_max_residues"),
+        ("PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS", "3600", "hmmscore_time_limit_seconds"),
+        ("PANTHER_API_HMMSCORE_MAX_RUNNING", "2", "hmmscore_max_running"),
+        ("PANTHER_API_HMMSCORE_CPU", "4", "hmmscore_cpu"),
+    ],
+)
+def test_each_hmmscore_setting_is_read_from_its_variable(
+    monkeypatch: pytest.MonkeyPatch, name: str, value: str, field: str
+) -> None:
+    monkeypatch.setenv(name, value)
+
+    assert getattr(Settings(), field) == int(value)
+
+
+@pytest.mark.parametrize(
     ("name", "value"),
     [
         ("PANTHER_API_JOB_WORKERS", "0"),
@@ -77,6 +100,16 @@ def test_environment_overrides_the_defaults(monkeypatch: pytest.MonkeyPatch) -> 
         ("PANTHER_API_RESULTS_BUDGET_MIB", "0"),
         ("PANTHER_API_RESULTS_BUDGET_MIB", "-1"),
         ("PANTHER_API_RESULTS_BUDGET_MIB", "256MiB"),
+        # hmmscore's residue limit is at most the product owner's 10,000.
+        ("PANTHER_API_HMMSCORE_MAX_RESIDUES", "0"),
+        ("PANTHER_API_HMMSCORE_MAX_RESIDUES", "10001"),
+        ("PANTHER_API_HMMSCORE_MAX_RESIDUES", "10k"),
+        ("PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS", "0"),
+        ("PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS", "12 minutes"),
+        ("PANTHER_API_HMMSCORE_MAX_RUNNING", "0"),
+        ("PANTHER_API_HMMSCORE_MAX_RUNNING", "one"),
+        ("PANTHER_API_HMMSCORE_CPU", "-1"),
+        ("PANTHER_API_HMMSCORE_CPU", "all"),
         ("PANTHER_API_LOG_LEVEL", "LOUD"),
         ("PANTHER_API_LOG_LEVEL", "CRITICAL"),
         ("PANTHER_API_LOG_LEVEL", ""),

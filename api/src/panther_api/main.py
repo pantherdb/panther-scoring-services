@@ -94,6 +94,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         expiry=timedelta(seconds=settings.job_expiry_seconds),
         results_budget=settings.results_budget_mib * MIB,
         versions=app.state.versions,
+        max_running={"hmmscore": settings.hmmscore_max_running},
     )
     app.state.jobs = runner
     try:

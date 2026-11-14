@@ -13,7 +13,7 @@ What's going on in `pantherdb/panther-scoring-services`, from one person's side,
 
 | Person | GitHub | Areas by default |
 | ------ | ------ | ---------------- |
-| Tremayne | `tmushayahama` | frontend and api; frontend only once Anushya takes over the api |
+| Tremayne | `tmushayahama` | frontend and api |
 | Dustin | `dustine32` | engine |
 | Anushya | `mugitty` | api |
 

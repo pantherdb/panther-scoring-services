@@ -24,6 +24,16 @@ MAX_QUEUED_JOBS = 50
 """The default cap on jobs waiting for a worker. Why 50: openspec harden-api-for-hosting,
 design.md, decision 3."""
 
+HMMSCORE_MAX_RESIDUES = 10_000
+"""The default, and the most allowed, for the residues an hmmscore sequence may have: the product
+owner's starting limit of 2026-11-12, in place of the website's 50,000 (openspec add-hmmscore-job,
+design.md, decision 5; divergence row 11). A server may set it lower."""
+
+HMMSCORE_TIME_LIMIT_SECONDS = 720
+"""The default time one hmmscore job may run: about three times the 240 s a 10,000-residue query
+should take, scaled from the library survey's times (openspec add-hmmscore-job, design.md,
+decision 5). Not used until the engine's scoring is wired in."""
+
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 """The log levels a setting may name. Not CRITICAL: the API logs nothing at that level, so it
 would silence the log (openspec add-api-logging, design.md, decision 6)."""
@@ -56,6 +66,31 @@ class Settings(BaseSettings):
         default=MAX_BODY_BYTES,
         ge=1,
         description="The largest request body accepted, in bytes; a larger one is a 413",
+    )
+    # hmmscore's limits: the defaults are starting points the server sets once measured there
+    # (#68; openspec add-hmmscore-job, design.md, decision 5).
+    hmmscore_max_residues: int = Field(
+        default=HMMSCORE_MAX_RESIDUES,
+        ge=1,
+        le=HMMSCORE_MAX_RESIDUES,
+        description=(
+            "The most residues an hmmscore sequence may have, at most 10,000; a longer one is a 422"
+        ),
+    )
+    hmmscore_time_limit_seconds: int = Field(
+        default=HMMSCORE_TIME_LIMIT_SECONDS,
+        ge=1,
+        description="How long one hmmscore job may run; takes effect once hmmscore is wired in",
+    )
+    hmmscore_max_running: int = Field(
+        default=1,
+        ge=1,
+        description="hmmscore jobs that may run at once; more wait, queued, without a worker",
+    )
+    hmmscore_cpu: int = Field(
+        default=0,
+        ge=0,
+        description="hmmscan's --cpu for each hmmscore job; takes effect once hmmscore is wired in",
     )
     log_level: LogLevel = Field(
         default="INFO",

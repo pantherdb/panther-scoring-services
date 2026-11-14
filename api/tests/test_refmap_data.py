@@ -1,5 +1,6 @@
 """`refmap` jobs against the real PANTHER 19 release: the API, a real worker, the engine and the
-refmap data (openspec scoring-jobs, refmap job maps with the engine; refmap job shape).
+refmap data (openspec scoring-jobs, refmap job maps with the engine; refmap job shape; api-service,
+refmap organism classification).
 
 Skipped without the data, as in CI's `api` job; fetch it with `panther-engine refmap data fetch`
 (docs/testing/api.md, "The refmap Data"). CI's `api-image` job runs them with the data required.
@@ -94,3 +95,33 @@ def test_a_job_of_100000_ids_is_kept_small_and_polls_fast(client: TestClient) ->
     assert kept == len(to_json(parsed.result))
     assert kept < MOST_RESULT_BYTES
     assert poll_seconds < MOST_POLL_SECONDS
+
+
+@pytest.mark.skipif(
+    not engine.classification_json_file(ORGANISM, data_folder()).is_file(),
+    reason="needs the classification JSON: panther-engine refmap data build-json",
+)
+def test_every_organisms_classification_is_its_file_as_the_engine_reads_it(
+    client: TestClient,
+) -> None:
+    """`GET /refmap/organisms/{code}/classification` for each of the 1,533 organisms, gzipped and
+    not: its mappings are the engine's `classification_mappings` of the organism's file, which
+    the engine's release tests check rebuild the published file byte for byte (openspec
+    api-service, refmap organism classification)."""
+    for code in sorted(engine.ORGANISM_CODES):
+        response = client.get(f"/api/v1/refmap/organisms/{code}/classification")
+        assert response.status_code == 200, code
+        assert response.headers["content-encoding"] == "gzip", code
+        assert response.json() == {
+            "organism": code,
+            "mappings": [
+                {"id": item.id, "panther_id": item.panther_id}
+                for item in engine.classification_mappings(code, data_folder())
+            ],
+        }, code
+    plain = client.get(
+        f"/api/v1/refmap/organisms/{ORGANISM}/classification",
+        headers={"Accept-Encoding": "identity"},
+    )
+    assert "content-encoding" not in plain.headers
+    assert len(plain.json()["mappings"]) == engine.ORGANISM_GENES[ORGANISM].genes

@@ -13,9 +13,15 @@ data folder, in `core/manifest.py`'s format.
   and saves each classification file under its organism's code. A member's name is never used as
   a path. It does nothing when the folder already matches, and writes nothing under `refmap/19/`
   if anything fails.
+- **build_classification_json** (`refmap data build-json`) writes each organism's whole
+  classification file as gzipped JSON, `refmap/19/classification_json/<code>.json.gz`, for the API
+  to send as it is. It's run separately, on any machine with the data, such as the HPC system,
+  and the folder copied beside `panther_classification/`. It's derived from the pinned files, so
+  the manifest doesn't list it, and the same file gives the same bytes.
 - **verify** checks a data folder against `data.json`.
 """
 
+import gzip
 import hashlib
 import json
 import os
@@ -25,8 +31,9 @@ import tarfile
 import tempfile
 import urllib.parse
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from itertools import batched
 from pathlib import Path, PurePosixPath
 from typing import IO, cast
 
@@ -41,6 +48,7 @@ from panther_engine.core.manifest import (
     sha256_file,
     verify,
 )
+from panther_engine.refmap.mapping import classification_json_file, classification_mappings
 from panther_engine.refmap.organisms import (
     CLASSIFICATION,
     CODE,
@@ -62,6 +70,10 @@ WINDOWS_DEVICES = frozenset(
 NOHIT_LINE = re.compile(rb"^[^\t\n]*\tNOHIT(?=\t|$)", re.MULTILINE)
 # How many problems an error names.
 LISTED = 20
+# Mappings serialised at a time, and the gzip level, for the classification JSON.
+JSON_BATCH = 10_000
+JSON_GZIP_LEVEL = 6
+JSON_MODE = 0o644
 
 
 class RefmapDataError(Exception):
@@ -346,6 +358,55 @@ def fetch(
             root.rmdir()
         raise
     return True
+
+
+def build_classification_json(
+    folder: Path | str | None, codes: Iterable[str], *, missing_only: bool = False
+) -> int:
+    """Write each organism's classification JSON (`classification_json_file`) from its
+    classification file, and return how many were written. With `missing_only`, an organism whose
+    JSON is already there is skipped.
+
+    Each is streamed into gzip a batch of mappings at a time, so memory doesn't grow with the
+    file, written beside its target and then moved into place, so the API never sends a partial
+    file. The gzip header has no name or time, so the same file gives the same bytes.
+
+    Raises MissingDataError if an organism's classification file is missing.
+    """
+    root = data_root(folder)
+    written = 0
+    for code in codes:
+        target = classification_json_file(code, root)
+        if missing_only and target.is_file():
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        handle, partial = tempfile.mkstemp(dir=target.parent, prefix=f".{target.name}.")
+        try:
+            with (
+                os.fdopen(handle, "wb") as raw,
+                gzip.GzipFile(
+                    filename="", mode="wb", fileobj=raw, mtime=0, compresslevel=JSON_GZIP_LEVEL
+                ) as out,
+            ):
+                out.write(b'{"organism":' + json_bytes(code) + b',"mappings":[')
+                for number, batch in enumerate(
+                    batched(classification_mappings(code, root), JSON_BATCH, strict=False)
+                ):
+                    items = [{"id": item.id, "panther_id": item.panther_id} for item in batch]
+                    out.write((b"," if number else b"") + json_bytes(items)[1:-1])
+                out.write(b"]}")
+            # mkstemp makes the file readable by its owner only; the API may run as another user.
+            os.chmod(partial, JSON_MODE)
+            os.replace(partial, target)
+        finally:
+            Path(partial).unlink(missing_ok=True)
+        written += 1
+    return written
+
+
+def json_bytes(value: object) -> bytes:
+    """Compact JSON, as UTF-8, with non-ASCII characters as they are, as the API writes JSON."""
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
 def check_pin(path: Path, pin: Pin) -> None:

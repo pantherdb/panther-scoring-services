@@ -349,8 +349,11 @@ jobs:
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" panther-api:ci
           panther-engine refmap data fetch --data-dir /fetch
       # Only the tests marked data("refmap"), with the data required: the example and a job of
-      # 100,000 IDs against the release. The image has uv but not the dev tools, so they go in the
-      # container's /tmp, and nothing is written to the mounts.
+      # 100,000 IDs against the release. The test of every organism's classification needs the
+      # classification JSON (refmap data build-json), which isn't built here, so it's skipped; the
+      # engine's release tests check the JSON's building and the files it reads. The image has uv
+      # but not the dev tools, so they go in the container's /tmp, and nothing is written to the
+      # mounts.
       - name: refmap data tests
         run: >-
           docker run --rm -v "$PWD/api:/src/api:ro" -v "$PWD/engine:/src/engine:ro"

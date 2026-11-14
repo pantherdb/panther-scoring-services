@@ -140,6 +140,14 @@ docker run --rm --user "$(id -u):$(id -g)" -v <the data folder>:/fetch -v "$PWD:
 
 It checks each copy's size and sha256 against the pinned manifest, then every file it writes, and writes nothing under `refmap/19/` unless every file matches. Run again, it writes nothing and only checks the files. The downloaded copies can be deleted afterwards. On a host whose container can reach `data.pantherdb.org` directly, leave out the second `-v`, `--tarball` and `--stats`, and it downloads the release itself. The API reads the data when a job runs, so it needs no restart, though its startup line keeps saying the data is missing until the next one. The data changes only with a new manifest in the engine; [api.md, The refmap Data](../testing/api.md#the-refmap-data) has the details.
 
+`GET /refmap/organisms/{code}/classification` sends each organism's classification as a gzipped JSON file built from those files, `refmap/19/classification_json/<code>.json.gz`, 176 MB in all. Build it where the data is fetched, or on any machine with the same release, such as the HPC system, with the engine's CLI, then copy `classification_json/` into the server's `refmap/19/`, keeping the files readable by the API's user:
+
+```bash
+panther-engine refmap data build-json --data-dir <the data folder>
+```
+
+It takes about a minute, and the same release gives the same bytes. Until the files are there, that endpoint answers the generic error, and the API's startup log says how many are missing (`refmap classifications will fail until the classification JSON is built …`). Build them again whenever the refmap data changes.
+
 `PANTHER_API_RESULTS_BUDGET_MIB` caps the memory the finished jobs' results may take; set it to suit the server ([api.md, Settings](../testing/api.md#settings)).
 
 ## Checking It Works

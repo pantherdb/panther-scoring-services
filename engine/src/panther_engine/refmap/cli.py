@@ -12,7 +12,7 @@ from panther_engine.core.download import DownloadError
 from panther_engine.core.manifest import ManifestError, checksums
 from panther_engine.refmap import data, parity
 from panther_engine.refmap.mapping import RefmapInput, map_ids, read_id_list, render
-from panther_engine.refmap.organisms import ORGANISM_NAMES, ORGANISMS
+from panther_engine.refmap.organisms import ORGANISM_NAMES, ORGANISMS, read_organisms
 
 
 def configure(parser: argparse.ArgumentParser) -> None:
@@ -122,6 +122,34 @@ def configure(parser: argparse.ArgumentParser) -> None:
         metavar="FILE",
         help="a local copy of stats, instead of downloading it",
     )
+    build_json = data_commands.add_parser(
+        "build-json",
+        help="build each organism's classification JSON from its classification file",
+        description="Write each organism's whole classification file as gzipped JSON, at "
+        "refmap/19/classification_json/<code>.json.gz, for the API's GET "
+        "/refmap/organisms/{code}/classification to send as it is: one mapping per line, in "
+        "the file's order. Run it after fetch, on any machine with the data, and copy "
+        "classification_json/ to the API's data folder. The same file gives the same bytes.",
+    )
+    build_json.add_argument(
+        "--data-dir",
+        type=Path,
+        metavar="DIR",
+        help=f"the data folder, holding refmap/19/ (default: ${DATA_DIR_VARIABLE})",
+    )
+    build_json.add_argument(
+        "--organisms",
+        type=Path,
+        metavar="FILE",
+        default=ORGANISMS,
+        help="the organism list (default: the engine's refmap/organisms.json)",
+    )
+    build_json.add_argument(
+        "--missing-only",
+        action="store_true",
+        help="build only the organisms whose JSON isn't there yet",
+    )
+
     verify = data_commands.add_parser(
         "verify",
         help="check the data folder against the manifest",
@@ -289,6 +317,15 @@ def run_data(args: argparse.Namespace) -> int:
                     print("fetched the refmap data, and checked every file")
                 else:
                     print("the refmap data is already there: nothing to fetch")
+            case "build-json":
+                try:
+                    codes = [organism.code for organism in read_organisms(args.organisms)]
+                except ValueError as error:
+                    raise data.RefmapDataError(str(error)) from error
+                written = data.build_classification_json(
+                    args.data_dir, codes, missing_only=args.missing_only
+                )
+                print(f"built the classification JSON of {written:,} organisms")
             case "verify":
                 mismatches = data.verify_folder(args.data_dir, manifest=args.manifest)
                 for path in mismatches.missing:
@@ -300,7 +337,14 @@ def run_data(args: argparse.Namespace) -> int:
                 print("every file matches the manifest")
             case _:
                 raise AssertionError(f"unhandled command: {command}")
-    except (data.RefmapDataError, DownloadError, DataFolderError, ManifestError, OSError) as error:
+    except (
+        data.RefmapDataError,
+        DownloadError,
+        DataFolderError,
+        ManifestError,
+        MissingDataError,
+        OSError,
+    ) as error:
         print(f"{command}: {error}", file=sys.stderr)
         return 1
     return 0

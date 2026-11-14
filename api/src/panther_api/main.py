@@ -47,7 +47,12 @@ def check_data() -> None:
     The API still starts: a developer runs it natively without the data, and only that service's
     jobs need it. Each check is independent, so one service's missing data neither hides nor stops
     another's. Each job checks again, and fails with the generic 500 while its data is missing.
+
+    Once the refmap data is in place, the classification JSON built from it is checked too, for
+    `GET /refmap/organisms/{code}/classification`; without the refmap data, its line would only
+    repeat refmap's.
     """
+    refmap_data = False
     for service, data, module in DATA_CHECKS:
         try:
             module.check_data()
@@ -56,6 +61,18 @@ def check_data() -> None:
             logger.error(
                 "%s jobs will fail until the %s data is in place: %s", service, data, error
             )
+        else:
+            refmap_data = refmap_data or service == "refmap"
+    if not refmap_data:
+        return
+    try:
+        panther_engine.refmap.check_classification_json()
+    except Exception as error:
+        logger.error(
+            "refmap classifications will fail until the classification JSON is built "
+            "(panther-engine refmap data build-json): %s",
+            error,
+        )
 
 
 @asynccontextmanager

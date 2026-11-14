@@ -50,11 +50,17 @@ PROBLEM_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 _SCHEMA_REF = "#/components/schemas/{model}"
 
+NO_VALIDATION_PROBLEM = "x-no-validation-problem"
+"""An operation's `openapi_extra` key: true where its parameters can't fail validation, such as a
+plain string path parameter the route checks itself, so `document_problems` adds no 422. The key
+is removed from the published schema."""
+
 
 def document_problems(schema: dict[str, Any]) -> dict[str, Any]:
     """Finish the generated OpenAPI schema so it matches what the handlers return.
 
-    Every operation that takes input documents a 422 with `ValidationProblem`, one with a body
+    Every operation that takes input documents a 422 with `ValidationProblem`, unless it's marked
+    with `NO_VALIDATION_PROBLEM`, one with a body
     documents the 413 for a body over the limit (limits.py), and every error response's body is
     listed under `application/problem+json`. Changes `schema` in place.
     """
@@ -83,7 +89,8 @@ def document_problems(schema: dict[str, Any]) -> dict[str, Any]:
     for path_item in schema.get("paths", {}).values():
         for operation in path_item.values():
             responses = operation.setdefault("responses", {})
-            if "parameters" in operation or "requestBody" in operation:
+            never_invalid = operation.pop(NO_VALIDATION_PROBLEM, False)
+            if ("parameters" in operation or "requestBody" in operation) and not never_invalid:
                 responses["422"] = validation_response
             if "requestBody" in operation:
                 responses["413"] = too_large_response

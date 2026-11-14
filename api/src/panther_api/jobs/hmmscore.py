@@ -2,10 +2,10 @@
 
 The input rules are openspec's `scoring-input`. The sequence is normalised as cSNP's is, after the
 legacy website's form (`SequenceSearchForm.java`), then holds only what HMMER 3.1b2 and 3.4 score
-alike: letters, and a single `*` at the end. design.md of `add-hmmscore-job` gives the legacy line
-for each rule (decision 3), and `docs/parity/hmmscore-legacy-behaviour.md` the quirks. No message
-quotes the submitted value. The residue limit is a setting, so the router checks it, not the
-model (decision 7).
+alike: letters, `.`, `_`, `~` and `*`, with at least one letter. design.md of `add-hmmscore-job`
+gives the legacy line for each rule (decision 3), and `docs/parity/hmmscore-legacy-behaviour.md`
+the quirks. No message quotes the submitted value. The residue limit is a setting, so the router
+checks it, not the model (decision 7).
 
 The result mirrors the dataclasses proposed for the engine's `panther_engine.hmmscore`, field for
 field (decision 4). Until the engine scores, the API answers a valid request with a 501, and
@@ -26,26 +26,30 @@ from panther_api.jobs.fields import (
 )
 
 STOP = "*"
-"""A final stop, which translated sequences often end with. Not a residue."""
+"""A stop. A final one, which translated sequences often end with, isn't counted as a residue."""
 
 _SEQUENCE_RULES = SequenceRules(
-    # Letters in either case, and one `*` at the end: what 3.1b2 and 3.4 score alike, measured by
-    # the engine developer on 2026-11-11 (design.md, decision 3; divergence row 12).
-    characters=re.compile(r"[A-Za-z]+\*?"),
+    # Letters in either case, and `.`, `_`, `~` and `*` anywhere: what 3.1b2 and 3.4 score alike on
+    # amd64, measured by the engine developer on 2026-11-13 (design.md, decision 3). `-`, which
+    # 3.4 refuses, and everything else are divergence row 12. With no letter, such as a lone `*`,
+    # the reference answered no hit, so it gets `no_residues` (needs_a_letter).
+    characters=re.compile(r"[A-Za-z._~*]+"),
+    needs_a_letter=True,
     more_than_one=(
         "The sequence has more than one '>', so it holds more than one sequence. "
         "Submit one protein."
     ),
     no_residues="The sequence has no residues.",
     not_residues=(
-        "The sequence must be one-letter residue codes, the letters A to Z, and may end with "
-        "one *. Remove any digit, gap, punctuation or other character."
+        "The sequence must be one-letter residue codes, the letters A to Z, and may also hold "
+        ". _ ~ and *. Remove any -, digit, other punctuation or other character."
     ),
 )
 
 
 def _normalise_sequence(value: str) -> str:
-    """Normalise as cSNP's sequence is, then keep only letters and a final `*`."""
+    """Normalise as cSNP's sequence is, then keep only letters, `.`, `_`, `~` and `*`, with at
+    least one letter."""
     return normalise_sequence(value, _SEQUENCE_RULES)
 
 
@@ -61,9 +65,9 @@ class HmmscoreInput(BaseModel):
 
     `sequence` is the protein, as plain residues or FASTA with one header line. Whitespace and the
     header are removed and letters upper-cased before scoring. It may hold only the letters A to
-    Z, and a single `*` at the end. It may have at most as many residues as the API is configured
-    to take, 10,000 by default and never more; a final `*` isn't counted. A longer sequence is a
-    422 naming the limit.
+    Z, `.`, `_`, `~` and `*`, and at least one letter. It may have at most as many residues as the
+    API is configured to take, 10,000 by default and never more: every character counts but a
+    final `*`. A longer sequence is a 422 naming the limit.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -72,7 +76,8 @@ class HmmscoreInput(BaseModel):
 
     @property
     def residues(self) -> int:
-        """The sequence's residues: its letters, without a final `*`."""
+        """The sequence's residues: every position `hmmscan` reads, so every character but a
+        final `*`. `.`, `_`, `~` and an inner `*` count."""
         return len(self.sequence.removesuffix(STOP))
 
     def log_summary(self) -> str:

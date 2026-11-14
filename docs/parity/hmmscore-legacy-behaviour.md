@@ -1,6 +1,6 @@
 # `hmmscore`: The Legacy Service
 
-What the legacy HMM scoring does, as its code runs it, for the `hmmscore` port. `refmap` has [its own](refmap-legacy-behaviour.md); `hmmscore` had none, so this is it. Written for `add-hmmscore-job` on 2026-11-13, from reading the code, with the engine developer's measurements of 2026-11-11 for what `hmmscan` does with each character. What the library holds, how `pantherScore.pl` reads it, and `hmmscan`'s time and memory are in the [library survey](hmmscore-library-survey.md), and not repeated here. The deliberate differences are rows 11 and 12 in [divergences.md](divergences.md).
+What the legacy HMM scoring does, as its code runs it, for the `hmmscore` port. `refmap` has [its own](refmap-legacy-behaviour.md); `hmmscore` had none, so this is it. Written for `add-hmmscore-job` on 2026-11-13, from reading the code, with the engine developer's measurements of 2026-11-13 for what `hmmscan` does with each character. What the library holds, how `pantherScore.pl` reads it, and `hmmscan`'s time and memory are in the [library survey](hmmscore-library-survey.md), and not repeated here. The deliberate differences are rows 11 and 12 in [divergences.md](divergences.md).
 
 Paths are relative to `panther-workspace/legacy/`, with line numbers: `pantherScoring/` at `89ea0ae` (its two scripts unchanged since `d7b28ee`), and `panther-site-java/` at `c0031ce`. Where the code doesn't settle something, it says **needs team verification**.
 
@@ -57,22 +57,21 @@ Nothing else: no trim, no upper-casing, no check of the characters. A sequence o
 
 ## The Characters
 
-What `hmmscan` does with each character in a query, measured by the engine developer on 2026-11-11 with a one-sequence test model built from APOE, in HMMER 3.1b2 (production's, most likely) and 3.4 (the port's):
+What `hmmscan` does with each character in a query, measured by the engine developer on 2026-11-13 on amd64: Bioconda's 3.1b2 at the survey's digest (production's version, most likely) and the engine image's 3.4 (the port's), with a one-sequence APOE model built by 3.1b2 and pressed by each. The query was written as the CGI wrote it, and `hmmscan` ran with only `--domtblout`. Each query had three of the character inserted, after residues 80, 160 and 240:
 
-| In the sequence | 3.1b2 | 3.4 |
-| --------------- | ----- | --- |
-| Letters, either case; `*` at the end | Read | Read |
-| `.`, `_`, `~` or `*` inside the sequence | Read, as a position, splitting the hit | Read, one domain |
-| `-` | Read, as a position | Refused |
-| `>` inside the sequence | Refused | Read |
-| Empty | Refused | Read, no hit |
-| Digits, `+`, `#`, `!`, `?`, `@` | Refused | Refused |
+| Query | 3.1b2, amd64 | 3.4, amd64 |
+| ----- | ------------ | ---------- |
+| APOE | 722.0 bits, one domain | 722.0 bits, one domain |
+| `.`, `_`, `~` or an inner `*` | 703.3 bits, one domain, read as 320 positions (`L=320`) | Same |
+| `-` | 703.3 bits, one domain | Refused: "illegal character -" |
+| `>` inside the sequence | Scores the 80 residues before it (175.2 bits), then exits 1 | Scores the 80 residues before it (175.2 bits) |
+| A lone `*` | `L=1`, exit 0, no hit | Same |
 
-- **"As a position"** means 3.1b2 split the hit there: APOE with three such characters inserted scored 667.1 bits in three domains, against 721.8 in one. 3.4 scored the same insertions 708.5 in one domain.
-- **`B`, `J`, `O`, `U`, `X` and `Z`** scored alike in both (708.9 to 710.1 bits in 3.1b2, 709.1 to 710.3 in 3.4, in one domain), as did lower case and a final `*`. The 0.2-bit gap on every row comes from pressing the model again in 3.4 (the survey's [Press Check](hmmscore-library-survey.md#the-press-check)), not from the character.
-- **A refused sequence:** 3.1b2 leaves an empty `--domtblout`, and `pantherScore.pl` exits 0, so the CGI answers no hit (`HMMSCORE-8`).
+- **`.`, `_`, `~` and `*` are read as positions by both versions,** with the same score, so the API accepts them anywhere, as typed, as long as the sequence has a letter.
+- **Measured earlier, on 2026-11-11:** both versions refused digits, `+`, `#`, `!`, `?` and `@`, and read lower case, `B`, `J`, `O`, `U`, `X`, `Z` and a final `*`. An empty sequence answered no hit. Those runs used a Mac build of 3.1b2 for CPUs without SSE (`impl_dummy`), which split hits at `.`, `_`, `~`, `-` and an inner `*`; it was set aside for the measurements above.
+- **A refused sequence:** 3.1b2 leaves an empty `--domtblout`, and `pantherScore.pl` exits 0, so the CGI answers no hit (`HMMSCORE-8`). So does a sequence with no letters, such as a lone `*`.
 
-So the API accepts only letters and a single final `*`, which both versions read alike, and refuses everything else with a `422` ([divergence 12](divergences.md)). `port-hmmscore`'s goldens confirm upper-casing, and refusing `.`, `_`, `~` and an inner `*`, on PANTHER's own models.
+So the API accepts letters, `.`, `_`, `~` and `*`, with at least one letter, which both versions read alike, and refuses everything else with a `422` ([divergence 12](divergences.md)): `-`, which 3.4 refuses; a sequence with no letters; other characters, such as digits and `+`; and a `>` inside the sequence. `port-hmmscore`'s goldens confirm upper-casing, and one of `.`, `_`, `~` or an inner `*`, on PANTHER's own models.
 
 ## Quirks
 
@@ -103,7 +102,7 @@ Proposed for `port-hmmscore`, which makes them with `pantherScore.pl -D B` and t
 | `test.fasta`, 381 residues | The release's own test query, hitting 773 models in 56 families |
 | PTHR35774's consensus | A tie between a one-subfamily family and its subfamily (`HMMSCORE-1`) |
 | A sequence with no hit, such as a short repeat of one letter | An empty `<scores>`, so `hit: null` |
-| The example in lower case, with a final `*`, and with `B`, `J`, `O`, `U`, `X` and `Z` substituted | The characters both versions read alike (The Characters) |
+| The example in lower case, with a final `*`, with `B`, `J`, `O`, `U`, `X` and `Z` substituted, and with `.`, `_`, `~` or an inner `*` inserted | The characters both versions read alike (The Characters) |
 | A best hit over 1e-3 beside a lower-scoring one under it, if the library has one | `HMMSCORE-5` |
 | A model whose alignment comes from another model, such as a `..pir` hit in PTHR34093 | `HMMSCORE-9` |
 | A query of 10,000 residues | The residue limit ([divergence 11](divergences.md)): its time and memory check the time limit's default (`add-hmmscore-job`, design.md, decision 5) |

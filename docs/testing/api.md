@@ -401,7 +401,7 @@ curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
 }
 ```
 
-An invalid request still gets the `422` validation problem first, without the submitted sequence. The sequence is normalised as a `csnp` one is: trimmed, one FASTA header removed, whitespace removed and upper-cased. Then it may hold only letters, and a single `*` at the end, which HMMER 3.1b2 and 3.4 score alike ([divergence 12](../parity/divergences.md)). It may have at most `PANTHER_API_HMMSCORE_MAX_RESIDUES` residues, 10,000 by default, not counting a final `*`; a longer one gets "The sequence has more than 10,000 residues." Here the sequence has a digit:
+An invalid request still gets the `422` validation problem first, without the submitted sequence. The sequence is normalised as a `csnp` one is: trimmed, one FASTA header removed, whitespace removed and upper-cased. Then it may hold only letters, `.`, `_`, `~` and `*`, which HMMER 3.1b2 and 3.4 score alike, and at least one letter; one with none gets "The sequence has no residues." Anything else, such as `-` or a digit, is refused ([divergence 12](../parity/divergences.md)). It may have at most `PANTHER_API_HMMSCORE_MAX_RESIDUES` residues, 10,000 by default, counting every character but a final `*`; a longer one gets "The sequence has more than 10,000 residues." Here the sequence has a digit:
 
 ```sh
 curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
@@ -415,7 +415,7 @@ curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
   "status": 422,
   "detail": "Request validation failed",
   "errors": [
-    { "loc": ["body", "hmmscore", "input", "sequence"], "msg": "The sequence must be one-letter residue codes, the letters A to Z, and may end with one *. Remove any digit, gap, punctuation or other character.", "type": "value_error" }
+    { "loc": ["body", "hmmscore", "input", "sequence"], "msg": "The sequence must be one-letter residue codes, the letters A to Z, and may also hold . _ ~ and *. Remove any -, digit, other punctuation or other character.", "type": "value_error" }
   ]
 }
 ```

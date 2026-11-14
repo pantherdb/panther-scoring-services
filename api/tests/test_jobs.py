@@ -780,6 +780,10 @@ def test_a_fasta_hmmscore_request_with_a_final_stop_is_a_501(client: TestClient)
     assert_unavailable(client, hmmscore_job(">sp|P02649|APOE_HUMAN\nmkvlwaallv\ntflagcqakv*\n"))
 
 
+def test_dots_underscores_tildes_and_inner_stops_are_a_501(client: TestClient) -> None:
+    assert_unavailable(client, hmmscore_job("MKV.LW_AA~LL*VT"))
+
+
 def test_tools_jobs_still_run_after_an_hmmscore_501(client: TestClient) -> None:
     assert client.post("/api/v1/jobs", json=hmmscore_job()).status_code == 501
 
@@ -800,8 +804,8 @@ def test_two_hmmscore_sequences_are_a_422_without_the_residues(client: TestClien
 
 @pytest.mark.parametrize(
     "sequence",
-    [">xyzzy\nMKV1XYZZY", "MKV-XYZZY", "MKV*XYZZY", ">only a header xyzzy\n*", "", 12345],
-    ids=["digit", "dash", "inner stop", "a stop with no residues", "empty", "not a string"],
+    [">xyzzy\nMKV1XYZZY", "MKV-XYZZY", "MKV+XYZZY", ">only a header xyzzy\n*", "", 12345],
+    ids=["digit", "dash", "plus", "a stop with no residues", "empty", "not a string"],
 )
 def test_each_invalid_hmmscore_sequence_is_a_422_without_the_value(
     client: TestClient, sequence: object
@@ -811,6 +815,19 @@ def test_each_invalid_hmmscore_sequence_is_a_422_without_the_value(
 
 def test_no_hmmscore_sequence_is_a_422(client: TestClient) -> None:
     assert_rejected(client, {"service": "hmmscore", "input": {}}, [HMMSCORE_LOC])
+
+
+@pytest.mark.parametrize("sequence", ["*", ".~_", ">only a header xyzzy\n*"])
+def test_an_hmmscore_sequence_with_no_letters_has_no_residues(
+    client: TestClient, sequence: str
+) -> None:
+    response = client.post("/api/v1/jobs", json=hmmscore_job(sequence))
+
+    assert response.status_code == 422
+    [error] = response.json()["errors"]
+    assert (error["loc"], error["msg"]) == (HMMSCORE_LOC, "The sequence has no residues.")
+    assert "xyzzy" not in response.text
+    assert len(runner(client).store) == 0
 
 
 def test_a_field_the_hmmscore_input_doesnt_take_is_a_422(client: TestClient) -> None:
@@ -824,6 +841,17 @@ def test_the_default_residue_limit_takes_10000(client: TestClient) -> None:
 
 def test_a_final_stop_isnt_counted_toward_the_limit(client: TestClient) -> None:
     assert_unavailable(client, hmmscore_job("W" * 10_000 + "*"))
+
+
+def test_dots_and_inner_stops_count_toward_the_limit(client: TestClient) -> None:
+    # Every position hmmscan reads counts, but a final `*` (engine developer, 2026-11-13).
+    assert_unavailable(client, hmmscore_job("W" * 9_997 + ".*~" + "*"))
+
+    response = client.post("/api/v1/jobs", json=hmmscore_job("W" * 9_998 + ".*~"))
+
+    assert response.status_code == 422
+    [error] = response.json()["errors"]
+    assert error["msg"] == "The sequence has more than 10,000 residues."
 
 
 def test_past_the_default_residue_limit_is_a_422_naming_it(client: TestClient) -> None:

@@ -26,6 +26,7 @@ _TRIMMED = "".join(chr(code) for code in range(0x21))
 _HEADER = re.compile(r"\A>[^\n]*")
 # Java's `\s`: space, tab, LF, VT, FF and CR.
 _WHITESPACE = re.compile(r"[ \t\n\x0b\x0c\r]+")
+_LETTER = re.compile(r"[A-Za-z]")
 
 
 @dataclass(frozen=True)
@@ -38,14 +39,19 @@ class SequenceRules:
     more_than_one: str
     """The message for more than one `>`."""
     no_residues: str
-    """The message for nothing left once the header and whitespace are removed."""
+    """The message for nothing left once the header and whitespace are removed, and, when
+    `needs_a_letter`, for no letter among what's left."""
     not_residues: str
     """The message for a character `characters` doesn't allow."""
+    needs_a_letter: bool = False
+    """Refuse a sequence of allowed characters with no letter among them, such as hmmscore's
+    lone `*`, with `no_residues`. cSNP's rules leave it unset, so its behaviour is unchanged."""
 
 
 def normalise_sequence(value: str, rules: SequenceRules) -> str:
     """Normalise a protein sequence as cSNP's website form did, and check its characters: trim,
-    refuse a second `>`, drop one header line and all whitespace, then upper-case.
+    refuse a second `>`, drop one header line and all whitespace, check the characters, and, if
+    the rules ask, that a letter is among them, then upper-case.
 
     cSNP's form is `CsnpScoreForm.java` (openspec add-csnp-job, design.md); hmmscore applies the
     same normalising (openspec add-hmmscore-job, design.md, decision 3). Each service checks its
@@ -59,6 +65,9 @@ def normalise_sequence(value: str, rules: SequenceRules) -> str:
         raise ValueError(rules.no_residues)
     if not rules.characters.fullmatch(residues):
         raise ValueError(rules.not_residues)
+    # After the character check, so a refused character gets its own message wherever it is.
+    if rules.needs_a_letter and not _LETTER.search(residues):
+        raise ValueError(rules.no_residues)
     # After the character check: str.upper() turns some other letters into ASCII ones (ß into SS).
     return residues.upper()
 

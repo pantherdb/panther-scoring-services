@@ -270,9 +270,9 @@ export interface components {
          *
          *     `sequence` is the protein, as plain residues or FASTA with one header line. Whitespace and the
          *     header are removed and letters upper-cased before scoring. It may hold only the letters A to
-         *     Z, and a single `*` at the end. It may have at most as many residues as the API is configured
-         *     to take, 10,000 by default and never more; a final `*` isn't counted. A longer sequence is a
-         *     422 naming the limit.
+         *     Z, `.`, `_`, `~` and `*`, and at least one letter. It may have at most as many residues as the
+         *     API is configured to take, 10,000 by default and never more: every character counts but a
+         *     final `*`. A longer sequence is a 422 naming the limit.
          */
         HmmscoreInput: {
             /** Sequence */

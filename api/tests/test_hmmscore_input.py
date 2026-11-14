@@ -66,7 +66,14 @@ def test_every_kind_of_whitespace_is_removed() -> None:
     assert accepted("MK\tVL\x0bWA\x0cAL\r\nLV") == "MKVLWAALLV"
 
 
-# Only letters, and a single `*` at the end.
+# Letters, and `.`, `_`, `~` and `*` anywhere, with at least one letter.
+
+# As Pydantic gives them; problems.py drops the "Value error, " a 422 would otherwise show.
+NO_RESIDUES = "Value error, The sequence has no residues."
+NOT_RESIDUES = (
+    "Value error, The sequence must be one-letter residue codes, the letters A to Z, and may "
+    "also hold . _ ~ and *. Remove any -, digit, other punctuation or other character."
+)
 
 
 def test_a_stop_at_the_end_and_the_uncommon_letters_are_accepted() -> None:
@@ -80,24 +87,42 @@ def test_every_letter_is_accepted() -> None:
 
 
 @pytest.mark.parametrize(
+    ("sequence", "scored"),
+    [
+        ("MKV*L", "MKV*L"),
+        ("mkv.l", "MKV.L"),
+        ("MKV_L", "MKV_L"),
+        ("MKV~L", "MKV~L"),
+        ("MKVL**", "MKVL**"),
+        (".~_*MKV", ".~_*MKV"),
+    ],
+    ids=["inner stop", "dot", "underscore", "tilde", "two stops", "before the letters"],
+)
+def test_characters_both_hmmer_versions_read_alike_are_accepted(sequence: str, scored: str) -> None:
+    # 3.1b2 and 3.4 score them alike on amd64 (engine developer, 2026-11-13): as typed.
+    assert accepted(sequence) == scored
+
+
+@pytest.mark.parametrize(
     "sequence",
-    ["MKV1L", "MKV-L", "MKV+L", "MKV>LW", "MKVÄL", "MKV\u0000L", "MKVß"],
-    ids=["digit", "dash", "plus", "greater-than", "not ascii", "control", "upper-cases to ascii"],
+    ["MKV1L", "MKV-L", "MKV+L", "MKV>LW", "MKV,L", "MKVÄL", "MKV\u0000L", "MKVß"],
+    ids=[
+        "digit",
+        "dash",
+        "plus",
+        "greater-than",
+        "comma",
+        "not ascii",
+        "control",
+        "upper-cases to ascii",
+    ],
 )
 def test_a_character_hmmscan_doesnt_read_is_rejected(sequence: str) -> None:
     errors = rejected(sequence, sequence)
 
     assert locs(errors) == [("sequence",)]
     assert errors[0]["type"] == "value_error"
-
-
-@pytest.mark.parametrize(
-    "sequence",
-    ["MKV*L", "MKV.L", "MKV_L", "MKV~L", "MKVL**"],
-    ids=["inner stop", "dot", "underscore", "tilde", "two stops"],
-)
-def test_characters_the_two_hmmer_versions_score_differently_are_rejected(sequence: str) -> None:
-    assert locs(rejected(sequence, sequence)) == [("sequence",)]
+    assert errors[0]["msg"] == NOT_RESIDUES
 
 
 def test_a_rejected_character_isnt_in_the_message() -> None:
@@ -108,23 +133,38 @@ def test_a_rejected_character_isnt_in_the_message() -> None:
 
 
 @pytest.mark.parametrize(
+    "sequence",
+    ["*", ".", "~", "_", "**", "*.~_", ">only a header xyzzy\n*"],
+    ids=["a stop", "a dot", "a tilde", "an underscore", "two stops", "all four", "after a header"],
+)
+def test_no_letters_has_no_residues(sequence: str) -> None:
+    # The reference read a lone `*` as one position and answered no hit (divergence 12).
+    errors = rejected(sequence, "xyzzy")
+
+    assert locs(errors) == [("sequence",)]
+    assert errors[0]["msg"] == NO_RESIDUES
+
+
+def test_no_letters_and_a_refused_character_gets_the_characters_message() -> None:
+    assert rejected("*-1", "*-1")[0]["msg"] == NOT_RESIDUES
+
+
+@pytest.mark.parametrize(
     ("sequence", "marker"),
     [
         (">only a header xyzzy", "xyzzy"),
-        (">only a header xyzzy\n*", "xyzzy"),
-        ("*", "MKV"),
         ("", "MKV"),
         (" \n\t ", "MKV"),
         (">one xyzzy\nMKV\n>two\nMKV", "xyzzy"),
+        (">xyzzy\nMKV>LW", "xyzzy"),
         ("MKVxyzzy>>", "xyzzy"),
     ],
     ids=[
         "only a header",
-        "a stop with no residues",
-        "only a stop",
         "empty",
         "only whitespace",
         "two sequences",
+        "a greater-than after a header",
         "two greater-than signs",
     ],
 )
@@ -165,11 +205,16 @@ def test_a_field_the_input_doesnt_take_is_rejected() -> None:
     assert locs(caught.value.errors()) == [("opType",)]
 
 
-# Residues: letters only. A final `*` isn't counted.
+# Residues: every position hmmscan reads. A final `*` isn't counted.
 
 
-def test_residues_are_the_letters() -> None:
+def test_residues_count_the_letters() -> None:
     assert HmmscoreInput.model_validate(given("MKVLW")).residues == 5
+
+
+def test_residues_count_dots_underscores_tildes_and_inner_stops() -> None:
+    # The limit bounds the job, so it counts what hmmscan reads (engine developer, 2026-11-13).
+    assert HmmscoreInput.model_validate(given("MK.V_L~W*Q")).residues == 10
 
 
 def test_a_final_stop_isnt_a_residue() -> None:

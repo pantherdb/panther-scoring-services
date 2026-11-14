@@ -54,7 +54,7 @@ The CGI printed `<scores>` holding, for the first line of `pantherScore.pl -D B`
 
 ### 3. Validation, rule by rule
 
-The website's form normalised the sequence (`SequenceSearchForm.java` 51 to 89), and then its posting changed it again (`scoreAlignXml.cgi` 79 to 87). The API applies cSNP's normalising, moved to `jobs/fields.py`, then accepts only what 3.1b2 and 3.4 score alike: letters, and a single `*` at the end.
+The website's form normalised the sequence (`SequenceSearchForm.java` 51 to 89), and then its posting changed it again (`scoreAlignXml.cgi` 79 to 87). The API applies cSNP's normalising, moved to `jobs/fields.py`, then accepts only what 3.1b2 and 3.4 score alike: letters, `.`, `_`, `~` and `*`, anywhere, with at least one letter.
 
 | Rule | The website | Here |
 | ---- | ----------- | ---- |
@@ -62,25 +62,25 @@ The website's form normalised the sequence (`SequenceSearchForm.java` 51 to 89),
 | At most one `>` | 62 to 67 | Same |
 | One header line removed | `^>[^\n]*`, without trimming first (69 to 74) | After trimming. A header after a blank line or spaces was left in, joined to the residues, so the CGI got one header line and no sequence, and answered no hit (`HMMSCORE-6`). Row 12 |
 | Whitespace removed | 76 to 79 | Same |
-| At most 50,000 residues | 83 to 86 | The configured limit, 10,000 by default and at most, the product owner's (decisions 5 and 7), counting letters only: a final `*` isn't a residue. Row 11 |
+| At most 50,000 residues | 83 to 86 | The configured limit, 10,000 by default and at most, the product owner's (decisions 5 and 7). It counts every position `hmmscan` reads, letters, `.`, `_`, `~` and an inner `*`, but not a final `*` (engine developer, 2026-11-13). Row 11 |
 | Upper-cased | Not done | New, as cSNP's. HMMER reads either case alike |
-| Letters, and one `*` at the end, only | Not checked | New. Measured by the engine developer, 2026-11-11 (below). Row 12 |
+| Letters, `.`, `_`, `~` and `*` only | Not checked | New. Measured by the engine developer, 2026-11-13 (below). `-` and the rest are row 12 |
+| At least one letter | Not checked | New: "The sequence has no residues." The reference answered no hit. Row 12 |
 | At most 1,000,000 characters before normalising | None | New, as cSNP's |
 
-**The characters** (engine developer, 2026-11-11, one-sequence test model built from APOE):
+**The characters** (engine developer, 2026-11-13, on amd64: Bioconda's 3.1b2 at the survey's digest and the engine image's 3.4, with a one-sequence APOE model built by 3.1b2 and pressed by each; the query as the CGI wrote it, `hmmscan` with only `--domtblout`, and three of each character inserted, after residues 80, 160 and 240):
 
-| In the sequence | 3.1b2 (production, most likely) | 3.4 (the port) |
+| Query | 3.1b2, amd64 (production, most likely) | 3.4, amd64 (the port) |
 | --- | --- | --- |
-| Letters, either case; `*` at the end | Read | Read |
-| `.`, `_`, `~` or `*` inside the sequence | Read, as a position, splitting the hit | Read, one domain |
-| `-` | Read, as a position | Refused |
-| `>` inside the sequence | Refused | Read |
-| Empty | Refused | Read, no hit |
-| Digits, `+`, `#`, `!`, `?`, `@` | Refused | Refused |
+| APOE | 722.0 bits, one domain | 722.0 bits, one domain |
+| `.`, `_`, `~` or an inner `*` | 703.3 bits, one domain, read as 320 positions (`L=320`) | Same |
+| `-` | 703.3 bits, one domain | Refused: "illegal character -" |
+| `>` inside the sequence | Scores the 80 residues before it (175.2 bits), then exits 1 | Scores the 80 residues before it (175.2 bits) |
+| No letters: a lone `*` | `L=1`, exit 0, no hit | Same |
 
-- **What the reference did with a refused sequence:** answered no hit. `runHmmscan` never checks `hmmscan`'s exit status (`pantherScore.pl` 381), and 3.1b2 leaves an empty `--domtblout`, so `pantherScore.pl` exits 0 and the CGI prints an empty `<scores>` (`HMMSCORE-8`). The API's `422` is row 12. Refusing before a job starts saves a job that reads all of `binHmm.h3f` only to fail.
-- **What "as a position" means.** 3.1b2 split the hit at each one: APOE with three inserted scored 667.1 in three domains, against 721.8 in one. 3.4 scored the same insertions 708.5 in one domain. `B`, `J`, `O`, `U`, `X` and `Z` scored alike in both (708.9 to 710.1, and 709.1 to 710.3, in one domain), as did lower case and a final `*`. The 0.2-bit gap on every row comes from pressing the model again in 3.4 (the survey, "The Press Check"); the split doesn't.
-- **So the API refuses `-`, `.`, `_`, `~` and any `*` but a final one,** in row 12: neither refusing nor stripping them reproduces 3.1b2, and 3.4 can't. A final `*` is kept, since translated sequences often end with one. `port-hmmscore`'s goldens confirm this on PANTHER's own models.
+- **So `.`, `_`, `~` and `*` are accepted anywhere,** as typed: 3.4 scores them as 3.1b2 did, so they need no row. `port-hmmscore`'s goldens include one, to confirm it on PANTHER's own models. Measurements of 2026-11-11 on a Mac build of 3.1b2 for CPUs without SSE (`impl_dummy`) split hits at these characters; that build was set aside.
+- **What the reference did with a refused sequence:** answered no hit. `runHmmscan` never checks `hmmscan`'s exit status (`pantherScore.pl` 381), and 3.1b2 leaves an empty `--domtblout`, so `pantherScore.pl` exits 0 and the CGI prints an empty `<scores>` (`HMMSCORE-8`). That covers digits, `+` and other characters, which both versions refused on 2026-11-11, and a sequence with no letters.
+- **So the API refuses, in row 12:** `-`, which 3.4 refuses, so the reference's score can't be reproduced; a sequence with no letters; any other character; and a `>` inside the sequence, where the reference scored only the part before it. Refusing before a job starts saves one that reads all of `binHmm.h3f` to find nothing.
 - **The website's posting** changed the text before `hmmscan` saw it: `&` and `=` cut it short (79, 82), `+` became a space (85), `%xx` was decoded (86) and `<!--…-->` was removed (87). The API refuses all those characters, so they're in row 12 too.
 - **The query's name** is `sequence`, as the CGI's (93 to 95), so the alignment text matches.
 - **The engine's `InputError`** for an unreadable sequence is then only for a later HMMER that refuses something 3.4 reads.

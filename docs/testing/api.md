@@ -40,7 +40,7 @@ With the dev server running:
 - `http://localhost:8000/api/v1/health` returns `{"status":"ok"}`.
 - `http://localhost:8000/api/v1/versions` returns the API, engine and tool versions. Run natively, every tool's `version` is `null`, because the external tools are only in the image.
 - `http://localhost:8000/api/v1/csnp/species` returns the species a `csnp` job accepts, with their names. See [The Species List](#the-species-list).
-- `http://localhost:8000/api/v1/refmap/organisms` returns the organisms a `refmap` job maps for, with their names and gene counts. See [The Organism List](#the-organism-list).
+- `http://localhost:8000/api/v1/refmap/organisms` returns the organisms a `refmap` job maps for, with their names and gene counts. See [The Organism List](#the-organism-list). `http://localhost:8000/api/v1/refmap/organisms/ENDPU/classification` returns every gene of one of them with its PANTHER ID, with the refmap data. See [An Organism's Classification](#an-organisms-classification).
 - `http://localhost:8000/api/v1/docs` is the interactive documentation.
 - `http://localhost:8000/api/v1/openapi.json` is the schema.
 - `POST http://localhost:8000/api/v1/jobs` starts a job, and `GET http://localhost:8000/api/v1/jobs/{id}` polls it. See [Try the Jobs by Hand](#try-the-jobs-by-hand).
@@ -61,7 +61,7 @@ The API reads its settings from environment variables when it starts. An invalid
 
 Set one for the native dev server with, for example, `PANTHER_API_JOB_WORKERS=1 uv run fastapi dev --port 8000`, and for the image with `docker run -e PANTHER_API_JOB_WORKERS=1 …`. The compose `api` service sets none, so it uses the defaults. Jobs are kept in memory, and are lost when the API restarts.
 
-At startup, the API checks each service's data with the engine's `check_data()`: the cSNP data and the refmap data. If `PANTHER_DATA_DIR` isn't set, or the folder lacks part of a service's data, it logs an error for that service, such as `csnp jobs will fail until the cSNP data is in place: the cSNP data folder … lacks: …` or `refmap jobs will fail until the refmap data is in place: the refmap data folder … lacks 1,534 of 1,534 files: …`, and starts anyway: everything but that service's jobs works without it. The checks are independent, so one service's missing data doesn't stop the other's jobs. Natively without the data, expect both lines.
+At startup, the API checks each service's data with the engine's `check_data()`: the cSNP data and the refmap data. If `PANTHER_DATA_DIR` isn't set, or the folder lacks part of a service's data, it logs an error for that service, such as `csnp jobs will fail until the cSNP data is in place: the cSNP data folder … lacks: …` or `refmap jobs will fail until the refmap data is in place: the refmap data folder … lacks 1,534 of 1,534 files: …`, and starts anyway: everything but that service's jobs works without it. The checks are independent, so one service's missing data doesn't stop the other's jobs. Natively without the data, expect both lines. With the refmap data in place, it also checks the classification JSON built from it, and logs `refmap classifications will fail until the classification JSON is built (panther-engine refmap data build-json): …` if any organism's is missing ([An Organism's Classification](#an-organisms-classification)).
 
 ### CORS
 
@@ -325,6 +325,28 @@ ENDPU's entry is among them:
 
 The response has `Cache-Control: public, max-age=3600`: the list changes only with a new image. PANTHER's own 143 genomes, such as `HUMAN`, aren't in the generic mapping data, so they aren't listed (#52).
 
+#### An Organism's Classification
+
+`GET /api/v1/refmap/organisms/{code}/classification` gives every gene of one listed organism with its PANTHER ID, in the shape of a `refmap` job's result: one mapping per line of its classification file, in the file's order, with `null` where the file says `NOHIT` (#72). A repeated ID appears once for each of its lines, where a job gives the last line's value each time; the published files repeat none. The PANTHER website uses it as the reference list of an overrepresentation analysis against a whole proteome, where it read data.pantherdb.org's `generic_mapping/panther_classification/<long name>`.
+
+The API doesn't build the response: it sends a gzipped JSON file per organism, built ahead of time from the classification files by the engine, a piece at a time from disk. Build them once the refmap data is fetched, from `engine/` (about a minute, 176 MB, at `refmap/19/classification_json/<code>.json.gz`), or on any machine with the data, such as the HPC system, and copy the folder beside `panther_classification/`:
+
+```sh
+uv run panther-engine refmap data build-json --data-dir ../.data
+```
+
+Then:
+
+```sh
+curl -si localhost:8000/api/v1/refmap/organisms/ENDPU/classification --compressed
+```
+
+```json
+{ "organism": "ENDPU", "mappings": [{ "id": "U1GLA3", "panther_id": "PTHR47338:SF27" }, { "id": "U1GCM7", "panther_id": "PTHR19303:SF62" }, …] }
+```
+
+ENDPU gives 9,228 mappings, about 390 KB of JSON (66 KB gzipped); ARAVE, the largest, 246,021, about 10.6 MB (1.5 MB gzipped). A client that sends `Accept-Encoding: gzip`, as `curl --compressed` and browsers do, gets the file as it is, with `Content-Encoding: gzip`; any other gets it decompressed as it's sent. Nothing is kept in memory, and no `Cache-Control` or `ETag` is sent. A code not in the list, such as `HUMAN` or `endpu`, gets a `404` problem; without the built file, a listed code gets the generic `500`, logged at most once in ten minutes, and the startup log says which files are missing (`refmap classifications will fail until the classification JSON is built …`).
+
 #### A Job That Maps
 
 The form's example, six IDs from the release's own test list for the lichen *Endocarpon pusillum*, from the repository root:
@@ -413,7 +435,7 @@ uv run pytest -k "outside_the_prefix"
 
 `tests/test_csnp_scoring.py` runs real `csnp` jobs end to end: the API, a `spawn` worker, the engine, `blastp` and the cSNP data sample. It submits the release sample's three proteins with their substitutions, and checks each job's scores against the engine's goldens (`engine/tests/golden/csnp/`, spec §7.3). It submits the form's example, human APOE, as the form sends it, and checks its four scores against the legacy scripts' (`example/apoe.out`). It also checks a species with no hit and a sequence `blastp` can't read.
 
-`tests/test_refmap_data.py` runs real `refmap` jobs against the refmap data: the form's example, checked against `map_panther.pl`'s golden, and a job of 100,000 of ARAVE's own IDs, checked against the engine, whose kept result must stay under 8 MB and whose poll must take under 2 seconds. It needs no tools. `tests/test_refmap_jobs.py` runs the same kind of jobs everywhere, against a made-up data folder holding only ENDPU's file, written from the golden.
+`tests/test_refmap_data.py` runs real `refmap` jobs against the refmap data: the form's example, checked against `map_panther.pl`'s golden, and a job of 100,000 of ARAVE's own IDs, checked against the engine, whose kept result must stay under 8 MB and whose poll must take under 2 seconds. With the classification JSON built ([An Organism's Classification](#an-organisms-classification)), it also fetches every organism's classification, gzipped and not, and checks it against the engine's reading of the file, about 50 s; without the JSON, that test is skipped. It needs no tools. `tests/test_refmap_jobs.py` runs the same kind of jobs everywhere, against a made-up data folder holding only ENDPU's file, written from the golden.
 
 Their tests are marked as the engine's are, `tools("blastp")`, `data("csnp")` and `data("refmap")` (`tests/markers.py`):
 

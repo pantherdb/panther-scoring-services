@@ -414,6 +414,73 @@
           }
         }
       }
+    },
+    "/api/v1/refmap/organisms/{code}/classification": {
+      "get": {
+        "tags": [
+          "refmap"
+        ],
+        "summary": "Every gene of an organism, with its PANTHER ID",
+        "description": "Every gene of the organism and its PANTHER ID, one mapping per line of its classification\nfile, in the file's order, in the shape of a `refmap` job's result. For clients that need the\nwhole organism rather than some IDs: the PANTHER website uses it as the reference list of a\ngene list analysis, where it read data.pantherdb.org's\n`generic_mapping/panther_classification/<long name>`.\n\nThe response is built ahead of time (`panther-engine refmap data build-json`) and sent from\ndisk as it is, a piece at a time: nothing is built or kept in memory, and no cache header or\nETag is sent. The code is checked against the engine's organisms before any path is built\nfrom it. Without the built file, the request fails with the generic 500.",
+        "operationId": "refmap_classification_api_v1_refmap_organisms__code__classification_get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The organism's UniProt species code, such as `ENDPU`.",
+              "pattern": "^[A-Z0-9]{1,5}$",
+              "maxLength": 5,
+              "title": "Code"
+            },
+            "description": "The organism's UniProt species code, such as `ENDPU`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Every gene in the organism's classification file, one mapping per line, in the file's order, with its PANTHER ID, or null where the file says `NOHIT`. Sent gzipped (`Content-Encoding: gzip`) when the request accepts gzip.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefmapResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as problem details",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No organism refmap maps for has that code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -881,7 +948,7 @@
           "mappings"
         ],
         "title": "RefmapResult",
-        "description": "The organism mapped against, and one mapping per submitted ID, in the order submitted,\nrepeated IDs included."
+        "description": "The organism, and its mappings: for a `refmap` job, one per submitted ID, in the order\nsubmitted, repeated IDs included; for an organism's classification, one per line of its\nclassification file, in the file's order."
       },
       "SubstitutionScore": {
         "properties": {

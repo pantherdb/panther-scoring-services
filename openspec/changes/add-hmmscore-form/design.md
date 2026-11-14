@@ -39,9 +39,9 @@ The behaviour is in [specs/scoring-ui/spec.md](specs/scoring-ui/spec.md).
 
 cSNP's `checkSequence` moves from `features/csnp/checks.ts` to `src/components/sequence.ts`, with the limits as exported constants: `LONGEST_RAW_SEQUENCE`, `CSNP_MOST_RESIDUES` (50,000) and `HMMSCORE_MOST_RESIDUES` (10,000). If the product owner's limit changes (#74), it's one line, and its tests follow.
 
-- **It takes each service's rules:** the most residues, the characters accepted, the message naming them, and whether one final `*` is allowed. A character set alone can't say "`*` once, and only last". With `finalStop`, the check normalises, drops one final `*`, then tests for no residues, the characters and the count, so `MKVL*` passes and `*`, `MKV*L` and `MKVL**` don't, as `scoring-input` rules.
+- **It takes each service's rules:** the most residues, the characters accepted and the message naming them, and whether the sequence needs a letter. hmmscore's characters are letters, `.`, `_`, `~` and `*`, anywhere (`add-hmmscore-job`, decision 3, as narrowed on #76). With `needsALetter`, the check normalises, tests the characters, then refuses a sequence with no letter, such as `*` or `.~`, with the no-residues message, as the API does; the count leaves out one final `*`.
 - **Letters are A to Z, either case,** an ASCII class, not a Unicode one, since the API refuses `Ä`. cSNP keeps its printable-ASCII rule and message.
-- **Residues are letters:** a final `*` isn't counted, as `add-hmmscore-job` now says too.
+- **Residues are what `hmmscan` reads:** every character but a final `*`, so `.`, `_`, `~` and an inner `*` count, as `add-hmmscore-job`'s limit does.
 - **The form checks the most the setting allows,** a rule that holds on every server. The server's own limit, which can be lower, comes back as a `422` on the field, with the API's message naming it.
 - **Tests move with it:** `checkSequence`'s cases leave `tests/features/csnp/checks.test.ts` for `tests/components/sequence.test.ts`, mirroring `src/`, rather than a one-argument wrapper in `csnp/checks.ts`.
 

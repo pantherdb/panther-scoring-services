@@ -27,12 +27,12 @@ While HMM scoring is marked "coming soon", its form SHALL say, before the sequen
 
 ### Requirement: hmmscore form checks the input before sending
 
-Before sending, the HMM scoring form SHALL check the sequence against `scoring-input`'s hmmscore rules, with the most residues the API's setting allows, 10,000; the API checks the server's own limit. Letters are A to Z, in either case. Residues are the letters: a final `*` isn't counted. A broken rule MUST be shown on the sequence field, without quoting the sequence, and no request MUST be sent. The form MUST NOT reject a sequence the rules accept.
+Before sending, the HMM scoring form SHALL check the sequence against `scoring-input`'s hmmscore rules, with the most residues the API's setting allows, 10,000; the API checks the server's own limit. Letters are A to Z, in either case. Every character but a final `*` counts as a residue. A broken rule MUST be shown on the sequence field, without quoting the sequence, and no request MUST be sent. The form MUST NOT reject a sequence the rules accept.
 
 #### Scenario: Empty hmmscore form
 
-- **WHEN** the user submits the HMM scoring form with no sequence, with only a FASTA header, or with a header and a lone `*`
-- **THEN** the sequence field shows an error, and no request is sent
+- **WHEN** the user submits the HMM scoring form with no sequence, with only a FASTA header, or with no letters, such as a header and a lone `*`, or `.~`
+- **THEN** the sequence field says the sequence has no residues, and no request is sent
 
 #### Scenario: Two sequences in the hmmscore form
 
@@ -41,7 +41,7 @@ Before sending, the HMM scoring form SHALL check the sequence against `scoring-i
 
 #### Scenario: Past the most residues in the hmmscore form
 
-- **WHEN** the user submits a sequence of 10,001 letters
+- **WHEN** the user submits a sequence of 10,001 letters, or of 9,999 letters, `.` and `*` and one more letter
 - **THEN** the sequence field says it's longer than 10,000 residues, and no request is sent
 
 #### Scenario: The most residues and a final stop
@@ -56,12 +56,12 @@ Before sending, the HMM scoring form SHALL check the sequence against `scoring-i
 
 #### Scenario: A character hmmscan doesn't read, in the hmmscore form
 
-- **WHEN** the user submits `MKV1L`, `MKV-L`, `MKV+L`, `MKV>LW`, `MKVÄL`, `MKV*L`, `MKV.L`, `MKV_L`, `MKV~L` or `MKVL**`
+- **WHEN** the user submits `MKV1L`, `MKV-L`, `MKV+L`, `MKV>LW` or `MKVÄL`
 - **THEN** the sequence field says which characters a sequence may hold, without quoting it, and no request is sent
 
-#### Scenario: A stop at the end, and the uncommon letters, in the hmmscore form
+#### Scenario: The other characters hmmscan reads, in the hmmscore form
 
-- **WHEN** the user submits `"mkvbjouxz*\n"`
+- **WHEN** the user submits `"mkvbjouxz*\n"`, `MKV*L`, `MKV.L`, `MKV_L`, `MKV~L` or `MKVL**`
 - **THEN** no error is shown, and the request is sent with that sequence as typed
 
 #### Scenario: A valid sequence is sent for hmmscore

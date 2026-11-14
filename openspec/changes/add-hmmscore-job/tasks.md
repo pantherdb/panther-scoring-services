@@ -21,7 +21,7 @@
 
 - [ ] 4.1 Add `HmmscoreJobRequest` and `HmmscoreResult` to the unions in `jobs/work.py`, hmmscore's `UNAVAILABLE` row with a comment on what the wiring adds, `run_job`'s case raising `NotImplementedError`, and `HmmscoreJob` in `jobs/models.py`. In `routers/jobs.py`, check the configured limit after the model and before the `501` (decision 7). Verify the existing tests still pass.
 - [ ] 4.2 Add the running cap to `jobs/runner.py`, taken before the worker slot (decision 6). Verify the existing tests still pass.
-- [ ] 4.3 Write the tests in `api/tests/test_jobs.py`: two `>` (422, the residues not in the body, no job); no sequence; `opType` as an extra field; 10,000 residues, alone or with a final `*`, get the `501` and 10,001 the `422` naming 10,000; with the limit at 5,000, 5,000 get the `501` and 5,001 the `422`; a valid request's `501` with no `Location` and no job; a `tools` job after it; `run_job` refusing; the running cap's three scenarios on a `JobRunner` with a stand-in `run_job`. In `test_job_logs.py`, an hmmscore job's line gives its residues only. Verify they pass.
+- [ ] 4.3 Write the tests in `api/tests/test_jobs.py`: two `>` (422, the residues not in the body, no job); no sequence; `opType` as an extra field; 10,000 residues get the `501` and 10,001 the `422` naming 10,000; with the limit at 5,000, 5,000 get the `501` and 5,001 the `422`; a valid request's `501` with no `Location` and no job; a `tools` job after it; `run_job` refusing; the running cap's three scenarios on a `JobRunner` with a stand-in `run_job`. In `test_job_logs.py`, an hmmscore job's line gives its residues only. Verify they pass.
 
 ## 5. The Contract Files
 
@@ -44,7 +44,7 @@
 
 ### Next action
 
-The engine developer reviewed #70 on 2026-11-11, and the review is addressed (below). His follow-up and his engine answers (ties, strings, the name) are folded in too, and so is the product owner's residue limit of 2026-11-12: 10,000, with the time limit's default at 720 s. On 2026-11-13, from #71's review, a final `*` stopped counting toward the residue limit, and the Risks name the busy `503`'s `Retry-After`. Next: the area owners approve; code starts after.
+The engine developer reviewed #70 on 2026-11-11, and the review is addressed (below). His follow-up and his engine answers (ties, strings, the name) are folded in too, and so is the product owner's residue limit of 2026-11-12: 10,000, with the time limit's default at 720 s. Next: the area owners approve; code starts after.
 
 ### Blockers
 

@@ -6,7 +6,7 @@
 - [ ] 1.2 Give `startJob` in `src/features/jobs/jobsApi.ts` a `transformErrorResponse` that adds `Retry-After`'s seconds. Move the submit-failure classification to `src/components/submitProblem.ts` and the alert to `src/components/SubmitAlert.tsx`, and use them in `useSubmitCsnp` and `useSubmitRefmap`, showing `unavailable` and `busy` as `failed` (design.md, decision 3). Delete the two feature `SubmitAlert.tsx` files.
 - [ ] 1.3 Move `checkSequence` to `src/components/sequence.ts`, with each service's rules and the limits as exported constants, and the APOE sequence to `src/components/apoe.ts`; use both in the cSNP form (design.md, decisions 1 and 2).
 - [ ] 1.4 Head every job in `JobDetails` with `service(job.service).title`, keeping a title for `tools` only, and check a job every second for 30 seconds, then every 5 seconds (design.md, decisions 4 and 5).
-- [ ] 1.5 Tests: extend `tests/app/api/wire.test.ts` (`fromWireJob` keeps an `hmmscore` hit, and a `null` hit; `inputErrors` puts an hmmscore `422` on `sequence`, and anything else under `other`), `tests/mocks/jobs.test.ts` (a mocked `hmmscore` job succeeds with the mock hit) and `tests/features/jobs/keptInput.test.ts` (`isEditable('hmmscore')`). Move `checkSequence`'s cases from `tests/features/csnp/checks.test.ts` to `tests/components/sequence.test.ts`, and add hmmscore's: each rule, an accepted value beside each rejected one, 10,000 letters and one more, 10,000 letters and a final `*`. Add `tests/components/submitProblem.test.ts` (a `501` and a `503` with and without problem details, `Retry-After` present, missing or not a number) and the polling interval's case. Verify `npm test -- --run` passes.
+- [ ] 1.5 Tests: extend `tests/app/api/wire.test.ts` (`fromWireJob` keeps an `hmmscore` hit, and a `null` hit; `inputErrors` puts an hmmscore `422` on `sequence`, and anything else under `other`), `tests/mocks/jobs.test.ts` (a mocked `hmmscore` job succeeds with the mock hit) and `tests/features/jobs/keptInput.test.ts` (`isEditable('hmmscore')`). Move `checkSequence`'s cases from `tests/features/csnp/checks.test.ts` to `tests/components/sequence.test.ts`, and add hmmscore's: each rule, an accepted value beside each rejected one, `.`, `_`, `~` and `*` accepted, no letters refused with the no-residues message, 10,000 residues and one more (with `.` and an inner `*` counted), 10,000 letters and a final `*`. Add `tests/components/submitProblem.test.ts` (a `501` and a `503` with and without problem details, `Retry-After` present, missing or not a number) and the polling interval's case. Verify `npm test -- --run` passes.
 
 ## 2. The HMM Scoring Form
 
@@ -41,8 +41,8 @@ Split out of `add-hmmscore-job` on 2026-11-11, at the engine developer's request
 
 ### Blockers
 
-- **`add-hmmscore-job` applied and merged:** the form reads its regenerated `schema.d.ts`, `api:types:check` needs its components, and `test:e2e:api` needs its `501`.
-- **The refused-sequences row approved:** the divergence `add-hmmscore-job` adds for the sequences the API refuses where the reference answered no hit, which this form's checks ship. The engine developer is asked to approve it.
+- **`add-hmmscore-job` applied and merged (#76):** the form reads its regenerated `schema.d.ts`, `api:types:check` needs its components, and `test:e2e:api` needs its `501`.
+- **The refused-sequences row approved:** the divergence `add-hmmscore-job` adds for the sequences the API refuses, narrowed on #76, which this form's checks ship. The engine developer is asked to approve it.
 
 ### Failed approaches
 
@@ -53,4 +53,5 @@ None yet.
 - **The legacy page's "score" was the E-value,** and its sentence about the cutoff is backwards (`HMMSCORE-3`, `HMMSCORE-4`). The new page shows the API's fields by their real names, and no threshold.
 - **The product owner set hmmscore's residue limit at 10,000 on 2026-11-12** (`add-hmmscore-job`, #70), in place of the website's 50,000. The form checks 10,000, the most the setting allows. The server-limit scenario is 5,000, since 20,001 residues would fail the form's own check first.
 - **#71's reviews, 2026-11-12 and 13:** a character set can't express "one `*`, last"; "Edit and resubmit" reads `KEPT_FIELDS`, not only `formFields.ts`; moving a function moves its tests and breaks those that pinned the old page; a temporary `501` requirement stays apart from the lasting failures, as `wire-refmap` learned; a status alone doesn't prove the API answered; new-tab links and scroll boxes follow the existing accessibility rules; a full queue needs its own message; a final `*` isn't a residue, in the API too.
+- **#76, 2026-11-13:** the engine developer measured the characters again on amd64; 3.4 scores `.`, `_`, `~` and an inner `*` as 3.1b2 did, so they're accepted, and the form's checks follow `scoring-input` as #76 applies it. The earlier split hits came from a non-SSE build.
 - **Name a divergence by what it covers, not its row number,** until the row is on `main`: rows are numbered when a change is applied.

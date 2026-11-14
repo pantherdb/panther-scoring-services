@@ -62,7 +62,7 @@ The website's form normalised the sequence (`SequenceSearchForm.java` 51 to 89),
 | At most one `>` | 62 to 67 | Same |
 | One header line removed | `^>[^\n]*`, without trimming first (69 to 74) | After trimming. A header after a blank line or spaces was left in, joined to the residues, so the CGI got one header line and no sequence, and answered no hit (`HMMSCORE-6`). Row 12 |
 | Whitespace removed | 76 to 79 | Same |
-| At most 50,000 residues | 83 to 86 | The configured limit, 10,000 by default and at most, the product owner's (decisions 5 and 7), counting letters only: a final `*` isn't a residue. Row 11 |
+| At most 50,000 residues | 83 to 86 | The configured limit, 10,000 by default and at most, the product owner's (decisions 5 and 7). Row 11 |
 | Upper-cased | Not done | New, as cSNP's. HMMER reads either case alike |
 | Letters, and one `*` at the end, only | Not checked | New. Measured by the engine developer, 2026-11-11 (below). Row 12 |
 | At most 1,000,000 characters before normalising | None | New, as cSNP's |
@@ -173,7 +173,6 @@ As `add-refmap-job`: `jobs/hmmscore.py` (Pydantic only, with `log_summary()` giv
 - **[A 10,000-residue job may need more memory than a server has]** → Not measured: at `--cpu 0`, Q14204's 4,646 residues needed 0.5 GiB and `titin-50000` 21 GiB, and the hosting server has 5 GiB available (the survey). The server measures it and sets a lower limit if it must (#68), recorded in row 11.
 - **[The time limit's default is scaled, not measured]** → 720 s is three times an estimate (decision 5). A 10,000-residue query in `port-hmmscore` or #68 checks it before the wiring makes it take effect.
 - **[Settings that do nothing yet]** → The time limit and `--cpu` reach the engine with the wiring; `docs/testing/api.md` says so.
-- **[The busy `503` is sized for cSNP]** → Its `Retry-After` is a fixed 30 s, about a cSNP job (`routers/jobs.py` 21), and the waiting cap of 50 is shared, so a backlog of `hmmscore` jobs gets cSNP and refmap refused too (decision 6). An hmmscore `Retry-After`, sized by `port-hmmscore`'s 10,000-residue timing, and whether hmmscore needs its own waiting cap, are for the wiring.
 - **[Ties made the reported hit unstable]** → The port reports the subfamily first, then the lowest ID. With the data sample, `pantherScore.pl -D B` on PTHR35774's consensus gave `PTHR35774:SF1` five times in ten and `PTHR35774` five times, at the same E-value and score; the subfamily's model file is a copy of the family's, so only the ID changes, and the subfamily's ID carries the family's.
 
 ## Migration Plan

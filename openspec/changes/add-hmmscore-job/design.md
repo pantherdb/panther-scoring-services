@@ -169,7 +169,7 @@ As `add-refmap-job`: `jobs/hmmscore.py` (Pydantic only, with `log_summary()` giv
 
 ### 10. Tests
 
-`test_hmmscore_input.py` for every `scoring-input` scenario, each rejection without a distinctive part of the value; `test_jobs.py` for the `422`s, the configured limit, the `501`, `run_job` refusing, and the running cap on a `JobRunner`; `test_settings.py`; `test_job_logs.py`; `test_openapi.py` for the unions, the result's fields and the `501`. No test builds an `HmmHit` with real-looking values.
+`test_hmmscore_input.py` for every `scoring-input` scenario, each rejection without a distinctive part of the value; `test_jobs.py` for the `422`s, the configured limit, the `501`, `run_job` refusing, and the running cap and the waiting count on a `JobRunner`; `test_settings.py`; `test_job_logs.py`; `test_openapi.py` for the unions, the result's fields, the `501`, and no `501` once `UNAVAILABLE` is empty. No test builds an `HmmHit` with real-looking values.
 
 ## Risks / Trade-offs
 

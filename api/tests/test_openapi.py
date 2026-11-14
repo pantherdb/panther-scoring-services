@@ -1,6 +1,9 @@
+import importlib
 import json
 import re
+from collections.abc import Iterator
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from fastapi import APIRouter
@@ -8,8 +11,10 @@ from fastapi.testclient import TestClient
 from pydantic import BaseModel, ValidationError
 
 from panther_api.jobs.refmap import RefmapInput
+from panther_api.jobs.work import UNAVAILABLE
 from panther_api.main import create_app
 from panther_api.openapi import REGENERATE_COMMAND, SCHEMA_PATH, render
+from panther_api.routers import jobs as jobs_router
 
 PROBLEM = "application/problem+json"
 
@@ -325,6 +330,29 @@ def test_the_refmap_result_in_the_schema(client: TestClient) -> None:
 
 
 # The hmmscore job: its contract, and the 501 until the engine scores.
+
+
+@pytest.fixture
+def every_service_runs() -> Iterator[None]:
+    """`UNAVAILABLE` empty, as once hmmscore is wired in. The router documents the 501 when it's
+    imported, so it's reloaded with the table empty, and again afterwards with the table back."""
+    try:
+        with patch.dict(UNAVAILABLE, clear=True):
+            importlib.reload(jobs_router)
+            yield
+    finally:
+        importlib.reload(jobs_router)
+
+
+@pytest.mark.usefixtures("every_service_runs")
+def test_no_501_is_documented_once_every_service_runs() -> None:
+    # Fails if the wiring removes hmmscore's row and a 501 is still documented.
+    responses = served_schema(TestClient(create_app()))["paths"]["/api/v1/jobs"]["post"][
+        "responses"
+    ]
+
+    assert "501" not in responses
+    assert "503" in responses
 
 
 def test_the_hmmscore_501_is_documented_as_a_problem(client: TestClient) -> None:

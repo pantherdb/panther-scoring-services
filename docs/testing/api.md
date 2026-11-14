@@ -385,7 +385,7 @@ curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
 
 ### The hmmscore Job
 
-An `hmmscore` job will score one protein against PANTHER's HMM library, with the engine's port of `scoreAlignXml.cgi`. Its contract is settled (`openspec/changes/add-hmmscore-job/`) and its input rules are in `openspec/specs/scoring-input/`, but the engine doesn't score yet. So a valid request gets a `501` problem, and no job is created. It needs no data, so it works natively too:
+An `hmmscore` job will score one protein against PANTHER's HMM library, with the engine's port of `scoreAlignXml.cgi`. Its contract is settled (`openspec/changes/add-hmmscore-job/`) and its input rules are in `openspec/changes/add-hmmscore-job/specs/scoring-input/spec.md` until the change is archived, but the engine doesn't score yet. So a valid request gets a `501` problem, and no job is created. It needs no data, so it works natively too:
 
 ```sh
 curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \

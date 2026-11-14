@@ -12,7 +12,12 @@ from panther_engine.core.download import DownloadError
 from panther_engine.core.manifest import ManifestError, checksums
 from panther_engine.refmap import data, parity
 from panther_engine.refmap.mapping import RefmapInput, map_ids, read_id_list, render
-from panther_engine.refmap.organisms import ORGANISM_NAMES, ORGANISMS, read_organisms
+from panther_engine.refmap.organisms import (
+    ORGANISM_CODES,
+    ORGANISM_NAMES,
+    ORGANISMS,
+    read_organisms,
+)
 
 
 def configure(parser: argparse.ArgumentParser) -> None:
@@ -142,7 +147,8 @@ def configure(parser: argparse.ArgumentParser) -> None:
         type=Path,
         metavar="FILE",
         default=ORGANISMS,
-        help="the organism list (default: the engine's refmap/organisms.json)",
+        help="the organisms to build, a subset of the engine's (default: the engine's "
+        "refmap/organisms.json, every organism)",
     )
     build_json.add_argument(
         "--missing-only",
@@ -322,6 +328,13 @@ def run_data(args: argparse.Namespace) -> int:
                     codes = [organism.code for organism in read_organisms(args.organisms)]
                 except ValueError as error:
                     raise data.RefmapDataError(str(error)) from error
+                # The list can only narrow the engine's: any other code has no file to build from.
+                unknown = [code for code in codes if code not in ORGANISM_CODES]
+                if unknown:
+                    raise data.RefmapDataError(
+                        f"{args.organisms} lists organisms refmap doesn't map for: "
+                        + ", ".join(unknown[: data.LISTED])
+                    )
                 written = data.build_classification_json(
                     args.data_dir, codes, missing_only=args.missing_only
                 )

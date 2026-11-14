@@ -66,8 +66,9 @@ class HmmscoreInput(BaseModel):
     `sequence` is the protein, as plain residues or FASTA with one header line. Whitespace and the
     header are removed and letters upper-cased before scoring. It may hold only the letters A to
     Z, `.`, `_`, `~` and `*`, and at least one letter. It may have at most as many residues as the
-    API is configured to take, 10,000 by default and never more: every character counts but a
-    final `*`. A longer sequence is a 422 naming the limit.
+    API is configured to take, 10,000 by default and never more. Residues here are the positions
+    `hmmscan` reads: every character but a final `*`, so `.`, `_`, `~` and an inner `*` count. A
+    longer sequence is a 422 naming the limit.
     """
 
     model_config = ConfigDict(extra="forbid")

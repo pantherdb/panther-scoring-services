@@ -1100,3 +1100,15 @@ def test_a_cap_on_a_service_that_doesnt_exist_is_refused() -> None:
             versions=read_versions(),
             max_running=cast(dict[Service, int], {"hmmscor": 1}),
         )
+
+
+def test_a_cap_below_one_is_refused() -> None:
+    with pytest.raises(ValueError, match="hmmscore"):
+        JobRunner(
+            workers=2,
+            max_queued=50,
+            expiry=timedelta(hours=1),
+            results_budget=1024 * 1024,
+            versions=read_versions(),
+            max_running={"hmmscore": 0},
+        )

@@ -172,10 +172,13 @@ class JobRunner:
         `{"hmmscore": 1}`; a service it doesn't name is capped only by the workers.
 
         Raises ValueError if `max_running` names a service `JobRequest` doesn't have: a misspelled
-        key would otherwise leave that service uncapped without a word.
+        key would otherwise leave that service uncapped without a word. Also if a cap is below 1,
+        which would leave that service's jobs queued for ever.
         """
         if unknown := sorted(set(max_running or {}) - SERVICES):
             raise ValueError(f"max_running names services that don't exist: {', '.join(unknown)}")
+        if below := sorted(service for service, most in (max_running or {}).items() if most < 1):
+            raise ValueError(f"max_running caps services below 1: {', '.join(below)}")
         self.store = JobStore(expiry, results_budget=results_budget)
         self._versions = versions
         self._workers = workers

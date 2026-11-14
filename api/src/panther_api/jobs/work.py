@@ -11,7 +11,7 @@ and a case to `run_job`. One whose contract comes before its port also gets a ro
 """
 
 from dataclasses import dataclass
-from typing import Annotated, Literal, NamedTuple
+from typing import Annotated, Literal, NamedTuple, get_args
 
 from pydantic import BaseModel, Field
 
@@ -76,6 +76,12 @@ JobRequest = Annotated[
     ToolsJobRequest | CsnpJobRequest | RefmapJobRequest | HmmscoreJobRequest,
     Field(discriminator="service"),
 ]
+
+Service = Literal["tools", "csnp", "refmap", "hmmscore"]
+"""Every `service` a `JobRequest` names. A service added to `JobRequest` is added here too;
+test_jobs.py compares the two."""
+
+SERVICES: frozenset[str] = frozenset(get_args(Service))
 
 
 @dataclass(frozen=True)

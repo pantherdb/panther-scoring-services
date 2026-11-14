@@ -137,7 +137,10 @@ The residue limit is the product owner's; the other defaults come only from the 
 
 ### 6. The running cap
 
-`JobRunner` gets a semaphore per capped service, `hmmscore` only for now. An `hmmscore` job takes it **before** a worker slot, so a waiting job holds no worker and stays `queued`, and another service's job runs on the free worker. The waiting cap still counts unfinished jobs past one per worker, so with a waiting cap of 0 a tools job can get a `503` while an hmmscore job waits; harmless at the default of 50. Tested on a `JobRunner` with a stand-in `run_job`, since the router answers `501`.
+`JobRunner` gets a semaphore per capped service, `hmmscore` only for now. An `hmmscore` job takes it **before** a worker slot, so a waiting job holds no worker and stays `queued`, and another service's job runs on the free worker. Tested on a `JobRunner` with a stand-in `run_job`, since the router answers `501`.
+
+- **A job waiting for the cap counts as waiting** toward `PANTHER_API_MAX_QUEUED_JOBS` (#76). The runner counts unfinished jobs by service: min(unfinished, cap) of a capped service's jobs hold its cap, and the rest wait for it, holding nothing; the holders and every uncapped job take worker slots, so min(workers, Σ min(unfinished, cap)) run, and the rest wait. A new job is refused only when it would wait and the waiting cap is full. With the defaults (2 workers, a cap of 1, 50 waiting), 51 hmmscore jobs are accepted, 1 running and 50 waiting, and a cSNP job still runs on the second worker; with a waiting cap of 0, a second hmmscore job gets the `503`.
+- **The cap's keys are the services `JobRequest` has** (`work.Service`): `JobRunner` raises on any other, so a misspelled key can't leave a service uncapped.
 
 ### 7. The configured residue limit is a `422`
 

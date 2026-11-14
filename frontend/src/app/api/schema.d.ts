@@ -59,7 +59,7 @@ export interface paths {
          *
          *     An input the job can't run with is a 422, and no job is created. A problem only the work can
          *     find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid
-         *     request is a 503 when too many jobs are already waiting for a worker. A valid `hmmscore`
+         *     request is a 503 when it would wait and too many jobs are already waiting. A valid `hmmscore`
          *     request gets a 501 until its scoring is available; its input, and its residue limit, are still
          *     validated first.
          */
@@ -731,7 +731,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description As many jobs are waiting for a worker as the API allows (`PANTHER_API_MAX_QUEUED_JOBS`). The request was valid, and no job was created. */
+            /** @description The job would have to wait, for a worker or for its service's cap on running jobs (`PANTHER_API_HMMSCORE_MAX_RUNNING`), and as many jobs are already waiting as the API allows (`PANTHER_API_MAX_QUEUED_JOBS`). The request was valid, and no job was created. */
             503: {
                 headers: {
                     /** @description Seconds to wait before submitting again */

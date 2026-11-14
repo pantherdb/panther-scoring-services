@@ -12,12 +12,14 @@ import asyncio
 import logging
 import multiprocessing
 import re
+from collections import Counter
 from collections.abc import Mapping
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from functools import partial
 from http import HTTPStatus
 
 from fastapi.concurrency import run_in_threadpool
@@ -25,7 +27,7 @@ from panther_engine.core.errors import InputError
 
 from panther_api.jobs import store as job_store
 from panther_api.jobs.store import JobRecord, JobStore
-from panther_api.jobs.work import JobRequest, run_job
+from panther_api.jobs.work import SERVICES, JobRequest, Service, run_job
 from panther_api.problems import Problem
 from panther_api.versions import Versions
 
@@ -53,7 +55,8 @@ def _job_problem(detail: str, status: HTTPStatus = HTTPStatus.INTERNAL_SERVER_ER
 
 
 class QueueFullError(Exception):
-    """As many jobs are waiting for a worker as the cap allows. No job was stored."""
+    """As many jobs are waiting, for a worker or for their service's running cap, as the waiting
+    cap allows. No job was stored."""
 
 
 def _seconds(start: datetime | None, end: datetime | None) -> float:
@@ -163,52 +166,79 @@ class JobRunner:
         expiry: timedelta,
         results_budget: int,
         versions: Versions,
-        max_running: Mapping[str, int] | None = None,
+        max_running: Mapping[Service, int] | None = None,
     ) -> None:
         """`max_running` caps the jobs of a service that may run at once, such as
-        `{"hmmscore": 1}`; a service it doesn't name is capped only by the workers."""
+        `{"hmmscore": 1}`; a service it doesn't name is capped only by the workers.
+
+        Raises ValueError if `max_running` names a service `JobRequest` doesn't have: a misspelled
+        key would otherwise leave that service uncapped without a word.
+        """
+        if unknown := sorted(set(max_running or {}) - SERVICES):
+            raise ValueError(f"max_running names services that don't exist: {', '.join(unknown)}")
         self.store = JobStore(expiry, results_budget=results_budget)
         self._versions = versions
         self._workers = workers
         self._max_queued = max_queued
         self._pool = self._new_pool()
         self._slots = asyncio.Semaphore(workers)
+        self._max_running: dict[str, int] = {
+            service: most for service, most in (max_running or {}).items()
+        }
         # One per capped service (openspec add-hmmscore-job, design.md, decision 6).
         self._running_caps = {
-            service: asyncio.Semaphore(most) for service, most in (max_running or {}).items()
+            service: asyncio.Semaphore(most) for service, most in self._max_running.items()
         }
         self._tasks: set[asyncio.Task[None]] = set()
-        # Jobs submitted and not yet finished, running or waiting.
-        self._unfinished = 0
+        # Jobs submitted and not yet finished, running or waiting, by service.
+        self._unfinished: Counter[str] = Counter()
         self._errors = _RecentErrors()
         self._refusals = _Refusals()
+
+    def _waiting(self, unfinished: Mapping[str, int]) -> int:
+        """How many of these unfinished jobs wait, for a worker or for their service's cap.
+
+        A capped service's jobs hold its cap until they finish, so min(unfinished, cap) of them
+        hold it, and the rest wait for it, holding nothing. Those holders and every uncapped job
+        then take worker slots, so min(workers, Σ min(unfinished, cap)) run: a worker is idle only
+        when no job is waiting for one. The rest wait. With no caps it's the jobs past one per
+        worker, as before the caps.
+        """
+        could_run = sum(
+            min(count, self._max_running.get(service, count))
+            for service, count in unfinished.items()
+        )
+        return sum(unfinished.values()) - min(self._workers, could_run)
 
     def submit(self, request: JobRequest) -> JobRecord:
         """Store a new job and start its task. Call it on the event loop.
 
-        Raises QueueFullError, and stores nothing, when the job would have to wait for a worker
-        and `max_queued` jobs already are.
+        Raises QueueFullError, and stores nothing, when the job would have to wait, for a worker
+        or for its service's cap, and `max_queued` jobs already are.
         """
-        # The jobs waiting are those unfinished past one per worker. They're counted this way,
-        # not by status, because a job becomes `running` only when its task next gets the loop:
-        # jobs submitted back to back while a worker is free would otherwise count as waiting.
-        if self._unfinished >= self._workers + self._max_queued:
-            self._refusals.refused(request.service, self._unfinished, self._max_queued)
+        # Counted from the unfinished jobs, not by status, because a job becomes `running` only
+        # when its task next gets the loop: jobs submitted back to back while a worker is free
+        # would otherwise count as waiting. A new job that would run adds nothing to the waiting
+        # count, so this refuses it only when it would wait and the waiting cap is full.
+        unfinished = self._unfinished.copy()
+        unfinished[request.service] += 1
+        if self._waiting(unfinished) > self._max_queued:
+            self._refusals.refused(request.service, self._unfinished.total(), self._max_queued)
             raise QueueFullError
         job = self.store.add(request, self._versions)
-        self._unfinished += 1
+        self._unfinished[request.service] += 1
         task = asyncio.create_task(self._run(job, request))
         # The loop keeps only a weak reference to a task: keep it alive until it's done.
         self._tasks.add(task)
-        task.add_done_callback(self._finished)
+        task.add_done_callback(partial(self._finished, service=request.service))
         # Last, once the job is running, so a failure here can't leave it stored but never run.
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug("%s: submitted", _describe(job))
         return job
 
-    def _finished(self, task: asyncio.Task[None]) -> None:
+    def _finished(self, task: asyncio.Task[None], *, service: str) -> None:
         self._tasks.discard(task)
-        self._unfinished -= 1
+        self._unfinished[service] -= 1
 
     def _new_pool(self) -> ProcessPoolExecutor:
         # spawn on every platform (docs/design/tech-stack.md, API recommendation 1). Processes

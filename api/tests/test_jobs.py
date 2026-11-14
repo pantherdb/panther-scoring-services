@@ -6,7 +6,7 @@ import time
 from collections.abc import Awaitable, Callable, Iterator
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, cast, get_args
 from uuid import UUID, uuid4
 
 import panther_engine.csnp as engine_csnp
@@ -48,10 +48,19 @@ from panther_api.jobs.runner import (
     UNEXPECTED_JOB_DETAIL,
     WORKER_STOPPED_DETAIL,
     JobRunner,
+    QueueFullError,
 )
 from panther_api.jobs.store import JobRecord
 from panther_api.jobs.tools import ToolsInput, run_tools
-from panther_api.jobs.work import CsnpJobRequest, HmmscoreJobRequest, ToolsJobRequest, run_job
+from panther_api.jobs.work import (
+    SERVICES,
+    CsnpJobRequest,
+    HmmscoreJobRequest,
+    JobRequest,
+    Service,
+    ToolsJobRequest,
+    run_job,
+)
 from panther_api.main import create_app
 from panther_api.problems import MOST_FIELD_ERRORS
 from panther_api.versions import read_versions
@@ -908,14 +917,17 @@ async def stays_queued(job: JobRecord) -> None:
         await asyncio.sleep(0.05)
 
 
-def run_with_a_capped_runner(gate: Path, test: Callable[[JobRunner], Awaitable[None]]) -> None:
+def run_with_a_capped_runner(
+    gate: Path, test: Callable[[JobRunner], Awaitable[None]], *, max_queued: int = 50
+) -> None:
     """Run `test` against a JobRunner of 2 workers and a cap of 1 running hmmscore job, as the
-    API's defaults give, on a loop of its own. The gate opens at the end, whatever happens."""
+    API's defaults give, and `max_queued` waiting, on a loop of its own. The gate opens at the
+    end, whatever happens."""
 
     async def main() -> None:
         jobs = JobRunner(
             workers=2,
-            max_queued=50,
+            max_queued=max_queued,
             expiry=timedelta(hours=1),
             results_budget=1024 * 1024,
             versions=read_versions(),
@@ -989,3 +1001,102 @@ def test_a_failed_hmmscore_job_frees_its_place(hmmscore_gate: Path) -> None:
         assert waiting.status == JobStatus.SUCCEEDED
 
     run_with_a_capped_runner(hmmscore_gate, test)
+
+
+# The waiting count, with the cap: a job waiting for the cap waits, though a worker is free.
+
+
+def tools_request() -> ToolsJobRequest:
+    return ToolsJobRequest(service="tools", input=ToolsInput())
+
+
+def test_hmmscore_jobs_waiting_for_the_cap_count_as_waiting(hmmscore_gate: Path) -> None:
+    async def test(jobs: JobRunner) -> None:
+        # One runs, and three wait for the cap while the second worker is free.
+        accepted = [jobs.submit(hmmscore_request()) for _ in range(4)]
+
+        with pytest.raises(QueueFullError):
+            jobs.submit(hmmscore_request())
+
+        assert len(jobs.store) == 4
+        await until(accepted[0], JobStatus.RUNNING)
+        for job in accepted[1:]:
+            assert job.status == JobStatus.QUEUED
+
+    run_with_a_capped_runner(hmmscore_gate, test, max_queued=3)
+
+
+def test_another_service_runs_beside_a_full_queue_of_hmmscore_jobs(hmmscore_gate: Path) -> None:
+    async def test(jobs: JobRunner) -> None:
+        held = [jobs.submit(hmmscore_request()) for _ in range(4)]
+        with pytest.raises(QueueFullError):
+            jobs.submit(hmmscore_request())
+
+        # The free worker runs it, so it adds nothing to the waiting count.
+        tools = jobs.submit(tools_request())
+        # A second has to wait for a worker, and three already wait.
+        with pytest.raises(QueueFullError):
+            jobs.submit(tools_request())
+
+        await until(tools, JobStatus.SUCCEEDED, JobStatus.FAILED)
+        assert tools.status == JobStatus.SUCCEEDED
+        assert [job.status for job in held] == [JobStatus.RUNNING] + [JobStatus.QUEUED] * 3
+
+    run_with_a_capped_runner(hmmscore_gate, test, max_queued=3)
+
+
+def test_no_waiting_refuses_a_second_hmmscore_job(hmmscore_gate: Path) -> None:
+    async def test(jobs: JobRunner) -> None:
+        running = jobs.submit(hmmscore_request())
+
+        with pytest.raises(QueueFullError):
+            jobs.submit(hmmscore_request())
+
+        # Another service's job still runs on the free worker.
+        tools = jobs.submit(tools_request())
+        await until(tools, JobStatus.SUCCEEDED, JobStatus.FAILED)
+        assert tools.status == JobStatus.SUCCEEDED
+        assert running.status == JobStatus.RUNNING
+        assert len(jobs.store) == 2
+
+    run_with_a_capped_runner(hmmscore_gate, test, max_queued=0)
+
+
+def test_a_finished_hmmscore_job_makes_room_in_the_queue(hmmscore_gate: Path) -> None:
+    async def test(jobs: JobRunner) -> None:
+        first = jobs.submit(hmmscore_request())
+        with pytest.raises(QueueFullError):
+            jobs.submit(hmmscore_request())
+
+        hmmscore_gate.touch()
+        await until(first, JobStatus.SUCCEEDED, JobStatus.FAILED)
+        await asyncio.sleep(0.05)
+        second = jobs.submit(hmmscore_request())
+        await until(second, JobStatus.SUCCEEDED, JobStatus.FAILED)
+
+        assert (first.status, second.status) == (JobStatus.SUCCEEDED, JobStatus.SUCCEEDED)
+
+    run_with_a_capped_runner(hmmscore_gate, test, max_queued=0)
+
+
+# The cap's keys: only services JobRequest has.
+
+
+def test_the_services_are_the_job_requests() -> None:
+    members = get_args(get_args(JobRequest)[0])
+
+    assert {get_args(member.model_fields["service"].annotation)[0] for member in members} == (
+        SERVICES
+    )
+
+
+def test_a_cap_on_a_service_that_doesnt_exist_is_refused() -> None:
+    with pytest.raises(ValueError, match="hmmscor"):
+        JobRunner(
+            workers=2,
+            max_queued=50,
+            expiry=timedelta(hours=1),
+            results_budget=1024 * 1024,
+            versions=read_versions(),
+            max_running=cast(dict[Service, int], {"hmmscor": 1}),
+        )

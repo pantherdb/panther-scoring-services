@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
 
 import { RootError } from '@/layout/RootError'
-import { csnpJob, refmapJob } from '@/mocks/data/jobs'
+import { csnpJob, hmmscoreJob, refmapJob } from '@/mocks/data/jobs'
 
 import { server } from '../mocks/server'
 import { renderRoute } from '../utils/render'
@@ -79,6 +79,15 @@ describe('the header', () => {
     expect(currentTabs()[0]).toHaveAccessibleName(/cSNP scoring/)
   })
 
+  it("opens HMM scoring's form from its tab while it's coming soon, and marks it current", async () => {
+    const { user } = renderRoute('/')
+
+    await user.click(screen.getByRole('link', { name: /hmm scoring/i }))
+
+    expect(await screen.findByRole('textbox', { name: /protein sequence/i })).toBeInTheDocument()
+    expect(currentTabs()[0]).toHaveAccessibleName(/HMM scoring/)
+  })
+
   it('opens a service from its tab, and marks it current', async () => {
     const { user } = renderRoute('/')
 
@@ -93,6 +102,7 @@ describe('the header', () => {
   it.each([
     ['csnp', csnpJob(ID, 'succeeded'), /cSNP scoring/],
     ['refmap', refmapJob(ID, 'running'), /ID mapping/],
+    ['hmmscore', hmmscoreJob(ID, 'queued'), /HMM scoring/],
   ])("marks a %s job's service on its page", async (_service, job, name) => {
     server.use(http.get('/api/v1/jobs/:id', () => HttpResponse.json(job)))
     renderRoute(`/jobs/${ID}`)

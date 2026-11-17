@@ -8,10 +8,7 @@ function main() {
 }
 
 describe('a coming-soon page', () => {
-  it.each([
-    ['/hmmscore', /hmm scoring/i, /hmm library/i],
-    ['/treegrafter', /tree grafting/i, /family tree/i],
-  ])(
+  it.each([['/treegrafter', /tree grafting/i, /family tree/i]])(
     'at %s says what the service will do, that it is coming soon, and links home',
     (path, title, summary) => {
       renderRoute(path)
@@ -24,7 +21,7 @@ describe('a coming-soon page', () => {
   )
 
   it('goes home from its link', async () => {
-    const { user } = renderRoute('/hmmscore')
+    const { user } = renderRoute('/treegrafter')
 
     await user.click(main().getByRole('link', { name: /back to home/i }))
 

@@ -10,8 +10,8 @@
 
 ## 2. The HMM Scoring Form
 
-- [ ] 2.1 Implement `src/features/hmmscore/` (`HmmscorePage.tsx` with the notice while `comingSoon`, `HmmscoreForm.tsx`, `useSubmitHmmscore.ts`, `checks.ts`, `index.ts`), add `/hmmscore` to `src/app/router.tsx` with `errorElement: <ErrorPage />` in place of its coming-soon page, and give HMM scoring an `action` in `src/app/services.ts`, keeping `comingSoon: true`. Verify `npm run type-check` and `lint` pass.
-- [ ] 2.2 Write `tests/features/hmmscore/HmmscorePage.test.tsx` from the spec scenarios: open from the home page and from the tab; the notice; the example; the client checks, sending nothing; a valid sequence and `"mkvbjouxz*\n"` sent as typed; disabled in flight; a `422` on `sequence` naming the server's limit, and on no field, and editing clearing it; the `501` with and without problem details, the busy `503`, a `500`, a network error, each followed by a successful submit; "Edit and resubmit" fills the box. Update `tests/features/home/HomePage.test.tsx` and the service tab tests for HMM scoring's form, and move `tests/components/ComingSoonPage.test.tsx`'s `/hmmscore` cases (12, 27) to `/treegrafter`. Verify `npm test -- --run` passes.
+- [x] 2.1 Implement `src/features/hmmscore/` (`HmmscorePage.tsx` with the notice while `comingSoon`, `HmmscoreForm.tsx`, `useSubmitHmmscore.ts`, `checks.ts`, `index.ts`), add `/hmmscore` to `src/app/router.tsx` with `errorElement: <ErrorPage />` in place of its coming-soon page, and give HMM scoring an `action` in `src/app/services.ts`, keeping `comingSoon: true`. Verify `npm run type-check` and `lint` pass.
+- [x] 2.2 Write `tests/features/hmmscore/HmmscorePage.test.tsx` from the spec scenarios: open from the home page and from the tab; the notice; the example; the client checks, sending nothing; a valid sequence and `"mkvbjouxz*\n"` sent as typed; disabled in flight; a `422` on `sequence` naming the server's limit, and on no field, and editing clearing it; the `501` with and without problem details, the busy `503`, a `500`, a network error, each followed by a successful submit; "Edit and resubmit" fills the box. Update `tests/features/home/HomePage.test.tsx` and the service tab tests for HMM scoring's form, and move `tests/components/ComingSoonPage.test.tsx`'s `/hmmscore` cases (12, 27) to `/treegrafter`. Verify `npm test -- --run` passes.
 
 ## 3. hmmscore Results on the Job Page
 
@@ -37,7 +37,7 @@
 
 ### Next action
 
-Split out of `add-hmmscore-job` on 2026-11-11, at the engine developer's request on #70, and in its own pull request, #71, approved and merged. Applying on `feat/apply-add-hmmscore-form`: section 1 is done. Next: section 2, the form.
+Split out of `add-hmmscore-job` on 2026-11-11, at the engine developer's request on #70, and in its own pull request, #71, approved and merged. Applying on `feat/apply-add-hmmscore-form`: sections 1 and 2 are done. Next: section 3, the results on the job page.
 
 ### Blockers
 

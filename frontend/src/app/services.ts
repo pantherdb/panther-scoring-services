@@ -48,6 +48,9 @@ export const SERVICES: readonly Service[] = [
     summary:
       'Scores protein sequences against the PANTHER HMM library, to find the family and subfamily each belongs to.',
     path: '/hmmscore',
+    action: 'Score a protein sequence',
+    // Its form is up, but the API answers 501 until the engine's scoring is wired in. The page
+    // shows a notice while this is set.
     comingSoon: true,
   },
   {

@@ -42,9 +42,16 @@ export const handlers: AnyHandler[] = [
     const body: unknown = await request.json()
     const service =
       typeof body === 'object' && body !== null && 'service' in body ? body.service : undefined
-    // A csnp or refmap job is accepted as the API accepts it, and gets a mock result: a refmap
-    // job maps the IDs it was sent, against the organism it was sent. No input is validated.
-    if (service !== 'tools' && service !== 'csnp' && service !== 'refmap') {
+    // A csnp, refmap or hmmscore job is accepted as the API accepts it, and gets a mock result:
+    // a refmap job maps the IDs it was sent, against the organism it was sent. No input is
+    // validated. The real API answers hmmscore with a 501 until its scoring is wired in; tests
+    // reproduce that with server.use.
+    if (
+      service !== 'tools' &&
+      service !== 'csnp' &&
+      service !== 'refmap' &&
+      service !== 'hmmscore'
+    ) {
       return HttpResponse.json(
         {
           type: 'about:blank',
@@ -54,7 +61,7 @@ export const handlers: AnyHandler[] = [
           errors: [
             {
               loc: ['body'],
-              msg: 'Only tools, csnp and refmap jobs are mocked',
+              msg: 'Only tools, csnp, refmap and hmmscore jobs are mocked',
               type: 'union_tag_invalid',
             },
           ],

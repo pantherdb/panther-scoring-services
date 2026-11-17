@@ -1,6 +1,7 @@
 import { Alert } from '@mantine/core'
 
 import type { Job, JobService } from '@/app/api/wire'
+import { service } from '@/app/services'
 import { VersionList } from '@/components/VersionList'
 
 import { JobNextSteps } from './JobNextSteps'
@@ -8,11 +9,10 @@ import { isFinished } from './jobsApi'
 import { JobResult } from './JobResult'
 import { JobStatus } from './JobStatus'
 
-// Each service's job page heading. A new service adds a row.
-const SERVICE_TITLES: Record<JobService, string> = {
-  tools: 'Scoring tools check',
-  csnp: 'Coding SNP impact scoring',
-  refmap: 'Protein ID mapping',
+// A job page's heading: its service's title from services.ts, or the tools check's own, since
+// the tools check isn't a service there.
+function titleOf(jobService: JobService) {
+  return jobService === 'tools' ? 'Scoring tools check' : service(jobService).title
 }
 
 type Props = {
@@ -24,7 +24,7 @@ export function JobDetails({ job }: Props) {
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">{SERVICE_TITLES[job.service]}</h2>
+        <h2 className="text-lg font-semibold">{titleOf(job.service)}</h2>
         <JobStatus job={job} />
       </div>
 

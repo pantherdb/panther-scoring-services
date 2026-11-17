@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { example } from '@/features/refmap/example'
-import { refmapResult } from '@/mocks/data/jobs'
+import { hmmscoreResult, MOCK_ALIGNMENT_WIDTH, refmapResult } from '@/mocks/data/jobs'
 import { createJob, pollJob } from '@/mocks/jobs'
 
 const IDS = ['P04217', 'P01023', 'P02649', 'P04637', 'P38398', 'P00533', 'P04217']
@@ -54,5 +54,32 @@ describe('a mocked refmap job', () => {
     for (const pantherId of found) expect(pantherId).toMatch(/^PTHR00000:SF\d$/)
     expect(mappings[6]).toEqual(mappings[0])
     expect(refmapResult(IDS)).toEqual(refmapResult(IDS))
+  })
+})
+
+describe('a mocked hmmscore job', () => {
+  it('succeeds with the mock hit, after queued and running', () => {
+    const { id, service, result } = createJob('hmmscore')
+    expect(service).toBe('hmmscore')
+    expect(result).toBeNull()
+
+    expect(pollJob(id)?.status).toBe('queued')
+    expect(pollJob(id)?.status).toBe('running')
+    const job = pollJob(id)
+
+    expect(job?.status).toBe('succeeded')
+    expect(job?.service === 'hmmscore' && job.result).toEqual(hmmscoreResult)
+  })
+
+  it('has an obviously made-up hit, and an alignment marked as mock, wider than a phone', () => {
+    const { hit } = hmmscoreResult
+
+    expect(hit?.panther_id).toBe('PTHR00000:SF1')
+    expect(hit?.name).toMatch(/mock/i)
+    const lines = hit?.alignment.split('\n') ?? []
+    expect(lines[0]).toMatch(/mock data/i)
+    expect(lines.length).toBeGreaterThan(2)
+    for (const line of lines) expect(line).toHaveLength(MOCK_ALIGNMENT_WIDTH)
+    expect(MOCK_ALIGNMENT_WIDTH).toBe(200)
   })
 })

@@ -13,6 +13,7 @@ const NEXT: Record<JobService, { label: string; path: string }> = {
   tools: { label: 'Back to home', path: '/' },
   csnp: { label: 'New cSNP search', path: service('csnp').path },
   refmap: { label: 'New ID mapping', path: service('refmap').path },
+  hmmscore: { label: 'New HMM scoring search', path: service('hmmscore').path },
 }
 
 type Props = {

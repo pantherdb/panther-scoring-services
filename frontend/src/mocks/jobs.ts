@@ -1,10 +1,11 @@
 import type { components } from '@/app/api/schema'
-import { csnpJob, refmapJob, toolsJob } from '@/mocks/data/jobs'
+import { csnpJob, hmmscoreJob, refmapJob, toolsJob } from '@/mocks/data/jobs'
 
 type WireJob =
   | components['schemas']['ToolsJob']
   | components['schemas']['CsnpJob']
   | components['schemas']['RefmapJob']
+  | components['schemas']['HmmscoreJob']
 type Service = WireJob['service']
 type JobStatus = components['schemas']['JobStatus']
 
@@ -19,6 +20,7 @@ const JOB_BODIES: Record<
   tools: toolsJob,
   csnp: csnpJob,
   refmap: (id, status, { ids, organism }) => refmapJob(id, status, ids, organism),
+  hmmscore: hmmscoreJob,
 }
 
 // The mocked API's jobs, by id, with their service, what a refmap job was submitted with, and

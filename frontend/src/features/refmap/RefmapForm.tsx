@@ -1,7 +1,9 @@
 import { Alert, Button } from '@mantine/core'
 import { type FormEvent, useDeferredValue, useReducer } from 'react'
 
+import { service } from '@/app/services'
 import { CodeListField, type CodeListTexts } from '@/components/CodeListField'
+import { SubmitAlert } from '@/components/SubmitAlert'
 import { FilledFromJob, useEditedInput } from '@/features/jobs'
 
 import { checkDraft } from './checks'
@@ -9,7 +11,6 @@ import { draftReducer, startingDraft } from './draft'
 import { IdsField } from './IdsField'
 import { splitIds } from './ids'
 import { readIdsFile } from './idsFile'
-import { SubmitAlert } from './SubmitAlert'
 import { useRefmapOrganisms } from './useRefmapOrganisms'
 import { useSubmitRefmap } from './useSubmitRefmap'
 
@@ -91,7 +92,7 @@ export function RefmapForm() {
           </ul>
         </Alert>
       )}
-      <SubmitAlert problem={problem} />
+      <SubmitAlert problem={problem} title={service('refmap').title} />
       <div>
         <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
           Map IDs

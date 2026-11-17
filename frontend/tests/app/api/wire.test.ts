@@ -120,6 +120,56 @@ describe('fromWireJob, for a refmap job', () => {
   })
 })
 
+const hit = {
+  panther_id: 'PTHR10000:SF1',
+  name: 'A FAMILY',
+  evalue: '7e-131',
+  score: '439.0',
+  alignment: '  == domain 1\n  PTHR10000:SF1  1 mkv  3\n',
+}
+
+describe('fromWireJob, for an hmmscore job', () => {
+  it('keeps its service and hit unchanged', () => {
+    const wire: WireJob = { ...succeeded, service: 'hmmscore', result: { hit } }
+
+    const job = fromWireJob(wire)
+
+    expect(job.service).toBe('hmmscore')
+    expect(job.result).toEqual({ hit })
+    expect(job.finishedAt).toBe(Date.UTC(2026, 9, 30, 0, 32, 1, 540))
+  })
+
+  it('keeps a null hit', () => {
+    const job = fromWireJob({ ...succeeded, service: 'hmmscore', result: { hit: null } })
+
+    expect(job.result).toEqual({ hit: null })
+  })
+})
+
+describe('inputErrors, for an hmmscore 422', () => {
+  it('puts an error on sequence on the field, and anything else under other', () => {
+    const refused: ValidationProblem = {
+      type: 'about:blank',
+      title: 'Unprocessable Content',
+      status: 422,
+      detail: 'Request validation failed',
+      errors: [
+        {
+          loc: ['body', 'hmmscore', 'input', 'sequence'],
+          msg: 'The sequence has more than 5,000 residues.',
+          type: 'value_error',
+        },
+        { loc: ['body', 'hmmscore', 'input', 'opType'], msg: 'Extra.', type: 'extra_forbidden' },
+      ],
+    }
+
+    expect(inputErrors(refused, 'hmmscore', ['sequence'])).toEqual({
+      fields: { sequence: [{ msg: 'The sequence has more than 5,000 residues.', item: null }] },
+      other: ['Extra.'],
+    })
+  })
+})
+
 describe('inputErrors, for a refmap 422', () => {
   it('puts each error on the refmap field its loc names, with the ID it is about', () => {
     const refused: ValidationProblem = {

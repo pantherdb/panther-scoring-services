@@ -1,3 +1,5 @@
+import { checkSequence, CSNP_SEQUENCE } from '@/components/sequence'
+
 import { CSNP_FIELDS, type CsnpField, type CsnpValues, type DraftErrors } from './draft'
 import { splitSubstitutions } from './substitutions'
 
@@ -5,12 +7,9 @@ import { splitSubstitutions } from './substitutions'
 // sent. The API is the authority: it checks again, and its 422s are shown on the fields.
 // Input limits, not scoring thresholds. If scoring-input changes one, change it here too.
 // No message quotes the value it's about, except a malformed substitution: the user needs
-// to see which token it is, and it's their own text on their own screen.
+// to see which token it is, and it's their own text on their own screen. The sequence's
+// rules are shared with hmmscore, in components/sequence.ts.
 
-/** Residues, after normalising ("rejected … longer than 50,000 residues"). */
-export const LONGEST_SEQUENCE = 50_000
-/** Characters as typed, before normalising ("longer than 1,000,000 characters"). */
-export const LONGEST_RAW_SEQUENCE = 1_000_000
 /** Tokens ("a list of 1 to 1,000 tokens"). */
 export const MOST_SUBSTITUTIONS = 1_000
 /** Characters per token ("1 to 32 printable ASCII characters"). */
@@ -24,37 +23,8 @@ const SUBSTITUTION = /^[A-Z][0-9]+[A-Z]$/
 const MOST_NAMED = 10
 // Printable ASCII, without space: "!" to "~".
 const PRINTABLE = /^[!-~]+$/
-// The API's normalising steps, in its order: trim every character up to U+0020 (Java's
-// trim()), then one header line at the very start, then Java's \s.
-// eslint-disable-next-line no-control-regex -- matching control characters is the point: the API trims them
-const TRIMMED = /^[\u0000- ]+|[\u0000- ]+$/g
-const HEADER = /^>[^\n]*/
-const WHITESPACE = /[ \t\n\v\f\r]+/g
 
 const number = new Intl.NumberFormat('en-US')
-
-export function checkSequence(text: string): string[] {
-  if (text.length > LONGEST_RAW_SEQUENCE) {
-    return [`The sequence is longer than ${number.format(LONGEST_RAW_SEQUENCE)} characters.`]
-  }
-  const trimmed = text.replace(TRIMMED, '')
-  if ((trimmed.match(/>/g) ?? []).length > 1) {
-    return [
-      "The sequence has more than one '>', so it holds more than one sequence. Submit one protein.",
-    ]
-  }
-  const residues = trimmed.replace(HEADER, '').replace(WHITESPACE, '')
-  if (residues === '') return ['Enter a protein sequence: plain residues, or FASTA.']
-  if (!PRINTABLE.test(residues)) {
-    return [
-      "The sequence has a character that isn't printable ASCII. Use one-letter residue codes.",
-    ]
-  }
-  if (residues.length > LONGEST_SEQUENCE) {
-    return [`The sequence has more than ${number.format(LONGEST_SEQUENCE)} residues.`]
-  }
-  return []
-}
 
 /** Checks the tokens as split; a bad token is named by its place, counted from 1. */
 export function checkSubstitutions(tokens: string[]): string[] {
@@ -112,7 +82,7 @@ export function checkSpecies(text: string, codes?: ReadonlySet<string>): string[
 /** Every field's errors; a field with none is left out. `codes` as for `checkSpecies`. */
 export function checkDraft(values: CsnpValues, codes?: ReadonlySet<string>): DraftErrors['fields'] {
   const found: Record<CsnpField, string[]> = {
-    sequence: checkSequence(values.sequence),
+    sequence: checkSequence(values.sequence, CSNP_SEQUENCE),
     substitutions: checkSubstitutions(splitSubstitutions(values.substitutions)),
     species: checkSpecies(values.species, codes),
   }

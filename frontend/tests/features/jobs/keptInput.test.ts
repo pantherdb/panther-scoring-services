@@ -1,11 +1,35 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { keepInput, keptInput, MOST_KEPT, MOST_KEPT_CHARS } from '@/features/jobs/keptInput'
+import {
+  isEditable,
+  keepInput,
+  keptInput,
+  MOST_KEPT,
+  MOST_KEPT_CHARS,
+} from '@/features/jobs/keptInput'
 
 const VALUES = { sequence: 'MKVLW', substitutions: 'L4P, G2A', species: 'HUMAN' }
 
 afterEach(() => {
   vi.restoreAllMocks()
+})
+
+describe('isEditable', () => {
+  it.each([
+    ['csnp', true],
+    ['refmap', true],
+    ['hmmscore', true],
+    ['tools', false],
+  ] as const)('is %s for %s', (service, editable) => {
+    expect(isEditable(service)).toBe(editable)
+  })
+
+  it('reads back an hmmscore input, its one box', () => {
+    keepInput('job-1', 'hmmscore', { sequence: '>one\nmkv*' })
+
+    expect(keptInput('job-1', 'hmmscore')).toEqual({ sequence: '>one\nmkv*' })
+    expect(keptInput('job-1', 'csnp')).toBeUndefined()
+  })
 })
 
 describe('the kept input', () => {

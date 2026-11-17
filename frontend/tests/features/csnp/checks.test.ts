@@ -1,12 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
+import { CSNP_MOST_RESIDUES } from '@/components/sequence'
 import {
   checkDraft,
-  checkSequence,
   checkSpecies,
   checkSubstitutions,
-  LONGEST_RAW_SEQUENCE,
-  LONGEST_SEQUENCE,
   LONGEST_SUBSTITUTION,
   MOST_SUBSTITUTIONS,
 } from '@/features/csnp/checks'
@@ -24,69 +22,7 @@ function tokens(count: number) {
 
 describe('the limits mirror scoring-input', () => {
   it('has the API’s numbers', () => {
-    expect([
-      LONGEST_SEQUENCE,
-      LONGEST_RAW_SEQUENCE,
-      MOST_SUBSTITUTIONS,
-      LONGEST_SUBSTITUTION,
-    ]).toEqual([50_000, 1_000_000, 1_000, 32])
-  })
-})
-
-describe('checkSequence', () => {
-  it.each([
-    ['plain residues', 'MKVLWAALLV'],
-    ['FASTA with one header and line breaks', '>sp|P02649|APOE_HUMAN\nMKVLWAALLV\nTFLAGCQAKV\n'],
-    ['lower case and spaces', '  mkvl waal\r\n'],
-    ['the longest sequence, as FASTA', fasta(LONGEST_SEQUENCE)],
-    ['characters BLAST may refuse, which the API leaves to the engine', 'MKV*X-L'],
-  ])('accepts %s', (_name, sequence) => {
-    expect(checkSequence(sequence)).toEqual([])
-  })
-
-  it.each([
-    ['nothing', ''],
-    ['only whitespace', ' \n\t '],
-    ['only a header', '>only a header'],
-    ['only a header and blank lines', '>only a header\n\n  \n'],
-  ])('rejects %s: there are no residues', (_name, sequence) => {
-    expect(checkSequence(sequence)).toHaveLength(1)
-  })
-
-  it('rejects two sequences', () => {
-    expect(checkSequence('>one\nMKV\n>two\nMKV')).toEqual([
-      expect.stringMatching(/more than one sequence/i),
-    ])
-  })
-
-  it('rejects a ">" after the residues, as the API does', () => {
-    expect(checkSequence('>one\nMKV>L')).toHaveLength(1)
-  })
-
-  it('rejects one residue more than the longest', () => {
-    expect(checkSequence(fasta(LONGEST_SEQUENCE + 1))).toEqual([
-      expect.stringMatching(/50,000 residues/),
-    ])
-  })
-
-  it.each([
-    ['a letter outside ASCII', 'MKVÄL'],
-    ['a control character inside it', 'MKV\u0000L'],
-    ['a non-breaking space', 'MKV L'],
-  ])('rejects %s', (_name, sequence) => {
-    expect(checkSequence(sequence)).toEqual([expect.stringMatching(/printable ASCII/)])
-  })
-
-  it('rejects more characters than the API takes before normalising', () => {
-    const padded = `MKV${' '.repeat(LONGEST_RAW_SEQUENCE)}`
-    expect(checkSequence(padded)).toEqual([expect.stringMatching(/1,000,000 characters/)])
-    expect(checkSequence(`MKV${' '.repeat(LONGEST_RAW_SEQUENCE - 3)}`)).toEqual([])
-  })
-
-  it('never quotes the sequence', () => {
-    for (const sequence of ['>QWERTY\nMKV\n>QWERTY\nMKV', 'QWERTYÄ']) {
-      expect(checkSequence(sequence).join(' ')).not.toContain('QWERTY')
-    }
+    expect([MOST_SUBSTITUTIONS, LONGEST_SUBSTITUTION]).toEqual([1_000, 32])
   })
 })
 
@@ -203,11 +139,21 @@ describe('checkDraft', () => {
   it('finds nothing wrong with a valid draft', () => {
     expect(
       checkDraft({
-        sequence: fasta(LONGEST_SEQUENCE),
+        sequence: fasta(CSNP_MOST_RESIDUES),
         substitutions: 'L46P c130r G99999R',
         species: 'PLAF7',
       })
     ).toEqual({})
+  })
+
+  it('checks the sequence with cSNP’s rules', () => {
+    expect(
+      checkDraft({
+        sequence: fasta(CSNP_MOST_RESIDUES + 1),
+        substitutions: 'L2P',
+        species: 'HUMAN',
+      })
+    ).toEqual({ sequence: [expect.stringMatching(/50,000 residues/)] })
   })
 
   it('reports each field that breaks a rule, and only those', () => {

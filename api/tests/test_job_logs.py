@@ -18,6 +18,7 @@ from job_helpers import (
     fail_differently,
     fail_elsewhere,
     fail_with_a_new_message,
+    no_hmm_hit,
     raise_input_error,
     score_with_a_fake_engine,
     wait_for_gate,
@@ -25,6 +26,7 @@ from job_helpers import (
 from polling import Job, submit_and_wait
 
 from panther_api.jobs.runner import INPUT_ERROR_OUTCOME, REFUSAL_INTERVAL, TRACEBACK_INTERVAL
+from panther_api.jobs.work import UNAVAILABLE
 from panther_api.main import create_app
 
 RUNNER = "panther_api.jobs.runner"
@@ -93,6 +95,24 @@ def test_a_csnp_job_line_has_its_size_and_none_of_its_input(
     assert SEQUENCE[:20] not in caplog.text
     for substitution in SUBSTITUTIONS:
         assert substitution not in caplog.text
+
+
+def test_an_hmmscore_job_line_has_its_residues_and_not_its_sequence(
+    monkeypatch: pytest.MonkeyPatch, client: TestClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    # The router answers 501 until hmmscore's scoring is wired in: lift it for this job, and stand
+    # in for the work. 317 residues and a final stop, which isn't one.
+    monkeypatch.delitem(UNAVAILABLE, "hmmscore")
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", no_hmm_hit)
+    body = {"service": "hmmscore", "input": {"sequence": SEQUENCE[:317] + "*"}}
+
+    job = run(client, body)
+
+    assert job["status"] == "succeeded"
+    assert job["result"] == {"hit": None}
+    [record] = job_records(caplog, job)
+    assert record.getMessage().startswith(f"Job {job['id']} hmmscore, 317 residues: succeeded, ")
+    assert SEQUENCE[:20] not in caplog.text
 
 
 def test_a_job_that_fails_on_its_input_has_one_info_line_without_a_traceback(

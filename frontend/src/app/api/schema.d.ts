@@ -59,7 +59,9 @@ export interface paths {
          *
          *     An input the job can't run with is a 422, and no job is created. A problem only the work can
          *     find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid
-         *     request is a 503 when too many jobs are already waiting for a worker.
+         *     request is a 503 when it would wait and too many jobs are already waiting. A valid `hmmscore`
+         *     request gets a 501 until its scoring is available; its input, and its residue limit, are still
+         *     validated first.
          */
         post: operations["create_job_api_v1_jobs_post"];
         delete?: never;
@@ -269,6 +271,96 @@ export interface components {
              * @constant
              */
             status: "ok";
+        };
+        /**
+         * HmmHit
+         * @description The best-scoring PANTHER HMM, as the legacy service reported it, with its name and score.
+         *
+         *     `panther_id` is the family or subfamily, such as `PTHR10000:SF1`. `name` is its name in the
+         *     library's `names.tab`. `evalue` and `score` are the full-sequence E-value and bit score as
+         *     `hmmscan` printed them. `alignment` is `hmmsearch`'s domain annotation of the sequence against
+         *     the model, as the legacy page showed it.
+         */
+        HmmHit: {
+            /** Panther Id */
+            panther_id: string;
+            /** Name */
+            name: string;
+            /** Evalue */
+            evalue: string;
+            /** Score */
+            score: string;
+            /** Alignment */
+            alignment: string;
+        };
+        /**
+         * HmmscoreInput
+         * @description One protein to score against PANTHER's HMM library.
+         *
+         *     `sequence` is the protein, as plain residues or FASTA with one header line. Whitespace and the
+         *     header are removed and letters upper-cased before scoring. It may hold only the letters A to
+         *     Z, `.`, `_`, `~` and `*`, and at least one letter. It may have at most as many residues as the
+         *     API is configured to take, 10,000 by default and never more. Residues here are the positions
+         *     `hmmscan` reads: every character but a final `*`, so `.`, `_`, `~` and an inner `*` count. A
+         *     longer sequence is a 422 naming the limit.
+         */
+        HmmscoreInput: {
+            /** Sequence */
+            sequence: string;
+        };
+        /**
+         * HmmscoreJob
+         * @description An `hmmscore` job, with the same fields as every job. `result` is the best-scoring
+         *     PANTHER HMM, or a null `hit`.
+         *
+         *     None is created until the engine's scoring is wired in: a valid request gets a 501.
+         */
+        HmmscoreJob: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            service: "hmmscore";
+            status: components["schemas"]["JobStatus"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Started At */
+            started_at: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            result: components["schemas"]["HmmscoreResult"] | null;
+            error: components["schemas"]["Problem"] | null;
+            versions: components["schemas"]["Versions"];
+        };
+        /**
+         * HmmscoreJobRequest
+         * @description Start an `hmmscore` job: score one protein against PANTHER's HMM library.
+         *
+         *     Until the engine's hmmscore scoring is wired in, a valid request gets a 501, and no job.
+         */
+        HmmscoreJobRequest: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            service: "hmmscore";
+            input: components["schemas"]["HmmscoreInput"];
+        };
+        /**
+         * HmmscoreResult
+         * @description The best hit, or null when there's none, or the best hit's full-sequence E-value is over
+         *     1e-3, as the legacy service applied its cutoff.
+         */
+        HmmscoreResult: {
+            hit: components["schemas"]["HmmHit"] | null;
         };
         /**
          * IdMapping
@@ -619,7 +711,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ToolsJobRequest"] | components["schemas"]["CsnpJobRequest"] | components["schemas"]["RefmapJobRequest"];
+                "application/json": components["schemas"]["ToolsJobRequest"] | components["schemas"]["CsnpJobRequest"] | components["schemas"]["RefmapJobRequest"] | components["schemas"]["HmmscoreJobRequest"];
             };
         };
         responses: {
@@ -631,7 +723,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ToolsJob"] | components["schemas"]["CsnpJob"] | components["schemas"]["RefmapJob"];
+                    "application/json": components["schemas"]["ToolsJob"] | components["schemas"]["CsnpJob"] | components["schemas"]["RefmapJob"] | components["schemas"]["HmmscoreJob"];
                 };
             };
             /** @description The request body is over the API's limit (`PANTHER_API_MAX_BODY_BYTES`, 16 MiB by default). It was refused before it was processed. */
@@ -661,7 +753,16 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description As many jobs are waiting for a worker as the API allows (`PANTHER_API_MAX_QUEUED_JOBS`). The request was valid, and no job was created. */
+            /** @description The service can't run jobs yet: `hmmscore`, until its scoring is ported. The request was valid, and no job was created. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The job would have to wait, for a worker or for its service's cap on running jobs (`PANTHER_API_HMMSCORE_MAX_RUNNING`), and as many jobs are already waiting as the API allows (`PANTHER_API_MAX_QUEUED_JOBS`). The request was valid, and no job was created. */
             503: {
                 headers: {
                     /** @description Seconds to wait before submitting again */
@@ -700,7 +801,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ToolsJob"] | components["schemas"]["CsnpJob"] | components["schemas"]["RefmapJob"];
+                    "application/json": components["schemas"]["ToolsJob"] | components["schemas"]["CsnpJob"] | components["schemas"]["RefmapJob"] | components["schemas"]["HmmscoreJob"];
                 };
             };
             /** @description Request validation failed */

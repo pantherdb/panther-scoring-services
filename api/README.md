@@ -44,6 +44,8 @@ Jobs run in a pool of worker processes and are kept in memory, so a restart lose
 - **`refmap`** (`{"organism", "ids"}`) maps up to 100,000 protein IDs to PANTHER IDs for one organism, with the engine's port of `map_panther.pl`. It needs the refmap data in the same folder. `GET /api/v1/refmap/organisms` lists the organisms it maps for. Its result is kept as the JSON its worker made.
 - **`tools`**, built in, reports the external tools' versions from a worker.
 
+A fourth, **`hmmscore`** (`{"sequence"}`), scores one protein against PANTHER's HMM library. Its request is validated, its residues checked against `PANTHER_API_HMMSCORE_MAX_RESIDUES` (10,000 by default), but a valid one gets a `501` problem, "HMM scoring isn't available yet.", and no job, until the engine's port of `scoreAlignXml.cgi` is wired in (`openspec/changes/add-hmmscore-job/`). At most `PANTHER_API_HMMSCORE_MAX_RUNNING` hmmscore jobs will run at once, 1 by default.
+
 To try them, and to get the data sample, see "Try the Jobs by Hand" in [docs/testing/api.md](../docs/testing/api.md). The settings (`PANTHER_API_*`) are listed there too. `GET /api/v1/versions` and every job also name the PANTHER release each service's data comes from: PANTHER 9 for `csnp`.
 
 ## Layout

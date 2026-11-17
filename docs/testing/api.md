@@ -54,12 +54,18 @@ The API reads its settings from environment variables when it starts. An invalid
 | `PANTHER_API_JOB_WORKERS` | `2` | an integer ≥ 1 | Worker processes that run jobs. Jobs beyond that wait as `queued` |
 | `PANTHER_API_JOB_EXPIRY_SECONDS` | `86400` (24 hours) | an integer ≥ 1 | How long a finished job is kept. After that, polling it gets a 404 |
 | `PANTHER_API_RESULTS_BUDGET_MIB` | `256` | an integer ≥ 1 | The memory the finished jobs' results may take, in MiB, each counted by the size of its JSON. When a finishing job takes them over it, the largest results expire first, the oldest first among equal sizes, before their time; failed jobs free nothing, so they stay. A result larger than the budget on its own is still kept, after every other result. See [Limits](#limits) |
-| `PANTHER_API_MAX_QUEUED_JOBS` | `50` | an integer ≥ 0 | Jobs that may wait for a worker. Past that, a submission gets a `503` and no job is created. See [Limits](#limits) |
+| `PANTHER_API_MAX_QUEUED_JOBS` | `50` | an integer ≥ 0 | Jobs that may wait, for a worker or for their service's cap on running jobs. Past that, a submission that would wait gets a `503` and no job is created. See [Limits](#limits) |
 | `PANTHER_API_MAX_BODY_BYTES` | `16777216` (16 MiB) | an integer ≥ 1 | The largest request body accepted. A larger one gets a `413`. See [Limits](#limits) |
 | `PANTHER_API_CORS_ORIGINS` | empty | comma-separated origins, such as `https://pantherdb.github.io`: a scheme and host, with no path, `*` or trailing `/` | The browser origins allowed to call the API from another site. Empty adds no CORS headers. See [CORS](#cors) |
 | `PANTHER_API_LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING` or `ERROR`, in any case | The lowest level logged. See [Logs](#logs) |
+| `PANTHER_API_HMMSCORE_MAX_RESIDUES` | `10000` | an integer from 1 to 10,000 | The most residues an `hmmscore` sequence may have, counting every position `hmmscan` reads but a final `*`. A longer one gets a `422` naming the limit. 10,000 is the product owner's limit, and the most allowed ([divergence 11](../parity/divergences.md)) |
+| `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` | `720` | an integer ≥ 1 | How long one `hmmscore` job may run. Takes effect when hmmscore's scoring is wired in |
+| `PANTHER_API_HMMSCORE_MAX_RUNNING` | `1` | an integer ≥ 1 | `hmmscore` jobs that may run at once. More wait as `queued`, without holding a worker, so other services' jobs still run. They count toward `PANTHER_API_MAX_QUEUED_JOBS` |
+| `PANTHER_API_HMMSCORE_CPU` | `0` | an integer ≥ 0 | `hmmscan`'s `--cpu` for each `hmmscore` job. Takes effect when hmmscore's scoring is wired in |
 
 Set one for the native dev server with, for example, `PANTHER_API_JOB_WORKERS=1 uv run fastapi dev --port 8000`, and for the image with `docker run -e PANTHER_API_JOB_WORKERS=1 …`. The compose `api` service sets none, so it uses the defaults. Jobs are kept in memory, and are lost when the API restarts.
+
+The four `hmmscore` settings' defaults are starting points: the server sets its own once they're measured there with the full library (#68). The time limit's 720 s is scaled from the [library survey](../parity/hmmscore-library-survey.md)'s times, since no 10,000-residue query was measured (`add-hmmscore-job`, design.md, decision 5). Until hmmscore's scoring is wired in, a valid `hmmscore` request gets a `501` ([The hmmscore Job](#the-hmmscore-job)), so only the residue limit acts yet. The running cap is in the job runner, ready for the first `hmmscore` job; the time limit and `--cpu` take effect with the wiring.
 
 At startup, the API checks each service's data with the engine's `check_data()`: the cSNP data and the refmap data. If `PANTHER_DATA_DIR` isn't set, or the folder lacks part of a service's data, it logs an error for that service, such as `csnp jobs will fail until the cSNP data is in place: the cSNP data folder … lacks: …` or `refmap jobs will fail until the refmap data is in place: the refmap data folder … lacks 1,534 of 1,534 files: …`, and starts anyway: everything but that service's jobs works without it. The checks are independent, so one service's missing data doesn't stop the other's jobs. Natively without the data, expect both lines. With the refmap data in place, it also checks the classification JSON built from it, and logs `refmap classifications will fail until the classification JSON is built (panther-engine refmap data build-json): …` if any organism's is missing ([An Organism's Classification](#an-organisms-classification)).
 
@@ -77,7 +83,7 @@ curl -si -X OPTIONS http://localhost:8000/api/v1/jobs -H 'Origin: https://panthe
 Three limits protect the API's memory and its queue. The first two answer with problem details, in fixed text that never repeats the request:
 
 - **A body over `PANTHER_API_MAX_BODY_BYTES` gets a `413`,** "The request body is larger than the API accepts, 16,777,216 bytes.", before it's parsed. A `Content-Length` over the limit is refused without reading the body; a body without one is refused as soon as it passes the limit. The default fits the largest valid request, a `refmap` job of 100,000 IDs of 64 characters, about 13 MB of JSON.
-- **A job that would wait past `PANTHER_API_MAX_QUEUED_JOBS` gets a `503`,** "Too many jobs are waiting to run. Try again later.", with `Retry-After: 30`, and no job is created. Up to `PANTHER_API_JOB_WORKERS` jobs run, and up to the cap wait. A request is validated first, so an invalid one is still a `422`.
+- **A job that would wait past `PANTHER_API_MAX_QUEUED_JOBS` gets a `503`,** "Too many jobs are waiting to run. Try again later.", with `Retry-After: 30`, and no job is created. Up to `PANTHER_API_JOB_WORKERS` jobs run, and up to the cap wait. A job waiting for its service's cap on running jobs, such as a second `hmmscore` job with `PANTHER_API_HMMSCORE_MAX_RUNNING` at 1, counts as waiting, though a worker is free; a job that runs at once on the free worker is never refused. So with the defaults, 51 `hmmscore` jobs are taken, 1 running and 50 waiting, and a `csnp` job still runs beside them. A request is validated first, so an invalid one is still a `422`.
 - **The finished jobs' results fit in `PANTHER_API_RESULTS_BUDGET_MIB`.** Each result is counted by the size of its JSON when its job finishes: about 4 MB for a `refmap` job of 100,000 IDs, a few kilobytes for a `csnp` job. A failed job counts nothing, and stays until its time. When a finishing job takes the total over the budget, the largest results expire first, the oldest first among equal sizes, before their 24 hours, so a burst of large jobs expires its own results rather than everyone's small ones. Polling an expired job gets the `404` any expired job gets. The default, 256 MiB, holds about 50 of the largest `refmap` jobs; the server sets the value that suits it. A `refmap` result is kept as the JSON its worker made, and a poll returns those bytes as they are.
 
 To see the `503`, start the dev server with one worker and no waiting allowed, then submit two `tools` jobs at once:
@@ -134,7 +140,7 @@ docker compose down                    # remove the container
 
 ## Try the Jobs by Hand
 
-There are three jobs: the built-in `tools` job, `csnp`, which scores coding SNPs ([below](#the-csnp-job)), and `refmap`, which maps protein IDs to PANTHER IDs ([The refmap Job](#the-refmap-job)). In a `tools` job, a worker process runs the engine's tool report and returns each tool's version. It checks that the API, the worker pool, the engine and the tools work together. Start the API in the image, so the tools are there, from the repository root:
+There are three jobs: the built-in `tools` job, `csnp`, which scores coding SNPs ([below](#the-csnp-job)), and `refmap`, which maps protein IDs to PANTHER IDs ([The refmap Job](#the-refmap-job)). An `hmmscore` request is validated, then refused with a `501` until its scoring is ported ([The hmmscore Job](#the-hmmscore-job)). In a `tools` job, a worker process runs the engine's tool report and returns each tool's version. It checks that the API, the worker pool, the engine and the tools work together. Start the API in the image, so the tools are there, from the repository root:
 
 ```sh
 docker compose up --build api
@@ -395,6 +401,43 @@ curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
   "errors": [
     { "loc": ["body", "refmap", "input", "organism"], "msg": "The organism must be the code of an organism refmap maps for, such as ENDPU.", "type": "value_error" },
     { "loc": ["body", "refmap", "input", "ids", 1], "msg": "Each ID must be 1 to 64 printable ASCII characters, with no spaces, such as P04217.", "type": "value_error" }
+  ]
+}
+```
+
+### The hmmscore Job
+
+An `hmmscore` job will score one protein against PANTHER's HMM library, with the engine's port of `scoreAlignXml.cgi`. Its contract is settled (`openspec/changes/add-hmmscore-job/`) and its input rules are in `openspec/changes/add-hmmscore-job/specs/scoring-input/spec.md` until the change is archived, but the engine doesn't score yet. So a valid request gets a `501` problem, and no job is created. It needs no data, so it works natively too:
+
+```sh
+curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
+  -d '{"service": "hmmscore", "input": {"sequence": ">sp|P02649|APOE_HUMAN\nMKVLWAALLVTFLAGCQAKV"}}'
+```
+
+```json
+{
+  "type": "about:blank",
+  "title": "Not Implemented",
+  "status": 501,
+  "detail": "HMM scoring isn't available yet."
+}
+```
+
+An invalid request still gets the `422` validation problem first, without the submitted sequence. The sequence is normalised as a `csnp` one is: trimmed, one FASTA header removed, whitespace removed and upper-cased. Then it may hold only letters, `.`, `_`, `~` and `*`, which HMMER 3.1b2 and 3.4 score alike, and at least one letter; one with none gets "The sequence has no residues." Anything else, such as `-` or a digit, is refused ([divergence 12](../parity/divergences.md)). It may have at most `PANTHER_API_HMMSCORE_MAX_RESIDUES` residues, 10,000 by default, counting every character but a final `*`; a longer one gets "The sequence has more than 10,000 residues." Here the sequence has a digit:
+
+```sh
+curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
+  -d '{"service": "hmmscore", "input": {"sequence": "MKVLWAALLV1TFLAGCQAKV"}}'
+```
+
+```json
+{
+  "type": "about:blank",
+  "title": "Unprocessable Content",
+  "status": 422,
+  "detail": "Request validation failed",
+  "errors": [
+    { "loc": ["body", "hmmscore", "input", "sequence"], "msg": "The sequence must be one-letter residue codes, the letters A to Z, and may also hold . _ ~ and *. Remove any -, digit, other punctuation or other character.", "type": "value_error" }
   ]
 }
 ```

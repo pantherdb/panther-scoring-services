@@ -15,8 +15,15 @@ from uuid import uuid4
 import panther_engine.csnp
 from panther_engine.core.errors import InputError
 
+from panther_api.jobs.hmmscore import HmmscoreResult
 from panther_api.jobs.tools import ToolsResult
-from panther_api.jobs.work import CsnpJobRequest, JobRequest, JobResult, run_job
+from panther_api.jobs.work import (
+    CsnpJobRequest,
+    HmmscoreJobRequest,
+    JobRequest,
+    JobResult,
+    run_job,
+)
 from panther_api.versions import ToolVersion
 
 # The fake tool versions, as conftest's FAKE_REPORTS gives them.
@@ -119,3 +126,28 @@ def score_with_a_fake_engine(request: JobRequest) -> JobResult:
     """The real `run_job`, in a worker, with the engine's `score()` replaced by fake_score()."""
     panther_engine.csnp.score = fake_score
     return run_job(request)
+
+
+# hmmscore jobs, with no engine: the router answers 501, so these run on a JobRunner, or with
+# the 501 removed for one test.
+
+NO_HIT = HmmscoreResult(hit=None)
+
+# The sequence of an hmmscore job that hold_hmmscore_jobs() fails, once its gate opens.
+FAILING_SEQUENCE = "FAILTHISIMAGINARYPROTEIN"
+
+
+def no_hmm_hit(request: JobRequest) -> JobResult:
+    """An hmmscore job finds no hit; any other job reports the fake tools."""
+    return NO_HIT if isinstance(request, HmmscoreJobRequest) else FAKE_RESULT
+
+
+def hold_hmmscore_jobs(request: JobRequest) -> JobResult:
+    """An hmmscore job stays running until the gate opens, then finds no hit, or fails if its
+    sequence is FAILING_SEQUENCE. Any other job succeeds at once."""
+    if not isinstance(request, HmmscoreJobRequest):
+        return FAKE_RESULT
+    wait_for_gate(request)
+    if request.input.sequence == FAILING_SEQUENCE:
+        raise RuntimeError("the hmmscore job failed")
+    return NO_HIT

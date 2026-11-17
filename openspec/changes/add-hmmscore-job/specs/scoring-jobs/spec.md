@@ -41,7 +41,7 @@ An `hmmscore` job SHALL have the shape every job has, with `service` `hmmscore` 
 
 ### Requirement: A cap on hmmscore jobs running at once
 
-The API SHALL run at most a configured number of `hmmscore` jobs at once, 1 by default. An `hmmscore` job past that number MUST wait with status `queued`, without holding a worker, and run when a running `hmmscore` job finishes. Jobs of other services MUST NOT wait for it.
+The API SHALL run at most a configured number of `hmmscore` jobs at once, 1 by default. An `hmmscore` job past that number MUST wait with status `queued`, without holding a worker, and run when a running `hmmscore` job finishes. Jobs of other services MUST NOT wait for it. A job waiting for the cap MUST count as waiting toward the cap on waiting jobs, and a job that would run at once on a free worker MUST NOT be refused for that cap.
 
 #### Scenario: Two hmmscore jobs with a cap of one
 
@@ -52,6 +52,21 @@ The API SHALL run at most a configured number of `hmmscore` jobs at once, 1 by d
 
 - **WHEN** the API runs with 2 workers and a cap of 1 running `hmmscore` job, one `hmmscore` job is running and a second is waiting for the cap, and a client submits a `tools` job
 - **THEN** the `tools` job runs on the free worker and reaches `succeeded` while the second `hmmscore` job still waits
+
+#### Scenario: hmmscore jobs waiting for the cap fill the queue
+
+- **WHEN** the API runs with 2 workers, a cap of 1 running `hmmscore` job and a cap of 3 waiting jobs, one `hmmscore` job is running and 3 are waiting for the cap, and a client submits another `hmmscore` job
+- **THEN** it is refused with status 503, and no job is created
+
+#### Scenario: Another service beside a full queue of hmmscore jobs
+
+- **WHEN** the API runs with 2 workers, a cap of 1 running `hmmscore` job and a cap of 3 waiting jobs, one `hmmscore` job is running and 3 are waiting for the cap, and a client submits a `tools` job, then a second one while the first is unfinished
+- **THEN** the first `tools` job runs on the free worker and reaches `succeeded`, and the second is refused with status 503, since it would wait
+
+#### Scenario: No waiting with a cap of one
+
+- **WHEN** the API runs with 2 workers, a cap of 1 running `hmmscore` job and a cap of 0 waiting jobs, one `hmmscore` job is running, and a client submits a second `hmmscore` job
+- **THEN** it is refused with status 503, and a `tools` job submitted next still runs
 
 #### Scenario: A failed hmmscore job frees its place
 

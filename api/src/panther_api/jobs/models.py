@@ -12,6 +12,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field, TypeAdapter
 
 from panther_api.jobs.csnp import CsnpResult
+from panther_api.jobs.hmmscore import HmmscoreResult
 from panther_api.jobs.refmap import RefmapResult
 from panther_api.jobs.tools import ToolsResult
 from panther_api.problems import Problem
@@ -68,7 +69,15 @@ class RefmapJob(JobFields[Literal["refmap"], RefmapResult]):
     """
 
 
+class HmmscoreJob(JobFields[Literal["hmmscore"], HmmscoreResult]):
+    """An `hmmscore` job, with the same fields as every job. `result` is the best-scoring
+    PANTHER HMM, or a null `hit`.
+
+    None is created until the engine's scoring is wired in: a valid request gets a 501.
+    """
+
+
 # Tagged by `service`, like the request, so the frontend narrows the result the same way.
-Job = Annotated[ToolsJob | CsnpJob | RefmapJob, Field(discriminator="service")]
+Job = Annotated[ToolsJob | CsnpJob | RefmapJob | HmmscoreJob, Field(discriminator="service")]
 
 JOB_ADAPTER: TypeAdapter[Job] = TypeAdapter(Job)

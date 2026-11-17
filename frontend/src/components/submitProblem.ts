@@ -1,4 +1,4 @@
-import { errorData, errorStatus, isUnreachable } from '@/app/api/errors'
+import { errorData, errorStatus, isProblem, isUnreachable } from '@/app/api/errors'
 
 /**
  * Why a submit didn't open a job, when it wasn't the input (a 422, which each form shows on its
@@ -6,11 +6,6 @@ import { errorData, errorStatus, isUnreachable } from '@/app/api/errors'
  * many jobs waiting; `unreachable` no answer from the API at all; `failed` anything else.
  */
 export type SubmitProblem = 'unavailable' | 'busy' | 'unreachable' | 'failed'
-
-function hasProblemDetails(error: unknown) {
-  const data = errorData(error)
-  return typeof data === 'object' && data !== null && 'status' in data && 'title' in data
-}
 
 /**
  * Classifies a failed `startJob`. A 501 or 503 without problem details came from something in
@@ -20,8 +15,8 @@ function hasProblemDetails(error: unknown) {
 export function submitProblem(error: unknown): SubmitProblem {
   if (isUnreachable(error)) return 'unreachable'
   const status = errorStatus(error)
-  if (status === 501 && hasProblemDetails(error)) return 'unavailable'
-  if (status === 503 && hasProblemDetails(error)) return 'busy'
+  if (status === 501 && isProblem(errorData(error))) return 'unavailable'
+  if (status === 503 && isProblem(errorData(error))) return 'busy'
   return 'failed'
 }
 

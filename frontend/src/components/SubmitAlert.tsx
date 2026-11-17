@@ -20,7 +20,8 @@ export function tryAgainIn(seconds: number | null): string {
 }
 
 // Why the last submit didn't open a job, in fixed text: the response could carry build
-// details. Every text says the input is kept, since it is.
+// details. The input is kept whatever the problem; every text but `failed`'s says so, and
+// `failed`'s is the cSNP and refmap forms' text from before the hmmscore form.
 export function SubmitAlert({ problem, title, retryAfter = null }: Props) {
   switch (problem) {
     case 'unavailable':

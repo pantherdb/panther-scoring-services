@@ -31,13 +31,27 @@
 
 - Open a pull request against `main`. The frontend developer writes the code, so another code owner approves it, with the `scoring-ui` delta and design.md's decisions.
 - After this merges, archive with `/opsx:archive`. The wiring change turns HMM scoring's "coming soon" off, which removes the notice, and REMOVES "HMM scoring not yet available" and "HMM scoring form says it isn't available yet". "hmmscore submit failures" stays.
-- Later ideas, not planned: an endpoint for the server's residue limit; a busy message on the cSNP and refmap forms; saying on the job page why an hmmscore job is queued.
+- Later ideas, not planned: an endpoint for the server's residue limit; a busy message on the cSNP and refmap forms; saying on the job page why an hmmscore job is queued; making the cSNP and refmap boxes read-only while a request is in flight, as the HMM scoring form's are since #79's review. Both still take edits while a submit is pending, so a `422` can land on text that has changed since it was sent.
 
 ## Notes
 
 ### Next action
 
-Split out of `add-hmmscore-job` on 2026-11-11, at the engine developer's request on #70, and in its own pull request, #71, approved and merged. Applied on `feat/apply-add-hmmscore-form`, 2026-11-16: every task is done, and 5.1's checks pass (below). Next: the frontend developer reviews the branch and opens its pull request against `main`; another code owner approves it.
+Split out of `add-hmmscore-job` on 2026-11-11, at the engine developer's request on #70, and in its own pull request, #71, approved and merged. Applied on `feat/apply-add-hmmscore-form`, 2026-11-16, in pull request #79. The engine developer's review of #79 is addressed, 2026-11-17 (Lessons learned), and 5.1's checks pass again (below). Next: pushing dismisses the approvals, so another code owner re-approves #79, then it merges.
+
+**5.1's results after #79's review, 2026-11-17:**
+
+| Check | Result |
+| ----- | ------ |
+| `npm run api:types:check` | Pass |
+| `npm run format:check` | Pass |
+| `npm run lint` | Pass |
+| `npm run type-check` | Pass |
+| `npm test -- --run` | Pass: 36 files, 552 tests |
+| `npm run test:e2e` (mock) | Pass: 46 tests, served on port 4183, as below |
+| `test:e2e:api`, against the API image on port 8001 | Pass: 56 tests, since the review changed the forms' `422` and `501` handling |
+| `npx markdownlint-cli2` on the changed Markdown | Pass |
+| `npx openspec validate add-hmmscore-form --strict --no-interactive` | Pass |
 
 **5.1's results, 2026-11-16:**
 
@@ -72,4 +86,5 @@ None.
 - **#71's reviews, 2026-11-12 and 13:** a character set can't express "one `*`, last"; "Edit and resubmit" reads `KEPT_FIELDS`, not only `formFields.ts`; moving a function moves its tests and breaks those that pinned the old page; a temporary `501` requirement stays apart from the lasting failures, as `wire-refmap` learned; a status alone doesn't prove the API answered; new-tab links and scroll boxes follow the existing accessibility rules; a full queue needs its own message; a final `*` isn't a residue, in the API too.
 - **#76, 2026-11-13:** the engine developer measured the characters again on amd64; 3.4 scores `.`, `_`, `~` and an inner `*` as 3.1b2 did, so they're accepted, and the form's checks follow `scoring-input` as #76 applies it. The earlier split hits came from a non-SSE build.
 - **Name a divergence by what it covers, not its row number,** until the row is on `main`: rows are numbered when a change is applied.
-- **Applying, 2026-11-16:** `transformErrorResponse` is the only place `Retry-After` can be read, since `unwrap()` drops the response; `submitProblem` classifies the error it returns. A handler named `useExample` reads as a hook to the lint, so the form's is `fillWithExample`. The hmmscore form's no-residues message adds "has no residues" to cSNP's, since the spec asks for it and the API says it; each service's rules carry their own messages. The slower checks after 30 seconds come from a timer in `useJob` that sets a flag for the job id it started with, since the page mustn't read the clock while rendering.
+- **Applying, 2026-11-16:** `transformErrorResponse` is the only place `Retry-After` can be read, since `unwrap()` drops the response; `submitProblem` classifies the error it returns. A handler named `useExample` reads as a hook to the lint, so the form's is `fillWithExample`. The hmmscore form's no-residues message adds "has no residues" to cSNP's, since the spec asks for it and the API says it; each service's rules carry their own messages. The slower checks after 30 seconds come from a timer in `useJob`, since the page mustn't read the clock while rendering.
+- **#79's review, 2026-11-17:** code moved from one form to shared code takes its faults with it, so read it again on the way: the regex trim was quadratic on `main` for cSNP before it reached hmmscore. A change for one service's jobs, here slower checks, stays with that service's jobs, timed from what the API says (`created_at`), not from when a page opened; and a form stays still while its request is in flight, or its answer can be about text no longer there.

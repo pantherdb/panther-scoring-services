@@ -57,21 +57,51 @@ export const HMMSCORE_SEQUENCE: SequenceRules = {
 }
 
 // The API's normalising steps, in its order: trim every character up to U+0020 (Java's
-// trim()), then one header line at the very start, then Java's \s.
-// eslint-disable-next-line no-control-regex -- matching control characters is the point: the API trims them
-const TRIMMED = /^[\u0000- ]+|[\u0000- ]+$/g
+// trim(), trimToSpace), then one header line at the very start, then Java's \s. Each is linear
+// in the text's length. A regex trim such as /^[\u0000- ]+|[\u0000- ]+$/ isn't: its second
+// branch starts again at every character of a run of spaces inside the text, and fails at its
+// end, which takes minutes on a million characters.
 const HEADER = /^>[^\n]*/
 const WHITESPACE = /[ \t\n\v\f\r]+/g
 const LETTER = /[A-Za-z]/
 
 const number = new Intl.NumberFormat('en-US')
 
+/** The text without every character up to U+0020 at either end, as Java's trim() does. */
+export function trimToSpace(text: string): string {
+  let start = 0
+  let end = text.length
+  while (start < end && text.charCodeAt(start) <= 0x20) start += 1
+  while (end > start && text.charCodeAt(end - 1) <= 0x20) end -= 1
+  return text.slice(start, end)
+}
+
+/**
+ * Whether the text has more than `most` characters as the API counts them, by code point, so
+ * an emoji in a header counts once. `length` counts UTF-16 code units, at least as many.
+ */
+function longerThan(text: string, most: number): boolean {
+  if (text.length <= most) return false
+  let count = 0
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i)
+    // A high surrogate followed by a low one is one code point.
+    if (code >= 0xd800 && code <= 0xdbff && i + 1 < text.length) {
+      const next = text.charCodeAt(i + 1)
+      if (next >= 0xdc00 && next <= 0xdfff) i += 1
+    }
+    count += 1
+    if (count > most) return true
+  }
+  return false
+}
+
 /** The sequence's problems under a service's rules, in the API's order: at most one. */
 export function checkSequence(text: string, rules: SequenceRules): string[] {
-  if (text.length > LONGEST_RAW_SEQUENCE) {
+  if (longerThan(text, LONGEST_RAW_SEQUENCE)) {
     return [`The sequence is longer than ${number.format(LONGEST_RAW_SEQUENCE)} characters.`]
   }
-  const trimmed = text.replace(TRIMMED, '')
+  const trimmed = trimToSpace(text)
   if ((trimmed.match(/>/g) ?? []).length > 1) {
     return [
       "The sequence has more than one '>', so it holds more than one sequence. Submit one protein.",

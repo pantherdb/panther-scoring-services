@@ -7,6 +7,7 @@ import {
   HMMSCORE_MOST_RESIDUES,
   HMMSCORE_SEQUENCE,
   LONGEST_RAW_SEQUENCE,
+  trimToSpace,
 } from '@/components/sequence'
 
 // `residues` residues as FASTA: a header, then lines of 60.
@@ -20,6 +21,67 @@ describe('the limits mirror scoring-input', () => {
   it('has the API’s numbers', () => {
     expect([LONGEST_RAW_SEQUENCE, CSNP_MOST_RESIDUES, HMMSCORE_MOST_RESIDUES]).toEqual([
       1_000_000, 50_000, 10_000,
+    ])
+  })
+})
+
+describe('trimToSpace', () => {
+  it('trims every character up to U+0020 at both ends, as Java’s trim() does, and nothing inside', () => {
+    expect(trimToSpace('\u0000\t\n M K \r\u001f')).toBe('M K')
+    expect(trimToSpace(' \n ')).toBe('')
+    expect(trimToSpace(' M ')).toBe(' M ')
+  })
+})
+
+describe('checkSequence, in time linear in the text', () => {
+  // A regex trim took about 0.6 s on 20,000 spaces inside the text, and grew with the square.
+  it.each([
+    ['cSNP', CSNP_SEQUENCE],
+    ['hmmscore', HMMSCORE_SEQUENCE],
+  ])('checks 100,000 spaces between two residues at once, with %s’s rules', (_name, rules) => {
+    const text = `M${' '.repeat(100_000)}K`
+
+    const started = performance.now()
+    const messages = checkSequence(text, rules)
+    const took = performance.now() - started
+
+    expect(messages).toEqual([])
+    expect(took).toBeLessThan(200)
+  })
+})
+
+describe('the raw limit, counted by code point as the API counts it', () => {
+  const emoji = '\u{1F600}'
+
+  it.each([
+    ['cSNP', CSNP_SEQUENCE],
+    ['hmmscore', HMMSCORE_SEQUENCE],
+  ])(
+    'accepts a header of astral characters over 1,000,000 code units but not code points, with %s’s rules',
+    (_name, rules) => {
+      const text = `>${emoji.repeat(500_000)}\nMKV`
+      expect(text.length).toBeGreaterThan(LONGEST_RAW_SEQUENCE)
+
+      expect(checkSequence(text, rules)).toEqual([])
+    }
+  )
+
+  it('refuses more than 1,000,000 code points of astral characters', () => {
+    const text = `>${emoji.repeat(LONGEST_RAW_SEQUENCE)}\nMKV`
+
+    expect(checkSequence(text, HMMSCORE_SEQUENCE)).toEqual([
+      expect.stringMatching(/1,000,000 characters/),
+    ])
+  })
+
+  it('counts at exactly 1,000,000 code points, a lone surrogate as one', () => {
+    // 1,000,001 code units: one emoji, then lone surrogates, to exactly 1,000,000 code points.
+    const text = `>${emoji}${'\ud800'.repeat(LONGEST_RAW_SEQUENCE - 6)}\nMKV`
+    expect(text.length).toBe(LONGEST_RAW_SEQUENCE + 1)
+
+    expect(checkSequence(text, CSNP_SEQUENCE)).toEqual([])
+    expect(checkSequence(`${text}V`, CSNP_SEQUENCE)).toEqual([
+      expect.stringMatching(/1,000,000 characters/),
     ])
   })
 })

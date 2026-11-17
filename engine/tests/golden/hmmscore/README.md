@@ -136,6 +136,63 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  sample/titin-1
 515ffdaa3c1ae8903eba8758b3e41cfbfd58f21436d8c088813db281f70b4c87  sample/titin-10000/cgi.xml
 ```
 
+### `full/`: The Reference on the Full Library
+
+The staging run: `panther-engine hmmscore parity reference --goldens full` on PANTHER 19's full library, after `data verify`, on 2026-11-17. It ran on `b11-19`, an AMD EPYC 7513 node of CARC's Endeavour cluster, in the `hmmscore-reference` image through Apptainer, with the engine at `3b92fe6` ([inputs.md](../../../../docs/parity/inputs.md#the-hmmscore-staging-run)). 3.1b2 read the library's shipped pressed files, as production's did. The files are as in `sample/`.
+
+- **Each case has the sample's hit, at the same score.** The E-values are about 316 times the sample's, since the library has 144,361 models to the sample's 456.
+- **`tie-pthr35774` ties here too,** at 89.5 bits and 7.3e-25, and its `cgi.xml` again shows `PTHR35774`.
+- **`titin-10000` has a hit here:** `PTHR11100:SF29`, titin, at 19443.0 bits and an E-value of 0. Its `hmmsearch` report aligns six domains to the model's 35,040 positions.
+- **`no-hit`, `over-cutoff` and `best-over-cutoff` have no hit,** as on the sample.
+
+Each file's sha256, from `parity/`, for `sha256sum --check`:
+
+```text
+b90bbf5f0ff651c330eb63033738054cd983b41cc3f9cea8db09a2ccf514c378  full/apoe-dot/best.tsv
+f3d642e456f81bd4ed517f2a66d565527a9e17d61b0d1f1f7b38aea1a53800f7  full/apoe-dot/cgi.xml
+c82061a70c29f978e123fd719b3adb0d96aa61f2df8d5cee5d3187e25f70d4f8  full/apoe-dot/hmmsearch/PTHR18976.SF2.out
+8a4e0a9c1bb4770757593bb5a20494b4c98b525daa7f7d788dadd8b07caef351  full/apoe-lower/best.tsv
+c9304487d38d25b6f4232b9d96ad793db09d5ee650a9b6e386abaaa036b4779e  full/apoe-lower/cgi.xml
+43267bc360aea7dce8e237af5f45c0f24cf57759a115c207d1af5abc524048ae  full/apoe-lower/hmmsearch/PTHR18976.SF2.out
+b90bbf5f0ff651c330eb63033738054cd983b41cc3f9cea8db09a2ccf514c378  full/apoe-star/best.tsv
+0d5afa29e47113ec11122f61a298bd2a9a88ef8393bfc0003a1704501404d353  full/apoe-star/cgi.xml
+6680fd43a875e181d3a60977f7a020f18f5e2e3c0b5bbfbaa68f7701f0eb04ba  full/apoe-star/hmmsearch/PTHR18976.SF2.out
+8f3db22821214674931a151f09d3cf24e3db3d04afaf859dfc8a1bae3ca61719  full/apoe-stop/best.tsv
+81dc5d7d3c62c524e9d2381127b3ab22a46d55ad1f0dbbd8a5f4f0bd1da9a89f  full/apoe-stop/cgi.xml
+0f0294d5089650238e97194ab3d6d73920093979dc2cb1e9431d4f727750b4fd  full/apoe-stop/hmmsearch/PTHR18976.SF2.out
+b90bbf5f0ff651c330eb63033738054cd983b41cc3f9cea8db09a2ccf514c378  full/apoe-tilde/best.tsv
+261e88f54c9a165888e639a32adb105b294e6feebf7230a851eec0677b889317  full/apoe-tilde/cgi.xml
+5db5adb9405b4d07b97d0a42bd50770d9586c999218427fabee85d2f16e77862  full/apoe-tilde/hmmsearch/PTHR18976.SF2.out
+640da13e5595302f33b46956852836c8955b0e1421381c61af4fd39483c08ad0  full/apoe-uncommon/best.tsv
+544f60e3362b6e4815cd8b5800a75aa7e4b95e8932371981a7a23dbc4e5cd6df  full/apoe-uncommon/cgi.xml
+a39faa7fc45beb315f2b644065dfddd502fab02afcc4258f1f6106832ee509d8  full/apoe-uncommon/hmmsearch/PTHR18976.SF2.out
+b90bbf5f0ff651c330eb63033738054cd983b41cc3f9cea8db09a2ccf514c378  full/apoe-underscore/best.tsv
+f3d642e456f81bd4ed517f2a66d565527a9e17d61b0d1f1f7b38aea1a53800f7  full/apoe-underscore/cgi.xml
+e88a1d2cbef61a2e2b7b0eeb673c177bb1f42dc827a8b49a1a519d31c121112f  full/apoe-underscore/hmmsearch/PTHR18976.SF2.out
+8a4e0a9c1bb4770757593bb5a20494b4c98b525daa7f7d788dadd8b07caef351  full/apoe/best.tsv
+c9304487d38d25b6f4232b9d96ad793db09d5ee650a9b6e386abaaa036b4779e  full/apoe/cgi.xml
+254325ac1ef564a3b49f81baaf6edb9b34d2800d12d1e60aed4bab011f9c0d1b  full/apoe/hmmsearch/PTHR18976.SF2.out
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  full/best-over-cutoff/best.tsv
+515ffdaa3c1ae8903eba8758b3e41cfbfd58f21436d8c088813db281f70b4c87  full/best-over-cutoff/cgi.xml
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  full/no-hit/best.tsv
+515ffdaa3c1ae8903eba8758b3e41cfbfd58f21436d8c088813db281f70b4c87  full/no-hit/cgi.xml
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  full/over-cutoff/best.tsv
+515ffdaa3c1ae8903eba8758b3e41cfbfd58f21436d8c088813db281f70b4c87  full/over-cutoff/cgi.xml
+6f7da9790efd8db148dd3fdad326468852c8f14a8642dd112cb27d99d4b1675f  full/pir-pthr34093/best.tsv
+5eba64f02c964d79a8f2f835d3bde4b2fcaf72520d1118dc967f15c562a4220e  full/pir-pthr34093/cgi.xml
+79c109548975cff4d46dc093394081b73bc4c3f4f4bd299ae70bedf3bf94c401  full/pir-pthr34093/hmmsearch/PTHR34093.out
+cee6a8ae7dc51e50cbcf6b508a153c91b8f93ffeae28b53456fbcbee8e0687a0  full/test/best.tsv
+77bb7b078f5b9a24a2de649cbcefc6b7e125e7d522fdb58dc2f378b7b3c35241  full/test/cgi.xml
+13b0c7c77ca7eb287f3cfa76f96c5f8f01a70ce94e460ec9e02222efe6b540a8  full/test/hmmsearch/PTHR10489.SF627.out
+b094e1eb9812089ab5f119d54255e5d4714b03013e7f3da3f7e7756516d60356  full/tie-pthr35774/best.tsv
+a5a99b7446269d90f5822967f30c4e970babc31707f80b9b7aa23769a9beda38  full/tie-pthr35774/cgi.xml
+17fffd9352046914647d7cb1ae8e1870090ae9b84134e262ff5725defdbc9ea3  full/tie-pthr35774/hmmsearch/PTHR35774.SF1.out
+0eaec26c97d9c5c374793ca6524f8e957261e1a3c83526a3b512bc3ed7c78462  full/tie-pthr35774/hmmsearch/PTHR35774.out
+dbf34b323681686dee5f90b4ce5d4e2dca7b42e7e426ab2189dd59ff8eda0bfa  full/titin-10000/best.tsv
+28d9f3d7b318a400cbf913c5caf298d8057fd99252322719ba0a51551d692838  full/titin-10000/cgi.xml
+91b1669d42f44f63b0b371f827c39b21037e5b25219ebf89d41b18c61a2448fa  full/titin-10000/hmmsearch/PTHR11100.SF29.out
+```
+
 ## Regenerating
 
 `example/apoe.fasta` doesn't change.

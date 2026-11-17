@@ -210,7 +210,7 @@ A case's expected result comes from `best.tsv`: no hit when it's empty; otherwis
 | ---- | -------- | ------------- |
 | `apoe` | The HMM scoring help page's example, human APOE, 317 residues | One best hit, `PTHR18976:SF2` at 439.0 bits, with its name and alignment. Also the reference's self-check |
 | `test` | The release's own query, `test.fasta`, 381 residues | A query that hits 773 models in 56 families on the full library; on the sample, `PTHR10489:SF627` among ten of those families |
-| `tie-pthr35774` | PTHR35774's consensus, 34 residues | The family model and its one subfamily's tie, at 89.5 bits and 2.3e-27: `best.tsv` lists both, the CGI showed one in hash order (`HMMSCORE-1`), and the port reports `PTHR35774:SF1` ([divergence 13](divergences.md)) |
+| `tie-pthr35774` | PTHR35774's consensus, 34 residues | The family model and its one subfamily's tie, at 89.5 bits, with 2.3e-27 on the sample and 7.3e-25 on the full library: `best.tsv` lists both, the CGI showed one in hash order (`HMMSCORE-1`), and the port reports `PTHR35774:SF1` ([divergence 13](divergences.md)) |
 | `pir-pthr34093` | The consensus of `PTHR34093..pir`, 269 residues, with its masked positions as `X` | A best model read as its family, `PTHR34093`, whose model file holds the family's model, not the one that scored (`HMMSCORE-9`) |
 | `no-hit` | 20 `W`s | No model reported, so `hit` is null |
 | `over-cutoff` | APOE's residues 189 to 208 | A table with a row whose best E-value, 0.0035, is over 1e-3: no hit (`HMMSCORE-5`'s cutoff) |
@@ -219,7 +219,7 @@ A case's expected result comes from `best.tsv`: no hit when it's empty; otherwis
 | `apoe-stop` | The example and a final `*` | A final stop, which `hmmscan` reads as a position: 2.3e-133, not 2.2e-133 |
 | `apoe-uncommon` | The example with `B`, `J`, `O`, `U`, `X` and `Z` | The uncommon letters, which both versions read |
 | `apoe-dot`, `apoe-underscore`, `apoe-tilde`, `apoe-star` | The example with three of the character, after residues 80, 160 and 240 | What `add-hmmscore-job` left for the goldens: 3.4 scores them as 3.1b2 did, on PANTHER's models. All four give 417.9 bits |
-| `titin-10000` | The first 10,000 residues of titin, UniProt Q8WZ42 | The API's residue limit ([divergence 11](divergences.md)), and the time limit's check in the staging run. No family of titin's is in the sample, so there it has no hit |
+| `titin-10000` | The first 10,000 residues of titin, UniProt Q8WZ42 | The API's residue limit ([divergence 11](divergences.md)), and the time limit's check in the staging run. No family of titin's is in the sample, so there it has no hit. On the full library, it's `PTHR11100:SF29`, titin, at 19443.0 bits |
 
 ### What Isn't in the hmmscore Set
 
@@ -228,4 +228,11 @@ A case's expected result comes from `best.tsv`: no hit when it's empty; otherwis
 
 ### The hmmscore Staging Run
 
-**M1's acceptance for hmmscore's engine:** `parity reference --goldens full` and `parity check --goldens full`, on an amd64 machine with the full library ([golden-setup.md](golden-setup.md#the-hmmscore-staging-run)). Not run yet: it needs an amd64 machine with the full library, about 67 GB, and room for the reference image.
+**M1's acceptance for hmmscore's engine.** On 2026-11-17, `parity reference --goldens full` and `parity check --goldens full` ran on PANTHER 19's full library, in the `hmmscore-reference` image through Apptainer ([golden-setup.md](golden-setup.md#the-hmmscore-staging-run-under-apptainer)). The machine was the survey's: `b11-19`, a node of CARC's Endeavour cluster, an AMD EPYC 7513, amd64, with 64 CPUs and 503 GB of memory, the whole node for the job. The engine was at `3b92fe6`, and the library on the cluster's shared BeeGFS file system.
+
+- **The library:** `data verify` found none of its 143,700 listed files missing or differing.
+- **The reference:** the self-check passed, and it wrote the 15 cases to `parity/full/`.
+- **Differences:** none. `parity check --goldens full` found all 15 cases matching, and exited 0.
+- **Time:** the port took 6 to 14 s for each case, at `--cpu 0`, and 233 s for `titin-10000`. The whole job, `data verify` included, took about 3 hours.
+
+Each case has the sample's hit, at the same score, with an E-value about 316 times the sample's: the library has 144,361 models to the sample's 456. `titin-10000` alone has a hit only here. The golden folder's README lists the files and their sha256s, and [the survey](hmmscore-library-survey.md#the-port-at-the-residue-limit) has the timings at the residue limit.

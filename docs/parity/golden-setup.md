@@ -261,3 +261,73 @@ docker run --rm -v "$PWD/engine:/work/engine" -v /full-data:/data:ro \
 - **3.1b2 reads the library's shipped pressed files** for `full`, as production's did; nothing is pressed.
 - **The time limit:** in fresh processes, time `titin-10000` and the example with `panther-engine hmmscore score --usage --cpu 0` ([engine.md](../testing/engine.md#scoring-from-the-command-line)), for #68 and the survey's timing section.
 - **Record the machine, the date and the result** in [inputs.md](inputs.md#the-hmmscore-staging-run), and commit `full/` with its sha256s in the golden folder's README.
+
+### The hmmscore Staging Run Under Apptainer
+
+On a cluster without Docker, such as CARC's Endeavour, where the survey fetched and measured the full library, the same image runs through Apptainer. Below, `<scratch>` is a folder on the cluster's scratch file system, and `<data>` is the data folder holding `hmmscore/19/`.
+
+1. **On a machine with Docker,** build the image as in [The hmmscore Reference Image](#the-hmmscore-reference-image). Then save its amd64 image, and copy it over:
+
+   ```sh
+   docker save --platform linux/amd64 -o hmmscore-reference.tar panther-hmmscore-reference
+   rsync -z --progress hmmscore-reference.tar <cluster>:<scratch>/
+   ```
+
+2. **On the cluster, on a compute node** (`salloc`), clone the branch, and convert the image. Keep Apptainer's cache and temporary files on scratch, not in your home folder:
+
+   ```sh
+   cd <scratch>
+   git clone --branch <branch> https://github.com/pantherdb/panther-scoring-services.git
+   export APPTAINER_CACHEDIR="$PWD/apptainer-cache" APPTAINER_TMPDIR="$PWD/apptainer-tmp"
+   mkdir -p "$APPTAINER_CACHEDIR" "$APPTAINER_TMPDIR"
+   module load apptainer    # if apptainer isn't on PATH
+   apptainer build hmmscore-reference.sif docker-archive://hmmscore-reference.tar
+   ```
+
+3. **Run it all as one job,** with `sbatch` from `<scratch>`. It writes `full/` into the clone:
+
+   ```bash
+   #!/bin/bash
+   #SBATCH --account=<account>
+   #SBATCH --partition=<partition>
+   #SBATCH --nodes=1
+   #SBATCH --exclusive
+   #SBATCH --mem=0
+   #SBATCH --time=06:00:00
+   #SBATCH --output=hmmscore-staging-%j.log
+   set -euo pipefail
+   data=<data>
+
+   run() {
+     apptainer exec --cleanenv \
+       --bind "$PWD/panther-scoring-services/engine:/work/engine" --bind "$data:/data:ro" \
+       --env PANTHER_DATA_DIR=/data --env PYTHONDONTWRITEBYTECODE=1 \
+       --pwd /work/engine hmmscore-reference.sif "$@"
+   }
+
+   hostname; lscpu | grep -E '^(Model name|CPU\(s\)):'; free -g | sed -n 2p; date -u
+   run panther-engine hmmscore data verify
+   run panther-engine hmmscore parity reference --goldens full
+   run panther-engine hmmscore parity check --goldens full || echo "parity check exited with status $?"
+   for query in tests/golden/hmmscore/example/apoe.fasta tests/golden/hmmscore/parity/inputs/titin-10000.txt; do
+     for attempt in 1 2; do
+       echo "== $query, run $attempt"
+       run panther-engine hmmscore score --usage --cpu 0 "$query" > /dev/null
+     done
+   done
+   ```
+
+   - **The whole node:**
+     - The timings shouldn't share CPUs.
+     - `pantherScore.pl` passes `hmmscan` no `--cpu`, so 3.1b2 starts a thread for each core, and each thread adds memory.
+     - To compare with the survey's timings, run on its node type, an AMD EPYC 7513 (`--nodelist`).
+   - **`data verify` comes first,** and the job stops if the library fails it. It took about 96 minutes on Endeavour's BeeGFS. The whole job took about 3 hours on 2026-11-17, on `b11-19`, the survey's node.
+   - **Apptainer runs as you,** so `--user` isn't needed. It doesn't use the image's working directory, hence `--pwd`. `--cleanenv` keeps the cluster's environment, such as its Python variables, out of the container.
+   - **Each `score` is a fresh process.** Its `--usage` lines go to the log, on standard error. The first of each pair may read the pressed files cold.
+
+4. **Bring `full/` and the log back** to your checkout, then record and commit them as above:
+
+   ```sh
+   rsync -a <cluster>:<scratch>/panther-scoring-services/engine/tests/golden/hmmscore/parity/full/ \
+     engine/tests/golden/hmmscore/parity/full/
+   ```

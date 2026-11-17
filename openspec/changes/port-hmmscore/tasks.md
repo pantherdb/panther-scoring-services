@@ -5,7 +5,7 @@ Work test-first: write each group's tests, see them fail, then make them pass. P
 ## 1. Shared Pieces and Docs
 
 - [x] 1.1 In `docs/parity/divergences.md`:
-  - add row 13, hmmscore's tied best hits (`HMMSCORE-1`). The reference showed one of the tied IDs in hash order; the port reports the subfamily before its family, then the lowest PANTHER ID (design.md, decision 3). Fill in "Approved by" with "Engine developer" and the date once they approve this change's pull request;
+  - add row 13, hmmscore's tied best hits (`HMMSCORE-1`). The reference showed one of the tied IDs in hash order; the port reports the subfamily before its family, then the lowest PANTHER ID (design.md, decision 3). Fill in "Approved by" with "Engine developer" and the date once they approve this change's pull request (done: approved on #81, 2026-11-17);
   - add `HMMSCORE-11` to the "Not listed" paragraph.
 
   Verify `npx markdownlint-cli2` passes.
@@ -93,7 +93,7 @@ Work test-first: write each group's tests, see them fail, then make them pass. P
 
   Unit-test the config, the environment and the arguments without Perl. Verify the self-check passes in the image on the sample.
 - [x] 4.4 Run `parity reference` on the sample, in the image, on amd64. Commit `parity/sample/`, with each file's sha256 in the README. Verify that `tie-pthr35774`'s `best.tsv` lists both PTHR35774 and `PTHR35774:SF1`, and that `cgi.xml` for `no-hit` is `<scores>\n</scores>\n`.
-- [ ] 4.5 Add `panther-engine hmmscore parity check` and `engine/tests/test_hmmscore_parity.py`, using `tools(…)` and `data("hmmscore")` (design.md, decisions 7 and 8):
+- [x] 4.5 Add `panther-engine hmmscore parity check` and `engine/tests/test_hmmscore_parity.py`, using `tools(…)` and `data("hmmscore")` (design.md, decisions 7 and 8):
   - every sample case gives its expected result;
   - a hand-changed golden E-value fails, naming the case;
   - the cross-checks hold for `cgi.xml`.
@@ -103,8 +103,8 @@ Work test-first: write each group's tests, see them fail, then make them pass. P
 
 ## 5. The Staging Run on the Full Library
 
-- [ ] 5.1 On an amd64 machine with the full library verified (`panther-engine hmmscore data verify`), run `parity reference` with the full library, and commit `parity/full/`. Then run `parity check --goldens full`. Record the machine, the date and the result in `inputs.md`. For any difference: fix the port if it's the port's fault, or propose a row. Verify `parity check --goldens full` exits 0.
-- [ ] 5.2 In fresh processes on the same machine, time `titin-10000` and APOE with `panther-engine hmmscore score --usage --cpu 0`. Add the wall time and peak memory to the survey doc's timing section, and comment them on #68. If `titin-10000` takes more than 240 s, propose a new time limit default there (design.md, decision 9). Verify both numbers are in the doc.
+- [x] 5.1 On an amd64 machine with the full library verified (`panther-engine hmmscore data verify`), run `parity reference` with the full library, and commit `parity/full/`. Then run `parity check --goldens full`. Record the machine, the date and the result in `inputs.md`. For any difference: fix the port if it's the port's fault, or propose a row. Verify `parity check --goldens full` exits 0. (Done on 2026-11-17, on Endeavour's `b11-19`: 15 of 15 cases match, and it exited 0. `full/` goes up with the push to #81.)
+- [x] 5.2 In fresh processes on the same machine, time `titin-10000` and APOE with `panther-engine hmmscore score --usage --cpu 0`. Add the wall time and peak memory to the survey doc's timing section, and comment them on #68. If `titin-10000` takes more than 240 s, propose a new time limit default there (design.md, decision 9). Verify both numbers are in the doc. (Done on 2026-11-17: `titin-10000` 229.0 s and 231.3 s, 6,136 MiB; APOE 13.0 s and 12.9 s, 63 MiB. Under 240 s, so no new default. Commented on #68 the same day.)
 
 ## 6. Final Check
 
@@ -112,7 +112,7 @@ Work test-first: write each group's tests, see them fail, then make them pass. P
 
 ## Workflow follow-up
 
-- Open a pull request against `main`. The engine developer approves it, and with it row 13. The API developer checks that `score()` is decision 4's interface, unchanged.
+- Open a pull request against `main`. The engine developer approves it, and with it row 13. The API developer checks that `score()` is decision 4's interface, unchanged. Done on #81: row 13 approved on 2026-11-17, and the interface checked in tmushayahama's review.
 - Archive `add-hmmscore-survey-and-sample` first, so `hmmscore-data` is in `openspec/specs/`, then archive this change with `/opsx:archive`.
 - Next, the wiring change:
   - remove `UNAVAILABLE`'s hmmscore row and the `501`;
@@ -125,23 +125,39 @@ Work test-first: write each group's tests, see them fail, then make them pass. P
 
 ### Next action
 
-Applied on 2026-11-16, at the developer's request, before the proposal had a review pull request of its own; `port-refmap` likewise shipped its proposal and code in one (#63). Groups 1 to 4 are done locally, apart from 4.5's CI check. Next:
+Applied on 2026-11-16, at the developer's request, before the proposal had a review pull request of its own; `port-refmap` likewise shipped its proposal and code in one (#63). Groups 1 to 4 are done. The pull request is #81, opened on 2026-11-17 at `3b92fe6`:
 
-1. Open the pull request against `main`, with the artifacts and the code. The engine developer approves row 13 there; fill in its "Approved by" and date then (1.1).
-2. Watch both `engine-image` legs run `tests/test_hmmscore_parity.py`, then tick 4.5. Both passed locally: the reference image on emulated amd64 (162 hmmscore tests, `parity check` 15 of 15) and the engine image on arm64 (the whole suite, `parity check` 15 of 15).
-3. Group 5 on an amd64 machine with the full library (Blockers), then 6.1's CI check.
+- **CI passed,** with both `engine-image` legs (4.5).
+- **tmushayahama approved it** from the API and frontend side. The interface is `add-hmmscore-job`'s decision 4, unchanged, and the review notes the wiring's error mapping for the wiring change's design.
+- **The engine developer approved row 13** on 2026-11-17.
 
-### Checks (6.1), 2026-11-16
+The pull request is held for group 5 (engine developer, 2026-11-17). A push dismisses the approval, so row 13's approval, 4.5's tick and group 5 go up together, for one re-approval.
+
+Group 5 ran on Endeavour on 2026-11-17, in one job on `b11-19`, the survey's node:
+
+- **5.1 is done:** `data verify` clean, and `parity check --goldens full` found all 15 cases matching. `full/`, its sha256s and the record in `inputs.md` are staged.
+- **5.2 is done:** the numbers are in the survey doc ("The Port at the Residue Limit") and on #68. `titin-10000` took 229.0 s and 231.3 s, under 240 s, so the 720 s default stands. It peaked at 6,136 MiB, more than the hosting server's 5 GiB available, which the #68 comment leaves for the deploy to measure.
+
+Next:
+
+1. Push it all to #81 (the engine developer's OK, 2026-11-17). Check that CI is green again on the new head, then tick 6.1, and ask tmushayahama to re-approve.
+2. Merge #81. Archive `add-hmmscore-survey-and-sample`, then this change.
+
+### Checks (6.1), 2026-11-16 and 2026-11-17
 
 - **The engine image, arm64,** `PANTHER_REQUIRE_DATA=1`: `ruff check` and `ruff format --check` clean, `basedpyright` 0 errors, `pytest` 1,499 passed, none skipped.
 - **The reference image, emulated amd64:** the hmmscore tests, 162 passed; `parity check` 15 of 15.
+- **Natively, on 2026-11-17:** `ruff check`, `ruff format --check` and `basedpyright` clean; `pytest` 1,443 passed, and all 56 skips are for tools the Mac lacks.
 - **From the root:** `npx markdownlint-cli2` 0 issues; `openspec validate port-hmmscore --strict` valid; `openspec validate --all` 17 passed.
-- **Not yet:** CI on the pull request, with both `engine-image` legs.
+- **CI on #81, at `3b92fe6`, 2026-11-17:** every job passed.
+  - Both `engine-image` legs, amd64 and arm64, ran with `PANTHER_REQUIRE_DATA=1`. Each passed 1,499 tests, with none skipped, among them `tests/test_hmmscore_parity.py`'s 42.
+  - The native `engine` job passed 1,443, skipping 56 for tools it doesn't install.
+- **The staging run, on Endeavour's `b11-19`, 2026-11-17:** `data verify` found none of 143,700 files missing or differing; `parity reference --goldens full` passed its self-check and wrote 15 cases; `parity check --goldens full` 15 of 15, exit 0.
+- **Still to do for 6.1:** CI on the head with group 5's commits.
 
 ### Blockers
 
-- **For group 5:** an amd64 machine with the full library (about 67 GB) and room for the reference image. The survey used the Endeavour node.
-- **4.5 and 6.1** need CI on the pull request.
+- **Cleared on 2026-11-17: group 5's machine.** It needed an amd64 machine with the full library (about 67 GB) and room for the reference image, so not the Mac: 53 GB free, and amd64 only under emulation, which can't time anything. It ran on Endeavour, where the library was on `/scratch2`, by `golden-setup.md`'s "The hmmscore Staging Run Under Apptainer".
 
 ### Decisions made while applying
 
@@ -157,6 +173,8 @@ None.
 - **From port-refmap:** capture a reference's output with `run_tool(stdout=…)`, since text-mode capture rewrites CR. And Perl's `split` into scalars keeps a trailing empty field.
 - **The query's name is part of the output:** `hmmsearch`'s report says `>> sequence`, so the port names the query as the CGI did.
 - **The Bioconda 3.1b2 tools run on the engine's Debian** as they are: no fallback build was needed (4.1).
+- **Apptainer runs the Docker-built reference image unchanged** on Endeavour: `docker save`, then `apptainer build` from the `docker-archive://`, and `apptainer exec` with `--cleanenv` and `--pwd` (5.1).
+- **Memory at the residue limit is the query's, not the library's:** `titin-10000` peaked at 6.0 GiB at `--cpu 0`, against 63 MiB for APOE, since titin hits its own models of up to 35,040 positions (5.2).
 - **`hmmsearch`'s reports end with the run's CPU time,** so the goldens are never the same bytes twice. Only the alignment section is compared.
 - **An `HMMSCORE-5` case is rare:** one in 110,991 windows of the sample's consensus sequences, APOE and `test.fasta`. Score and E-value only invert between models of different lengths, and here by 0.1 bit across 1e-3.
 - **Python's `float()` strips whitespace,** `\xa0` included, where Perl's numeric reading of such a string is 0. It only matters for a table HMMER never writes.

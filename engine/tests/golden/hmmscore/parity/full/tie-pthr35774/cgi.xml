@@ -1,0 +1,20 @@
+<scores>
+  <id>PTHR35774</id>
+  <eval>7.3e-25</eval>
+  <align>
+&gt;&gt; sequence  
+   #    score  bias  c-Evalue  i-Evalue hmmfrom  hmm to    alifrom  ali to    envfrom  env to     acc
+ ---   ------ ----- --------- --------- ------- -------    ------- -------    ------- -------    ----
+   1 !   89.4   4.4   5.4e-30   5.4e-30       1      34 []       1      34 []       1      34 [] 0.99
+
+  Alignments for each domain:
+  == domain 1  score: 89.4 bits;  conditional E-value: 5.4e-30
+  PTHR35774.orig.30.pir  1 MEVNIlaFIAtALFILVptaFLLIiYVKTvsqsd 34
+                           MEVNIlaFIAtALFILVptaFLLIiYVKTvsqsd
+               sequence  1 MEVNILAFIATALFILVPTAFLLIIYVKTVSQSD 34
+                           ********************************98 PP
+
+
+
+  </align>
+</scores>

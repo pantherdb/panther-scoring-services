@@ -57,7 +57,7 @@ None.
 - **CI:** no new job. The sample goldens run in the `engine-image` legs, which already fetch the sample.
 - **API:** none. The wiring change removes the `501`, calls `score()` with the time limit and `--cpu`, and adds the data check and data version.
 - **Parity with the reference:**
-  - **Proposed: a new row 13, for tied best hits (`HMMSCORE-1`).** The reference showed one of the tied models in hash order, at random. The port reports the subfamily before its family, then the lowest PANTHER ID. The engine developer is asked to approve the row on this change's pull request.
+  - **Row 13, approved: tied best hits (`HMMSCORE-1`).** The reference showed one of the tied models in hash order, at random. The port reports the subfamily before its family, then the lowest PANTHER ID. The engine developer approved the row on this change's pull request, #81, on 2026-11-17.
   - **Rows 11 and 12, approved,** are the API's. The engine never receives those sequences.
   - **HMMER: no row.** On amd64, 3.4 gives 3.1b2's tables and alignments (the survey). The goldens, made with 3.1b2, check that again on every case.
   - **Not replicated, and not rows,** since they don't change a correct request's answer:

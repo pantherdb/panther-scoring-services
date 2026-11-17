@@ -1,6 +1,6 @@
 # Golden Setup
 
-How to run each service's reference and regenerate its golden files: `csnp` and `refmap` so far. The goldens themselves are in `engine/tests/golden/<service>/`, each folder with a README giving every file's source and sha256. Why each input is in the set is in [inputs.md](inputs.md).
+How to run each service's reference and regenerate its golden files: `csnp`, `refmap` and `hmmscore` so far. The goldens themselves are in `engine/tests/golden/<service>/`, each folder with a README giving every file's source and sha256. Why each input is in the set is in [inputs.md](inputs.md).
 
 ## `csnp`
 
@@ -186,3 +186,78 @@ docker run --rm -v "$PWD/engine:/work/engine" -v "$PWD/.data:/data:ro" \
 - **It prints each organism's IDs and differences** as it goes, the first 20 differences of each, and a total. It exits with status 1 if any line differs.
 - **`--organism CODE`** runs only that organism; repeat it for more. Its extras still come from the next organism in the list, so a rerun of one organism checks the IDs the full run did, and that organism's file must be in the data folder too.
 - **It writes nothing** outside the container's `/tmp`, so it needs no `--user`. On 2026-11-06 it took 81 s on an Apple Silicon Mac. The result is in [inputs.md](inputs.md#the-refmap-full-run).
+
+## `hmmscore`
+
+The reference is `pantherdb/pantherScoring` at `89ea0ae`: `scoreAlignXml.cgi`, what the website called, and the `pantherScore.pl` it runs ([hmmscore-legacy-behaviour.md](hmmscore-legacy-behaviour.md)), with production's HMMER, 3.1b2.
+
+| Piece | Version |
+| ----- | ------- |
+| The scripts | `scoreAlignXml.cgi`, `pantherScore.pl` and `lib/` at `89ea0ae`, each pinned by sha256 in the root `Dockerfile` |
+| Perl | 5.40.1, Debian trixie's `perl` package, as for `csnp`, with `libyaml-libyaml-perl` for YAML::XS, which the CGI reads its `config.yaml` with |
+| HMMER | 3.1b2, Bioconda's `quay.io/biocontainers/hmmer:3.1b2--3` at digest `sha256:e7b1a7a131b7acd6546a6a77cfffc3007fc80f74f7b40b5c660fe29fda122158`, the survey's: `hmmscan`, `hmmsearch`, `hmmpress` and `hmmconvert`, in `/opt/hmmer-3.1b2/bin` |
+| The data | The data sample `hmmscore-sample-1` for `sample/`; the full library, pinned by `engine/src/panther_engine/hmmscore/data.json`, for `full/` ([engine.md](../testing/engine.md#the-hmmscore-data-sample)) |
+
+### The hmmscore Reference Image
+
+`hmmscore-reference` is a test-only stage of the root `Dockerfile`, built from the `engine` stage: the engine and HMMER 3.4, plus Debian's `perl` and YAML::XS, HMMER 3.1b2's four tools, and the scripts in `/opt/hmmscore-reference/`. The runtime `api` image has none of them. CI and compose never build it. It's **amd64 only**: 3.1b2 has no arm64 build with vector code, and the Bioconda image is amd64's alone. An Apple Silicon Mac builds and runs it under Docker's emulated amd64.
+
+`pantherdb/pantherScoring` is private, so the scripts come from your checkout, as a named build context, as for `csnp`. From the repository root, with `pantherScoring` at `../panther-workspace/legacy/pantherScoring`:
+
+```sh
+scripts="$(mktemp -d)"
+git -C ../panther-workspace/legacy/pantherScoring archive 89ea0ae \
+  scoreAlignXml.cgi pantherScore.pl lib | tar -x -C "$scripts"
+docker buildx build --platform linux/amd64 --load \
+  --build-context hmmscore-reference-scripts="$scripts" \
+  --target hmmscore-reference -t panther-hmmscore-reference .
+```
+
+- **Each file is checked against its pinned sha256,** and the folder must hold those twelve files and no other. A file that differs fails the build, and `sha256sum` names it: `pantherScore.pl: FAILED`.
+- **The stage checks that each HMMER tool runs** on the engine's Debian, and reports 3.1b2. If a later Bioconda image didn't, the fallback is building 3.1b2 from the survey's source tarball ([the survey](hmmscore-library-survey.md#hmmer-31b2-against-34)).
+- **Building any other stage on arm64 never pulls the 3.1b2 image,** and building this one for arm64 fails, saying it's amd64 only.
+
+### Regenerating the hmmscore Goldens
+
+The cases are in `engine/tests/golden/hmmscore/parity/cases.json`; why each is there is in [inputs.md](inputs.md#hmmscore). The image runs them with your working copy mounted over the engine and your data folder read-only, from the repository root:
+
+```sh
+docker run --rm --platform linux/amd64 -v "$PWD/engine:/work/engine" -v "$PWD/.data:/data:ro" \
+  -e PANTHER_DATA_DIR=/data -e PYTHONDONTWRITEBYTECODE=1 --user "$(id -u):$(id -g)" \
+  panther-hmmscore-reference panther-engine hmmscore parity reference
+```
+
+- **The self-check comes first:** `pantherScore.pl` on the example must give one line, `PTHR18976:SF2` at 439.0 bits, as the survey and `sample-hmmscan/amd64/apoe.domtblout` say. It catches an image that reads the library wrongly. Nothing is written unless it passes.
+- **For each case, one at a time,** in a fresh folder holding the CGI's `config.yaml` and links to the scripts, which the CGI finds by relative path:
+  1. the CGI, run with `REQUEST_METHOD=POST` and posted `sequence=<text>` on standard input. Its output, without the `Content-type` header, is `cgi.xml`;
+  2. `pantherScore.pl -l <library> -D B -n -i <query> -o best.tsv -H /opt/hmmer-3.1b2/bin`, the CGI's command with `-n` for the names. `best.tsv` lists every tied best ID, where the CGI shows only the first;
+  3. `hmmsearch` of the model file at each ID in `best.tsv`, as the CGI runs it, into `hmmsearch/`.
+
+  One at a time, because `pantherScore.pl` writes `hmmscan`'s table to a fixed `/tmp/temp.domtblout` (`HMMSCORE-7`). Each case's outputs replace its folder in `sample/` only once it has run; a case that fails leaves its goldens as they were.
+- **`--goldens sample`, the default,** has 3.1b2 read its own presses of the sample's models, as in the survey's task 10.1: `hmmconvert` turns `binHmm.h3m` back to text, `hmmpress` presses it, and `names.tab` and `books/` are linked beside it, since `FamLibBuilder::exists` needs both folders. The sample's own pressed files are 3.4's.
+- **`--case NAME`** runs one case; repeat it for more. **`--data-dir`** overrides `PANTHER_DATA_DIR`.
+- **It takes about 30 s** for the fifteen cases on an Apple Silicon Mac. The reports end with the run's CPU time, so a second run gives the same `best.tsv` and the same alignments, but not the same bytes. A tie's `best.tsv` and `cgi.xml` can list its IDs in another order.
+- **Then check the port against them,** in the engine image, natively on each architecture, and in the reference image for amd64:
+
+  ```sh
+  docker compose run --rm -T engine panther-engine hmmscore parity check
+  ```
+
+  It prints each case's time, every difference, and how many cases match, and exits with status 1 if any differs. CI runs the same comparison in `tests/test_hmmscore_parity.py`, on both `engine-image` legs. Where a case's arm64 result differs from the amd64 golden, save the port's arm64 result as `sample-arm64/<case>.json` with `parity.write_result`, and list what differs in the golden folder's README.
+- **Update the sha256s** in the golden folder's README, and commit `sample/` with them.
+
+### The hmmscore Staging Run
+
+M1's acceptance for hmmscore's engine: the same cases on the full library, into `full/`, on an amd64 machine with the full library verified (`panther-engine hmmscore data verify`, [engine.md](../testing/engine.md#the-hmmscore-full-library)) and the reference image. With the library's data folder at `/full-data`:
+
+```sh
+docker run --rm -v "$PWD/engine:/work/engine" -v /full-data:/data:ro \
+  -e PANTHER_DATA_DIR=/data -e PYTHONDONTWRITEBYTECODE=1 --user "$(id -u):$(id -g)" \
+  panther-hmmscore-reference sh -c '
+    panther-engine hmmscore parity reference --goldens full &&
+    panther-engine hmmscore parity check --goldens full'
+```
+
+- **3.1b2 reads the library's shipped pressed files** for `full`, as production's did; nothing is pressed.
+- **The time limit:** in fresh processes, time `titin-10000` and the example with `panther-engine hmmscore score --usage --cpu 0` ([engine.md](../testing/engine.md#scoring-from-the-command-line)), for #68 and the survey's timing section.
+- **Record the machine, the date and the result** in [inputs.md](inputs.md#the-hmmscore-staging-run), and commit `full/` with its sha256s in the golden folder's README.

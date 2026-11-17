@@ -15,22 +15,24 @@ def run_tool(
     program: Path | str,
     args: Sequence[str],
     *,
-    timeout: float,
+    timeout: float | None,
     input: str | None = None,
     cwd: Path | None = None,
     stdout: Path | None = None,
+    environment: Mapping[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Run `program` with `args`, never through a shell, and return the finished process.
 
     `program` is an absolute path, as `shutil.which` returns. Each item of `args` reaches the
     program unchanged, as one argument. `input`, if given, reaches the program's stdin unchanged,
-    as UTF-8 text. The program runs in the folder `cwd`, if given, with the caller's environment
-    and `FIXED_ENVIRONMENT` set over it. Output is captured as UTF-8 text, in which a carriage
+    as UTF-8 text. The program runs in the folder `cwd`, if given, with the caller's environment,
+    then `environment`'s variables, if given, then `FIXED_ENVIRONMENT`, each set over the one
+    before. Output is captured as UTF-8 text, in which a carriage
     return, alone or before a line feed, is read as a line feed. With `stdout`, the program's
     standard output goes to that file instead, byte for byte, as a shell's `>` would send it, and
     the result's `stdout` is empty. A non-zero exit status is not an error here: the caller checks
     `returncode`. Running past `timeout` seconds kills the program and raises
-    `subprocess.TimeoutExpired`.
+    `subprocess.TimeoutExpired`; with `timeout` None, the program runs until it ends.
     """
     path = Path(program)
     if not path.is_absolute():
@@ -48,7 +50,7 @@ def run_tool(
             shell=False,
             input=input,
             cwd=cwd,
-            env={**os.environ, **FIXED_ENVIRONMENT},
+            env={**os.environ, **(environment or {}), **FIXED_ENVIRONMENT},
             stdout=out,
             stderr=subprocess.PIPE,
             encoding="utf-8",

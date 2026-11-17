@@ -4,7 +4,7 @@
 
 | Service | Reference |
 | ------- | --------- |
-| `hmmscore` | Legacy Perl `pantherScore.pl` |
+| `hmmscore` | Legacy Perl `scoreAlignXml.cgi` and the `pantherScore.pl` it runs, with HMMER 3.1b2 |
 | `refmap` | Legacy Perl `map_panther.pl` |
 | `csnp` | Legacy Perl `snpScore.cgi` pipeline (`PANTHER_PSEP1.01.pl` and the scripts around it), on the frozen cSNP data |
 | `treegrafter` | EBI's Python `treegrafter` at the commit we pin. We adopt it rather than port the legacy Perl 1.01; leaving the Perl is [divergence 1](divergences.md) |

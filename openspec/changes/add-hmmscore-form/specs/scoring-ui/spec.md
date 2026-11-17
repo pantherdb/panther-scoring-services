@@ -41,7 +41,7 @@ Before sending, the HMM scoring form SHALL check the sequence against `scoring-i
 
 #### Scenario: Past the most residues in the hmmscore form
 
-- **WHEN** the user submits a sequence of 10,001 letters, or of 9,999 letters, `.` and `*` and one more letter
+- **WHEN** the user submits a sequence of 10,001 letters, or of 9,998 letters followed by `.*~`, 10,001 residues
 - **THEN** the sequence field says it's longer than 10,000 residues, and no request is sent
 
 #### Scenario: The most residues and a final stop

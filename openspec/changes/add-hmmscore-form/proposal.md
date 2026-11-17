@@ -4,7 +4,7 @@
 
 **Depends on:**
 
-- **`add-hmmscore-job`, applied and merged:** the `hmmscore` job contract, its `422`s and its `501`, and the regenerated `frontend/src/app/api/schema.d.ts`. The form's code starts after that change's code is on `main`, not after its proposal (#70).
+- **`add-hmmscore-job`, applied and merged in #76:** the `hmmscore` job contract, its `422`s and its `501`, and the regenerated `frontend/src/app/api/schema.d.ts`. The form's code starts after that change's code is on `main`, not after its proposal (#70).
 - **`wire-refmap`**, archived in #69: this change modifies two `scoring-ui` requirements that `wire-refmap` also modifies ("Services that aren't available yet" and "The home page shows every service"). Its text here starts from `wire-refmap`'s.
 
 **Follows `add-hmmscore-job` as applied in #76,** which took this review's points on the API side: the residue limit doesn't count a final `*`, a sequence with no letters is refused, and its Risks name the busy `503`'s `Retry-After`. #76 then accepted `.`, `_`, `~` and `*` anywhere, after the engine developer measured them again on amd64, and the form's checks follow.
@@ -40,9 +40,9 @@ None.
 
 - **Frontend code:** a new `src/features/hmmscore/`; `src/features/jobs/` (the hmmscore result, the titles, the next step, `KEPT_FIELDS`, the polling interval, `startJob`'s `Retry-After`); `src/features/csnp/` and `src/features/refmap/` (the shared check, example and submit failures); `src/components/`; `src/app/services.ts`, `router.tsx`, `formFields.ts` and `api/wire.ts`; `src/mocks/`; tests in `tests/` and `e2e/`.
 - **API contract:** none. The form reads the types `add-hmmscore-job` generates.
-- **Parity with the reference:** this change scores nothing, and the page shows the API's values as given. Its checks ship two divergences that `add-hmmscore-job` adds to `docs/parity/divergences.md` (its task 1.2):
-  - **the residue limit,** 10,000 where the reference took 50,000, approved by the product owner on 2026-11-12;
-  - **the refused sequences,** those the API refuses that the reference read differently or answered no hit for (`-`, no letters, digits and other characters, a `>` inside the sequence), proposed, and awaiting the engine developer's approval. The form's code waits for it (tasks.md, Blockers). If it's rejected, `scoring-input` changes and the form's checks follow it.
+- **Parity with the reference:** this change scores nothing, and the page shows the API's values as given. Its checks ship two divergences that `add-hmmscore-job` added to `docs/parity/divergences.md` in #76:
+  - **the residue limit,** row 11: 10,000 where the reference took 50,000, approved by the product owner on 2026-11-12;
+  - **the refused sequences,** row 12: those the API refuses that the reference read differently or answered no hit for (`-`, no letters, digits and other characters, a `>` inside the sequence), approved by the engine developer on 2026-11-16.
 
 ## Open Questions
 

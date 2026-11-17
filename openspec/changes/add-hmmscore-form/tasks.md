@@ -29,7 +29,7 @@
 
 ## Workflow follow-up
 
-- Open a pull request against `main`. The frontend developer approves the code, the `scoring-ui` delta and design.md's decisions; the engine developer reviews the `add-hmmscore-job` amendment.
+- Open a pull request against `main`. The frontend developer writes the code, so another code owner approves it, with the `scoring-ui` delta and design.md's decisions.
 - After this merges, archive with `/opsx:archive`. The wiring change turns HMM scoring's "coming soon" off, which removes the notice, and REMOVES "HMM scoring not yet available" and "HMM scoring form says it isn't available yet". "hmmscore submit failures" stays.
 - Later ideas, not planned: an endpoint for the server's residue limit; a busy message on the cSNP and refmap forms; saying on the job page why an hmmscore job is queued.
 
@@ -37,12 +37,14 @@
 
 ### Next action
 
-Split out of `add-hmmscore-job` on 2026-11-11, at the engine developer's request on #70, and in its own pull request, #71. Both reviews of #71 are addressed (Lessons learned). Next: the frontend developer approves the plan; code starts once the Blockers clear.
+Split out of `add-hmmscore-job` on 2026-11-11, at the engine developer's request on #70, and in its own pull request, #71. Both reviews of #71 are addressed (Lessons learned). Next: the engine developer approves the plan on #71, as another code owner, since the frontend developer wrote it. The Blockers have cleared, so code starts once it's approved.
 
 ### Blockers
 
-- **`add-hmmscore-job` applied and merged (#76):** the form reads its regenerated `schema.d.ts`, `api:types:check` needs its components, and `test:e2e:api` needs its `501`.
-- **The refused-sequences row approved:** the divergence `add-hmmscore-job` adds for the sequences the API refuses, narrowed on #76, which this form's checks ship. The engine developer is asked to approve it.
+None. Both have cleared:
+
+- **`add-hmmscore-job` applied and merged, in #76:** the form reads its regenerated `schema.d.ts`, `api:types:check` needs its components, and `test:e2e:api` needs its `501`.
+- **The refused-sequences row approved:** row 12, which this form's checks ship, narrowed on #76 and approved by the engine developer on 2026-11-16.
 
 ### Failed approaches
 

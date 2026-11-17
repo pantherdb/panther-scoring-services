@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { createJob } from '@/mocks/jobs'
 
@@ -239,6 +239,89 @@ describe('submitting an hmmscore request', () => {
     release()
     await waitFor(() => expect(router.state.location.pathname).toMatch(JOB_PATH))
   })
+
+  it('keeps the box and the example as they are while the request is in flight', async () => {
+    let release = () => {}
+    const bodies = serveStart(
+      () =>
+        HttpResponse.json(
+          {
+            ...problem(422, 'Unprocessable Content'),
+            errors: [
+              {
+                loc: ['body', 'hmmscore', 'input', 'sequence'],
+                msg: 'The sequence has more than 5,000 residues.',
+                type: 'value_error',
+              },
+            ],
+          },
+          { status: 422, headers: PROBLEM }
+        ),
+      new Promise<void>(resolve => (release = resolve))
+    )
+    const text = letters(5_001)
+    const { user } = renderRoute('/hmmscore')
+    enter(text)
+
+    await user.click(submitButton())
+
+    await waitFor(() => expect(sequenceBox()).toHaveAttribute('readonly'))
+    expect(main().getByRole('button', { name: /use an example/i })).toBeDisabled()
+    await user.type(sequenceBox(), 'XYZ')
+    expect(sequenceBox()).toHaveValue(text)
+    release()
+    // The 422 is about the text still in the box, which can be edited again.
+    await waitFor(() => expect(sequenceBox()).toBeInvalid())
+    expect(sequenceBox()).toHaveValue(text)
+    expect(sequenceBox()).not.toHaveAttribute('readonly')
+    expect(main().getByRole('button', { name: /use an example/i })).toBeEnabled()
+    expect(bodies).toHaveLength(1)
+  })
+})
+
+describe('an earlier answer from the API', () => {
+  // Submits a valid sequence to a busy API, so its alert shows.
+  async function busyShown() {
+    serveProblem(503, problem(503, 'Service Unavailable'), { 'Retry-After': '30' })
+    const rendered = renderRoute('/hmmscore')
+    enter(VALID)
+    await rendered.user.click(submitButton())
+    expect(await main().findByRole('alert')).toHaveTextContent(/busy/i)
+    return rendered
+  }
+
+  it('goes when a client check fails, since nothing was sent', async () => {
+    const { user } = await busyShown()
+    enter('')
+
+    await user.click(submitButton())
+
+    expect(sequenceBox()).toBeInvalid()
+    expect(main().queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('goes when the box is edited', async () => {
+    const { user } = await busyShown()
+
+    await user.type(sequenceBox(), 'L')
+
+    expect(main().queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('goes when the example replaces the box', async () => {
+    const { user } = await busyShown()
+
+    await user.click(main().getByRole('button', { name: /use an example/i }))
+
+    expect(main().queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('stays while nothing has changed', async () => {
+    await busyShown()
+
+    expect(main().getByRole('alert')).toBeInTheDocument()
+    expect(sequenceBox()).toHaveValue(VALID)
+  })
 })
 
 describe("the API's validation errors", () => {
@@ -376,6 +459,23 @@ describe('after submitting', () => {
     expect(router.state.location.pathname).toBe('/hmmscore')
     expect(main().getByText(/filled in from your earlier job/i)).toBeInTheDocument()
     expect(sequenceBox()).toHaveValue(VALID)
+  })
+
+  it('reads the kept input once, not again as the box is edited', async () => {
+    serveStart()
+    const { user } = renderRoute('/hmmscore')
+    enter(VALID)
+    await user.click(submitButton())
+    expect(await main().findByRole('status')).toHaveTextContent(/queued/i)
+    await user.click(main().getByRole('link', { name: /edit and resubmit/i }))
+    expect(sequenceBox()).toHaveValue(VALID)
+    const reads = vi.spyOn(Storage.prototype, 'getItem')
+
+    await user.type(sequenceBox(), 'LWAA')
+
+    expect(sequenceBox()).toHaveValue(`${VALID}LWAA`)
+    expect(reads).not.toHaveBeenCalled()
+    reads.mockRestore()
   })
 
   it('drops the note when the example replaces the edited input', async () => {

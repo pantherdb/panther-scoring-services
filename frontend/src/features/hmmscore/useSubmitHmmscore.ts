@@ -52,5 +52,10 @@ export function useSubmitHmmscore(onRejected: (rejection: Rejection) => void) {
     }
   }
 
-  return { submit, isSubmitting: isLoading, failure }
+  /** Hides the last failure, once what it was about has changed or another check has failed. */
+  function clearFailure() {
+    setFailure(null)
+  }
+
+  return { submit, isSubmitting: isLoading, failure, clearFailure }
 }

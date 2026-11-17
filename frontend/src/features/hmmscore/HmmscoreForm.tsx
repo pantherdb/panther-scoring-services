@@ -17,19 +17,21 @@ const NO_ERRORS: Errors = { sequence: [], form: [] }
 // The HMM scoring form: one box, the example, and submitting. One box, so the draft is plain
 // state. The client checks run first; the API's errors then land on the same box.
 export function HmmscoreForm() {
-  // From "Edit and resubmit", the earlier job's input, read once, on mount. The page remounts the
-  // form when it's opened again, so a new visit starts from its own state.
+  // From "Edit and resubmit", the earlier job's input, which the hook reads once, on mount. The
+  // page remounts the form when it's opened again, so a new visit starts from its own state.
   const edited = useEditedInput('hmmscore')
   const [sequence, setSequence] = useState(edited?.sequence ?? '')
   const [filledFromJob, setFilledFromJob] = useState(edited !== undefined)
   const [errors, setErrors] = useState<Errors>(NO_ERRORS)
-  const { submit, isSubmitting, failure } = useSubmitHmmscore(({ sequence, other }: Rejection) =>
-    setErrors({ sequence, form: other })
+  const { submit, isSubmitting, failure, clearFailure } = useSubmitHmmscore(
+    ({ sequence, other }: Rejection) => setErrors({ sequence, form: other })
   )
 
+  // Whatever was said about the last input, the API's alert included, no longer applies.
   function edit(text: string) {
     setSequence(text)
     setErrors(NO_ERRORS)
+    clearFailure()
   }
 
   function fillWithExample() {
@@ -41,6 +43,9 @@ export function HmmscoreForm() {
     event.preventDefault()
     const found = checkHmmscore({ sequence })
     setErrors({ sequence: found, form: [] })
+    // Nothing is sent when a check fails, so an earlier answer from the API mustn't stay beside
+    // its message.
+    clearFailure()
     if (found.length === 0) void submit({ sequence })
   }
 
@@ -48,7 +53,7 @@ export function HmmscoreForm() {
     <form noValidate onSubmit={onSubmit} className="flex flex-col gap-4">
       {filledFromJob && <FilledFromJob />}
       <div>
-        <Button variant="subtle" onClick={fillWithExample}>
+        <Button variant="subtle" onClick={fillWithExample} disabled={isSubmitting}>
           Use an example
         </Button>
       </div>
@@ -60,6 +65,9 @@ export function HmmscoreForm() {
         spellCheck={false}
         classNames={{ input: 'font-mono' }}
         value={sequence}
+        // Read-only while a request is in flight, so its answer is about what the box holds: a 422
+        // on an edited sequence would be about text no longer there.
+        readOnly={isSubmitting}
         onChange={event => edit(event.currentTarget.value)}
         error={errors.sequence.length > 0 ? errors.sequence.join(' ') : undefined}
       />

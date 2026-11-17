@@ -1,13 +1,17 @@
 import { Alert } from '@mantine/core'
 
-import type { SubmitProblem } from './submitProblem'
+import type { NotStarted } from './submitProblem'
 
 type Props = {
-  problem: SubmitProblem | null
+  /** The last submit's failure, other than a 422; none to show nothing. */
+  failure: NotStarted | null
   /** The service's title, as `services.ts` gives it, for the `unavailable` and `busy` texts. */
   title: string
-  /** The seconds the API said to wait, from `Retry-After`; null without them. */
-  retryAfter?: number | null
+  /**
+   * Show `unavailable` and `busy` as `failed`: the cSNP and refmap forms' requirements give
+   * every failure but a 422 and no answer at all the one message.
+   */
+  limited?: boolean
 }
 
 /** When to try again: "in about 30 seconds", "in about 2 minutes", or "in a few minutes". */
@@ -22,8 +26,12 @@ export function tryAgainIn(seconds: number | null): string {
 // Why the last submit didn't open a job, in fixed text: the response could carry build
 // details. The input is kept whatever the problem; every text but `failed`'s says so, and
 // `failed`'s is the cSNP and refmap forms' text from before the hmmscore form.
-export function SubmitAlert({ problem, title, retryAfter = null }: Props) {
-  switch (problem) {
+export function SubmitAlert({ failure, title, limited = false }: Props) {
+  const shown =
+    limited && (failure?.problem === 'unavailable' || failure?.problem === 'busy')
+      ? 'failed'
+      : (failure?.problem ?? null)
+  switch (shown) {
     case 'unavailable':
       return (
         <Alert title={`${title} isn’t available yet`}>
@@ -33,8 +41,8 @@ export function SubmitAlert({ problem, title, retryAfter = null }: Props) {
     case 'busy':
       return (
         <Alert title={`${title} is busy`}>
-          Too many jobs are waiting, so no job was started. Try again {tryAgainIn(retryAfter)}. Your
-          input is kept on this page.
+          Too many jobs are waiting, so no job was started. Try again{' '}
+          {tryAgainIn(failure?.retryAfter ?? null)}. Your input is kept on this page.
         </Alert>
       )
     case 'unreachable':

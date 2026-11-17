@@ -49,10 +49,10 @@ cSNP's `checkSequence` moves from `features/csnp/checks.ts` to `src/components/s
 
 The `useSubmit*` hooks repeat the same classification, and `csnp/SubmitAlert.tsx` and `refmap/SubmitAlert.tsx` differ only in an import. Both move to `src/components/`:
 
-- **`submitProblem(error)`** returns `unavailable` for a `501` with problem details, `busy` for a `503` with problem details, `unreachable` as `isUnreachable` says, and `failed` for the rest. A `501` or `503` without problem details came from something in between, such as nginx answering 501 for an unsupported `Transfer-Encoding`, and is `unreachable`. Each hook still handles its `422` first, on its own fields.
-- **cSNP and refmap** show `unavailable` and `busy` as `failed`, as their requirements say. hmmscore shows each.
+- **`submitProblem(error)`** returns `unavailable` for a `501` with problem details, `busy` for a `503` with problem details, `unreachable` as `isUnreachable` says, and `failed` for the rest. A `501` or `503` without problem details came from something in between, such as nginx answering 501 for an unsupported `Transfer-Encoding`, and is `unreachable`. `submitFailure(service, error)` wraps it for the three hooks: a `422` with errors is `rejected`, carrying the validation problem, which each hook puts on its own fields; anything else is its `submitProblem` and `Retry-After`, logged in development. So the `422` test and the classification are written once (review of #79).
+- **cSNP and refmap** show `unavailable` and `busy` as `failed`, as their requirements say, by passing `limited` to `SubmitAlert`. hmmscore shows each.
 - **`Retry-After`:** `startJob` gains a `transformErrorResponse` that adds the header's seconds to the error, since `unwrap()` drops the response. Whole seconds give "in about N seconds" (or minutes, past 90); anything else gives "in a few minutes".
-- **`SubmitAlert`** takes the problem, the service's title for the `unavailable` and `busy` texts, and the seconds.
+- **`SubmitAlert`** takes the failure, its problem and seconds, the service's title for the `unavailable` and `busy` texts, and `limited`.
 
 ### 4. The results
 

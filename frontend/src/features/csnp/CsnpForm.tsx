@@ -27,7 +27,7 @@ export function CsnpForm() {
   // page remounts the form when it's opened again, so a new visit starts from its own state.
   const edited = useEditedInput('csnp')
   const [draft, dispatch] = useReducer(draftReducer, edited, startingDraft)
-  const { submit, isSubmitting, problem } = useSubmitCsnp(dispatch)
+  const { submit, isSubmitting, failure } = useSubmitCsnp(dispatch)
   const species = useCsnpSpecies()
   const { values, errors } = draft
 
@@ -94,7 +94,7 @@ export function CsnpForm() {
           </ul>
         </Alert>
       )}
-      <SubmitAlert problem={problem} title={service('csnp').title} />
+      <SubmitAlert failure={failure} title={service('csnp').title} limited />
       <div>
         <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
           Score substitutions

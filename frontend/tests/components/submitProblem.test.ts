@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 
 import { makeStore } from '@/app/store'
-import { retryAfterOf, submitProblem } from '@/components/submitProblem'
+import { retryAfterOf, submitFailure, submitProblem } from '@/components/submitProblem'
 import { tryAgainIn } from '@/components/SubmitAlert'
 import { jobsApi } from '@/features/jobs/jobsApi'
 
@@ -54,6 +54,37 @@ async function busyError(headers: Record<string, string>) {
   }
   throw new Error('The job was started')
 }
+
+describe('submitFailure', () => {
+  const validation = {
+    ...problem(422),
+    errors: [{ loc: ['body', 'hmmscore', 'input', 'sequence'], msg: 'Bad.', type: 'value_error' }],
+  }
+
+  it("is rejected, with the problem, for the API's 422 with errors", () => {
+    expect(submitFailure('hmmscore', { status: 422, data: validation })).toEqual({
+      problem: 'rejected',
+      validation,
+    })
+  })
+
+  it.each([
+    ['a 422 with no errors', { status: 422, data: { ...validation, errors: [] } }],
+    ['a 422 that is not a validation problem', { status: 422, data: problem(422) }],
+  ])('is failed for %s, as the forms were before', (_name, error) => {
+    expect(submitFailure('csnp', error)).toEqual({ problem: 'failed', retryAfter: null })
+  })
+
+  it("gives any other failure's problem, and its Retry-After", () => {
+    const busy = { status: 503, data: problem(503), retryAfter: 30 }
+
+    expect(submitFailure('hmmscore', busy)).toEqual({ problem: 'busy', retryAfter: 30 })
+    expect(submitFailure('refmap', { status: 'FETCH_ERROR', error: 'x' })).toEqual({
+      problem: 'unreachable',
+      retryAfter: null,
+    })
+  })
+})
 
 describe("startJob's Retry-After", () => {
   it('adds whole seconds to the error, which stays busy', async () => {

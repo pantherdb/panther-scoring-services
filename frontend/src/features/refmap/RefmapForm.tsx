@@ -34,7 +34,7 @@ export function RefmapForm() {
   // page remounts the form when it's opened again, so a new visit starts from its own state.
   const edited = useEditedInput('refmap')
   const [draft, dispatch] = useReducer(draftReducer, edited, startingDraft)
-  const { submit, isSubmitting, problem } = useSubmitRefmap(dispatch)
+  const { submit, isSubmitting, failure } = useSubmitRefmap(dispatch)
   const organisms = useRefmapOrganisms()
   const { values, errors } = draft
   // The count follows the box a render behind, so typing in a list of 100,000 IDs isn't held
@@ -92,7 +92,7 @@ export function RefmapForm() {
           </ul>
         </Alert>
       )}
-      <SubmitAlert problem={problem} title={service('refmap').title} />
+      <SubmitAlert failure={failure} title={service('refmap').title} limited />
       <div>
         <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
           Map IDs

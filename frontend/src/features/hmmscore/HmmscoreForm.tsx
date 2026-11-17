@@ -80,11 +80,7 @@ export function HmmscoreForm() {
           </ul>
         </Alert>
       )}
-      <SubmitAlert
-        problem={failure?.problem ?? null}
-        title={service('hmmscore').title}
-        retryAfter={failure?.retryAfter ?? null}
-      />
+      <SubmitAlert failure={failure} title={service('hmmscore').title} />
       <div>
         <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
           Score sequence

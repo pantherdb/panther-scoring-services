@@ -20,7 +20,7 @@
 
 ## 4. End to End and Docs
 
-- [ ] 4.1 Add `e2e/hmmscore.spec.ts`: untagged, the notice and the empty form's error; `@mock`, the example from the home page to the mocked hit and alignment, and at mobile width the alignment box scrolls sideways and the page doesn't; `@api`, the real `501` shown as not available yet with the sequence kept, and a `422` shown on the sequence field. Point `e2e/shell.spec.ts`'s coming-soon test (79) at `/treegrafter`, and add `/hmmscore` to `e2e/mock-data.spec.ts`'s no-banner check. Verify `npm run test:e2e` passes, and `test:e2e:api` against the API image on port 8001 (never 8000), then stop the container.
+- [x] 4.1 Add `e2e/hmmscore.spec.ts`: untagged, the notice and the empty form's error; `@mock`, the example from the home page to the mocked hit and alignment, and at mobile width the alignment box scrolls sideways and the page doesn't; `@api`, the real `501` shown as not available yet with the sequence kept, and a `422` shown on the sequence field. Point `e2e/shell.spec.ts`'s coming-soon test (79) at `/treegrafter`, and add `/hmmscore` to `e2e/mock-data.spec.ts`'s no-banner check. Verify `npm run test:e2e` passes, and `test:e2e:api` against the API image on port 8001 (never 8000), then stop the container.
 - [ ] 4.2 Add `docs/manual-qa/04-hmmscore-form.md`, following its README (`TC n.m`, a checkbox per visible step, Pass / Fail and Notes). Update `docs/testing/frontend.md`: mocked `hmmscore` jobs, `hmmscoreJob`, serving the `501` and a busy `503`, and the hmmscore e2e spec. Verify `npx markdownlint-cli2` passes.
 
 ## 5. Final Check

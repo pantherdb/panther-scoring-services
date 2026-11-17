@@ -56,6 +56,7 @@ test('shows no mock data banner against the real API', { tag: '@api' }, async ({
     ['/', page.getByRole('main').getByRole('heading', { level: 2 }).first()],
     ['/csnp', page.getByRole('main').getByLabel(/species/i)],
     ['/refmap', page.getByRole('main').getByRole('combobox', { name: /organism/i })],
+    ['/hmmscore', page.getByRole('main').getByRole('textbox', { name: /protein sequence/i })],
     ['/does-not-exist', page.getByRole('heading', { level: 2, name: /not found/i })],
   ] as const) {
     await page.goto(path)

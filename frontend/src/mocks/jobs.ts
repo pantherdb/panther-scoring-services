@@ -9,24 +9,27 @@ type WireJob =
 type Service = WireJob['service']
 type JobStatus = components['schemas']['JobStatus']
 
-/** What a refmap job was submitted with; other services ignore it. */
-type RefmapRequest = { ids: readonly string[]; organism: string }
+/**
+ * What a job was submitted with, and when: a refmap job maps `ids` against `organism`, and an
+ * hmmscore job says it was created `createdAt`; other services ignore them.
+ */
+type Submitted = { ids: readonly string[]; organism: string; createdAt: string }
 
 // Each service's job body. A refmap job maps the IDs it was submitted with, against its organism.
-const JOB_BODIES: Record<
-  Service,
-  (id: string, status: JobStatus, request: RefmapRequest) => WireJob
-> = {
-  tools: toolsJob,
-  csnp: csnpJob,
-  refmap: (id, status, { ids, organism }) => refmapJob(id, status, ids, organism),
-  hmmscore: hmmscoreJob,
-}
+// An hmmscore job gives the time it was created, since the job page checks it less often once
+// it's 30 seconds old; the others keep the fixed times of src/mocks/data/jobs.ts.
+const JOB_BODIES: Record<Service, (id: string, status: JobStatus, request: Submitted) => WireJob> =
+  {
+    tools: toolsJob,
+    csnp: csnpJob,
+    refmap: (id, status, { ids, organism }) => refmapJob(id, status, ids, organism),
+    hmmscore: (id, status, { createdAt }) => hmmscoreJob(id, status, createdAt),
+  }
 
 // The mocked API's jobs, by id, with their service, what a refmap job was submitted with, and
 // how many times each has been polled. A job moves forward one status per poll: queued, then
 // running, then succeeded.
-const jobs = new Map<string, { service: Service; request: RefmapRequest; polls: number }>()
+const jobs = new Map<string, { service: Service; request: Submitted; polls: number }>()
 
 const STATUS_BY_POLL = ['queued', 'running', 'succeeded'] as const
 
@@ -40,7 +43,7 @@ export function createJob(
   organism = 'ENDPU'
 ): WireJob {
   const id = crypto.randomUUID()
-  const request = { ids, organism }
+  const request = { ids, organism, createdAt: new Date().toISOString() }
   jobs.set(id, { service, request, polls: 0 })
   return JOB_BODIES[service](id, 'queued', request)
 }

@@ -20,7 +20,7 @@
 - **Submitting** through the existing `startJob` mutation: a `202` opens `/jobs/{id}`; the API's `501` says, in fixed text, that HMM scoring isn't available yet; a busy `503` says when to try again, from `Retry-After`; an unreachable API and any other failure reuse the other forms' messages. Each keeps the sequence.
 - **hmmscore results on the job page:** the hit's PANTHER ID, linking to its page on pantherdb.org in a new tab, its name, its E-value and bit score as the API gives them, and the alignment as monospaced text that scrolls within its own box, by keyboard too. With no hit, it says there were no hits to PANTHER for the sequence.
 - **HMM scoring's tab and card** open the form, and keep the "coming soon" mark until the wiring, as ID mapping did. A job's next step links to an empty form, and "Edit and resubmit" works.
-- **Shared with the cSNP and refmap forms,** in `src/components/`: the sequence check and its limits, the APOE sequence, the submit-failure classification and its alert. The job page takes every service's title from `services.ts`, and checks a long job less often after its first 30 seconds.
+- **Shared with the cSNP and refmap forms,** in `src/components/`: the sequence check and its limits, the APOE sequence, the submit-failure classification and its alert. The job page takes every service's title from `services.ts`, and checks an hmmscore job less often once it is 30 seconds old.
 - **Mocks:** a mocked `hmmscore` job succeeds with an obviously made-up hit and an alignment wider than a phone. Tests reproduce the real `501` and a busy `503` with `server.use`.
 - **Docs:** `docs/manual-qa/04-hmmscore-form.md`, and `docs/testing/frontend.md` for mocked `hmmscore` jobs.
 

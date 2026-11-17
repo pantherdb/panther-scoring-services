@@ -177,10 +177,14 @@ export const hmmscoreResult: HmmscoreResult = {
   },
 }
 
-/** An hmmscore job in the given status, with the mock hit once it has succeeded. */
-export function hmmscoreJob(id: string, status: JobStatus): HmmscoreJob {
+/**
+ * An hmmscore job in the given status, with the mock hit once it has succeeded. `createdAt` is
+ * when it was created, the same fixed time as every mocked job's unless given.
+ */
+export function hmmscoreJob(id: string, status: JobStatus, createdAt = CREATED_AT): HmmscoreJob {
   return {
     ...jobFields(id, status, 'hmmscore'),
+    created_at: createdAt,
     service: 'hmmscore',
     result: status === 'succeeded' ? hmmscoreResult : null,
   }

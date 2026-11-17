@@ -65,7 +65,7 @@ In `src/features/jobs/`:
 
 ### 5. Checking a long job
 
-The job page checks a queued or running job every second (`JOB_POLL_INTERVAL_MS`, `jobsApi.ts` 14). An hmmscore job can wait behind the running cap and then run up to 720 s, so one tab would send hundreds to thousands of `GET`s. The page checks every second for a job's first 30 seconds on the page, then every 5 seconds. The tools job (about 1.5 s) and a typical cSNP job still show each status as it happens, and a 720 s job costs about 170 checks.
+The job page checks a queued or running job every second (`JOB_POLL_INTERVAL_MS`, `jobsApi.ts` 14). An hmmscore job can wait behind the running cap and then run up to 720 s, so one tab would send hundreds to thousands of `GET`s. The page checks an hmmscore job every second for its first 30 seconds after it was created (its `createdAt`), then every 5 seconds, so a 720 s job costs about 170 checks. Timing from `createdAt` rather than from when the page opened keeps the saving across a reload, or several people opening the job's link. Every other job is checked every second throughout, as before: the tools job takes about 1.5 s, and a typical cSNP job about 30 s, so a slower check after 30 s would hold back many cSNP results by up to 5 s (review of #79).
 
 ### 6. Mocks and tests
 

@@ -12,15 +12,16 @@ import {
  * 1.5 s, so each status shows as it happens; a poll is a small in-memory lookup.
  */
 export const JOB_POLL_INTERVAL_MS = 1000
-/** How long a job is checked every JOB_POLL_INTERVAL_MS after its page opens. */
+/** How long an hmmscore job is checked every JOB_POLL_INTERVAL_MS after it was created. */
 export const JOB_FAST_POLL_FOR_MS = 30_000
 /**
- * How often a job is checked after that: an hmmscore job can wait behind the running cap, then
- * run for up to 720 s, and checking every second would send hundreds of requests.
+ * How often an hmmscore job is checked after that: it can wait behind the running cap, then run
+ * for up to 720 s, and checking every second would send hundreds of requests. Other jobs are
+ * checked every JOB_POLL_INTERVAL_MS throughout.
  */
 export const JOB_SLOW_POLL_INTERVAL_MS = 5000
 
-/** How often to check a job, by whether its page has been open past JOB_FAST_POLL_FOR_MS. */
+/** How often to check a job, by whether it's an hmmscore job past JOB_FAST_POLL_FOR_MS. */
 export function jobPollInterval(slow: boolean) {
   return slow ? JOB_SLOW_POLL_INTERVAL_MS : JOB_POLL_INTERVAL_MS
 }

@@ -71,6 +71,15 @@ describe('a mocked hmmscore job', () => {
     expect(job?.service === 'hmmscore' && job.result).toEqual(hmmscoreResult)
   })
 
+  it('says it was created when it was made, so its page checks it every second at first', () => {
+    const before = Date.now()
+    const { id, created_at } = createJob('hmmscore')
+
+    expect(Date.parse(created_at)).toBeGreaterThanOrEqual(before)
+    expect(Date.parse(created_at)).toBeLessThanOrEqual(Date.now())
+    expect(pollJob(id)?.created_at).toBe(created_at)
+  })
+
   it('has an obviously made-up hit, and an alignment marked as mock, wider than a phone', () => {
     const { hit } = hmmscoreResult
 

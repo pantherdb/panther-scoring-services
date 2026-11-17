@@ -108,7 +108,7 @@ Work test-first: write each group's tests, see them fail, then make them pass. P
 
 ## 6. Final Check
 
-- [ ] 6.1 Run the engine's checks in the image, with tools and data required: `ruff check`, `ruff format --check`, `basedpyright` and `pytest`. From the root, run `npx markdownlint-cli2`, `npx openspec validate port-hmmscore --strict --no-interactive` and `npx openspec validate --all --no-interactive`. Verify all pass, and record the results in Notes. Verify CI is green on the pull request, both `engine-image` legs included.
+- [x] 6.1 Run the engine's checks in the image, with tools and data required: `ruff check`, `ruff format --check`, `basedpyright` and `pytest`. From the root, run `npx markdownlint-cli2`, `npx openspec validate port-hmmscore --strict --no-interactive` and `npx openspec validate --all --no-interactive`. Verify all pass, and record the results in Notes. Verify CI is green on the pull request, both `engine-image` legs included. (Done on 2026-11-17: CI green at `b4db444`, with group 5.)
 
 ## Workflow follow-up
 
@@ -140,7 +140,7 @@ Group 5 ran on Endeavour on 2026-11-17, in one job on `b11-19`, the survey's nod
 
 Next:
 
-1. Push it all to #81 (the engine developer's OK, 2026-11-17). Check that CI is green again on the new head, then tick 6.1, and ask tmushayahama to re-approve.
+1. Done: pushed to #81 as `b4db444` on 2026-11-17, with the engine developer's OK. CI passed there, so 6.1 is ticked. Then ask tmushayahama to re-approve the head with this tick.
 2. Merge #81. Archive `add-hmmscore-survey-and-sample`, then this change.
 
 ### Checks (6.1), 2026-11-16 and 2026-11-17
@@ -153,7 +153,8 @@ Next:
   - Both `engine-image` legs, amd64 and arm64, ran with `PANTHER_REQUIRE_DATA=1`. Each passed 1,499 tests, with none skipped, among them `tests/test_hmmscore_parity.py`'s 42.
   - The native `engine` job passed 1,443, skipping 56 for tools it doesn't install.
 - **The staging run, on Endeavour's `b11-19`, 2026-11-17:** `data verify` found none of 143,700 files missing or differing; `parity reference --goldens full` passed its self-check and wrote 15 cases; `parity check --goldens full` 15 of 15, exit 0.
-- **Still to do for 6.1:** CI on the head with group 5's commits.
+- **From the root, before `b4db444`, 2026-11-17:** `npx markdownlint-cli2` 0 issues; `openspec validate port-hmmscore --strict` valid; `openspec validate --all` 17 passed. The engine's code is unchanged since `3b92fe6`, so the image checks above stand.
+- **CI on #81, at `b4db444`, 2026-11-17,** with group 5: every job passed. Both `engine-image` legs passed 1,499 tests with none skipped, `tests/test_hmmscore_parity.py`'s 42 among them. The native `engine` job passed 1,443, skipping 56 for tools it doesn't install.
 
 ### Blockers
 

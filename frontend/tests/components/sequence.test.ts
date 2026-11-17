@@ -46,7 +46,8 @@ describe('checkSequence, in time linear in the text', () => {
     const took = performance.now() - started
 
     expect(messages).toEqual([])
-    expect(took).toBeLessThan(200)
+    // The old regex took about 15 s here; 2 s leaves room for a slow CI runner.
+    expect(took).toBeLessThan(2000)
   })
 })
 

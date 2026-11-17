@@ -15,8 +15,8 @@
 
 ## 3. hmmscore Results on the Job Page
 
-- [ ] 3.1 Implement `src/features/jobs/HmmscoreHit.tsx` and `AlignmentText.tsx`, render them from `JobResult`, and add the next step to `JobNextSteps` (design.md, decision 4).
-- [ ] 3.2 Write `tests/features/jobs/HmmscoreHit.test.tsx`: the PANTHER ID and its link (encoded, `target`, `rel`, the accessible name), the name, the E-value and score as given, the alignment's spaces and line breaks kept, its box focusable and named, no hit, no hit or alignment while running, the versions, the heading from `services.ts`; and the next step's link to an empty form. Verify `npm test -- --run` passes.
+- [x] 3.1 Implement `src/features/jobs/HmmscoreHit.tsx` and `AlignmentText.tsx`, render them from `JobResult`, and add the next step to `JobNextSteps` (design.md, decision 4).
+- [x] 3.2 Write `tests/features/jobs/HmmscoreHit.test.tsx`: the PANTHER ID and its link (encoded, `target`, `rel`, the accessible name), the name, the E-value and score as given, the alignment's spaces and line breaks kept, its box focusable and named, no hit, no hit or alignment while running, the versions, the heading from `services.ts`; and the next step's link to an empty form. Verify `npm test -- --run` passes.
 
 ## 4. End to End and Docs
 
@@ -37,7 +37,7 @@
 
 ### Next action
 
-Split out of `add-hmmscore-job` on 2026-11-11, at the engine developer's request on #70, and in its own pull request, #71, approved and merged. Applying on `feat/apply-add-hmmscore-form`: sections 1 and 2 are done. Next: section 3, the results on the job page.
+Split out of `add-hmmscore-job` on 2026-11-11, at the engine developer's request on #70, and in its own pull request, #71, approved and merged. Applying on `feat/apply-add-hmmscore-form`: sections 1 to 3 are done. Next: section 4, end to end and docs.
 
 ### Blockers
 

@@ -25,7 +25,7 @@
 
 ## 5. Final Check
 
-- [ ] 5.1 In `frontend/`: `npm run api:types:check`, `format:check`, `lint`, `type-check`, `npm test -- --run` and `npm run test:e2e`. From the root: `npx markdownlint-cli2`, `npx openspec validate --all --no-interactive` and `npx openspec validate add-hmmscore-form --strict --no-interactive`. All pass; record the results in Notes.
+- [x] 5.1 In `frontend/`: `npm run api:types:check`, `format:check`, `lint`, `type-check`, `npm test -- --run` and `npm run test:e2e`. From the root: `npx markdownlint-cli2`, `npx openspec validate --all --no-interactive` and `npx openspec validate add-hmmscore-form --strict --no-interactive`. All pass; record the results in Notes.
 
 ## Workflow follow-up
 
@@ -37,7 +37,22 @@
 
 ### Next action
 
-Split out of `add-hmmscore-job` on 2026-11-11, at the engine developer's request on #70, and in its own pull request, #71, approved and merged. Applying on `feat/apply-add-hmmscore-form`: sections 1 to 3 are done. Next: section 4, end to end and docs.
+Split out of `add-hmmscore-job` on 2026-11-11, at the engine developer's request on #70, and in its own pull request, #71, approved and merged. Applied on `feat/apply-add-hmmscore-form`, 2026-11-16: every task is done, and 5.1's checks pass (below). Next: the frontend developer reviews the branch and opens its pull request against `main`; another code owner approves it.
+
+**5.1's results, 2026-11-16:**
+
+| Check | Result |
+| ----- | ------ |
+| `npm run api:types:check` | Pass |
+| `npm run format:check` | Pass |
+| `npm run lint` | Pass |
+| `npm run type-check` | Pass |
+| `npm test -- --run` | Pass: 35 files, 520 tests |
+| `npm run test:e2e` (mock) | Pass: 46 tests, desktop and mobile. Run with the repo's config served on port 4183 instead of 4173, which another project's preview server held on the machine |
+| `test:e2e:api`, against the API image on port 8001 | Pass: 56 tests, the data sample mounted read-only. A first run had one failure, the tools job still queued after 15 s on mobile while the real `csnp` jobs ran beside it; it passed alone and on a second full run |
+| `npx markdownlint-cli2` | Pass: 0 issues in 211 files |
+| `npx openspec validate --all --no-interactive` | Pass: 16 of 16, with four "requirement text is very long" warnings |
+| `npx openspec validate add-hmmscore-form --strict --no-interactive` | Pass |
 
 ### Blockers
 
@@ -48,7 +63,7 @@ None. Both have cleared:
 
 ### Failed approaches
 
-None yet.
+None.
 
 ### Lessons learned
 
@@ -57,3 +72,4 @@ None yet.
 - **#71's reviews, 2026-11-12 and 13:** a character set can't express "one `*`, last"; "Edit and resubmit" reads `KEPT_FIELDS`, not only `formFields.ts`; moving a function moves its tests and breaks those that pinned the old page; a temporary `501` requirement stays apart from the lasting failures, as `wire-refmap` learned; a status alone doesn't prove the API answered; new-tab links and scroll boxes follow the existing accessibility rules; a full queue needs its own message; a final `*` isn't a residue, in the API too.
 - **#76, 2026-11-13:** the engine developer measured the characters again on amd64; 3.4 scores `.`, `_`, `~` and an inner `*` as 3.1b2 did, so they're accepted, and the form's checks follow `scoring-input` as #76 applies it. The earlier split hits came from a non-SSE build.
 - **Name a divergence by what it covers, not its row number,** until the row is on `main`: rows are numbered when a change is applied.
+- **Applying, 2026-11-16:** `transformErrorResponse` is the only place `Retry-After` can be read, since `unwrap()` drops the response; `submitProblem` classifies the error it returns. A handler named `useExample` reads as a hook to the lint, so the form's is `fillWithExample`. The hmmscore form's no-residues message adds "has no residues" to cSNP's, since the spec asks for it and the API says it; each service's rules carry their own messages. The slower checks after 30 seconds come from a timer in `useJob` that sets a flag for the job id it started with, since the page mustn't read the clock while rendering.

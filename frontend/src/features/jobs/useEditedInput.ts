@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useLocation } from 'react-router'
 
 import { type EditableService, keptInput, type KeptValues } from './keptInput'
@@ -22,8 +23,15 @@ function isEditState(state: unknown): state is EditState {
  * On a form opened by "Edit and resubmit", the earlier job's input as typed, with every box
  * the form has; otherwise, or when that input is no longer kept, none. The state isn't in the
  * URL, so the address stays the form's own.
+ *
+ * Read once, when the form mounts: the input can be about 1 MB, so it isn't read from session
+ * storage and parsed again on every keystroke. Each form page keys its form on `location.key`,
+ * so opening the form again mounts it afresh and reads again.
  */
 export function useEditedInput<S extends EditableService>(service: S): KeptValues<S> | undefined {
   const { state } = useLocation()
-  return isEditState(state) ? keptInput(state.editJob, service) : undefined
+  const [edited] = useState(() =>
+    isEditState(state) ? keptInput(state.editJob, service) : undefined
+  )
+  return edited
 }

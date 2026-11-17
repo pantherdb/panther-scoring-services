@@ -37,7 +37,7 @@ type Props = {
 
 function NotAvailableNotice({ title }: Props) {
   return (
-    <p className="rounded-md bg-primary-50 px-3 py-2 text-sm text-primary-900">
+    <p role="note" className="rounded-md bg-primary-50 px-3 py-2 text-sm text-primary-900">
       {title} isn’t available on this site yet, so a sequence submitted now won’t be scored. You can
       try the form in the meantime.
     </p>

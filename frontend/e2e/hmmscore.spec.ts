@@ -36,16 +36,24 @@ async function openFormWithExample(page: Page) {
 }
 
 // Untagged: the notice and the client checks send nothing, so this holds in every mode.
-test("says HMM scoring isn't available yet, and checks an empty form", async ({ page }) => {
+test('shows a notice before the box, and checks an empty form', async ({ page }) => {
   await page.goto('/hmmscore')
   const main = page.getByRole('main')
   const { sequence, submit } = fields(page)
-  await expect(main.getByText(/isn.t available on this site yet/i)).toBeVisible()
+  // The notice that HMM scoring isn't available yet, before the box.
+  const notice = main.getByRole('note')
+  await expect(notice).toBeVisible()
+  const noticeFirst = await notice.evaluate(
+    (element, box) =>
+      box !== null && !!(element.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING),
+    await sequence.elementHandle()
+  )
+  expect(noticeFirst).toBe(true)
 
   await submit.click()
 
   await expect(sequence).toHaveAttribute('aria-invalid', 'true')
-  await expect(sequence).toHaveAccessibleDescription(/no residues/i)
+  await expect(main.getByRole('alert')).toHaveCount(0)
   await expect(page).toHaveURL(FORM_URL)
   await expectNoBuildDetails(page)
   await expectNoSidewaysScroll(page)
@@ -115,8 +123,9 @@ test(
 
     await submit.click()
 
-    await expect(alert).toHaveText(/hmm scoring isn.t available yet/i)
+    await expect(alert).toBeVisible()
     await expect(alert).not.toHaveText(STATUS_CODES)
+    await expect(sequence).not.toHaveAttribute('aria-invalid', 'true')
     await expect(sequence).toHaveValue(APOE_SEQUENCE)
     await expect(submit).toBeEnabled()
     await expect(page).toHaveURL(FORM_URL)
@@ -141,7 +150,8 @@ test(
     await submit.click()
 
     await expect(sequence).toHaveAttribute('aria-invalid', 'true')
-    await expect(sequence).toHaveAccessibleDescription(/letters A to Z/)
+    await expect(sequence).toHaveValue(APOE_SEQUENCE)
+    await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0)
     await expect(page).toHaveURL(FORM_URL)
     await expectNoBuildDetails(page)
   }

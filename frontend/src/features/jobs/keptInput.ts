@@ -1,4 +1,4 @@
-import { CSNP_FIELDS, REFMAP_FIELDS } from '@/app/formFields'
+import { CSNP_FIELDS, HMMSCORE_FIELDS, REFMAP_FIELDS } from '@/app/formFields'
 import type { JobService } from '@/app/api/wire'
 
 // A job's input as the user typed it, kept in this tab's session storage so the job's page
@@ -8,7 +8,11 @@ import type { JobService } from '@/app/api/wire'
 // disk. That's acceptable for a convenience: nothing here is sent anywhere.
 
 /** Each form's boxes. A kept input is used only when it has every one. */
-export const KEPT_FIELDS = { csnp: CSNP_FIELDS, refmap: REFMAP_FIELDS } as const
+export const KEPT_FIELDS = {
+  csnp: CSNP_FIELDS,
+  refmap: REFMAP_FIELDS,
+  hmmscore: HMMSCORE_FIELDS,
+} as const
 
 /** A service whose form "Edit and resubmit" can fill. */
 export type EditableService = keyof typeof KEPT_FIELDS

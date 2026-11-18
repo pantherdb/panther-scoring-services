@@ -49,10 +49,10 @@ cSNP's `checkSequence` moves from `features/csnp/checks.ts` to `src/components/s
 
 The `useSubmit*` hooks repeat the same classification, and `csnp/SubmitAlert.tsx` and `refmap/SubmitAlert.tsx` differ only in an import. Both move to `src/components/`:
 
-- **`submitProblem(error)`** returns `unavailable` for a `501` with problem details, `busy` for a `503` with problem details, `unreachable` as `isUnreachable` says, and `failed` for the rest. A `501` or `503` without problem details came from something in between, such as nginx answering 501 for an unsupported `Transfer-Encoding`, and is `unreachable`. Each hook still handles its `422` first, on its own fields.
-- **cSNP and refmap** show `unavailable` and `busy` as `failed`, as their requirements say. hmmscore shows each.
+- **`submitProblem(error)`** returns `unavailable` for a `501` with problem details, `busy` for a `503` with problem details, `unreachable` as `isUnreachable` says, and `failed` for the rest. A `501` or `503` without problem details came from something in between, such as nginx answering 501 for an unsupported `Transfer-Encoding`, and is `unreachable`. `submitFailure(service, error)` wraps it for the three hooks: a `422` with errors is `rejected`, carrying the validation problem, which each hook puts on its own fields; anything else is its `submitProblem` and `Retry-After`, logged in development. So the `422` test and the classification are written once (review of #79).
+- **cSNP and refmap** show `unavailable` and `busy` as `failed`, as their requirements say, by passing `limited` to `SubmitAlert`. hmmscore shows each.
 - **`Retry-After`:** `startJob` gains a `transformErrorResponse` that adds the header's seconds to the error, since `unwrap()` drops the response. Whole seconds give "in about N seconds" (or minutes, past 90); anything else gives "in a few minutes".
-- **`SubmitAlert`** takes the problem, the service's title for the `unavailable` and `busy` texts, and the seconds.
+- **`SubmitAlert`** takes the failure, its problem and seconds, the service's title for the `unavailable` and `busy` texts, and `limited`.
 
 ### 4. The results
 
@@ -65,7 +65,7 @@ In `src/features/jobs/`:
 
 ### 5. Checking a long job
 
-The job page checks a queued or running job every second (`JOB_POLL_INTERVAL_MS`, `jobsApi.ts` 14). An hmmscore job can wait behind the running cap and then run up to 720 s, so one tab would send hundreds to thousands of `GET`s. The page checks every second for a job's first 30 seconds on the page, then every 5 seconds. The tools job (about 1.5 s) and a typical cSNP job still show each status as it happens, and a 720 s job costs about 170 checks.
+The job page checks a queued or running job every second (`JOB_POLL_INTERVAL_MS`, `jobsApi.ts` 14). An hmmscore job can wait behind the running cap and then run up to 720 s, so one tab would send hundreds to thousands of `GET`s. The page checks an hmmscore job every second for its first 30 seconds after it was created (its `createdAt`), then every 5 seconds, so a 720 s job costs about 170 checks. Timing from `createdAt` rather than from when the page opened keeps the saving across a reload, or several people opening the job's link. Every other job is checked every second throughout, as before: the tools job takes about 1.5 s, and a typical cSNP job about 30 s, so a slower check after 30 s would hold back many cSNP results by up to 5 s (review of #79).
 
 ### 6. Mocks and tests
 

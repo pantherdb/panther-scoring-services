@@ -1,61 +1,43 @@
 import { type Dispatch, useState } from 'react'
 import { useNavigate } from 'react-router'
 
-import { errorData, errorStatus, isUnreachable } from '@/app/api/errors'
-import { inputErrors, isValidationProblem } from '@/app/api/wire'
+import { inputErrors } from '@/app/api/wire'
+import { type NotStarted, submitFailure } from '@/components/submitProblem'
 import { keepInput, useStartJobMutation } from '@/features/jobs'
 
 import { CSNP_FIELDS, type CsnpValues, type DraftAction, draftInput } from './draft'
 
 /**
- * Why the last submit didn't open a job, when it wasn't the input: `unreachable` is no
- * answer from the API at all; `failed` is anything else.
- */
-export type SubmitProblem = 'unreachable' | 'failed' | null
-
-/**
  * Starts a csnp job from the draft. A 202 keeps the input as typed, for "Edit and
  * resubmit", and opens the job's page; a 422's errors go to the
- * draft, on their fields; any other failure is the returned `problem`.
+ * draft, on their fields; any other failure is the returned `failure`, which the form shows
+ * with `SubmitAlert`'s `limited` set.
  */
 export function useSubmitCsnp(dispatch: Dispatch<DraftAction>) {
   const [startJob, { isLoading }] = useStartJobMutation()
-  const [problem, setProblem] = useState<SubmitProblem>(null)
+  const [failure, setFailure] = useState<NotStarted | null>(null)
   const navigate = useNavigate()
 
   async function submit(values: CsnpValues) {
-    setProblem(null)
+    setFailure(null)
     const input = draftInput(values)
     try {
       const job = await startJob({ service: 'csnp', input }).unwrap()
       keepInput(job.id, 'csnp', values)
       await navigate(`/jobs/${job.id}`)
     } catch (error) {
-      const status = errorStatus(error)
-      const data = errorData(error)
-      if (status === 422 && isValidationProblem(data) && data.errors.length > 0) {
+      const failure = submitFailure('csnp', error)
+      if (failure.problem === 'rejected') {
         dispatch({
           type: 'rejected',
-          ...inputErrors(data, 'csnp', CSNP_FIELDS),
+          ...inputErrors(failure.validation, 'csnp', CSNP_FIELDS),
           sent: input.substitutions,
         })
         return
       }
-      if (isUnreachable(error)) {
-        if (import.meta.env.DEV) {
-          console.warn(
-            'The API could not be reached. Is it running? See docs/testing/api.md',
-            error
-          )
-        }
-        setProblem('unreachable')
-        return
-      }
-      // Shown with fixed text: the response could carry build details.
-      if (import.meta.env.DEV) console.warn('The csnp job could not be started', error)
-      setProblem('failed')
+      setFailure(failure)
     }
   }
 
-  return { submit, isSubmitting: isLoading, problem }
+  return { submit, isSubmitting: isLoading, failure }
 }

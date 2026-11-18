@@ -5,3 +5,5 @@
 export const CSNP_FIELDS = ['sequence', 'substitutions', 'species'] as const
 
 export const REFMAP_FIELDS = ['ids', 'organism'] as const
+
+export const HMMSCORE_FIELDS = ['sequence'] as const

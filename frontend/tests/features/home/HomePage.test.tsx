@@ -49,6 +49,17 @@ describe('the home page', () => {
     expect(refmap.queryByText(/coming soon/i)).not.toBeInTheDocument()
   })
 
+  it('links to the HMM scoring form, still marked coming soon', () => {
+    renderRoute('/')
+
+    const hmmscore = card(/hmm scoring/i)
+    expect(hmmscore.getByRole('link', { name: /score a protein sequence/i })).toHaveAttribute(
+      'href',
+      '/hmmscore'
+    )
+    expect(hmmscore.getByText(/coming soon/i)).toBeInTheDocument()
+  })
+
   it('marks only HMM scoring and tree grafting coming soon', () => {
     renderRoute('/')
 

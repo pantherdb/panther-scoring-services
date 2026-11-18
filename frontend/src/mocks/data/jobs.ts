@@ -9,6 +9,8 @@ type CsnpJob = components['schemas']['CsnpJob']
 type CsnpResult = components['schemas']['CsnpResult']
 type RefmapJob = components['schemas']['RefmapJob']
 type RefmapResult = components['schemas']['RefmapResult']
+type HmmscoreJob = components['schemas']['HmmscoreJob']
+type HmmscoreResult = components['schemas']['HmmscoreResult']
 type JobStatus = components['schemas']['JobStatus']
 type Problem = components['schemas']['Problem']
 
@@ -135,5 +137,55 @@ export function refmapJob(
     ...jobFields(id, status, 'refmap'),
     service: 'refmap',
     result: status === 'succeeded' ? refmapResult(ids, organism) : null,
+  }
+}
+
+/** How wide each line of the mock alignment is: wider than a phone, so its box must scroll. */
+export const MOCK_ALIGNMENT_WIDTH = 200
+
+// `residues` over and over after `prefix`, cut to MOCK_ALIGNMENT_WIDTH.
+function alignmentLine(prefix: string, residues: string) {
+  const width = MOCK_ALIGNMENT_WIDTH
+  return (prefix + residues.repeat(Math.ceil(width / residues.length))).slice(0, width)
+}
+
+// Columns in the shape of hmmsearch's domain annotation, each line MOCK_ALIGNMENT_WIDTH wide.
+function mockAlignment() {
+  const width = MOCK_ALIGNMENT_WIDTH
+  return [
+    'MOCK DATA: not an alignment. hmmsearch produced none of it.'.padEnd(width),
+    '  == domain 1  score: 439.0 bits;  conditional E-value: 7e-131'.padEnd(width),
+    alignmentLine('  PTHR00000:SF1    1 ', 'mkvlwaallvtflagcqakv'),
+    alignmentLine('                     ', 'MKVLWAALLVTFLAGCQAKV'),
+    alignmentLine('          query    1 ', 'MKVLWAALLVTFLAGCQAKV'),
+    alignmentLine('                  PP ', '*'),
+  ].join('\n')
+}
+
+/**
+ * MOCK DATA, not a score. The engine produced none of it: PTHR00000:SF1 is no PANTHER family,
+ * "MOCK FAMILY" no family's name, and the alignment says it's made up. Its lines are 200
+ * characters, wider than a phone, so the page's alignment box has to scroll.
+ */
+export const hmmscoreResult: HmmscoreResult = {
+  hit: {
+    panther_id: 'PTHR00000:SF1',
+    name: 'MOCK FAMILY',
+    evalue: '7e-131',
+    score: '439.0',
+    alignment: mockAlignment(),
+  },
+}
+
+/**
+ * An hmmscore job in the given status, with the mock hit once it has succeeded. `createdAt` is
+ * when it was created, the same fixed time as every mocked job's unless given.
+ */
+export function hmmscoreJob(id: string, status: JobStatus, createdAt = CREATED_AT): HmmscoreJob {
+  return {
+    ...jobFields(id, status, 'hmmscore'),
+    created_at: createdAt,
+    service: 'hmmscore',
+    result: status === 'succeeded' ? hmmscoreResult : null,
   }
 }

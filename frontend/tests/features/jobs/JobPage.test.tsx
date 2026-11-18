@@ -1,11 +1,12 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { WireJob } from '@/app/api/wire'
 import {
   csnpJob,
   csnpResult,
+  hmmscoreJob,
   jobError,
   jobNotFound,
   refmapJob,
@@ -395,5 +396,66 @@ describe("a job page's next step", () => {
     expect(await shownStatus()).toMatch(/succeeded/i)
     expect(main().getByRole('link', { name: /new csnp search/i })).toBeInTheDocument()
     expect(main().queryByRole('link', { name: /edit and resubmit/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('checking a long job', () => {
+  // The mocks' jobs were created at this time.
+  const CREATED_AT = Date.parse(hmmscoreJob(ID, 'queued').created_at)
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  // Opens the job's page at `now`, then counts its checks in the 29 seconds that follow, and in
+  // the 31 seconds after those.
+  async function checksOver(job: WireJob, now: number) {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(now)
+    const calls = serveJob(job)
+    renderRoute(`/jobs/${ID}`)
+    expect(await shownStatus()).toMatch(/running/i)
+
+    const before = calls.count
+    await vi.advanceTimersByTimeAsync(29_000)
+    const first = calls.count - before
+    await vi.advanceTimersByTimeAsync(31_000)
+    return { first, then: calls.count - before - first }
+  }
+
+  it('checks an hmmscore job every second for its first 30 seconds, then every 5 seconds', async () => {
+    const { first, then } = await checksOver(hmmscoreJob(ID, 'running'), CREATED_AT)
+
+    // About 29 checks in the first 29 seconds, then about 6 in the next 31.
+    expect(first).toBeGreaterThanOrEqual(25)
+    expect(then).toBeGreaterThanOrEqual(5)
+    expect(then).toBeLessThanOrEqual(9)
+  })
+
+  it('times the 30 seconds from when the job was created, not from when its page opened', async () => {
+    const { first, then } = await checksOver(hmmscoreJob(ID, 'running'), CREATED_AT + 600_000)
+
+    expect(first).toBeGreaterThanOrEqual(5)
+    expect(first).toBeLessThanOrEqual(8)
+    expect(then).toBeLessThanOrEqual(9)
+  })
+
+  it('switches to every 5 seconds partway, for a job created 20 seconds before', async () => {
+    const { first } = await checksOver(hmmscoreJob(ID, 'running'), CREATED_AT + 20_000)
+
+    // About 10 checks a second apart, then about 4 five seconds apart.
+    expect(first).toBeGreaterThanOrEqual(11)
+    expect(first).toBeLessThanOrEqual(18)
+  })
+
+  it.each([
+    ['cSNP', csnpJob(ID, 'running')],
+    ['refmap', refmapJob(ID, 'running')],
+    ['tools', toolsJob(ID, 'running')],
+  ])('checks a %s job every second throughout', async (_name, job) => {
+    const { first, then } = await checksOver(job, CREATED_AT)
+
+    expect(first).toBeGreaterThanOrEqual(25)
+    expect(then).toBeGreaterThanOrEqual(27)
   })
 })

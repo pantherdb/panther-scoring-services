@@ -1,6 +1,10 @@
 // What a failed RTK Query request says about where it failed.
 
-function isProblem(data: unknown) {
+/**
+ * Whether a response body is problem details, as the API answers every error. One that isn't
+ * came from something between the app and the API.
+ */
+export function isProblem(data: unknown) {
   return typeof data === 'object' && data !== null && 'status' in data && 'title' in data
 }
 

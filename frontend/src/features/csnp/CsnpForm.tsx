@@ -1,12 +1,13 @@
 import { Alert, Button, Textarea } from '@mantine/core'
 import { type FormEvent, useReducer } from 'react'
 
+import { service } from '@/app/services'
 import { CodeListField, type CodeListTexts } from '@/components/CodeListField'
+import { SubmitAlert } from '@/components/SubmitAlert'
 import { FilledFromJob, useEditedInput } from '@/features/jobs'
 
 import { checkDraft } from './checks'
 import { type CsnpField, draftReducer, startingDraft } from './draft'
-import { SubmitAlert } from './SubmitAlert'
 import { useCsnpSpecies } from './useCsnpSpecies'
 import { useSubmitCsnp } from './useSubmitCsnp'
 
@@ -26,7 +27,7 @@ export function CsnpForm() {
   // page remounts the form when it's opened again, so a new visit starts from its own state.
   const edited = useEditedInput('csnp')
   const [draft, dispatch] = useReducer(draftReducer, edited, startingDraft)
-  const { submit, isSubmitting, problem } = useSubmitCsnp(dispatch)
+  const { submit, isSubmitting, failure } = useSubmitCsnp(dispatch)
   const species = useCsnpSpecies()
   const { values, errors } = draft
 
@@ -93,7 +94,7 @@ export function CsnpForm() {
           </ul>
         </Alert>
       )}
-      <SubmitAlert problem={problem} />
+      <SubmitAlert failure={failure} title={service('csnp').title} limited />
       <div>
         <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
           Score substitutions

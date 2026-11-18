@@ -76,7 +76,7 @@ test('opens each service from its tab, and marks it current', async ({ page }) =
 })
 
 test('says a service without a form is coming soon', async ({ page }) => {
-  await page.goto('/hmmscore')
+  await page.goto('/treegrafter')
 
   const main = page.getByRole('main')
   await expect(main.getByRole('heading', { level: 2 })).toBeVisible()

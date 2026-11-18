@@ -6,11 +6,15 @@ import type { components } from '@/app/api/schema'
 type Schemas = components['schemas']
 
 /** A job as the API sends it: one member per service, tagged by `service`. */
-export type WireJob = Schemas['ToolsJob'] | Schemas['CsnpJob'] | Schemas['RefmapJob']
+export type WireJob =
+  Schemas['ToolsJob'] | Schemas['CsnpJob'] | Schemas['RefmapJob'] | Schemas['HmmscoreJob']
 
 /** The body of POST /jobs. Nothing in it needs renaming. */
 export type JobRequest =
-  Schemas['ToolsJobRequest'] | Schemas['CsnpJobRequest'] | Schemas['RefmapJobRequest']
+  | Schemas['ToolsJobRequest']
+  | Schemas['CsnpJobRequest']
+  | Schemas['RefmapJobRequest']
+  | Schemas['HmmscoreJobRequest']
 
 export type JobStatus = Schemas['JobStatus']
 export type JobService = WireJob['service']
@@ -29,6 +33,11 @@ export type RefmapResult = Schemas['RefmapResult']
 export type RefmapOrganism = Schemas['RefmapOrganism']
 /** One submitted ID and its PANTHER ID; `panther_id` is null where the legacy said NOHIT. */
 export type IdMapping = Schemas['IdMapping']
+export type HmmscoreInput = Schemas['HmmscoreInput']
+/** The best-scoring PANTHER HMM, or a null `hit`. Nothing in it needs renaming. */
+export type HmmscoreResult = Schemas['HmmscoreResult']
+/** A hit's PANTHER ID, name, E-value and bit score as `hmmscan` printed them, and its alignment. */
+export type HmmHit = Schemas['HmmHit']
 export type Problem = Schemas['Problem']
 export type ValidationProblem = Schemas['ValidationProblem']
 export type Versions = Schemas['Versions']
@@ -49,6 +58,7 @@ export type Job =
   | (JobBase & { service: 'tools'; result: ToolsResult | null })
   | (JobBase & { service: 'csnp'; result: CsnpResult | null })
   | (JobBase & { service: 'refmap'; result: RefmapResult | null })
+  | (JobBase & { service: 'hmmscore'; result: HmmscoreResult | null })
 
 // Epoch milliseconds rather than a Date: the store keeps only serializable values.
 function toMillis(timestamp: string): number
@@ -77,6 +87,8 @@ export function fromWireJob(wire: WireJob): Job {
     case 'csnp':
       return { ...fromWireBase(wire), service: wire.service, result: wire.result }
     case 'refmap':
+      return { ...fromWireBase(wire), service: wire.service, result: wire.result }
+    case 'hmmscore':
       return { ...fromWireBase(wire), service: wire.service, result: wire.result }
   }
 }

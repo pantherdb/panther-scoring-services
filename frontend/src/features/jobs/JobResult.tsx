@@ -1,6 +1,7 @@
 import type { Job } from '@/app/api/wire'
 
 import { CsnpScores } from './CsnpScores'
+import { HmmscoreHit } from './HmmscoreHit'
 import { RefmapMappings } from './RefmapMappings'
 import { ToolsResult } from './ToolsResult'
 import { useOrganismLabel } from './useOrganismLabel'
@@ -30,5 +31,7 @@ export function JobResult({ job }: Props) {
           />
         )
       )
+    case 'hmmscore':
+      return job.result && <HmmscoreHit result={job.result} />
   }
 }

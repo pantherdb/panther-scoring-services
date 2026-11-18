@@ -4,6 +4,7 @@ import { ComingSoonPage } from '@/components/ComingSoonPage'
 import { ErrorPage } from '@/components/ErrorPage'
 import { NotFoundPage } from '@/components/NotFoundPage'
 import { CsnpPage } from '@/features/csnp'
+import { HmmscorePage } from '@/features/hmmscore'
 import { HomePage } from '@/features/home'
 import { JobPage } from '@/features/jobs'
 import { RefmapPage } from '@/features/refmap'
@@ -25,11 +26,7 @@ export const routes: RouteObject[] = [
       { index: true, element: <HomePage />, errorElement: <ErrorPage /> },
       { path: 'csnp', element: <CsnpPage />, errorElement: <ErrorPage /> },
       { path: 'refmap', element: <RefmapPage />, errorElement: <ErrorPage /> },
-      {
-        path: 'hmmscore',
-        element: <ComingSoonPage id="hmmscore" />,
-        errorElement: <ErrorPage />,
-      },
+      { path: 'hmmscore', element: <HmmscorePage />, errorElement: <ErrorPage /> },
       {
         path: 'treegrafter',
         element: <ComingSoonPage id="treegrafter" />,

@@ -4,13 +4,13 @@ data's manifest, and parity with the legacy scripts."""
 import argparse
 import dataclasses
 import json
-import re
 import sys
 from pathlib import Path
 
 from panther_engine.core.data import DATA_DIR_VARIABLE, DataFolderError, service_folder
 from panther_engine.core.download import DownloadError
 from panther_engine.core.errors import InputError
+from panther_engine.core.fasta import read_protein
 from panther_engine.core.manifest import ManifestError, checksums, read_manifest
 from panther_engine.csnp import full, parity, sample
 from panther_engine.csnp.blast import BlastError
@@ -18,11 +18,6 @@ from panther_engine.csnp.library import LibraryFormatError
 from panther_engine.csnp.scoring import SUBSTITUTION, CsnpInput, CsnpResult, score
 from panther_engine.csnp.survey import SurveyError, report_json, report_text, survey
 
-# The API's normalisation (`scoring-input`), as the legacy website's form did it: trim every
-# character up to U+0020, drop one header line at the very start, and all whitespace.
-TRIMMED = "".join(chr(code) for code in range(0x21))
-HEADER = re.compile(r"\A>[^\n]*")
-WHITESPACE = re.compile(r"[ \t\n\x0b\x0c\r]+")
 # How many paths `csnp data verify` names, of each kind.
 LISTED = 20
 
@@ -509,17 +504,6 @@ def run_score(args: argparse.Namespace) -> int:
         return 1
     print_result(result, as_json=args.json)
     return 0
-
-
-def read_protein(text: str) -> str:
-    """One protein from a FASTA file, normalised as the API normalises it."""
-    text = text.strip(TRIMMED)
-    if text.count(">") > 1:
-        raise ValueError("the file holds more than one sequence: give one protein")
-    residues = WHITESPACE.sub("", HEADER.sub("", text))
-    if not residues:
-        raise ValueError("the file has no sequence")
-    return residues.upper()
 
 
 def print_result(result: CsnpResult, *, as_json: bool) -> None:

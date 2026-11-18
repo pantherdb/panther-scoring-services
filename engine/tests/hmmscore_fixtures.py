@@ -8,7 +8,7 @@ family's and SF1's models, in that order, and `globals/names.tab` a line for eac
 import gzip
 import io
 import tarfile
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path, PurePosixPath
 
 FIXTURES = Path(__file__).parent / "fixtures" / "hmmscore"
@@ -99,3 +99,45 @@ def library_tarball(
         for name in folders:
             folder(name)
     return path
+
+
+# Scoring with fake tools
+
+TABLES = FIXTURES / "tables"
+"""`hmmscan --domtblout` tables and an `hmmsearch` report, for scoring with fake tools."""
+SCORING_PRESSED = ("binHmm.h3f", "binHmm.h3i", "binHmm.h3m", "binHmm.h3p")
+
+
+def scoring_folder(root: Path, *, models: Iterable[str], names: str) -> Path:
+    """A data folder at `root` that scoring's data check passes: under `hmmscore/19/`,
+    `globals/names.tab` holding `names`, an empty stand-in for each pressed file, and an empty
+    file at each model file path in `models`, such as `books/PTHR18976/SF2/hmmer.hmm`. Fake tools
+    read none of them. Returns `root`."""
+    folder = root / "hmmscore" / "19"
+    (folder / "globals").mkdir(parents=True)
+    (folder / "books").mkdir()
+    (folder / NAMES).write_text(names, encoding="latin-1")
+    for name in SCORING_PRESSED:
+        (folder / "globals" / name).write_bytes(b"")
+    for model in models:
+        (folder / model).parent.mkdir(parents=True, exist_ok=True)
+        (folder / model).write_bytes(b"")
+    return root
+
+
+def install_fake_hmmer(
+    make_tool: Callable[[str, str], Path], folder: Path, table: str, report: str = "apoe.hmmsearch"
+) -> None:
+    """Writes a fake `hmmscan` and `hmmsearch` with `make_tool`, which writes to `folder`.
+    `hmmscan` copies `tables/<table>` to its `--domtblout` file and keeps a copy of its query as
+    `query.fasta`; `hmmsearch` prints `tables/<report>`. Each records its arguments, NUL-terminated,
+    in `<name>.argv`. Put `folder` first on PATH for scoring to find them."""
+    make_tool(
+        "hmmscan",
+        f'printf "%s\\0" "$@" > "{folder}/hmmscan.argv"\n'
+        f'cp "$6" "{folder}/query.fasta"\n'
+        f'cp "{TABLES / table}" "$2"',
+    )
+    make_tool(
+        "hmmsearch", f'printf "%s\\0" "$@" > "{folder}/hmmsearch.argv"\ncat "{TABLES / report}"'
+    )

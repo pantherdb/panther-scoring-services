@@ -97,6 +97,31 @@ G15D          4200  probably damaging  0.95
 - **`--json`** prints the result as `score()` returns it. **`--data-dir`** overrides `PANTHER_DATA_DIR`.
 - **Exit status 1** for input it can't score, with the reason on standard error.
 
+`panther-engine hmmscore score` scores one protein as the API's `hmmscore` job will: `hmmscan` against the HMM library, the legacy best hit, then `hmmsearch` for the alignment. It needs HMMER 3.4, so run it in the image, with the hmmscore data sample ([Test Data](#the-hmmscore-data-sample)) or the full library. From the repository root:
+
+```sh
+docker compose run --rm -T engine panther-engine hmmscore score tests/golden/hmmscore/example/apoe.fasta
+```
+
+It prints the hit's fields, tab-separated, then the alignment, as `hmmsearch` wrote it:
+
+```text
+panther_id  PTHR18976:SF2
+name        APOLIPOPROTEIN E
+evalue      2.2e-133
+score       439.0
+alignment
+>> sequence
+...
+```
+
+- **The protein** is a FASTA file with one header line, or the sequence alone, or standard input for `-` or no file. It's normalised as `csnp score`'s is. A character the API refuses, such as a digit or `-`, is refused (divergence 12).
+- **No hit** prints `No hit`: no model reported, or the best one's E-value over 1e-3.
+- **`--cpu N`** is `hmmscan`'s and `hmmsearch`'s `--cpu`, 0 by default, which uses the least memory. **`--timeout S`** limits the whole search to S seconds, as the API's `hmmscore_time_limit_seconds` will; past it, it fails with the API's message. With none, it isn't limited.
+- **`--usage`** prints, to standard error, the wall time and the largest peak memory of the tools it ran, from the kernel's accounting of child processes. Run it in a fresh process for each query.
+- **`--json`** prints the result as `score()` returns it. **`--data-dir`** overrides `PANTHER_DATA_DIR`.
+- **Exit status 1** for input it can't score, missing data or a tool that fails, with the reason on standard error.
+
 ## Mapping IDs From the Command Line
 
 `panther-engine refmap map` maps IDs for one organism as the API's `refmap` job does, for checks by hand. It needs the refmap data ([Test Data](#the-refmap-data)), and no external tool. From `engine/`:
@@ -179,6 +204,23 @@ uv run panther-engine refmap parity check --data-dir ../.data
 ```
 
 It exits with status 1 if any line differs. Without a data folder, it still checks the made-up files and the refused cases, lists the cases on ENDPU as not checked, and exits with status 1. Making the goldens needs `map_panther.pl`, in the `refmap-reference` image: see [golden-setup.md](../parity/golden-setup.md#refmap).
+
+For `hmmscore`, `tests/test_hmmscore_parity.py` reads `tests/golden/hmmscore/parity/`. Each case's expected hit comes from the reference's files: `best.tsv`'s tied IDs, with divergence 13 picking one, its name, E-value and score from that line, and the alignment from that ID's `hmmsearch` report, by the CGI's rule:
+
+| Test | Needs | Checks |
+| ---- | ----- | ------ |
+| The goldens' own checks | Nothing | Every case's inputs and reference files are there; `cgi.xml` agrees with `best.tsv` and the reports; a hand-changed E-value fails, naming its case |
+| The cases on the sample | `tools("hmmscan", "hmmsearch")`, `data("hmmscore")` | Every case gives its golden hit, or no hit, on the data sample: `sample/` on amd64, and `sample-arm64/` where a case's result differs on arm64 |
+
+`tests/test_hmmscore_scoring.py` tests each rule with fake tools, and `tests/test_hmmscore_scoring_tools.py` runs `score()` end to end with HMMER 3.4.
+
+`panther-engine hmmscore parity check` runs the same comparison and prints each case's time and each case that differs. From the repository root, with the data sample:
+
+```sh
+docker compose run --rm -T engine panther-engine hmmscore parity check
+```
+
+`--goldens full` checks the staging run's goldens, with the full library as the data folder. It exits with status 1 if any case differs, or has no reference outputs. Making the goldens needs the CGI and `pantherScore.pl` with HMMER 3.1b2, in the `hmmscore-reference` image: see [golden-setup.md](../parity/golden-setup.md#hmmscore).
 
 ## Input Errors
 

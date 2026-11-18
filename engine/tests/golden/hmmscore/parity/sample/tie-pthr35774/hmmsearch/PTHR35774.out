@@ -1,0 +1,46 @@
+# hmmsearch :: search profile(s) against a sequence database
+# HMMER 3.1b2 (February 2015); http://hmmer.org/
+# Copyright (C) 2015 Howard Hughes Medical Institute.
+# Freely distributed under the GNU General Public License (GPLv3).
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# query HMM file:                  /data/hmmscore/19/books/PTHR35774/hmmer.hmm
+# target sequence database:        query.fasta
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Query:       PTHR35774.orig.30.pir  [M=34]
+Scores for complete sequences (score includes all domains):
+   --- full sequence ---   --- best 1 domain ---    -#dom-
+    E-value  score  bias    E-value  score  bias    exp  N  Sequence Description
+    ------- ------ -----    ------- ------ -----   ---- --  -------- -----------
+    5.1e-30   89.5   4.4    5.4e-30   89.4   4.4    1.0  1  sequence  
+
+
+Domain annotation for each sequence (and alignments):
+>> sequence  
+   #    score  bias  c-Evalue  i-Evalue hmmfrom  hmm to    alifrom  ali to    envfrom  env to     acc
+ ---   ------ ----- --------- --------- ------- -------    ------- -------    ------- -------    ----
+   1 !   89.4   4.4   5.4e-30   5.4e-30       1      34 []       1      34 []       1      34 [] 0.99
+
+  Alignments for each domain:
+  == domain 1  score: 89.4 bits;  conditional E-value: 5.4e-30
+  PTHR35774.orig.30.pir  1 MEVNIlaFIAtALFILVptaFLLIiYVKTvsqsd 34
+                           MEVNIlaFIAtALFILVptaFLLIiYVKTvsqsd
+               sequence  1 MEVNILAFIATALFILVPTAFLLIIYVKTVSQSD 34
+                           ********************************98 PP
+
+
+
+Internal pipeline statistics summary:
+-------------------------------------
+Query model(s):                              1  (34 nodes)
+Target sequences:                            1  (34 residues searched)
+Passed MSV filter:                         1  (1); expected 0.0 (0.02)
+Passed bias filter:                        1  (1); expected 0.0 (0.02)
+Passed Vit filter:                         1  (1); expected 0.0 (0.001)
+Passed Fwd filter:                         1  (1); expected 0.0 (1e-05)
+Initial search space (Z):                  1  [actual number of targets]
+Domain search space  (domZ):               1  [number of targets reported over threshold]
+# CPU time: 0.01u 0.01s 00:00:00.02 Elapsed: 00:00:00.02
+# Mc/sec: 0.06
+//
+[ok]

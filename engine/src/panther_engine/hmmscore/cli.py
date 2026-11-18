@@ -1,22 +1,109 @@
-"""The `panther-engine hmmscore` subcommands: the survey of the HMM library's tarball, the pinned
-library, and the data sample."""
+"""The `panther-engine hmmscore` subcommands: scoring one protein, the survey of the HMM library's
+tarball, the pinned library, and the data sample."""
 
 import argparse
+import dataclasses
 import json
+import resource
 import sys
+import time
 from pathlib import Path
 
-from panther_engine.core.data import DATA_DIR_VARIABLE, DataFolderError
+from panther_engine.core.data import DATA_DIR_VARIABLE, DataFolderError, MissingDataError
 from panther_engine.core.download import DownloadError
+from panther_engine.core.errors import InputError
+from panther_engine.core.fasta import read_protein
 from panther_engine.core.manifest import ManifestError, checksums, read_manifest
-from panther_engine.hmmscore import data, sample
-from panther_engine.hmmscore.library import PREFIX
+from panther_engine.hmmscore import data, parity, sample
+from panther_engine.hmmscore.library import PREFIX, LibraryFormatError
+from panther_engine.hmmscore.scoring import HmmscoreError, HmmscoreInput, HmmscoreResult, score
 from panther_engine.hmmscore.survey import SurveyError, report_json, report_text, survey
 
 
 def configure(parser: argparse.ArgumentParser) -> None:
     """Add the `hmmscore` subcommands to `parser`, the `hmmscore` command's parser."""
     commands = parser.add_subparsers(dest="hmmscore_command", metavar="COMMAND", required=True)
+
+    score_parser = commands.add_parser(
+        "score",
+        help="score one protein against the HMM library",
+        description="Score one protein, as the API's hmmscore job does: hmmscan against "
+        "globals/binHmm, the legacy best hit and its 1e-3 cutoff, then hmmsearch of the hit's "
+        "model file for the alignment. The sequence is normalised as the API normalises it: one "
+        "header line and all whitespace removed, upper case. Prints the hit's PANTHER ID, name, "
+        "E-value and score, then the alignment, or No hit.",
+    )
+    score_parser.add_argument(
+        "fasta",
+        nargs="?",
+        default="-",
+        metavar="FILE",
+        help="one protein: FASTA with one header line, or the sequence alone; - or none for "
+        "standard input",
+    )
+    score_parser.add_argument(
+        "--cpu",
+        type=int,
+        default=0,
+        metavar="N",
+        help="hmmscan's and hmmsearch's --cpu: worker threads (default: 0, the least memory)",
+    )
+    score_parser.add_argument(
+        "--timeout",
+        type=float,
+        metavar="S",
+        help="a time limit in seconds for the whole search (default: none)",
+    )
+    score_parser.add_argument(
+        "--data-dir",
+        type=Path,
+        metavar="DIR",
+        help=f"the data folder, holding hmmscore/19/ (default: ${DATA_DIR_VARIABLE})",
+    )
+    score_parser.add_argument(
+        "--json", action="store_true", help="print the result as JSON, as score() returns it"
+    )
+    score_parser.add_argument(
+        "--usage",
+        action="store_true",
+        help="also print, to standard error, the wall time and the largest peak memory of the "
+        "tools it ran, from the kernel's accounting of child processes",
+    )
+
+    parity_parser = commands.add_parser(
+        "parity",
+        help="run the golden cases through the legacy CGI, check the port against them",
+        description="Parity with pantherScoring's scoreAlignXml.cgi and pantherScore.pl at "
+        "89ea0ae, with HMMER 3.1b2: run the golden cases through the Perl in the "
+        "hmmscore-reference image, and check the port against its outputs. See "
+        "docs/parity/golden-setup.md.",
+    )
+    parity_commands = parity_parser.add_subparsers(
+        dest="parity_command", metavar="COMMAND", required=True
+    )
+    reference = parity_commands.add_parser(
+        "reference",
+        help="run the golden cases through the CGI and pantherScore.pl (hmmscore-reference "
+        "image only)",
+        description="First the self-check: the example must give PTHR18976:SF2 at 439.0 bits. "
+        "Then, for each case, one at a time, in a fresh folder: the CGI posted the case's text, "
+        "saved as cgi.xml without its Content-type header; pantherScore.pl -D B -n, saved as "
+        "best.tsv; and the CGI's hmmsearch for each ID in best.tsv, saved in hmmsearch/. Each "
+        "case's outputs replace GOLDENS/<case>/ in the golden folder once it has run. For "
+        "sample, HMMER 3.1b2 reads its own presses of the data folder's models; for full, the "
+        "library's shipped pressed files.",
+    )
+    add_parity_options(reference)
+    check = parity_commands.add_parser(
+        "check",
+        help="check the port against the golden outputs",
+        description="Score each case with the port, and compare the result with the one the "
+        "reference's outputs give: best.tsv's tied IDs, with divergence 13 picking one, and the "
+        "alignment from that ID's hmmsearch report. Also checks that cgi.xml agrees with them. "
+        "Prints each case's time and every difference, and exits with status 1 if any case "
+        "differs or has no reference outputs.",
+    )
+    add_parity_options(check)
 
     survey_parser = commands.add_parser(
         "survey",
@@ -169,6 +256,35 @@ def configure(parser: argparse.ArgumentParser) -> None:
     add_sample_options(sample_verify)
 
 
+def add_parity_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--goldens",
+        choices=parity.GOLDEN_SETS,
+        default="sample",
+        help="the goldens: sample, made on the data sample, or full, on the full library "
+        "(default: sample)",
+    )
+    parser.add_argument(
+        "--golden",
+        type=Path,
+        metavar="DIR",
+        default=parity.GOLDEN,
+        help=f"the golden folder, with cases.json (default: {parity.GOLDEN})",
+    )
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        metavar="DIR",
+        help=f"the data folder, holding hmmscore/19/ (default: ${DATA_DIR_VARIABLE})",
+    )
+    parser.add_argument(
+        "--case",
+        action="append",
+        metavar="NAME",
+        help="this case only; repeat for more (default: every case)",
+    )
+
+
 def add_data_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--data-dir",
@@ -203,6 +319,10 @@ def add_sample_options(parser: argparse.ArgumentParser) -> None:
 
 def run(args: argparse.Namespace) -> int:
     match args.hmmscore_command:
+        case "score":
+            return run_score(args)
+        case "parity":
+            return run_parity(args)
         case "survey":
             return run_survey(args.tarball, args.json)
         case "data":
@@ -211,6 +331,84 @@ def run(args: argparse.Namespace) -> int:
             return run_sample(args)
         case _:
             raise AssertionError(f"unhandled command: hmmscore {args.hmmscore_command}")
+
+
+def run_score(args: argparse.Namespace) -> int:
+    started = time.monotonic()
+    try:
+        text = sys.stdin.read() if args.fasta == "-" else Path(args.fasta).read_text("utf-8")
+        result = score(
+            HmmscoreInput(read_protein(text)),
+            data_dir=args.data_dir,
+            cpu=args.cpu,
+            timeout=args.timeout,
+        )
+    except (
+        ValueError,
+        InputError,
+        HmmscoreError,
+        MissingDataError,
+        LibraryFormatError,
+        DataFolderError,
+        OSError,
+    ) as error:
+        print(f"panther-engine hmmscore score: {error}", file=sys.stderr)
+        return 1
+    print_result(result, as_json=args.json)
+    if args.usage:
+        print(f"wall time: {time.monotonic() - started:.1f} s", file=sys.stderr)
+        print(f"peak memory of the tools: {peak_memory_mib():,.0f} MiB", file=sys.stderr)
+    return 0
+
+
+def run_parity(args: argparse.Namespace) -> int:
+    command = f"panther-engine hmmscore parity {args.parity_command}"
+    try:
+        match args.parity_command:
+            case "reference":
+                reference = parity.Reference.find()
+                names = parity.run_reference(
+                    reference, args.golden, args.goldens, args.data_dir, args.case
+                )
+                print(f"wrote {len(names)} cases to {args.golden / args.goldens}")
+            case "check":
+                checks = parity.run_check(args.golden, args.goldens, args.data_dir, args.case)
+                for checked in checks:
+                    print(f"{checked.name}: {checked.seconds:.1f} s")
+                    for difference in checked.differences:
+                        print(f"  {difference}")
+                differing = [checked for checked in checks if checked.differences]
+                print(f"{len(checks) - len(differing)} of {len(checks)} cases match")
+                return 1 if differing else 0
+            case _:
+                raise AssertionError(f"unhandled command: {command}")
+    except (parity.ParityError, DataFolderError, MissingDataError, OSError) as error:
+        print(f"{command}: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def print_result(result: HmmscoreResult, *, as_json: bool) -> None:
+    if as_json:
+        print(json.dumps(dataclasses.asdict(result), indent=2))
+        return
+    hit = result.hit
+    if hit is None:
+        print("No hit")
+        return
+    print(f"panther_id\t{hit.panther_id}")
+    print(f"name\t{hit.name}")
+    print(f"evalue\t{hit.evalue}")
+    print(f"score\t{hit.score}")
+    print("alignment")
+    sys.stdout.write(hit.alignment)
+
+
+def peak_memory_mib() -> float:
+    """The largest peak resident memory of the child processes that have ended, in MiB: in a
+    fresh process, the tools scoring ran. Linux counts it in KiB, macOS in bytes."""
+    peak = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+    return peak / (2**20 if sys.platform == "darwin" else 2**10)
 
 
 def read_families(path: Path) -> list[str]:

@@ -1,0 +1,35 @@
+<scores>
+  <id>PTHR10489:SF627</id>
+  <eval>2.9e-94</eval>
+  <align>
+&gt;&gt; sequence  
+   #    score  bias  c-Evalue  i-Evalue hmmfrom  hmm to    alifrom  ali to    envfrom  env to     acc
+ ---   ------ ----- --------- --------- ------- -------    ------- -------    ------- -------    ----
+   1 !  310.0  26.7   8.5e-97   8.5e-97       9     327 ..      57     371 ..      37     379 .. 0.89
+
+  Alignments for each domain:
+  == domain 1  score: 310.0 bits;  conditional E-value: 8.5e-97
+  PTHR10489.SF627.pir   9 sttepnetvttdeelsyedyyedeassp.ceeiekegklllavlYsllfvvgllGnalvilvvlaakklrsmtDvlLLnLaisDLlfvls 97 
+                           tt  n+t+    + +y+dy  ++   p c++   + +  l  lYs +f +gl Gn +v+ v+ +  k++++ D++LLnL++sDL+fvl 
+             sequence  57 YTTAYNTTY---YSDDYDDYEVSIVDIPhCDDGVDTTSFGLITLYSTIFFLGLFGNIIVLTVLRKY-KIKTIQDMFLLNLTLSDLIFVLV 142
+                          122222222...2224557766655445699766666777999*****************999886.*********************** PP
+
+  PTHR10489.SF627.pir  98 lpflahya.ldqWvFGdamCkivsgvyyigfyssifFitlmsvdrYlAvvhavyAlkvRtalvgtiaslvvWlvallaslPeliflkvax 186
+                          +pf  + +  +qW  Gd +Ck  + +y++gfy s+ Fitlms+drYlAvvh+v  + +Rt+++g+++s+vvW+v+++ s+P ++f+++++
+             sequence 143 FPFNLYDSiAKQWSLGDCLCKFKAMFYFVGFYNSMSFITLMSIDRYLAVVHPVKSMPIRTKRYGIVLSMVVWIVSTIESFPIMLFYETKK 232
+                          ***99988579******************************************************************************* PP
+
+  PTHR10489.SF627.pir 187 eeeklqClslyeessslkwkvftifklnilglllPlsilvfCYarilrklkksrsskktkairlvlvvvvvfflcWvPynivlflksLel 276
+                            + + C  +y+++  + wk+f +f++ni+g+++Pl+il++CY +il +lk+s++++k kai++v+++v+ ++l+  P+ +++f++sL l
+             sequence 233 VYGITYCHVFYNDNA-KIWKLFINFEINIFGMIIPLTILLYCYYKILNTLKTSQTKNK-KAIKMVFLIVICSVLFLLPFSVTVFVSSLYL 320
+                          ***********9998.67****************************************.******************************* PP
+
+  PTHR10489.SF627.pir 277 lkilexcesskkltlalqvteviaysHcClnPviyvfvGekfkkhlsellq 327
+                          l++++ c + + ++la++v+e+++  Hc +nP+iy+f  + f k l++l +
+             sequence 321 LNVFSGCMALRFVNLAVHVAEIVSLCHCFINPLIYAFCSREFTKKLLRLRT 371
+                          **********************************************99854 PP
+
+
+
+  </align>
+</scores>

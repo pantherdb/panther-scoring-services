@@ -14,7 +14,7 @@ The engine scores a protein against PANTHER 19's HMM library since `port-hmmscor
 ## What Changes
 
 - **`hmmscore` jobs run.** A valid request gets `202` and a job that calls the engine's `score()` in a worker, as `csnp` jobs call theirs. The `501`, its row in `UNAVAILABLE`, `run_job`'s refusing case and their tests go, and the `501` leaves the schema. **BREAKING** for a client that relied on the `501`; none does but the form, which changes here.
-- **The settings take effect.** Each job passes `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` (720 by default) to `score()` as its `timeout`, and `PANTHER_API_HMMSCORE_CPU` (0) as its `cpu`. The residue limit and the running cap already act (`add-hmmscore-job`).
+- **The settings take effect.** Each job's time limit grows with its length, from a new `PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS` (120 by default) for the shortest sequence to `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` (720) at the residue limit: APOE's 317 residues get 139 s. It goes to `score()` as its `timeout`, and `PANTHER_API_HMMSCORE_CPU` (0) as its `cpu`. A short query that hangs then frees the one running slot in about two minutes, not twelve. The residue limit and the running cap already act (`add-hmmscore-job`).
 - **How a job fails:**
   - past the time limit, the engine raises its input error, so the job fails with a `422` whose `detail` is "The search took longer than this service allows. Try a shorter sequence.";
   - a tool that fails (`HmmscoreError`), a broken `names.tab` (`LibraryFormatError`), missing data (`MissingDataError`) or an unset `PANTHER_DATA_DIR` (`DataFolderError`) fails it with the generic `500`;
@@ -33,7 +33,7 @@ None.
 
 ### Modified Capabilities
 
-- `scoring-jobs`: a valid `hmmscore` request starts a job that scores with the engine, within the configured time limit and thread count ("hmmscore not available yet" is removed); the startup check covers the hmmscore data; an `hmmscore` job's versions name PANTHER 19.
+- `scoring-jobs`: a valid `hmmscore` request starts a job that scores with the engine, within a time limit that grows with its length and the configured thread count ("hmmscore not available yet" is removed); the startup check covers the hmmscore data; an `hmmscore` job's versions name PANTHER 19.
 - `api-service`: the versions report lists hmmscore's PANTHER 19 data.
 - `scoring-ui`: HMM scoring is no longer coming soon; the notice and the `501` requirements are removed ("HMM scoring form says it isn't available yet", "HMM scoring not yet available"); "hmmscore submit failures" stays, without the `501`; the job page shows an `hmmscore` job's data version.
 

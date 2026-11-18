@@ -38,7 +38,7 @@ A valid `hmmscore` job request SHALL get status 202 and a job, whose work scores
 
 ### Requirement: hmmscore job time limit and threads
 
-Each `hmmscore` job's search SHALL run with the configured time limit and `hmmscan` thread count. The time limit MUST count from when the search starts, not from when the job was submitted, so a job that waited for a worker or for the running cap has all of it. A search that runs past the limit MUST be stopped, and the job MUST fail with an input error, whose message tells the user to try a shorter sequence.
+Each `hmmscore` job's search SHALL run with the configured `hmmscan` thread count, and with its time limit as "hmmscore time limit by length" gives it. The time limit MUST count from when the search starts, not from when the job was submitted, so a job that waited for a worker or for the running cap has all of it. A search that runs past the limit MUST be stopped, and the job MUST fail with an input error, whose message tells the user to try a shorter sequence.
 
 #### Scenario: Past the time limit
 
@@ -47,13 +47,27 @@ Each `hmmscore` job's search SHALL run with the configured time limit and `hmmsc
 
 #### Scenario: The settings reach the search
 
-- **WHEN** the API starts with `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` set to 600 and `PANTHER_API_HMMSCORE_CPU` set to 2, and an `hmmscore` job runs
+- **WHEN** the API starts with `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` set to 600, `PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS` set to 600 and `PANTHER_API_HMMSCORE_CPU` set to 2, and an `hmmscore` job runs
 - **THEN** its search is given a time limit of 600 seconds and a thread count of 2
 
 #### Scenario: The default settings reach the search
 
-- **WHEN** the API starts with no hmmscore settings in the environment, and an `hmmscore` job runs
+- **WHEN** the API starts with no hmmscore settings in the environment, and an `hmmscore` job runs with 10,000 residues
 - **THEN** its search is given a time limit of 720 seconds and a thread count of 0
+
+### Requirement: hmmscore time limit by length
+
+An `hmmscore` job's time limit SHALL grow with its residues: the minimum time limit, plus the difference between the time limit and the minimum times the residues divided by the residue limit, rounded to the nearest second. It MUST never be more than the time limit. The API MUST refuse to start when the minimum is over the time limit.
+
+#### Scenario: A short sequence gets a shorter limit
+
+- **WHEN** the API starts with no hmmscore settings in the environment, and an `hmmscore` job runs with APOE's 317 residues
+- **THEN** its search is given a time limit of 139 seconds
+
+#### Scenario: A minimum above the time limit
+
+- **WHEN** the API starts with `PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS` set to 800 and `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` left at 720
+- **THEN** it refuses to start, naming both settings
 
 ### Requirement: Startup check of the hmmscore data
 

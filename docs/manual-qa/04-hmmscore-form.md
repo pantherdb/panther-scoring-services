@@ -1,6 +1,6 @@
 # 04: HMM Scoring Form
 
-Checks the HMM scoring form: its notice that HMM scoring isn't available yet, the example, the checks it makes before sending, and the results page with mock data; then, against the real API, that a sequence is answered as not available yet and kept. The first three test cases use mock data; the last uses the real API. About 15 minutes.
+Checks the HMM scoring form: the example, the checks it makes before sending, and the results page with mock data; then, against the real API with the hmmscore data sample, that the example is scored and its real hit shown. The first three test cases use mock data; the last uses the real API. About 15 minutes.
 
 ## Before You Start
 
@@ -20,9 +20,9 @@ Then open `http://localhost:5173` in a browser.
 
 ## TC 4.1 Open the Form and Use the Example
 
-- [ ] The home page has an **HMM scoring** section, marked **Coming soon**, with a **Score a protein sequence** button. In the header, the **HMM scoring** tab is marked **Soon**.
+- [ ] The home page has an **HMM scoring** section, with a **Score a protein sequence** button, and not marked **Coming soon**. In the header, the **HMM scoring** tab isn't marked **Soon**; only **TreeGrafter** is.
 - [ ] Click **Score a protein sequence**. The address changes to `/hmmscore`, the page is headed **HMM scoring**, and the **HMM scoring** tab is underlined as the current page.
-- [ ] Above the **Protein sequence** box, a note says HMM scoring isn't available on this site yet, so a sequence submitted now won't be scored.
+- [ ] There is no note above the **Protein sequence** box, and no **Coming soon** mark beside the heading.
 - [ ] The box is empty, and the **Score sequence** button can be clicked.
 - [ ] Click **Use an example**. The box fills with human APOE: ten lines, the first `MKVLWAALLVTFLAGCQAKVEQAVETEPEPELRQQ`, each 35 letters long but the last, `NH`, and no `>` header line.
 - [ ] Go home, and click the **HMM scoring** tab in the header. The form opens again, empty.
@@ -52,7 +52,7 @@ Then open `http://localhost:5173` in a browser.
 - [ ] Click `PTHR00000:SF1`. pantherdb.org's family page opens in a new tab, its address ending `clsAccession=PTHR00000%3ASF1`; this page stays open in the first tab. A screen reader names the link as opening in a new tab.
 - [ ] Under **Alignment**, the alignment shows in a fixed-width font, its first line saying it's mock data, with its columns lined up and no line wrapped.
 - [ ] Press Tab until the alignment's box is outlined, then press the right arrow a few times. The alignment scrolls sideways within its box.
-- [ ] **Versions used** lists the API, the engine and the four tools, matching the footer.
+- [ ] **Versions used** lists the API, the engine and the four tools, matching the footer, and **hmmscore data** as **PANTHER 19**.
 - [ ] Click **New HMM scoring search**. The form opens, empty, without the note about an earlier job.
 - [ ] Press the browser's Back button, and click **Edit and resubmit**. The form opens with a note that it was filled in from your earlier job, and the box holds the example as it was.
 - [ ] On a phone, or with the browser window narrowed to phone width, the form and the results page don't scroll sideways; only the alignment's box does, when you swipe it.
@@ -62,26 +62,28 @@ Then open `http://localhost:5173` in a browser.
 
 ## Against the Real API
 
-Stop the mock website with Ctrl+C. From the repository root, start the API:
+Stop the mock website with Ctrl+C. If `.data/hmmscore/19/` isn't there yet, fetch the hmmscore data sample, from `engine/`, with `uv run panther-engine hmmscore sample fetch --data-dir ../.data` (33 MB). Then, from the repository root, start the API:
 
 ```sh
 docker compose up --build api
 ```
 
-Leave it running. It's ready when `http://localhost:8000/api/v1/health` shows `{"status":"ok"}`. HMM scoring needs no data yet. In a second terminal, start the website against it:
+Leave it running. It's ready when `http://localhost:8000/api/v1/health` shows `{"status":"ok"}`. In a second terminal, start the website against it:
 
 ```sh
 cd frontend
 npm run dev:api
 ```
 
-## TC 4.4 HMM Scoring Isn't Available Yet (Real API)
+## TC 4.4 Score the Example (Real API)
 
-- [ ] Open `http://localhost:5173/hmmscore`. There is no **Mock data** banner at the top of the page, and the note above the box says HMM scoring isn't available on this site yet.
-- [ ] Click **Use an example**, then **Score sequence**. A message under the box says HMM scoring isn't available yet, and no job was started. The address stays `/hmmscore`.
-- [ ] The box still holds the example, and **Score sequence** can be clicked again, with the same message.
-- [ ] Replace the text with `MKV1L`, and click **Score sequence**. The form's own message about the characters shows, as in TC 4.2.
-- [ ] No message shows an error code, such as 501, a port number, a file path or a command.
+- [ ] Open `http://localhost:5173/hmmscore`. There is no **Mock data** banner at the top of the page, and no note above the box.
+- [ ] Click **Use an example**, then **Score sequence**. A job page opens, and its status reaches **Succeeded** within about half a minute; the first job takes longest.
+- [ ] The page shows **PANTHER ID** `PTHR18976:SF2` and **Name** **APOLIPOPROTEIN E**, with an **E-value** and a **Bit score**. With the data sample, they're `2.2e-133` and `439.0`.
+- [ ] Under **Alignment**, the alignment begins `>> sequence`, and lines up the model `PTHR18976.SF2.pir` against `sequence`, starting `MKVLWAALLVTFLAGCQAKV`.
+- [ ] **Versions used** lists **hmmscore data** as **PANTHER 19**, and `hmmscan` and `hmmsearch` as `3.4`.
+- [ ] Click **Edit and resubmit**, replace the text with `MKV1L`, and click **Score sequence**. The form's own message about the characters shows, as in TC 4.2, and no job starts.
+- [ ] No message shows an error code, a port number, a file path or a command.
 
 **Pass / Fail:**
 **Notes:**

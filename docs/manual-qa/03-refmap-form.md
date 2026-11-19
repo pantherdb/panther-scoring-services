@@ -20,7 +20,7 @@ Then open `http://localhost:5173` in a browser.
 
 ## TC 3.1 Open the Form, Choose an Organism and Use the Example
 
-- [ ] The home page has a **Protein ID mapping** section, below **Coding SNP impact scoring**, with a **Map protein IDs** button, and not marked **Coming soon**. In the header, the **ID mapping** tab isn't marked coming soon either; **HMM scoring** and **TreeGrafter** are.
+- [ ] The home page has a **Protein ID mapping** section, below **Coding SNP impact scoring**, with a **Map protein IDs** button, and not marked **Coming soon**. In the header, the **ID mapping** tab isn't marked coming soon either; only **TreeGrafter** is.
 - [ ] Click **Map protein IDs**. The address changes to `/refmap`, and the page is headed **Protein ID mapping**.
 - [ ] The **Protein IDs** box and the **Organism** selector are empty, and under the IDs box it says **No IDs yet.**
 - [ ] Click the organism selector. It lists the organisms by name, each with its code in brackets, such as **Endocarpon pusillum (ENDPU)**, sorted by name.

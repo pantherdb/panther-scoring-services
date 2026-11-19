@@ -59,15 +59,16 @@ The API reads its settings from environment variables when it starts. An invalid
 | `PANTHER_API_CORS_ORIGINS` | empty | comma-separated origins, such as `https://pantherdb.github.io`: a scheme and host, with no path, `*` or trailing `/` | The browser origins allowed to call the API from another site. Empty adds no CORS headers. See [CORS](#cors) |
 | `PANTHER_API_LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING` or `ERROR`, in any case | The lowest level logged. See [Logs](#logs) |
 | `PANTHER_API_HMMSCORE_MAX_RESIDUES` | `10000` | an integer from 1 to 10,000 | The most residues an `hmmscore` sequence may have, counting every position `hmmscan` reads but a final `*`. A longer one gets a `422` naming the limit. 10,000 is the product owner's limit, and the most allowed ([divergence 11](../parity/divergences.md)) |
-| `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` | `720` | an integer ≥ 1 | How long one `hmmscore` job may run. Takes effect when hmmscore's scoring is wired in |
+| `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` | `720` | an integer ≥ 1, at least the minimum below | How long an `hmmscore` job of 10,000 residues may run: the most a job gets. A shorter sequence gets less, in proportion to its residues, down to the minimum ([divergence 14](../parity/divergences.md)) |
+| `PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS` | `120` | an integer from 1 to the time limit | How long an `hmmscore` job of the shortest sequence may run. A job's limit is the minimum, plus the difference between the two times its residues ÷ 10,000, rounded to the nearest second: APOE's 317 residues get 139 s, and 5,000 residues 420 s. It divides by 10,000 whatever `PANTHER_API_HMMSCORE_MAX_RESIDUES` is. A minimum over the time limit stops the API from starting, naming both |
 | `PANTHER_API_HMMSCORE_MAX_RUNNING` | `1` | an integer ≥ 1 | `hmmscore` jobs that may run at once. More wait as `queued`, without holding a worker, so other services' jobs still run. They count toward `PANTHER_API_MAX_QUEUED_JOBS` |
-| `PANTHER_API_HMMSCORE_CPU` | `0` | an integer ≥ 0 | `hmmscan`'s `--cpu` for each `hmmscore` job. Takes effect when hmmscore's scoring is wired in |
+| `PANTHER_API_HMMSCORE_CPU` | `0` | an integer ≥ 0 | The `--cpu` of each `hmmscore` job, passed to both `hmmscan` and `hmmsearch`. 0, the default, uses the least memory |
 
 Set one for the native dev server with, for example, `PANTHER_API_JOB_WORKERS=1 uv run fastapi dev --port 8000`, and for the image with `docker run -e PANTHER_API_JOB_WORKERS=1 …`. The compose `api` service sets none, so it uses the defaults. Jobs are kept in memory, and are lost when the API restarts.
 
-The four `hmmscore` settings' defaults are starting points: the server sets its own once they're measured there with the full library (#68). The time limit's 720 s is scaled from the [library survey](../parity/hmmscore-library-survey.md)'s times, since no 10,000-residue query was measured (`add-hmmscore-job`, design.md, decision 5). Until hmmscore's scoring is wired in, a valid `hmmscore` request gets a `501` ([The hmmscore Job](#the-hmmscore-job)), so only the residue limit acts yet. The running cap is in the job runner, ready for the first `hmmscore` job; the time limit and `--cpu` take effect with the wiring.
+The five `hmmscore` settings' defaults are starting points: the engine developer sets the server's own once they're measured there with the full library (#68). The time limit's 720 s was scaled from the [library survey](../parity/hmmscore-library-survey.md)'s times ([`add-hmmscore-job`](../../openspec/changes/archive/2026-11-16-add-hmmscore-job/design.md), decision 5); `titin-10000` later took 231 s on the full library at `--cpu 0` (#68). The minimum covers what every search costs, whatever its length: `hmmscan` reads all of `binHmm.h3f` (`wire-hmmscore`, design.md, decision 3). A job's time limit counts from when its search starts, so a job that waited for a worker or for the running cap still has all of it.
 
-At startup, the API checks each service's data with the engine's `check_data()`: the cSNP data and the refmap data. If `PANTHER_DATA_DIR` isn't set, or the folder lacks part of a service's data, it logs an error for that service, such as `csnp jobs will fail until the cSNP data is in place: the cSNP data folder … lacks: …` or `refmap jobs will fail until the refmap data is in place: the refmap data folder … lacks 1,534 of 1,534 files: …`, and starts anyway: everything but that service's jobs works without it. The checks are independent, so one service's missing data doesn't stop the other's jobs. Natively without the data, expect both lines. With the refmap data in place, it also checks the classification JSON built from it, and logs `refmap classifications will fail until the classification JSON is built (panther-engine refmap data build-json): …` if any organism's is missing ([An Organism's Classification](#an-organisms-classification)).
+At startup, the API checks each service's data with the engine's `check_data()`: the cSNP data, the refmap data and the hmmscore data. If `PANTHER_DATA_DIR` isn't set, or the folder lacks part of a service's data, it logs an error for that service, such as `csnp jobs will fail until the cSNP data is in place: the cSNP data folder … lacks: …` `refmap jobs will fail until the refmap data is in place: the refmap data folder … lacks 1,534 of 1,534 files: …` or `hmmscore jobs will fail until the hmmscore data is in place: the hmmscore data folder … lacks: globals/names.tab, …`, and starts anyway: everything but that service's jobs works without it. The checks are independent, so one service's missing data doesn't stop another's jobs. Natively without the data, expect the three lines. The hmmscore data sample passes the check, as the full library does: it holds the same parts. With the refmap data in place, it also checks the classification JSON built from it, and logs `refmap classifications will fail until the classification JSON is built (panther-engine refmap data build-json): …` if any organism's is missing ([An Organism's Classification](#an-organisms-classification)).
 
 ### CORS
 
@@ -133,14 +134,14 @@ docker compose down                    # remove the container
 ```
 
 - **It's for the frontend to call,** through its dev proxy, with the real tools: `/api/v1/versions` then reports each tool's pinned version. It has no source mount and no reload, so rerun with `--build` after changing `api/` or `engine/`. Develop the API itself with the native dev server above.
-- **It reads the data folder,** `.data/` at the repository root, mounted read-only at `/data` with `PANTHER_DATA_DIR=/data`, as the `engine` service does. `csnp` jobs need the cSNP data sample there, and `refmap` jobs the refmap data: see [The Data Sample](#the-data-sample) and [The refmap Data](#the-refmap-data).
+- **It reads the data folder,** `.data/` at the repository root, mounted read-only at `/data` with `PANTHER_DATA_DIR=/data`, as the `engine` service does. `csnp` jobs need the cSNP data sample there, `refmap` jobs the refmap data, and `hmmscore` jobs the hmmscore data sample: see [The Data Sample](#the-data-sample), [The refmap Data](#the-refmap-data) and [The hmmscore Data Sample](#the-hmmscore-data-sample).
 - **Both use port 8000.** Run one at a time.
 - **Name the service.** A bare `docker compose up` also runs the `engine` service's checks.
 - **To wait for it in a script,** use `curl --retry 30 --retry-all-errors --retry-delay 1 localhost:8000/api/v1/health`. Docker's port proxy accepts the connection before the app listens, so the first requests get an empty reply, not a refused connection, and `--retry-connrefused` doesn't retry them. CI's `api-image` job waits this way.
 
 ## Try the Jobs by Hand
 
-There are three jobs: the built-in `tools` job, `csnp`, which scores coding SNPs ([below](#the-csnp-job)), and `refmap`, which maps protein IDs to PANTHER IDs ([The refmap Job](#the-refmap-job)). An `hmmscore` request is validated, then refused with a `501` until its scoring is ported ([The hmmscore Job](#the-hmmscore-job)). In a `tools` job, a worker process runs the engine's tool report and returns each tool's version. It checks that the API, the worker pool, the engine and the tools work together. Start the API in the image, so the tools are there, from the repository root:
+There are four jobs: the built-in `tools` job, `csnp`, which scores coding SNPs ([below](#the-csnp-job)), `refmap`, which maps protein IDs to PANTHER IDs ([The refmap Job](#the-refmap-job)), and `hmmscore`, which scores a protein against PANTHER's HMM library ([The hmmscore Job](#the-hmmscore-job)). In a `tools` job, a worker process runs the engine's tool report and returns each tool's version. It checks that the API, the worker pool, the engine and the tools work together. Start the API in the image, so the tools are there, from the repository root:
 
 ```sh
 docker compose up --build api
@@ -407,23 +408,50 @@ curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
 
 ### The hmmscore Job
 
-An `hmmscore` job will score one protein against PANTHER's HMM library, with the engine's port of `scoreAlignXml.cgi`. Its contract is settled (`openspec/changes/add-hmmscore-job/`) and its input rules are in `openspec/changes/add-hmmscore-job/specs/scoring-input/spec.md` until the change is archived, but the engine doesn't score yet. So a valid request gets a `501` problem, and no job is created. It needs no data, so it works natively too:
+An `hmmscore` job scores one protein against PANTHER 19's HMM library, with the engine's port of `scoreAlignXml.cgi`: a worker runs `hmmscan` against the library, takes the legacy best hit, then runs `hmmsearch` with that hit's model for the alignment. Its contract was set by the archived [`add-hmmscore-job`](../../openspec/changes/archive/2026-11-16-add-hmmscore-job/), and its input rules are in `openspec/specs/scoring-input/`.
+
+#### The hmmscore Data Sample
+
+The API reads the HMM library from `PANTHER_DATA_DIR`, under `hmmscore/19/`. For development and CI, that's the data sample: 14 whole families, among them the form's example's, laid out as the full library is (33 MB, 135 MB unpacked). The compose `api` service mounts `.data/` there, so fetch it into `.data/` once, from `engine/`:
 
 ```sh
-curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
-  -d '{"service": "hmmscore", "input": {"sequence": ">sp|P02649|APOE_HUMAN\nMKVLWAALLVTFLAGCQAKV"}}'
+uv run panther-engine hmmscore sample fetch --data-dir ../.data
 ```
+
+[engine.md](engine.md#the-hmmscore-data-sample) says what the sample holds, and how to fetch it through compose instead. The hosting server needs the full library, 67 GB ([the runbook](../deployment/runbook-server.md#the-apis-data)). Without either, every `hmmscore` job fails with the generic `500`, and the API logs why at startup ([Settings](#settings)).
+
+#### A Job That Scores
+
+The form's example, human APOE (P02649), from the repository root:
+
+```sh
+sequence=$(grep -v '>' engine/tests/golden/hmmscore/example/apoe.fasta | tr -d '\n')
+curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
+  -d "{\"service\": \"hmmscore\", \"input\": {\"sequence\": \"$sequence\"}}"
+curl -s localhost:8000/api/v1/jobs/<id>
+```
+
+On the sample, the search takes about a second, and the first job also starts a worker process, so expect a few seconds in all. The job's `result` is the best hit, as `scoreAlignXml.cgi` gave it, with its name from `names.tab` and `hmmsearch`'s alignment, and its `versions.data` names hmmscore's PANTHER 19:
 
 ```json
 {
-  "type": "about:blank",
-  "title": "Not Implemented",
-  "status": 501,
-  "detail": "HMM scoring isn't available yet."
+  "hit": {
+    "panther_id": "PTHR18976:SF2",
+    "name": "APOLIPOPROTEIN E",
+    "evalue": "2.2e-133",
+    "score": "439.0",
+    "alignment": ">> sequence  \n   #    score  bias  c-Evalue  i-Evalue hmmfrom  hmm to    alifrom  ali to …"
+  }
 }
 ```
 
-An invalid request still gets the `422` validation problem first, without the submitted sequence. The sequence is normalised as a `csnp` one is: trimmed, one FASTA header removed, whitespace removed and upper-cased. Then it may hold only letters, `.`, `_`, `~` and `*`, which HMMER 3.1b2 and 3.4 score alike, and at least one letter; one with none gets "The sequence has no residues." Anything else, such as `-` or a digit, is refused ([divergence 12](../parity/divergences.md)). It may have at most `PANTHER_API_HMMSCORE_MAX_RESIDUES` residues, 10,000 by default, counting every character but a final `*`; a longer one gets "The sequence has more than 10,000 residues." Here the sequence has a digit:
+The full library gives the same hit, with an E-value of `7e-131`: an E-value depends on the models searched. A sequence that matches no family, or whose best hit's E-value is over 1e-3, succeeds with `{"hit": null}`, as the legacy service applied its cutoff. A tool that fails, or a missing library, fails the job with the generic `500`, and the details go only to the log.
+
+Each job's search has a time limit that grows with its length ([Settings](#settings)), and a job that runs past it fails. On the sample, a search finishes within a second, the least the setting allows, so the time limit can't be shown here; the API's tests cover it.
+
+#### Requests That Are Refused (hmmscore)
+
+An invalid request gets the `422` validation problem, without the submitted sequence, and no job is created. The sequence is normalised as a `csnp` one is: trimmed, one FASTA header removed, whitespace removed and upper-cased. Then it may hold only letters, `.`, `_`, `~` and `*`, which HMMER 3.1b2 and 3.4 score alike, and at least one letter; one with none gets "The sequence has no residues." Anything else, such as `-` or a digit, is refused ([divergence 12](../parity/divergences.md)). It may have at most `PANTHER_API_HMMSCORE_MAX_RESIDUES` residues, 10,000 by default, counting every character but a final `*`; a longer one gets "The sequence has more than 10,000 residues." Here the sequence has a digit:
 
 ```sh
 curl -si localhost:8000/api/v1/jobs -H 'Content-Type: application/json' \
@@ -465,7 +493,7 @@ Tests live in `tests/` and call the app through FastAPI's `TestClient`, so no se
 - **To test with a throwaway route**, build the app with `create_app(router)` from `panther_api.main`: the router is included under `/api/v1`, like the app's own.
 - **No test runs the external tools,** except those marked `tools` (below). The app reads the tool versions once when it starts, through the engine's `report_tools()`. The autouse `fake_tools` fixture in `tests/conftest.py` replaces it with a report of all four tools at made-up paths, so tests give the same results with or without the tools installed. To test another report, patch `panther_api.versions.report_tools` again in the test, then build the app with `TestClient(create_app())`: the `client` fixture's app has already read the fake. The `api-image` CI job checks the real tools.
 - **Share test helpers through their own module,** such as `tests/job_helpers.py`, imported by its bare name (`from job_helpers import ...`). `tests/` has no `__init__.py`, so a test can't import from `conftest.py`.
-- **A monkeypatch never reaches a worker process.** Jobs run in `spawn` workers, which import every module afresh. To change what a job does, patch `panther_api.jobs.runner.run_job` with a module-level function from `tests/job_helpers.py`. The pool pickles it by reference, and the workers find it because they inherit the test process's `sys.path`. Anything else a worker needs goes in an environment variable set before the first job, since workers start when the first job is submitted. `score_with_a_fake_engine` in `tests/job_helpers.py` runs the real `run_job` with the engine's `score()` replaced in the worker, so a `csnp` job succeeds without BLAST+ or data.
+- **A monkeypatch never reaches a worker process.** Jobs run in `spawn` workers, which import every module afresh. To change what a job does, patch `panther_api.jobs.runner.run_job` with a module-level function from `tests/job_helpers.py`. The pool pickles it by reference, and the workers find it because they inherit the test process's `sys.path`. Anything else a worker needs goes in an environment variable set before the first job, since workers start when the first job is submitted. `score_with_a_fake_engine` in `tests/job_helpers.py` runs the real `run_job` with the engine's cSNP and hmmscore `score()` replaced in the worker, so a `csnp` or `hmmscore` job succeeds without BLAST+, HMMER or data, and an `hmmscore` hit's alignment names the options its search was given.
 
 Run one file, or one test by name:
 

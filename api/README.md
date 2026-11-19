@@ -38,15 +38,14 @@ Two limits protect a public API: a request body over 16 MiB gets a `413` before 
 
 The log goes to standard error, one line per record with a UTC timestamp, at the level `PANTHER_API_LOG_LEVEL` sets, `INFO` by default. Each job gets one line when it finishes, with its size, status and times, never what was submitted. Health checks, successful polls and accepted submissions are left out of the request log below `DEBUG`.
 
-Jobs run in a pool of worker processes and are kept in memory, so a restart loses them. The finished jobs' results share a memory budget, `PANTHER_API_RESULTS_BUDGET_MIB`; over it, the largest expire first. There are three:
+Jobs run in a pool of worker processes and are kept in memory, so a restart loses them. The finished jobs' results share a memory budget, `PANTHER_API_RESULTS_BUDGET_MIB`; over it, the largest expire first. There are four:
 
 - **`csnp`** (`{"sequence", "substitutions", "species"}`) scores coding SNPs in one protein with the engine's PANTHER-PSEP port. It needs `blastp` and the cSNP data, in the folder `PANTHER_DATA_DIR` names; the compose `api` service mounts `.data/` there. A sequence the engine can't read fails the job with a `422` and the engine's message; any other error fails it with a generic `500`.
 - **`refmap`** (`{"organism", "ids"}`) maps up to 100,000 protein IDs to PANTHER IDs for one organism, with the engine's port of `map_panther.pl`. It needs the refmap data in the same folder. `GET /api/v1/refmap/organisms` lists the organisms it maps for. Its result is kept as the JSON its worker made.
+- **`hmmscore`** (`{"sequence"}`) scores one protein against PANTHER 19's HMM library, with the engine's port of `scoreAlignXml.cgi`: `hmmscan`, the legacy best hit, then `hmmsearch` for its alignment. It needs HMMER and the HMM library, the data sample in development, in the same folder. A sequence may have at most `PANTHER_API_HMMSCORE_MAX_RESIDUES` residues (10,000 by default), at most `PANTHER_API_HMMSCORE_MAX_RUNNING` jobs run at once (1 by default), and each job's search has a time limit that grows with its length.
 - **`tools`**, built in, reports the external tools' versions from a worker.
 
-A fourth, **`hmmscore`** (`{"sequence"}`), scores one protein against PANTHER's HMM library. Its request is validated, its residues checked against `PANTHER_API_HMMSCORE_MAX_RESIDUES` (10,000 by default), but a valid one gets a `501` problem, "HMM scoring isn't available yet.", and no job, until the engine's port of `scoreAlignXml.cgi` is wired in (`openspec/changes/add-hmmscore-job/`). At most `PANTHER_API_HMMSCORE_MAX_RUNNING` hmmscore jobs will run at once, 1 by default.
-
-To try them, and to get the data sample, see "Try the Jobs by Hand" in [docs/testing/api.md](../docs/testing/api.md). The settings (`PANTHER_API_*`) are listed there too. `GET /api/v1/versions` and every job also name the PANTHER release each service's data comes from: PANTHER 9 for `csnp`.
+To try them, and to get the data sample, see "Try the Jobs by Hand" in [docs/testing/api.md](../docs/testing/api.md). The settings (`PANTHER_API_*`) are listed there too. `GET /api/v1/versions` and every job also name the PANTHER release each service's data comes from: PANTHER 9 for `csnp`, and PANTHER 19 for `refmap` and `hmmscore`.
 
 ## Layout
 
@@ -66,8 +65,8 @@ src/panther_api/
   versions.py    the Versions model, read from the engine
   jobs/          the job models, the in-memory store, the worker-pool runner, and work.py:
                  what the workers run. A scoring service joins by adding its request,
-                 result and case there; one not ported yet also gets a row in UNAVAILABLE,
-                 for its 501. fields.py holds the input shapes more than one service checks
+                 result and case there, and JobOptions carries the settings a worker
+                 needs. fields.py holds the input shapes more than one service checks
   openapi.py     writes openapi.json: uv run python -m panther_api.openapi
   routers/       one module per area; each is one include_router line in create_app(). csnp.py
                  holds cSNP's species list, and refmap.py refmap's organism list

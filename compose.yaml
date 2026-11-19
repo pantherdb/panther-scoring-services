@@ -38,9 +38,11 @@ services:
 
   # The API, as the image serves it, for the frontend's dev proxy to call. No mount and no reload:
   # rebuild with --build after a change. Develop the API natively (docs/testing/api.md). Name the
-  # service when starting it, or `docker compose up` also runs the engine's checks. Its csnp jobs
-  # read the data folder as the engine service does: fetch the cSNP data sample into .data/ first
-  # (docs/testing/api.md). Without it, every csnp job fails with the generic error.
+  # service when starting it, or `docker compose up` also runs the engine's checks. Its jobs read
+  # the data folder as the engine service does: fetch the cSNP data sample, the refmap data and
+  # the hmmscore data sample into .data/ first, such as `panther-engine hmmscore sample fetch
+  # --data-dir ../.data` from engine/ (docs/testing/api.md). Without a service's data, its jobs
+  # fail with the generic error.
   api:
     build:
       context: .

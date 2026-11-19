@@ -371,7 +371,7 @@ describe("the API's validation errors", () => {
 })
 
 describe('when the job is not started', () => {
-  it("says HMM scoring isn't available yet on the API's 501, in fixed text", async () => {
+  it('says the job could not be started on a 501 with problem details, as from an older API', async () => {
     const bodies = serveProblem(501, problem(501, 'Not Implemented'))
     const rendered = renderRoute('/hmmscore')
     enter(VALID)
@@ -379,7 +379,8 @@ describe('when the job is not started', () => {
     await rendered.user.click(submitButton())
 
     const alert = await main().findByRole('alert')
-    expect(alert).toHaveTextContent(/hmm scoring isn.t available yet/i)
+    expect(alert).toHaveTextContent(/couldn.t be started/i)
+    expect(alert).not.toHaveTextContent(/isn.t available/i)
     expect(bodies).toHaveLength(1)
     expect(screen.getByRole('main').textContent).not.toMatch(BUILD_DETAILS)
     expect(screen.getByRole('main').textContent).not.toMatch(STATUS_CODES)

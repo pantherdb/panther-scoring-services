@@ -16,7 +16,8 @@ function problem(status: number) {
 
 describe('submitProblem', () => {
   it.each([
-    ["the API's 501", { status: 501, data: problem(501) }, 'unavailable'],
+    // Every service runs, so a 501 from the API is a failure like any other.
+    ['a 501 with problem details', { status: 501, data: problem(501) }, 'failed'],
     ["the API's busy 503", { status: 503, data: problem(503) }, 'busy'],
     ['a 501 with no problem details', { status: 501, data: null }, 'unreachable'],
     [

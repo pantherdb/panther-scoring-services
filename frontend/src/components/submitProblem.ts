@@ -2,11 +2,11 @@ import { errorData, errorStatus, isProblem, isUnreachable } from '@/app/api/erro
 import { isValidationProblem, type ValidationProblem } from '@/app/api/wire'
 
 /**
- * Why a submit didn't open a job, when it wasn't the input: `unavailable` is the API's 501, a
- * service it can't run yet; `busy` its 503, too many jobs waiting; `unreachable` no answer from
- * the API at all; `failed` anything else.
+ * Why a submit didn't open a job, when it wasn't the input: `busy` is the API's 503, too many
+ * jobs waiting; `unreachable` no answer from the API at all; `failed` anything else, a 501 with
+ * problem details included, since every service runs.
  */
-export type SubmitProblem = 'unavailable' | 'busy' | 'unreachable' | 'failed'
+export type SubmitProblem = 'busy' | 'unreachable' | 'failed'
 
 /** Why a submit didn't open a job, with what the form needs to say so. */
 export type SubmitFailure =
@@ -25,9 +25,7 @@ export type NotStarted = { problem: SubmitProblem; retryAfter: number | null }
  */
 export function submitProblem(error: unknown): SubmitProblem {
   if (isUnreachable(error)) return 'unreachable'
-  const status = errorStatus(error)
-  if (status === 501 && isProblem(errorData(error))) return 'unavailable'
-  if (status === 503 && isProblem(errorData(error))) return 'busy'
+  if (errorStatus(error) === 503 && isProblem(errorData(error))) return 'busy'
   return 'failed'
 }
 

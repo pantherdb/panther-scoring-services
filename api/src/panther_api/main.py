@@ -8,6 +8,7 @@ from importlib.metadata import version
 from typing import Any, override
 
 import panther_engine.csnp
+import panther_engine.hmmscore
 import panther_engine.refmap
 from fastapi import APIRouter, FastAPI
 from fastapi.concurrency import run_in_threadpool
@@ -36,7 +37,11 @@ class PantherAPI(FastAPI):
         return self.openapi_schema
 
 
-DATA_CHECKS = (("csnp", "cSNP", panther_engine.csnp), ("refmap", "refmap", panther_engine.refmap))
+DATA_CHECKS = (
+    ("csnp", "cSNP", panther_engine.csnp),
+    ("refmap", "refmap", panther_engine.refmap),
+    ("hmmscore", "hmmscore", panther_engine.hmmscore),
+)
 """Each service whose jobs need data: its name, its data's name, and the engine module whose
 `check_data()` checks it. Looked up when called, so a test can patch a module's check."""
 

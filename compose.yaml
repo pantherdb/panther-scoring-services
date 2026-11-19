@@ -47,6 +47,9 @@ services:
     build:
       context: .
       target: api
+    # An init process reaps a search tool whose worker died, which the API, as the first process,
+    # wouldn't (openspec wire-hmmscore, design.md, decision 9).
+    init: true
     ports:
       - "8000:8000"
     volumes:

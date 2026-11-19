@@ -184,6 +184,10 @@ docker run --rm --user "$(id -u):$(id -g)" -v <the data folder>:/fetch -v "$PWD:
 
 The five `hmmscore` settings bound what an HMM search may take: `PANTHER_API_HMMSCORE_MAX_RESIDUES` (10,000), `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` (720, at 10,000 residues), `PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS` (120, for the shortest sequence), `PANTHER_API_HMMSCORE_MAX_RUNNING` (1) and `PANTHER_API_HMMSCORE_CPU` (0). Their defaults are starting points, with times from a workstation, not the server. The engine developer sets the server's values, from a short and a long query timed there with the full library (#68); a lower residue limit goes into [divergence 11](../parity/divergences.md), and other time limits into divergence 14. [api.md, Settings](../testing/api.md#settings) says what each does.
 
+### The API's Container
+
+Start the API's container with an init process: `--init` on its `docker run`, as compose's `init: true` does for the `api` service. When a worker process dies, the search tool it was running (`hmmscan`, `hmmsearch` or `blastp`) is handed to the container's first process, and the engine has it killed (`wire-hmmscore`, design.md, decision 9). Without an init, that first process is the API, which doesn't reap it, so each such tool stays a zombie until the container restarts: harmless, but it shouldn't build up.
+
 ## Checking It Works
 
 After either way, against the site's address:

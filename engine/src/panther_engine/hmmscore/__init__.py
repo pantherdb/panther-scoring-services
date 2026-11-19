@@ -11,6 +11,7 @@ from panther_engine.hmmscore.scoring import (
     HmmscoreError,
     HmmscoreInput,
     HmmscoreResult,
+    TimeLimitError,
     check_data,
     score,
 )
@@ -21,6 +22,7 @@ __all__ = [
     "HmmscoreError",
     "HmmscoreInput",
     "HmmscoreResult",
+    "TimeLimitError",
     "check_data",
     "score",
 ]

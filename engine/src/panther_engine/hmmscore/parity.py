@@ -15,6 +15,9 @@ image (docs/parity/golden-setup.md). A golden folder, `tests/golden/hmmscore/par
 
 A case's expected result comes from `best.tsv`, divergence 13's pick among its IDs, and that ID's
 report, by the CGI's rule (`expected`). Files are read as bytes, as Latin-1.
+
+`__all__` is what the API's tests import, to score the golden cases through the API
+(wire-hmmscore, decision 7). The engine's CLI and tests use the rest.
 """
 
 import dataclasses
@@ -48,6 +51,8 @@ from panther_engine.hmmscore.scoring import (
     pick,
     score,
 )
+
+__all__ = ["Case", "expected_result", "read_cases"]
 
 GOLDEN = Path("tests/golden/hmmscore/parity")
 CASES = "cases.json"

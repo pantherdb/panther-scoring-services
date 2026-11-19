@@ -3,7 +3,9 @@ fixtures/hmmscore/tables/ stand in for HMMER, so each rule is tested on exactly 
 The real tools are in test_hmmscore_scoring_tools.py."""
 
 import os
+import pickle
 import tempfile
+import time
 from collections.abc import Callable
 from pathlib import Path
 
@@ -18,6 +20,7 @@ from panther_engine.hmmscore import (
     HmmscoreError,
     HmmscoreInput,
     HmmscoreResult,
+    TimeLimitError,
     check_data,
     score,
     scoring,
@@ -353,7 +356,7 @@ def work_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return folder
 
 
-def test_past_the_time_limit_is_the_input_error(
+def test_past_the_time_limit_is_the_time_limit_error(
     make_tool: Callable[[str, str], Path],
     fake_hmmer: Install,
     data: Path,
@@ -364,9 +367,11 @@ def test_past_the_time_limit_is_the_input_error(
     pid = tmp_path / "hmmscan.pid"
     make_tool("hmmscan", f'echo $$ > "{pid}"\nexec sleep 30')
 
-    with pytest.raises(InputError) as raised:
+    with pytest.raises(TimeLimitError) as raised:
         score(HmmscoreInput(SEQUENCE), data_dir=data, timeout=0.5)
 
+    # A short query reaches its limit only on a busy server: not the input's fault.
+    assert not isinstance(raised.value, InputError)
     assert str(raised.value) == (
         "The search took longer than this service allows. Try a shorter sequence."
     )
@@ -384,10 +389,26 @@ def test_the_time_limit_covers_both_tools(
     make_tool("hmmscan", f"sleep 0.6\n{scan}")
     make_tool("hmmsearch", "exec sleep 0.6")
 
-    with pytest.raises(InputError, match="took longer"):
+    with pytest.raises(TimeLimitError, match="took longer"):
         score(HmmscoreInput(SEQUENCE), data_dir=data, timeout=1.0)
 
     assert list(work_folder.iterdir()) == []
+
+
+def test_no_time_left_for_the_next_tool_is_the_time_limit_error() -> None:
+    # hmmscan can end just at the deadline, leaving hmmsearch nothing.
+    with pytest.raises(TimeLimitError, match="took longer"):
+        scoring.remaining(time.monotonic() - 1)
+
+
+def test_the_time_limit_error_keeps_its_type_across_processes() -> None:
+    # A worker pickles the exception it raises; the API sorts it by its type.
+    error = TimeLimitError("The search took longer than this service allows.")
+
+    copy = pickle.loads(pickle.dumps(error))  # noqa: S301
+
+    assert type(copy) is TimeLimitError
+    assert str(copy) == "The search took longer than this service allows."
 
 
 def test_without_a_time_limit_scoring_waits(

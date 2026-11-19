@@ -4,10 +4,10 @@ Start once #82 (`add-hmmscore-form`'s archive) has merged, from `main`. Row 14 w
 
 ## 0. Engine (the engine developer's)
 
-- [ ] 0.1 The timeout error: past the time limit, `score()` raises a new exception, named by the engine developer and exported from `panther_engine.hmmscore`, instead of `InputError` (design.md, decision 3). It isn't an `InputError` or a subclass, and keeps its type across processes. `TIME_LIMIT_MESSAGE` needn't be exported: the API writes its own `detail`, and the engine's message is for its own CLI and the log. Verify in `engine/tests/test_hmmscore_scoring.py`: past the limit raises the new error, not `InputError`, no tool is left running, the folder is removed, and it pickles with its type (spec, hmmscore-engine, The time limit)
-- [ ] 0.2 A search tool doesn't outlive its worker (decision 9): a keyword on `core/process.py`'s `run_tool` that, on Linux, sets `PR_SET_PDEATHSIG` with `SIGKILL` in the child through `preexec_fn` and checks its parent is still there; `core/hmmer.py` (`hmmscan`, `hmmsearch`) and `csnp/blast.py` (`blastp`) pass it, and every other call runs as before. Verify in `engine/tests/test_process.py`, Linux only: a child process runs a long-running tool with the keyword and is killed with `SIGKILL`, and the tool counts as gone shortly after when `/proc/<pid>` is missing or its state is `Z`, since nothing in the container reaps it; a control case without the keyword, where the tool survives; `run_tool`'s existing tests and csnp's pass unchanged (spec, engine-core, A search tool doesn't outlive the process that started it)
-- [ ] 0.3 `hmmscore/parity.py` gains an `__all__` with what the API's tests use: `Case`, `read_cases` and `expected_result` (decision 7). Verify the engine's checks pass
-- [ ] 0.4 Engine checks: `uv run ruff check`, `ruff format --check`, `basedpyright` and `pytest` pass, natively and in the engine image
+- [x] 0.1 The timeout error: past the time limit, `score()` raises a new exception, `TimeLimitError` (named by the engine developer), exported from `panther_engine.hmmscore`, instead of `InputError` (design.md, decision 3). It isn't an `InputError` or a subclass, and keeps its type across processes. `TIME_LIMIT_MESSAGE` needn't be exported: the API writes its own `detail`, and the engine's message is for its own CLI and the log. Verify in `engine/tests/test_hmmscore_scoring.py`: past the limit raises the new error, not `InputError`, no tool is left running, the folder is removed, and it pickles with its type (spec, hmmscore-engine, The time limit)
+- [x] 0.2 A search tool doesn't outlive its worker (decision 9): a keyword on `core/process.py`'s `run_tool` that, on Linux, sets `PR_SET_PDEATHSIG` with `SIGKILL` in the child through `preexec_fn` and checks its parent is still there; `core/hmmer.py` (`hmmscan`, `hmmsearch`) and `csnp/blast.py` (`blastp`) pass it, and every other call runs as before. Verify in `engine/tests/test_process.py`, Linux only: a child process runs a long-running tool with the keyword and is killed with `SIGKILL`, and the tool counts as gone shortly after when `/proc/<pid>` is missing or its state is `Z`, since nothing in the container reaps it; a control case without the keyword, where the tool survives; `run_tool`'s existing tests and csnp's pass unchanged (spec, engine-core, A search tool doesn't outlive the process that started it)
+- [x] 0.3 `hmmscore/parity.py` gains an `__all__` with what the API's tests use: `Case`, `read_cases` and `expected_result` (decision 7). Verify the engine's checks pass
+- [x] 0.4 Engine checks: `uv run ruff check`, `ruff format --check`, `basedpyright` and `pytest` pass, natively and in the engine image
 
 ## 1. API: hmmscore jobs run
 
@@ -56,23 +56,22 @@ Start once #82 (`add-hmmscore-form`'s archive) has merged, from `main`. Row 14 w
 
 ### Next action
 
-Groups 1 (but 1.3), 3 and 4 are applied on `feat/apply-wire-hmmscore` (2026-11-18), from #83's branch with `main` merged in. Next is the engine developer's group 0; then, on this branch with `main` merged again, task 1.3 and group 2, and the follow-ups below.
+Groups 1 (but 1.3), 3 and 4 are applied (2026-11-18), and group 0 (2026-11-19), all on #83's branch, `feat/propose-wire-hmmscore`. Next, on this branch, are task 1.3 and group 2, and the follow-ups below.
 
 ### What's left for after group 0
 
-- **Task 1.3, the job past its time limit.** In `jobs/runner.py`, an `except` for the engine's timeout error (0.1's name, imported from `panther_engine.hmmscore`), before `except Exception`: fail the job with `503` and the API's `detail`, a constant the tests import ("The search took longer than this service allows. The server may be busy: try again later, or with a shorter sequence."), and log the finish line at `WARNING`, "failed 503, past its time limit of N s", with N from `work.hmmscore_time_limit(request.input.residues, self._options)`, and no traceback. Stand-ins in `tests/job_helpers.py` that raise the timeout error, an `HmmscoreError` with a path in its message, and a `ValueError`; tests in `tests/test_jobs.py` and `tests/test_job_logs.py`, each beside a success. None of 1.3 is written: no stub, no guessed name.
-- **Until 1.3 lands,** a job past its time limit fails as the engine raises today: `InputError`, so a `422` with the engine's own message ("… Try a shorter sequence."), logged as an input error. Don't ship that.
+- **Task 1.3, the job past its time limit.** In `jobs/runner.py`, an `except` for the engine's timeout error (`TimeLimitError`, imported from `panther_engine.hmmscore`), before `except Exception`: fail the job with `503` and the API's `detail`, a constant the tests import ("The search took longer than this service allows. The server may be busy: try again later, or with a shorter sequence."), and log the finish line at `WARNING`, "failed 503, past its time limit of N s", with N from `work.hmmscore_time_limit(request.input.residues, self._options)`, and no traceback. Stand-ins in `tests/job_helpers.py` that raise the timeout error, an `HmmscoreError` with a path in its message, and a `ValueError`; tests in `tests/test_jobs.py` and `tests/test_job_logs.py`, each beside a success. None of 1.3 is written yet.
+- **Until 1.3 lands,** a job past its time limit fails as an unexpected error does: `TimeLimitError` reaches the runner's `except Exception`, so the generic `500`, logged at `ERROR` with a traceback. Don't ship that.
 - **With 1.3, the texts that name the 503:** `HmmscoreJob`'s docstring in `jobs/models.py` (then regenerate `api/openapi.json` and `frontend/src/app/api/schema.d.ts` in the same commit), `api/CLAUDE.md`'s "How a job fails", and `docs/testing/api.md`'s hmmscore section, which now says only that a job past its limit fails.
 - **Group 2:** 2.1 (`tests/markers.py`'s `hmmscore` manifest and HMMER version check), 2.2 (`tests/test_hmmscore_scoring.py` with `parity`'s readers), 2.3 (CI's `api-image` job) and 2.4. With them, `docs/testing/api.md`'s "Tests With the Tools and Data" and `docs/testing/README.md`'s `api-image` row name the hmmscore tests.
-- **The runbook's "The API's Container"** says the engine has a dead worker's tool killed: true once 0.2 lands.
 
 ### Blockers
 
-- **Group 0's engine tasks** block task 1.3 and group 2, which import the timeout error and `parity`'s `__all__`. Groups 1 (but 1.3), 3 and 4 didn't need them.
 - **#82 (`add-hmmscore-form`'s archive) is still open.** The `scoring-ui` requirements this change modifies and removes are in `openspec/specs/` only once it merges; until then, archiving this change would fail.
 - **`port-hmmscore` isn't archived.** This change's `hmmscore-engine` delta modifies a requirement that reaches `openspec/specs/` only with that archive.
-- **#83 needs its approval again,** after the push that narrowed task 0.2.
+- **#83 needs its approval again,** after the pushes that narrowed task 0.2 and added the code.
 - #81 (`port-hmmscore`) merged on 2026-11-17 (`c74a30b`): no longer a blocker.
+- Group 0 is applied (2026-11-19): it no longer blocks task 1.3 or group 2.
 
 ### Failed approaches
 
@@ -98,3 +97,11 @@ None in the code.
   - in api-mode e2e, real hmmscore searches hold the two workers for 10 to 25 s under load, so `e2e/jobs.spec.ts`'s tools check waits up to 60 s, not 15;
   - through the API image with the data sample, the form's example gives `PTHR18976:SF2`, "APOLIPOPROTEIN E", `2.2e-133`, `439.0` and PANTHER 19; the first job ran 8.5 s, a worker's start included, and the startup check logs nothing for hmmscore;
   - natively on Windows, `tests/test_refmap_classification.py::test_a_file_replaced_after_opening_is_sent_as_it_was` fails before and after this change (`WinError 5` on the rename), from `main`; not this change's.
+- **Applying group 0 (2026-11-19):**
+  - `TimeLimitError` is a plain `Exception` raised with one argument, the message, so it pickles with its type; `score()` raises it from `remaining()` too, when no time is left to start `hmmsearch`. The `hmmscore score` CLI catches it beside `InputError`, so `--timeout` still prints the message and exits 1;
+  - before 0.2, in the engine image, `hmmscan`, `hmmsearch` and `blastp` all ran on after their parent was killed with `SIGKILL`: the orphan was real;
+  - `prctl` is looked up with `ctypes` once, at import, so the child runs as little Python as it can between `fork` and `exec`;
+  - in the image, the container's first process can reap a killed tool between the test opening `/proc/<pid>/stat` and reading it, which raises `ProcessLookupError`; the test counts that as gone. It failed one full run in the image before that;
+  - the check that the parent is still there after `prctl` has no test: the race can't be reproduced reliably;
+  - an exception in `preexec_fn` reaches the parent only as `SubprocessError("Exception occurred in preexec_fn.")`, which the callers, catching `OSError`, missed; `run_tool` raises it as `OSError`, as for a program that can't start (from the review of #83's code);
+  - natively on macOS, the Linux-only tests skip, as do the tool tests with a HMMER other than 3.4.

@@ -1,10 +1,22 @@
+import contextlib
+import os
+import signal
 import subprocess
+import sys
+import time
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 
+from panther_engine.core import process
 from panther_engine.core.process import run_tool
+
+LINUX_ONLY = pytest.mark.skipif(
+    sys.platform != "linux", reason="a tool dies with its parent on Linux only"
+)
+# A tool that writes its process ID to the file it's given, then runs until it's killed.
+LONG_RUNNING = 'echo $$ > "{pid_file}"\nexec sleep 60'
 
 # Writes each argument it receives, NUL-terminated, to argv.bin beside itself.
 RECORD_ARGV = 'printf "%s\\0" "$@" > "$(dirname "$0")/argv.bin"'
@@ -164,3 +176,131 @@ def test_text_capture_translates_carriage_returns(
     tool = make_tool("bytes", "printf 'a\\r\\nb\\r\\tc'")
 
     assert run_tool(tool, [], timeout=10).stdout == "a\nb\n\tc"
+
+
+# A tool doesn't outlive the process that started it (wire-hmmscore, decision 9). When a worker
+# is killed, by the out-of-memory killer or a broken pool, the kernel kills its search tool, so
+# the tool can't run on without its time limit beside the next job.
+
+# What the parent runs, in its own Python process, before the test kills it.
+PARENT = """
+import os, sys
+from pathlib import Path
+from panther_engine.core import hmmer
+from panther_engine.core.process import run_tool
+from panther_engine.csnp import blast
+work = Path(sys.argv[1])
+"""
+CALLS = {
+    "run_tool, tied": "run_tool(work / 'bin' / 'tool', [], timeout=60, die_with_parent=True)",
+    "run_tool, untied": "run_tool(work / 'bin' / 'tool', [], timeout=60)",
+    "hmmscan": "hmmer.hmmscan(work / 'db', work / 'q', table=work / 't', cpu=0, timeout=60)",
+    "hmmsearch": "hmmer.hmmsearch(work / 'm', work / 'q', report=work / 'r', cpu=0, timeout=60)",
+    "blastp": "blast.search('MKVLW', work / 'data', timeout=60)",
+}
+
+
+def running(pid: int) -> bool:
+    """Whether process `pid` is running. A killed process that hasn't been reaped yet, a zombie,
+    isn't: an orphan is reaped only if the container's first process waits for it."""
+    try:
+        stat = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
+    # ProcessLookupError: reaped between opening the file and reading it.
+    except (FileNotFoundError, ProcessLookupError):
+        return False
+    # "pid (name) state ...", where the name may hold spaces and parentheses.
+    return stat.rpartition(")")[2].split()[0] != "Z"
+
+
+def tool_of_a_killed_parent(
+    call: str, tool: str, make_tool: Callable[[str, str], Path], tmp_path: Path
+) -> int:
+    """Run `call` in a parent process, with `tool` a long-running stand-in on PATH; once the tool
+    has started, kill the parent with SIGKILL. Returns the tool's process ID."""
+    pid_file = tmp_path / "tool.pid"
+    folder = make_tool(tool, LONG_RUNNING.format(pid_file=pid_file)).parent
+    (tmp_path / "data" / "blast").mkdir(parents=True)
+    environment = {**os.environ, "PATH": f"{folder}:{os.environ['PATH']}"}
+    parent = subprocess.Popen(  # noqa: S603
+        [sys.executable, "-c", PARENT + call, str(tmp_path)], env=environment
+    )
+    try:
+        deadline = time.monotonic() + 10
+        while not pid_file.is_file() or not pid_file.read_text(encoding="utf-8").strip():
+            assert parent.poll() is None, "the parent ended before its tool started"
+            assert time.monotonic() < deadline, "the tool never started"
+            time.sleep(0.05)
+    finally:
+        parent.kill()
+        parent.wait()
+    return int(pid_file.read_text(encoding="utf-8"))
+
+
+def still_running_after(pid: int, seconds: float) -> bool:
+    deadline = time.monotonic() + seconds
+    while running(pid) and time.monotonic() < deadline:
+        time.sleep(0.05)
+    return running(pid)
+
+
+@LINUX_ONLY
+@pytest.mark.parametrize(
+    ("call", "tool"),
+    [
+        ("run_tool, tied", "tool"),
+        ("hmmscan", "hmmscan"),
+        ("hmmsearch", "hmmsearch"),
+        ("blastp", "blastp"),
+    ],
+)
+def test_a_search_tool_dies_with_its_parent(
+    call: str, tool: str, make_tool: Callable[[str, str], Path], tmp_path: Path
+) -> None:
+    pid = tool_of_a_killed_parent(CALLS[call], tool, make_tool, tmp_path)
+    try:
+        assert not still_running_after(pid, 5)
+    finally:
+        with contextlib.suppress(ProcessLookupError):
+            os.kill(pid, signal.SIGKILL)
+
+
+@LINUX_ONLY
+def test_an_untied_tool_outlives_its_parent(
+    make_tool: Callable[[str, str], Path], tmp_path: Path
+) -> None:
+    # What the tied tools are kept from, and what the version checks still do.
+    pid = tool_of_a_killed_parent(CALLS["run_tool, untied"], "tool", make_tool, tmp_path)
+    try:
+        assert still_running_after(pid, 0.5)
+    finally:
+        with contextlib.suppress(ProcessLookupError):
+            os.kill(pid, signal.SIGKILL)
+
+
+def test_a_tied_tool_whose_parent_lives_runs_as_before(
+    make_tool: Callable[[str, str], Path],
+) -> None:
+    tool = make_tool("fails", 'echo "$1"; echo err >&2; exit 3')
+
+    result = run_tool(tool, ["out"], timeout=10, die_with_parent=True)
+
+    assert (result.returncode, result.stdout, result.stderr) == (3, "out\n", "err\n")
+
+
+def test_a_tied_tool_that_cant_be_set_up_raises_an_oserror(
+    make_tool: Callable[[str, str], Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # As a program that can't start does, so each caller's handling covers it: CPython reports a
+    # failure in the child, before the program starts, only as a SubprocessError.
+    def fails_to_set_up() -> None:
+        raise OSError("prctl(PR_SET_PDEATHSIG) failed")
+
+    def dies_with(_parent: int) -> Callable[[], None]:
+        return fails_to_set_up
+
+    monkeypatch.setattr(process, "_dies_with", dies_with)
+    tool = make_tool("never-runs", 'touch "$(dirname "$0")/ran"')
+
+    with pytest.raises(OSError, match="couldn't be started"):
+        run_tool(tool, [], timeout=10, die_with_parent=True)
+    assert not (tool.parent / "ran").exists()

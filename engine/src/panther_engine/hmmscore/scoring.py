@@ -27,7 +27,6 @@ from pathlib import Path
 
 from panther_engine.core import hmmer
 from panther_engine.core.data import MissingDataError, service_folder
-from panther_engine.core.errors import InputError
 from panther_engine.hmmscore import legacy, library
 from panther_engine.hmmscore.data import SERVICE, VERSION
 
@@ -69,6 +68,16 @@ class HmmscoreError(Exception):
     can't be run or writes nothing the port can read, or a missing model file.
 
     Never an `InputError`: the job fails with the generic `500`.
+    """
+
+
+class TimeLimitError(Exception):
+    """The search ran past its time limit, and the running tool was killed. Raised with one
+    argument, the message, which is for the CLI and the log: the API writes its own.
+
+    Never an `InputError`: a short query reaches its limit only when the server is busy, so the
+    input isn't at fault (wire-hmmscore, decision 3). It keeps its type and message when it's
+    passed from a worker process to the API's.
     """
 
 
@@ -114,10 +123,10 @@ def score(
     left of it, then `hmmsearch` what's left after that. None sets no limit.
 
     Raises ValueError, before anything runs, for a sequence the API never sends. Then raises
-    MissingDataError if the data folder lacks the library (`check_data`). Raises InputError, with
-    TIME_LIMIT_MESSAGE, past the time limit, once the running tool is killed. Raises HmmscoreError
-    when a tool fails or the hit's model file is missing, and LibraryFormatError for a broken
-    `names.tab`. The search's folder is removed however scoring ends.
+    MissingDataError if the data folder lacks the library (`check_data`). Raises TimeLimitError,
+    with TIME_LIMIT_MESSAGE, past the time limit, once the running tool is killed. Raises
+    HmmscoreError when a tool fails or the hit's model file is missing, and LibraryFormatError for
+    a broken `names.tab`. The search's folder is removed however scoring ends.
     """
     started = time.monotonic()
     check_sequence(request.sequence)
@@ -193,7 +202,7 @@ def finish(
     try:
         result = run(remaining(deadline))
     except subprocess.TimeoutExpired as error:
-        raise InputError(TIME_LIMIT_MESSAGE) from error
+        raise TimeLimitError(TIME_LIMIT_MESSAGE) from error
     except OSError as error:
         raise HmmscoreError(f"can't run {name}: {error}") from error
     if result.returncode != 0:
@@ -202,13 +211,13 @@ def finish(
 
 
 def remaining(deadline: float | None) -> float | None:
-    """The seconds left before `deadline`, or None for no limit. Raises the input error when none
+    """The seconds left before `deadline`, or None for no limit. Raises TimeLimitError when none
     are left."""
     if deadline is None:
         return None
     left = deadline - time.monotonic()
     if left <= 0:
-        raise InputError(TIME_LIMIT_MESSAGE)
+        raise TimeLimitError(TIME_LIMIT_MESSAGE)
     return left
 
 

@@ -104,7 +104,16 @@ def search(sequence: str, data: Path, *, timeout: float | None = None) -> list[s
     # As snpScore.cgi's createFasta writes it, without a line feed after the sequence.
     query = f">{QUERY}\n{sequence}"
     try:
-        result = run_tool(Path(found).absolute(), args, timeout=timeout, input=query, cwd=folder)
+        # It dies with the worker that started it, so it can't run on without its time limit
+        # (run_tool's die_with_parent).
+        result = run_tool(
+            Path(found).absolute(),
+            args,
+            timeout=timeout,
+            input=query,
+            cwd=folder,
+            die_with_parent=True,
+        )
     except subprocess.TimeoutExpired as error:
         raise BlastError(f"blastp ran past its time limit of {timeout:g} s") from error
     except OSError as error:

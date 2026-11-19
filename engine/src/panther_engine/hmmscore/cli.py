@@ -16,7 +16,13 @@ from panther_engine.core.fasta import read_protein
 from panther_engine.core.manifest import ManifestError, checksums, read_manifest
 from panther_engine.hmmscore import data, parity, sample
 from panther_engine.hmmscore.library import PREFIX, LibraryFormatError
-from panther_engine.hmmscore.scoring import HmmscoreError, HmmscoreInput, HmmscoreResult, score
+from panther_engine.hmmscore.scoring import (
+    HmmscoreError,
+    HmmscoreInput,
+    HmmscoreResult,
+    TimeLimitError,
+    score,
+)
 from panther_engine.hmmscore.survey import SurveyError, report_json, report_text, survey
 
 
@@ -346,6 +352,7 @@ def run_score(args: argparse.Namespace) -> int:
     except (
         ValueError,
         InputError,
+        TimeLimitError,
         HmmscoreError,
         MissingDataError,
         LibraryFormatError,

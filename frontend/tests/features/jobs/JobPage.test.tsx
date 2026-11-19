@@ -241,6 +241,42 @@ function scoreRows() {
     )
 }
 
+describe('an hmmscore job past its time limit', () => {
+  // The API's detail for a search that ran past its time limit: a 503 in the job's error, inside a
+  // 200 poll.
+  const PAST_ITS_TIME_LIMIT = {
+    type: 'about:blank',
+    title: 'Service Unavailable',
+    status: 503,
+    detail:
+      'The search took longer than this service allows. The server may be busy: try again later, or with a shorter sequence.',
+  }
+
+  it("says the job failed with the error's detail, and shows no hit or alignment", async () => {
+    serveJob({ ...hmmscoreJob(ID, 'failed'), error: PAST_ITS_TIME_LIMIT })
+    renderRoute(`/jobs/${ID}`)
+
+    expect(await shownStatus()).toMatch(/failed/i)
+    const alert = main().getByRole('alert')
+    expect(alert).toHaveTextContent(/the job failed/i)
+    expect(alert).toHaveTextContent(PAST_ITS_TIME_LIMIT.detail)
+    expect(main().queryByText(/can.t be reached/i)).not.toBeInTheDocument()
+    expect(main().queryByRole('region', { name: /alignment/i })).not.toBeInTheDocument()
+    expect(main().queryByText(/no hits to panther/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('main').textContent).not.toMatch(/\b503\b|service unavailable/i)
+  })
+
+  it('shows a succeeded job its hit and alignment', async () => {
+    serveJob(hmmscoreJob(ID, 'succeeded'))
+    renderRoute(`/jobs/${ID}`)
+
+    expect(await shownStatus()).toMatch(/succeeded/i)
+    expect(main().queryByRole('alert')).not.toBeInTheDocument()
+    expect(main().getByText('PTHR00000:SF1')).toBeInTheDocument()
+    expect(main().getByRole('region', { name: /alignment/i })).toBeInTheDocument()
+  })
+})
+
 describe('a csnp job on the job page', () => {
   it("shows a succeeded job's family, each score as given, in order, and its versions", async () => {
     serveJob(csnpJob(ID, 'succeeded'))

@@ -27,7 +27,9 @@ design.md, decision 3."""
 HMMSCORE_MAX_RESIDUES = 10_000
 """The default, and the most allowed, for the residues an hmmscore sequence may have: the product
 owner's starting limit of 2026-11-12, in place of the website's 50,000 (openspec add-hmmscore-job,
-design.md, decision 5; divergence row 11). A server may set it lower."""
+design.md, decision 5; divergence row 11). A server may set it lower. An hmmscore job's time limit
+scales with its residues over this fixed 10,000, not over the setting (jobs/work.py,
+`hmmscore_time_limit`)."""
 
 HMMSCORE_TIME_LIMIT_SECONDS = 720
 """The default time limit of an hmmscore job of 10,000 residues, the most a job gets: about three
@@ -86,14 +88,17 @@ class Settings(BaseSettings):
     hmmscore_time_limit_seconds: int = Field(
         default=HMMSCORE_TIME_LIMIT_SECONDS,
         ge=1,
-        description="How long one hmmscore job may run; takes effect once hmmscore is wired in",
+        description=(
+            "How long an hmmscore job may run at 10,000 residues, the most a job gets; a shorter "
+            "sequence gets less, down to the minimum time limit"
+        ),
     )
     hmmscore_min_time_limit_seconds: int = Field(
         default=HMMSCORE_MIN_TIME_LIMIT_SECONDS,
         ge=1,
         description=(
-            "How long an hmmscore job of the shortest sequence may run; a longer one gets more, "
-            "up to the time limit at 10,000 residues. At most the time limit"
+            "How long an hmmscore job of the shortest sequence may run, at most the time limit; a "
+            "longer one gets more, in proportion to its residues, up to the time limit at 10,000"
         ),
     )
     hmmscore_max_running: int = Field(
@@ -104,7 +109,7 @@ class Settings(BaseSettings):
     hmmscore_cpu: int = Field(
         default=0,
         ge=0,
-        description="hmmscan's --cpu for each hmmscore job; takes effect once hmmscore is wired in",
+        description="--cpu for each hmmscore job, passed to both hmmscan and hmmsearch",
     )
     log_level: LogLevel = Field(
         default="INFO",

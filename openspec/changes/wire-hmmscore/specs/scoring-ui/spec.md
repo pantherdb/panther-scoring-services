@@ -1,5 +1,16 @@
 # Spec Delta
 
+## ADDED Requirements
+
+### Requirement: An hmmscore job past its time limit on the job page
+
+When an `hmmscore` job has failed past its time limit, with an `error` of status 503, the job page SHALL show the error's `detail` and no result, as for any failed job, and MUST NOT say that the scoring service can't be reached, nor show a status code.
+
+#### Scenario: A job past its time limit
+
+- **WHEN** the user opens the page of an `hmmscore` job that failed with status 503 and the `detail` "The search took longer than this service allows. The server may be busy: try again later, or with a shorter sequence."
+- **THEN** the page says the job failed, shows that `detail`, shows no hit or alignment, and doesn't say the scoring service can't be reached
+
 ## MODIFIED Requirements
 
 ### Requirement: Services that aren't available yet

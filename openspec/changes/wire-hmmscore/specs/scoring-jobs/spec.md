@@ -38,17 +38,12 @@ A valid `hmmscore` job request SHALL get status 202 and a job, whose work scores
 
 ### Requirement: hmmscore job time limit and threads
 
-Each `hmmscore` job's search SHALL run with the configured `hmmscan` thread count, and with its time limit as "hmmscore time limit by length" gives it. The time limit MUST count from when the search starts, not from when the job was submitted, so a job that waited for a worker or for the running cap has all of it. A search that runs past the limit MUST be stopped, and the job MUST fail with an input error, whose message tells the user to try a shorter sequence.
-
-#### Scenario: Past the time limit
-
-- **WHEN** an `hmmscore` job's search runs past the time limit
-- **THEN** the job ends with status `failed`, a `null` `result`, and an `error` with status 422 whose `detail` is "The search took longer than this service allows. Try a shorter sequence."
+Each `hmmscore` job's search SHALL run with the configured thread count, passed to both `hmmscan` and `hmmsearch`, and with its time limit as "hmmscore time limit by length" gives it. The time limit MUST count from when the search starts, not from when the job was submitted, so a job that waited for a worker or for the running cap has all of it.
 
 #### Scenario: The settings reach the search
 
 - **WHEN** the API starts with `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` set to 600, `PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS` set to 600 and `PANTHER_API_HMMSCORE_CPU` set to 2, and an `hmmscore` job runs
-- **THEN** its search is given a time limit of 600 seconds and a thread count of 2
+- **THEN** its search is given a time limit of 600 seconds and a thread count of 2, for both tools
 
 #### Scenario: The default settings reach the search
 
@@ -57,17 +52,45 @@ Each `hmmscore` job's search SHALL run with the configured `hmmscan` thread coun
 
 ### Requirement: hmmscore time limit by length
 
-An `hmmscore` job's time limit SHALL grow with its residues: the minimum time limit, plus the difference between the time limit and the minimum times the residues divided by the residue limit, rounded to the nearest second. It MUST never be more than the time limit. The API MUST refuse to start when the minimum is over the time limit.
+An `hmmscore` job's time limit SHALL grow with its residues: the minimum time limit, plus the difference between the time limit and the minimum, times the residues divided by 10,000, the most residues the API ever takes, rounded to the nearest second. It MUST NOT depend on the configured residue limit. The API MUST refuse to start when the minimum is over the time limit.
 
 #### Scenario: A short sequence gets a shorter limit
 
 - **WHEN** the API starts with no hmmscore settings in the environment, and an `hmmscore` job runs with APOE's 317 residues
 - **THEN** its search is given a time limit of 139 seconds
 
+#### Scenario: A lowered residue limit
+
+- **WHEN** the API starts with `PANTHER_API_HMMSCORE_MAX_RESIDUES` set to 5,000 and no other hmmscore settings, and `hmmscore` jobs run with 317 and with 5,000 residues
+- **THEN** their searches are given time limits of 139 and 420 seconds, as with the default residue limit
+
 #### Scenario: A minimum above the time limit
 
 - **WHEN** the API starts with `PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS` set to 800 and `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` left at 720
 - **THEN** it refuses to start, naming both settings
+
+### Requirement: An hmmscore job past its time limit
+
+A search that runs past its time limit SHALL be stopped, and the job MUST fail with status 503 and a `detail` that says the server may be busy, and to try again later or with a shorter sequence. A short query reaches its limit only on a busy server, so this MUST NOT be reported as an input error. Other jobs MUST be unaffected.
+
+#### Scenario: Past the time limit
+
+- **WHEN** an `hmmscore` job's search runs past its time limit
+- **THEN** the job ends with status `failed`, a `null` `result`, and an `error` with status 503 whose `detail` is "The search took longer than this service allows. The server may be busy: try again later, or with a shorter sequence."
+
+#### Scenario: Other jobs beside a job past its limit
+
+- **WHEN** one `hmmscore` job runs past its time limit while a `tools` job runs
+- **THEN** the `tools` job still ends with status `succeeded`
+
+### Requirement: A job past its time limit is logged as such
+
+When an `hmmscore` job fails past its time limit, its finish line SHALL be a `WARNING` that says so, with the job's residues, its time limit and how long it ran, and no traceback. The line MUST NOT contain the sequence.
+
+#### Scenario: The line
+
+- **WHEN** an `hmmscore` job of 317 residues runs past its time limit of 139 seconds
+- **THEN** the log has one `WARNING` finish line for it, naming 317 residues, the limit of 139 s and its run time, with no traceback and no residue of the sequence
 
 ### Requirement: Startup check of the hmmscore data
 
@@ -103,6 +126,25 @@ A job SHALL have an `id`, its `service`, a `status` of `queued`, `running`, `suc
 
 - **WHEN** a client polls an `hmmscore` job
 - **THEN** its `versions.data` is `[{"service": "hmmscore", "panther": "19"}]`
+
+### Requirement: A job's submission is logged at DEBUG
+
+When the API accepts a job, it SHALL log one `DEBUG` line with the job's id, its service and the size of its input, once the job has started. A request that creates no job MUST NOT log a submission line, and a failure while writing the line MUST NOT stop the job from running.
+
+#### Scenario: Submitted at DEBUG
+
+- **WHEN** the log level is `DEBUG` and a client submits a valid job
+- **THEN** the log has one `DEBUG` line with the job's id, its service and the size of its input, before the job's finish line
+
+#### Scenario: Not at INFO
+
+- **WHEN** the log level is `INFO` and a client submits a valid job that succeeds
+- **THEN** the job's only line is its finish line
+
+#### Scenario: A request that creates no job
+
+- **WHEN** the log level is `DEBUG` and a client submits a request that gets a `422` or a `503`
+- **THEN** no submission line is logged
 
 ## REMOVED Requirements
 

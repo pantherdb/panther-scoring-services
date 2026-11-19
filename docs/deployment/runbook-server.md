@@ -126,7 +126,7 @@ The same as the `web` image's nginx config, `frontend/nginx/default.conf.templat
 
 ## The API's Data
 
-The API reads each service's data from the folder `PANTHER_DATA_DIR` names, mounted read-only into its container: the cSNP data under `csnp/`, and, for ID mapping, the refmap data under `refmap/19/`, PANTHER 19's generic mapping release. Until the refmap data is there, every `refmap` job fails with the generic error, and the API's log says at startup which files are missing (`refmap jobs will fail until the refmap data is in place: …`); everything else works.
+The API reads each service's data from the folder `PANTHER_DATA_DIR` names, mounted read-only into its container: the cSNP data under `csnp/`; for ID mapping, the refmap data under `refmap/19/`, PANTHER 19's generic mapping release; and for HMM scoring, PANTHER 19's HMM library under `hmmscore/19/` ([below](#the-hmm-library)). Until the refmap data is there, every `refmap` job fails with the generic error, and the API's log says at startup which files are missing (`refmap jobs will fail until the refmap data is in place: …`); everything else works.
 
 Fetch it into the same folder once, before or with the deploy that wires `refmap` in. The server's outbound HTTPS goes through a TLS-inspecting proxy whose CA the container doesn't trust: the CA secret is used only while the image builds, and leaves nothing in it. So download the release on the host, which trusts the CA, then hand the local copies to the engine's CLI in the API image, as the user who owns the data folder. From a new, empty folder:
 
@@ -164,7 +164,25 @@ rsync -rtp --delay-updates --chmod=D755,F644 <the data folder>/refmap/19/classif
 
 Don't use `cp` or `scp` into the live folder: they write the server's copy in place. The build takes about a minute, and the same release gives the same bytes. Until the files are there, that endpoint answers the generic error, and the API's startup log says how many are missing (`refmap classifications will fail until the classification JSON is built …`). Build them again whenever the refmap data changes.
 
+### The HMM Library
+
+HMM scoring reads PANTHER 19's HMM library, `PANTHER19.0_hmmscoring.tgz` on `data.pantherdb.org`, a tarball of 18.5 GB that unpacks to 67 GB under `hmmscore/19/`: the README, `globals/` (`names.tab` and the four pressed `binHmm` files) and a model file for each of the 143,693 families and subfamilies under `books/`. Until it's there, every `hmmscore` job fails with the generic error, and the API's log says at startup what's missing (`hmmscore jobs will fail until the hmmscore data is in place: …`); everything else works.
+
+Fetch it once, before or with the deploy that wires `hmmscore` in, as the refmap data is: download the tarball on the host, which trusts the proxy's CA, then hand the local copy to the engine's CLI in the API image, as the user who owns the data folder. From a new, empty folder with room for the tarball:
+
+```bash
+curl -fO -C - https://data.pantherdb.org/ftp/hmm_scoring/19.0/PANTHER19.0_hmmscoring.tgz
+docker run --rm --user "$(id -u):$(id -g)" -v <the data folder>:/fetch -v "$PWD:/release:ro" <the API image> \
+  panther-engine hmmscore data fetch --data-dir /fetch --tarball /release/PANTHER19.0_hmmscoring.tgz
+```
+
+`-C -` resumes a download that stopped. `fetch` checks the tarball's size and sha256 against the pin in the engine (`hmmscore/data.json`), keeps only what scoring reads, and checks every file it writes, in a temporary folder inside the data folder, before moving any into place: the data folder needs room for the library while it's written. It writes nothing under `hmmscore/19/` unless every file matches, and run again, it only checks the files. `panther-engine hmmscore data verify --data-dir /fetch`, in the same `docker run`, checks a folder already in place. The tarball can be deleted afterwards. The API reads the library when a job runs, so it needs no restart, though its startup line keeps saying the data is missing until the next one. [engine.md, The hmmscore Full Library](../testing/engine.md#the-hmmscore-full-library) has the details.
+
+### The API's Settings
+
 `PANTHER_API_RESULTS_BUDGET_MIB` caps the memory the finished jobs' results may take; set it to suit the server ([api.md, Settings](../testing/api.md#settings)).
+
+The five `hmmscore` settings bound what an HMM search may take: `PANTHER_API_HMMSCORE_MAX_RESIDUES` (10,000), `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` (720, at 10,000 residues), `PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS` (120, for the shortest sequence), `PANTHER_API_HMMSCORE_MAX_RUNNING` (1) and `PANTHER_API_HMMSCORE_CPU` (0). Their defaults are starting points, with times from a workstation, not the server. The engine developer sets the server's values, from a short and a long query timed there with the full library (#68); a lower residue limit goes into [divergence 11](../parity/divergences.md), and other time limits into divergence 14. [api.md, Settings](../testing/api.md#settings) says what each does.
 
 ## Checking It Works
 
@@ -176,6 +194,7 @@ After either way, against the site's address:
 - [ ] The footer shows the API's versions, not "unavailable". If it says "unavailable" while `/` works, check `API_UPSTREAM`.
 - [ ] A cSNP job, such as the form's example, runs to **Succeeded**.
 - [ ] An ID mapping job, such as the form's example, runs to **Succeeded**, with six mappings.
+- [ ] An HMM scoring job, such as the form's example, runs to **Succeeded**, with `PTHR18976:SF2`, **APOLIPOPROTEIN E**.
 - [ ] The page has no **Mock data** banner.
 
 ## Changing Things Later

@@ -140,16 +140,25 @@ docker run --rm --user "$(id -u):$(id -g)" -v <the data folder>:/fetch -v "$PWD:
 
 It checks each copy's size and sha256 against the pinned manifest, then every file it writes, and writes nothing under `refmap/19/` unless every file matches. Run again, it writes nothing and only checks the files. The downloaded copies can be deleted afterwards. On a host whose container can reach `data.pantherdb.org` directly, leave out the second `-v`, `--tarball` and `--stats`, and it downloads the release itself. The API reads the data when a job runs, so it needs no restart, though its startup line keeps saying the data is missing until the next one. The data changes only with a new manifest in the engine; [api.md, The refmap Data](../testing/api.md#the-refmap-data) has the details.
 
-`GET /refmap/organisms/{code}/classification` sends each organism's classification as a gzipped JSON file built from those files, `refmap/19/classification_json/<code>.json.gz`, 176 MB in all. Build it where the data is fetched, or on any machine with the same release, such as the HPC system, with the engine's CLI:
+`GET /refmap/organisms/{code}/classification` sends each organism's classification as a gzipped JSON file built from those files, `refmap/19/classification_json/<code>.json.gz`, 176 MB in all. Build it on the server, in the API image as `fetch` runs, or on any machine with the same release, such as the HPC system, and copy it.
+
+**On the server,** as the user who owns the data folder. No copy is needed: the build writes each file beside its target and renames it into place, so the API never sends a half-written one:
+
+```bash
+docker run --rm --user "$(id -u):$(id -g)" -v <the data folder>:/fetch <the API image> \
+  panther-engine refmap data build-json --data-dir /fetch
+```
+
+**Elsewhere,** such as the HPC system, with the engine installed there:
 
 ```bash
 panther-engine refmap data build-json --data-dir <the data folder>
 ```
 
-Then copy `classification_json/` into the server's `refmap/19/` so that no file is ever half-written where the API reads it: `rsync --delay-updates` writes each file beside its target and renames them into place only once every one has arrived, so a request during the copy gets the old file or the new one, never a truncated one. `--chmod` keeps the files readable by the API's user:
+Then copy `classification_json/` into the server's `refmap/19/` so that no file is ever half-written where the API reads it: `rsync --delay-updates` writes each file beside its target and renames them into place only once every one has arrived, so a request during the copy gets the old file or the new one, never a truncated one. `-p` with `--chmod` sets every file's mode, new or replaced, so the API's user can read them whatever the receiving account's umask; without `-p`, rsync leaves a replaced file's mode as it was and masks a new one's, and a file the API can't read answers the generic error though the startup check, which only looks for each file, reports nothing missing:
 
 ```bash
-rsync -rt --delay-updates --chmod=D755,F644 <the data folder>/refmap/19/classification_json/ \
+rsync -rtp --delay-updates --chmod=D755,F644 <the data folder>/refmap/19/classification_json/ \
   <server>:<the server's data folder>/refmap/19/classification_json/
 ```
 

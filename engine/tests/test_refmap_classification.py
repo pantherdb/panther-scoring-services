@@ -191,6 +191,23 @@ def test_a_missing_classification_file_writes_nothing_for_it(tmp_path: Path) -> 
     assert list(folder.iterdir()) == []
 
 
+def test_an_organism_refmap_doesnt_map_for_writes_nothing_at_all(tmp_path: Path) -> None:
+    # Checked before the first file is built, so ENDPU, listed first, isn't written either.
+    write_file(tmp_path, "ENDPU")
+
+    with pytest.raises(ValueError, match="not organisms refmap maps for: NOPE1"):
+        build_classification_json(tmp_path, ["ENDPU", "NOPE1"])
+
+    assert not classification_json_file("ENDPU", tmp_path).exists()
+
+
+def test_many_unknown_organisms_are_counted_past_the_named_ones(tmp_path: Path) -> None:
+    unknown = [f"NOPE{number}" for number in range(25)]
+
+    with pytest.raises(ValueError, match=r"; and 5 more$"):
+        build_classification_json(tmp_path, unknown)
+
+
 # check_classification_json
 
 
@@ -259,6 +276,6 @@ def test_build_json_refuses_a_list_naming_an_organism_refmap_doesnt_map_for(
 
     captured = capsys.readouterr()
     assert status == 1
-    assert "lists organisms refmap doesn't map for: NOPE1" in captured.err
+    assert "not organisms refmap maps for: NOPE1" in captured.err
     assert "Traceback" not in captured.err
     assert not classification_json_file("ENDPU", data).exists()

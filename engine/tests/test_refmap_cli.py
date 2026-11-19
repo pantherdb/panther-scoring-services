@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -111,7 +112,8 @@ def test_a_missing_classification_file_fails_naming_it(
     captured = capsys.readouterr()
     assert status == 1
     assert captured.out == ""
-    assert "refmap/19/panther_classification/ENDPU" in captured.err
+    # Either path separator, for Windows.
+    assert re.search(r"refmap[/\\]19[/\\]panther_classification[/\\]ENDPU", captured.err)
 
 
 def test_a_missing_list_file_fails_naming_it(
@@ -122,7 +124,8 @@ def test_a_missing_list_file_fails_naming_it(
     status = main(["refmap", "map", "--organism", "ENDPU", "--file", str(missing)])
 
     assert status == 1
-    assert str(missing) in capsys.readouterr().err
+    # An OSError names its file as repr() writes it, which doubles a Windows path's backslashes.
+    assert repr(str(missing))[1:-1] in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("args", [[], ["U1G4Q5", "--file", "ids.txt"]])

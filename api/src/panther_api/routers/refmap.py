@@ -120,10 +120,22 @@ def accepts_gzip(accept_encoding: str | None) -> bool:
     return False
 
 
-def _chunks(stream: BinaryIO) -> Iterator[bytes]:
+def _chunks(stream: BinaryIO, size: int) -> Iterator[bytes]:
+    """The file's first `size` bytes, its size when it was opened, so the body matches the
+    `Content-Length` sent even if someone writes to the file in place meanwhile."""
     with stream:
-        while chunk := stream.read(CHUNK):
+        left = size
+        while left > 0 and (chunk := stream.read(min(CHUNK, left))):
+            left -= len(chunk)
             yield chunk
+
+
+def _unsent(code: str, error: Exception) -> Response:
+    """The generic 500 for a classification that can't be sent, its cause logged at most once
+    in `MISSING_LOG_SECONDS`."""
+    _missing.error("can't send the classification of %s: %s", code, error)
+    failed = HTTPStatus.INTERNAL_SERVER_ERROR
+    return problem_response(Problem(title=failed.phrase, status=failed, detail=UNEXPECTED_DETAIL))
 
 
 def _gunzipped_chunks(stream: BinaryIO) -> Iterator[bytes]:
@@ -177,24 +189,27 @@ async def refmap_classification(
     """
     if code not in ORGANISM_CODES:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=ORGANISM_NOT_FOUND)
+    # Opened first, and its size taken from the open file: a copy replacing the file by renaming
+    # it into place can't change what this response sends, or its length.
     try:
-        # Opened first, and its size taken from the open file: a copy replacing the file by
-        # renaming it into place can't change what this response sends, or its length.
         stream: BinaryIO = classification_json_file(code).open("rb")
-        size = os.fstat(stream.fileno()).st_size
     except (DataFolderError, OSError) as error:
-        _missing.error("can't send the classification of %s: %s", code, error)
-        failed = HTTPStatus.INTERNAL_SERVER_ERROR
-        problem = Problem(title=failed.phrase, status=failed, detail=UNEXPECTED_DETAIL)
-        return problem_response(problem)
+        return _unsent(code, error)
+    try:
+        size = os.fstat(stream.fileno()).st_size
+    except OSError as error:
+        stream.close()
+        return _unsent(code, error)
     headers = {"Vary": "Accept-Encoding"}
     if accepts_gzip(accept_encoding):
         headers |= {"Content-Encoding": "gzip", "Content-Length": str(size)}
-        chunks = _chunks(stream)
+        chunks = _chunks(stream, size)
     else:
         chunks = _gunzipped_chunks(stream)
     # The generators close the file when they finish; the background task closes it too if the
-    # response ends before they start.
+    # response ends before they start. That relies on the pinned uvicorn's ASGI spec 2.3: under
+    # 2.4 or later, Starlette's StreamingResponse raises on a client disconnect and skips
+    # `background`, and a generator that never started leaves the file to garbage collection.
     return StreamingResponse(
         chunks,
         media_type="application/json",

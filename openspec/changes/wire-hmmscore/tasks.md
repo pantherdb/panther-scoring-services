@@ -44,7 +44,7 @@ Start once #82 (`add-hmmscore-form`'s archive) has merged, from `main`. Row 14 w
 - [x] 4.3 `docs/deployment/runbook-server.md`: the full library under `hmmscore/19/`, downloaded on the host and passed to `panther-engine hmmscore data fetch --tarball`; the hmmscore settings, with the engine developer setting the server's values (#68). Checked against `engine/src/panther_engine/hmmscore/cli.py`'s options, and with no memory figure for the server
 - [x] 4.4 `docs/parity/divergences.md`: row 14, `hmmscore`, the time limit by length: a job past its limit (120 s for the shortest sequence, up to 720 s at 10,000 residues) fails with a `503`, where the reference answered however long it took; the margins on Endeavour at `--cpu 0`, about 10 times APOE's 13 s, 4 times Q14204's cold 93 s and 3 times `titin-10000`'s 231 s, and that they aren't the server's; approved by the engine developer, 2026-11-18, on #83. Verify with `npx markdownlint-cli2`
 - [x] 4.5 Reap killed tools (decision 9): `init: true` on the `api` service in `compose.yaml`, and `--init` where `docs/deployment/runbook-server.md` starts the API container. Verify `docker compose config` shows it
-- [ ] 4.6 `api/CLAUDE.md`: "Adding a Service" says hmmscore has been through all four steps, that the `501` mechanism is gone until a service needs it again, and how the settings reach the worker (`JobOptions`). `frontend/CLAUDE.md` if a convention changed. Final check, from the root: `npx markdownlint-cli2`, `npx openspec validate --all` and `npx openspec validate wire-hmmscore --strict`
+- [x] 4.6 `api/CLAUDE.md`: "Adding a Service" says hmmscore has been through all four steps, that the `501` mechanism is gone until a service needs it again, and how the settings reach the worker (`JobOptions`). `frontend/CLAUDE.md` if a convention changed. Final check, from the root: `npx markdownlint-cli2`, `npx openspec validate --all` and `npx openspec validate wire-hmmscore --strict`
 
 ## Workflow follow-up
 
@@ -56,18 +56,27 @@ Start once #82 (`add-hmmscore-form`'s archive) has merged, from `main`. Row 14 w
 
 ### Next action
 
-The engine developer approved #83 on 2026-11-18, with row 14, and with task 0.2 narrowed to the search tools; the push with that change dismissed the approval, so it's asked for again. Once #82 has merged and #83 is approved, merge `main` and start at group 0.
+Groups 1 (but 1.3), 3 and 4 are applied on `feat/apply-wire-hmmscore` (2026-11-18), from #83's branch with `main` merged in. Next is the engine developer's group 0; then, on this branch with `main` merged again, task 1.3 and group 2, and the follow-ups below.
+
+### What's left for after group 0
+
+- **Task 1.3, the job past its time limit.** In `jobs/runner.py`, an `except` for the engine's timeout error (0.1's name, imported from `panther_engine.hmmscore`), before `except Exception`: fail the job with `503` and the API's `detail`, a constant the tests import ("The search took longer than this service allows. The server may be busy: try again later, or with a shorter sequence."), and log the finish line at `WARNING`, "failed 503, past its time limit of N s", with N from `work.hmmscore_time_limit(request.input.residues, self._options)`, and no traceback. Stand-ins in `tests/job_helpers.py` that raise the timeout error, an `HmmscoreError` with a path in its message, and a `ValueError`; tests in `tests/test_jobs.py` and `tests/test_job_logs.py`, each beside a success. None of 1.3 is written: no stub, no guessed name.
+- **Until 1.3 lands,** a job past its time limit fails as the engine raises today: `InputError`, so a `422` with the engine's own message ("… Try a shorter sequence."), logged as an input error. Don't ship that.
+- **With 1.3, the texts that name the 503:** `HmmscoreJob`'s docstring in `jobs/models.py` (then regenerate `api/openapi.json` and `frontend/src/app/api/schema.d.ts` in the same commit), `api/CLAUDE.md`'s "How a job fails", and `docs/testing/api.md`'s hmmscore section, which now says only that a job past its limit fails.
+- **Group 2:** 2.1 (`tests/markers.py`'s `hmmscore` manifest and HMMER version check), 2.2 (`tests/test_hmmscore_scoring.py` with `parity`'s readers), 2.3 (CI's `api-image` job) and 2.4. With them, `docs/testing/api.md`'s "Tests With the Tools and Data" and `docs/testing/README.md`'s `api-image` row name the hmmscore tests.
+- **The runbook's "The API's Container"** says the engine has a dead worker's tool killed: true once 0.2 lands.
 
 ### Blockers
 
+- **Group 0's engine tasks** block task 1.3 and group 2, which import the timeout error and `parity`'s `__all__`. Groups 1 (but 1.3), 3 and 4 didn't need them.
 - **#82 (`add-hmmscore-form`'s archive) is still open.** The `scoring-ui` requirements this change modifies and removes are in `openspec/specs/` only once it merges; until then, archiving this change would fail.
-- **Group 0's engine tasks** come before groups 1 and 2, which import the timeout error and `parity`'s `__all__`, and rely on `run_tool`'s bound on orphans.
 - **`port-hmmscore` isn't archived.** This change's `hmmscore-engine` delta modifies a requirement that reaches `openspec/specs/` only with that archive.
+- **#83 needs its approval again,** after the push that narrowed task 0.2.
 - #81 (`port-hmmscore`) merged on 2026-11-17 (`c74a30b`): no longer a blocker.
 
 ### Failed approaches
 
-None yet.
+None in the code.
 
 ### Lessons learned
 
@@ -82,3 +91,10 @@ None yet.
   - `UNAVAILABLE` and the frontend's `unavailable` both go, one rule for both sides;
   - the API's real-data tests use the engine's `parity` readers and skip with another HMMER on `PATH`;
   - the tests, stand-ins and texts that change are named in the tasks.
+- **Applying groups 1, 3 and 4 (2026-11-18):**
+  - the time limit rounds a half up, in whole numbers (`hmmscore_time_limit`), so 317 residues give 139 s and 5,000 give 420 s exactly, with no float rounding;
+  - `score_with_a_fake_engine` replaces both engines' `score()`, and the fake hmmscore hit's alignment names the `cpu` and `timeout` the search got, so a test through the API sees what reached the worker;
+  - a commit that changes `api/openapi.json` carries the regenerated `schema.d.ts`, so CI's `frontend` job passes on each commit;
+  - in api-mode e2e, real hmmscore searches hold the two workers for 10 to 25 s under load, so `e2e/jobs.spec.ts`'s tools check waits up to 60 s, not 15;
+  - through the API image with the data sample, the form's example gives `PTHR18976:SF2`, "APOLIPOPROTEIN E", `2.2e-133`, `439.0` and PANTHER 19; the first job ran 8.5 s, a worker's start included, and the startup check logs nothing for hmmscore;
+  - natively on Windows, `tests/test_refmap_classification.py::test_a_file_replaced_after_opening_is_sent_as_it_was` fails before and after this change (`WinError 5` on the rename), from `main`; not this change's.

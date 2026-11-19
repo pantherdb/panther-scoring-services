@@ -107,11 +107,12 @@ describe('the HMM scoring form', () => {
     expect(tabs.getByRole('link', { name: /hmm scoring/i })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('says HMM scoring is not available yet, before the box, and stays usable', () => {
+  it('has no coming-soon mark and no notice, and is usable', () => {
     renderRoute('/hmmscore')
 
-    const notice = main().getByText(/isn.t available on this site yet/i)
-    expect(notice.compareDocumentPosition(sequenceBox())).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(main().queryByText(/coming soon/i)).not.toBeInTheDocument()
+    expect(main().queryByText(/isn.t available/i)).not.toBeInTheDocument()
+    expect(main().queryByRole('note')).not.toBeInTheDocument()
     expect(sequenceBox()).toBeEnabled()
     expect(submitButton()).toBeEnabled()
   })

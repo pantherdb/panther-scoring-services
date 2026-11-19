@@ -21,25 +21,9 @@ export function HmmscorePage() {
           the family or subfamily it belongs to, with its E-value, bit score and alignment.
         </p>
       </div>
-      {/* Until the API scores hmmscore, it answers every valid request with a 501. The flag the
-          wiring turns off removes this notice too. */}
-      {comingSoon && <NotAvailableNotice title={title} />}
       {/* Remounted on each visit, such as its tab clicked while it's open, so the form starts
           afresh: empty, or filled by "Edit and resubmit". */}
       <HmmscoreForm key={key} />
     </section>
-  )
-}
-
-type Props = {
-  title: string
-}
-
-function NotAvailableNotice({ title }: Props) {
-  return (
-    <p role="note" className="rounded-md bg-primary-50 px-3 py-2 text-sm text-primary-900">
-      {title} isn’t available on this site yet, so a sequence submitted now won’t be scored. You can
-      try the form in the meantime.
-    </p>
   )
 }

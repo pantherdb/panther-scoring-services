@@ -97,6 +97,31 @@ G15D          4200  probably damaging  0.95
 - **`--json`** prints the result as `score()` returns it. **`--data-dir`** overrides `PANTHER_DATA_DIR`.
 - **Exit status 1** for input it can't score, with the reason on standard error.
 
+`panther-engine hmmscore score` scores one protein as the API's `hmmscore` job will: `hmmscan` against the HMM library, the legacy best hit, then `hmmsearch` for the alignment. It needs HMMER 3.4, so run it in the image, with the hmmscore data sample ([Test Data](#the-hmmscore-data-sample)) or the full library. From the repository root:
+
+```sh
+docker compose run --rm -T engine panther-engine hmmscore score tests/golden/hmmscore/example/apoe.fasta
+```
+
+It prints the hit's fields, tab-separated, then the alignment, as `hmmsearch` wrote it:
+
+```text
+panther_id  PTHR18976:SF2
+name        APOLIPOPROTEIN E
+evalue      2.2e-133
+score       439.0
+alignment
+>> sequence
+...
+```
+
+- **The protein** is a FASTA file with one header line, or the sequence alone, or standard input for `-` or no file. It's normalised as `csnp score`'s is. A character the API refuses, such as a digit or `-`, is refused (divergence 12).
+- **No hit** prints `No hit`: no model reported, or the best one's E-value over 1e-3.
+- **`--cpu N`** is `hmmscan`'s and `hmmsearch`'s `--cpu`, 0 by default, which uses the least memory. **`--timeout S`** limits the whole search to S seconds, as the API's `hmmscore_time_limit_seconds` will; past it, it fails with the API's message. With none, it isn't limited.
+- **`--usage`** prints, to standard error, the wall time and the largest peak memory of the tools it ran, from the kernel's accounting of child processes. Run it in a fresh process for each query.
+- **`--json`** prints the result as `score()` returns it. **`--data-dir`** overrides `PANTHER_DATA_DIR`.
+- **Exit status 1** for input it can't score, missing data or a tool that fails, with the reason on standard error.
+
 ## Mapping IDs From the Command Line
 
 `panther-engine refmap map` maps IDs for one organism as the API's `refmap` job does, for checks by hand. It needs the refmap data ([Test Data](#the-refmap-data)), and no external tool. From `engine/`:
@@ -179,6 +204,23 @@ uv run panther-engine refmap parity check --data-dir ../.data
 ```
 
 It exits with status 1 if any line differs. Without a data folder, it still checks the made-up files and the refused cases, lists the cases on ENDPU as not checked, and exits with status 1. Making the goldens needs `map_panther.pl`, in the `refmap-reference` image: see [golden-setup.md](../parity/golden-setup.md#refmap).
+
+For `hmmscore`, `tests/test_hmmscore_parity.py` reads `tests/golden/hmmscore/parity/`. Each case's expected hit comes from the reference's files: `best.tsv`'s tied IDs, with divergence 13 picking one, its name, E-value and score from that line, and the alignment from that ID's `hmmsearch` report, by the CGI's rule:
+
+| Test | Needs | Checks |
+| ---- | ----- | ------ |
+| The goldens' own checks | Nothing | Every case's inputs and reference files are there; `cgi.xml` agrees with `best.tsv` and the reports; a hand-changed E-value fails, naming its case |
+| The cases on the sample | `tools("hmmscan", "hmmsearch")`, `data("hmmscore")` | Every case gives its golden hit, or no hit, on the data sample: `sample/` on amd64, and `sample-arm64/` where a case's result differs on arm64 |
+
+`tests/test_hmmscore_scoring.py` tests each rule with fake tools, and `tests/test_hmmscore_scoring_tools.py` runs `score()` end to end with HMMER 3.4.
+
+`panther-engine hmmscore parity check` runs the same comparison and prints each case's time and each case that differs. From the repository root, with the data sample:
+
+```sh
+docker compose run --rm -T engine panther-engine hmmscore parity check
+```
+
+`--goldens full` checks the staging run's goldens, with the full library as the data folder. It exits with status 1 if any case differs, or has no reference outputs. Making the goldens needs the CGI and `pantherScore.pl` with HMMER 3.1b2, in the `hmmscore-reference` image: see [golden-setup.md](../parity/golden-setup.md#hmmscore).
 
 ## Input Errors
 
@@ -273,7 +315,7 @@ docker compose run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" engine
 - **`fetch` checks before it saves.** It downloads the tarball and `stats` over HTTPS, and checks each one's size and sha256 against the manifest. Then it reads the tarball as a stream, writes each classification file into a temporary folder in the data folder, checks every file, and moves into place only the files that were missing or differed. If anything fails, nothing under `refmap/19/` changes. It took about 30 s on 2026-11-06, almost all of it the download.
 - **Run it again any time.** When the folder already matches the manifest, it downloads nothing; the check takes about 2 s.
 - **`--tarball FILE` and `--stats FILE`** take local copies instead of downloading them, checked against the same pins.
-- **`refmap data build-json`** writes each organism's whole classification file as gzipped JSON, `refmap/19/classification_json/<code>.json.gz`, for the API's classification endpoint to send as it is: one mapping per line, in the file's order, read as `map_ids` reads it (`classification_mappings`). It took 53 s for the 1,533 organisms on 2026-11-13, 176 MB; the same file gives the same bytes. `--missing-only` builds only the organisms whose JSON isn't there. `fetch` doesn't run it: build it where it's convenient, such as the HPC system, and copy the folder.
+- **`refmap data build-json`** writes each organism's whole classification file as gzipped JSON, `refmap/19/classification_json/<code>.json.gz`, for the API's classification endpoint to send as it is: one mapping per line, in the file's order, read as `map_ids` reads it (`classification_mappings`). It took 53 s for the 1,533 organisms on 2026-11-13, 176 MB; the same file gives the same bytes. `--missing-only` builds only the organisms whose JSON isn't there. `--organisms FILE` can only narrow the engine's list: a code the engine doesn't map for is refused before anything is written. `fetch` doesn't run it: build it on the server in the API image, or elsewhere, such as the HPC system, and copy the folder to a live server with `rsync -p --delay-updates`, never in place, as [the runbook](../deployment/runbook-server.md#the-apis-data) shows.
 - **`verify`** lists each file that is missing (`missing: PATH`) or differs (`differs: PATH`), and exits with status 1 if there is any. Files the manifest doesn't list are ignored.
 
 **Why the files are named by code.** The tarball names each file by its organism's long name, as `Escherichia_coli_O157:H7_ECO57`. Ten long names contain `:`, which Windows can't use in a file name, so `fetch` saves each file under its code, as `ECO57`. The code comes from the engine's organism list, never from the member's name, so no member of the tarball can write outside the folder. The published names don't change: `stats` and the organism list keep them (#52, the update to question 4).

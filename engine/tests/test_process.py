@@ -58,6 +58,12 @@ def test_a_tool_past_its_timeout_raises(make_tool: Callable[[str, str], Path]) -
         run_tool(tool, [], timeout=0.2)
 
 
+def test_no_timeout_lets_the_tool_finish(make_tool: Callable[[str, str], Path]) -> None:
+    tool = make_tool("slowish", "sleep 0.3; echo done")
+
+    assert run_tool(tool, [], timeout=None).stdout == "done\n"
+
+
 def test_a_relative_program_is_refused() -> None:
     with pytest.raises(ValueError, match="absolute path"):
         run_tool("blastp", ["-version"], timeout=10)
@@ -114,6 +120,26 @@ def test_the_rest_of_the_callers_environment_reaches_the_tool(
     result = run_tool(tool, [], timeout=10)
 
     assert result.stdout == "a value; with $(shell) characters|false"
+
+
+def test_the_callers_variables_are_set_over_the_environment(
+    make_tool: Callable[[str, str], Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tool = make_tool(
+        "environment",
+        'printf "%s|%s|%s" "$REQUEST_METHOD" "$PANTHER_TEST_VALUE" "$BLAST_USAGE_REPORT"',
+    )
+    monkeypatch.setenv("PANTHER_TEST_VALUE", "kept")
+    monkeypatch.setenv("REQUEST_METHOD", "GET")
+
+    result = run_tool(
+        tool,
+        [],
+        timeout=10,
+        environment={"REQUEST_METHOD": "POST", "BLAST_USAGE_REPORT": "true"},
+    )
+
+    assert result.stdout == "POST|kept|false"
 
 
 def test_stdout_to_a_file_keeps_every_byte(

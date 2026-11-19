@@ -1,6 +1,7 @@
 # The engine and API images: Python, uv and the external tools at pinned versions, for linux/amd64
 # and linux/arm64. Stages: blast, hmmer, epang -> tools -> engine, api; and the test-only
-# csnp-reference and refmap-reference, from engine, with refmap-reference-script.
+# csnp-reference, refmap-reference and hmmscore-reference, from engine, with
+# refmap-reference-script and hmmer-3.1b2.
 #
 # Every base image is pinned by digest and every download by version and sha256. Changing a pin
 # is a pull request that changes this file; Dependabot doesn't update them. The versions are
@@ -174,6 +175,67 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*; \
     perl -v | sed -n 2p
 COPY --from=refmap-reference-script /refmap-reference/map_panther.pl /opt/refmap-reference/
+USER panther
+
+# HMMER 3.1b2, production's version, for the hmmscore reference only: Bioconda's build, at the
+# digest the survey measured and the 2026-11-13 character measurements used
+# (docs/parity/hmmscore-library-survey.md, "HMMER 3.1b2 Against 3.4"). The digest is an amd64
+# image alone: 3.1b2 has no arm64 build with vector code. Its tools link only glibc's libc, libm
+# and libpthread (checked 2026-11-16), so they run on the engine's Debian.
+FROM quay.io/biocontainers/hmmer:3.1b2--3@sha256:e7b1a7a131b7acd6546a6a77cfffc3007fc80f74f7b40b5c660fe29fda122158 AS hmmer-3.1b2
+
+# The hmmscore reference, for parity tests only (Engine condition 3 in docs/design/tech-stack.md):
+# the engine with Debian's Perl and YAML::XS, which scoreAlignXml.cgi loads its config.yaml with,
+# HMMER 3.1b2's tools in /opt/hmmer-3.1b2/bin, and pantherdb/pantherScoring at 89ea0ae:
+# scoreAlignXml.cgi, pantherScore.pl and lib/. That repository is private, so the scripts come from
+# the named build context hmmscore-reference-scripts, a `git archive 89ea0ae` of a developer's
+# checkout. A file that differs fails the build, naming the file. amd64 only, for HMMER 3.1b2. The
+# commands are in docs/parity/golden-setup.md. Building `engine` or `api` never needs the context,
+# and CI and compose never build this stage.
+FROM engine AS hmmscore-reference
+ARG TARGETARCH
+USER root
+RUN set -eux; \
+    if [ "$TARGETARCH" != amd64 ]; then \
+        echo "hmmscore-reference is amd64 only: build it with --platform linux/amd64" >&2; \
+        exit 1; \
+    fi; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends perl libyaml-libyaml-perl; \
+    rm -rf /var/lib/apt/lists/*; \
+    perl -v | sed -n 2p; \
+    perl -MYAML::XS -e 'print "YAML::XS $YAML::XS::VERSION\n"'
+COPY --from=hmmer-3.1b2 /usr/local/bin/hmmscan /usr/local/bin/hmmsearch /usr/local/bin/hmmpress \
+    /usr/local/bin/hmmconvert /opt/hmmer-3.1b2/bin/
+RUN set -eux; \
+    for tool in hmmscan hmmsearch hmmpress hmmconvert; do \
+        "/opt/hmmer-3.1b2/bin/$tool" -h | sed -n 2p | grep '^# HMMER 3\.1b2 (February 2015)'; \
+    done
+COPY --from=hmmscore-reference-scripts scoreAlignXml.cgi pantherScore.pl /opt/hmmscore-reference/
+COPY --from=hmmscore-reference-scripts lib/ /opt/hmmscore-reference/lib/
+# sha256 of each file at 89ea0ae, computed on 2026-11-16 from `git archive`. The folder must hold
+# these files and no other.
+RUN set -eux; \
+    cd /opt/hmmscore-reference; \
+    printf '%s  %s\n' \
+        1650e00d960d31baa6d9779f0eecd57f6f4db73d5f731281daad7b78c1599159 scoreAlignXml.cgi \
+        8cd30712fdd93d9e2c2626073adce51321f4ff008fe49ef28a3edf832ea5902f pantherScore.pl \
+        69d03cdc76dd5e518ca0db62bbc6ffb5caea54fbcd560a4cbd6e2908aa6da17b lib/Blast.pm \
+        bd9a9b4d83a1347aa57b02705b69fe0d3b31e11821d50b1256f3ee74c0b7f46e lib/FamLibBuilder.pm \
+        4468c47b3e06255a95741bc231e1aed1ea9c6b701a64a107ff0d5300fe0b7457 lib/FamLibBuilder_build.pm \
+        c19e1d1062a52ce04ed1b8d8b67a0cb2a2633569faa67748a3106deb081ec261 lib/FamLibBuilder_prod.pm \
+        ba91faaeb110e746fb3c30b89fc959f7ba95f76d585febeb6ce43dd083daca73 lib/FamLibEntry.pm \
+        3fb16f4f6b69377834599a24fbef1716ea85ca206368d99d55a293c480a1c25b lib/FamLibEntry_build.pm \
+        bdf9e61ab933585be1f144095c53ee44b958e9dfdc0474d0c2496a4d7cfa5fd2 lib/FamLibEntry_prod.pm \
+        12af1e1596b999c7066effb653f2c4e9eba77c18ef42640e0f8ab1a2e6be8567 lib/FastaFile.pm \
+        9e85c7124125403b64d6d9c3227262f1d2e5fb8551decebe2e97b4bffd1ee386 lib/Hit.pm \
+        cf81d14c3467590a4fa2d6fc6defe1a807bc5e93cb2a381844de79800949444c lib/Hsp.pm \
+        > /tmp/hmmscore-reference.sha256; \
+    sha256sum --check --strict /tmp/hmmscore-reference.sha256; \
+    test "$(find . -type f | sort)" = "$(sed 's/^[0-9a-f]*  /.\//' /tmp/hmmscore-reference.sha256 | sort)"; \
+    rm /tmp/hmmscore-reference.sha256; \
+    test -x scoreAlignXml.cgi; \
+    test -x pantherScore.pl
 USER panther
 
 # The API: api/ and the engine installed into /opt/venv as regular packages, without the dev group,

@@ -1,0 +1,30 @@
+<scores>
+  <id>PTHR34093</id>
+  <eval>1.4e-175</eval>
+  <align>
+&gt;&gt; sequence  
+   #    score  bias  c-Evalue  i-Evalue hmmfrom  hmm to    alifrom  ali to    envfrom  env to     acc
+ ---   ------ ----- --------- --------- ------- -------    ------- -------    ------- -------    ----
+   1 !  240.5  11.9   1.8e-75   1.8e-75     176     384 ..      31     262 ..      16     269 .] 0.96
+
+  Alignments for each domain:
+  == domain 1  score: 240.5 bits;  conditional E-value: 1.8e-75
+  PTHR34093.orig.30.pir 176 wkwrfedsfgv.dvytvlmvllcllcavvlvateLwt............................vvswytqllrvllisfliSlgWn 234
+                              w+++++f + ++y++++++++l+c++v+++++Lw+                             ++w+++++++++++++iS++W+
+               sequence  31 XXWSMRSPFPTxNIYSKAFLSASLMCYIVAFSMGLWQxxxxxxxxxxxxxxxxxxxxxxxxxxxxLATWNQMFTLFIILCLFISVPWE 118
+                            45************************************************************************************** PP
+
+  PTHR34093.orig.30.pir 235 WlylYkeafakkqaevakmepleakCspekmswvgslkewlrsswtlqddpCekYyeallVdPlweVpptkAlavTvtnffteplkhi 322
+                            W++lY++++akk++ ++++++++  C+++++s++++++ +l++++++++++Ce+Yy+a++VdP+weV+p++A+ ++vt+++++pl+++
+               sequence 119 WVRLYQMEVAKKTSVLSEGYRRQ--CDGQDLSLWETIRVLLSWNFSWASNSCEDYYKAIIVDPFWEVTPLMAIGSAVTRTTIHPLELL 204
+                            ***********************..*************************************************************** PP
+
+  PTHR34093.orig.30.pir 323 GkgigeflrallkeiPvllqlpvlivlalaillflygagkysvnllrnlggperepptalsr 384
+                            ++++g++lr+++keiP+++qlpv++++ l++l++l++++  ++++++    ++++++t+++r
+               sequence 205 SHVLGRSLRNIMKEIPSQWQLPVFLLFPLTLLTLLFTIYLGRNRTIQ----VTCQASTMKTR 262
+                            ********************************************999....89999999988 PP
+
+
+
+  </align>
+</scores>

@@ -29,6 +29,17 @@ In `broken/`, each with one defect:
 | `truncated.hmm` | The family's model without its last line, `//` |
 | `no-name.hmm` | The family's model without its `NAME` line |
 
+## Tables and a Report, for Scoring
+
+In `tables/`, what fake `hmmscan` and `hmmsearch` give `test_hmmscore_scoring.py`, so each rule of scoring is tested on exactly the rows it needs.
+
+| File | What it is |
+| ---- | ---------- |
+| `apoe.domtblout` | `hmmscan --domtblout --cpu 0` of the HMM scoring example, `../../golden/hmmscore/example/apoe.fasta` written as the CGI writes it, against the data sample `hmmscore-sample-1`, by the engine image's HMMER 3.4 on `linux/amd64`, with its `#` lines |
+| `empty.domtblout` | The same for `>sequence` and 20 `W`s, which no model of the sample reports: its `#` lines alone |
+| `apoe.hmmsearch` | `hmmsearch --cpu 0` of the sample's `books/PTHR18976/SF2/hmmer.hmm` against the example, as the CGI runs it, by the same HMMER. Run in a folder holding both files, so the report names them without a path |
+| The other `.domtblout` files | Hand-written: `apoe.domtblout`'s `#` lines around rows made up for one rule each, which the file's name gives. Their numbers needn't agree with each other, since scoring reads only the target's name, the full-sequence E-value and the score |
+
 ## Rebuilding
 
 The models and the pressed files come from the engine image's HMMER, the pinned 3.4. From the repository's root:

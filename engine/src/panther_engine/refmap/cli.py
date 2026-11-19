@@ -142,7 +142,8 @@ def configure(parser: argparse.ArgumentParser) -> None:
         type=Path,
         metavar="FILE",
         default=ORGANISMS,
-        help="the organism list (default: the engine's refmap/organisms.json)",
+        help="the organisms to build, a subset of the engine's (default: the engine's "
+        "refmap/organisms.json, every organism)",
     )
     build_json.add_argument(
         "--missing-only",
@@ -322,9 +323,14 @@ def run_data(args: argparse.Namespace) -> int:
                     codes = [organism.code for organism in read_organisms(args.organisms)]
                 except ValueError as error:
                     raise data.RefmapDataError(str(error)) from error
-                written = data.build_classification_json(
-                    args.data_dir, codes, missing_only=args.missing_only
-                )
+                # The list can only narrow the engine's: the build refuses any other code, which
+                # has no file to build from, before writing anything.
+                try:
+                    written = data.build_classification_json(
+                        args.data_dir, codes, missing_only=args.missing_only
+                    )
+                except ValueError as error:
+                    raise data.RefmapDataError(f"{args.organisms}: {error}") from error
                 print(f"built the classification JSON of {written:,} organisms")
             case "verify":
                 mismatches = data.verify_folder(args.data_dir, manifest=args.manifest)

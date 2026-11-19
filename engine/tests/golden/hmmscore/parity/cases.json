@@ -1,0 +1,65 @@
+{
+  "cases": [
+    {
+      "name": "apoe",
+      "why": "The HMM scoring help page's example, human APOE: one best hit, PTHR18976:SF2. Also the self-check"
+    },
+    {
+      "name": "test",
+      "why": "The release's own query, test.fasta: 773 models in 56 families pass the cutoff on the full library"
+    },
+    {
+      "name": "tie-pthr35774",
+      "why": "PTHR35774's family model and its one subfamily's tie (HMMSCORE-1): divergence 13 reports PTHR35774:SF1"
+    },
+    {
+      "name": "pir-pthr34093",
+      "why": "The best model is PTHR34093..pir, read as PTHR34093, whose model file holds the family's model (HMMSCORE-9)"
+    },
+    {
+      "name": "no-hit",
+      "why": "No model reported: an empty <scores>, so hit is null"
+    },
+    {
+      "name": "over-cutoff",
+      "why": "A table with a row, whose best E-value is over 1e-3: no hit (HMMSCORE-5's cutoff)"
+    },
+    {
+      "name": "best-over-cutoff",
+      "why": "The best model, by score, is over 1e-3, and a lower-scoring one is under it: no hit, as getBestHit tests the best hit alone (HMMSCORE-5)"
+    },
+    {
+      "name": "apoe-lower",
+      "why": "The example in lower case: the CGI is posted it so, the engine gets it upper-cased, as from the API",
+      "posted": "mkvlwaallvtflagcqakveqavetepepelrqqtewqsgqrwelalgrfwdylrwvqtlseqvqeellssqvtqelralmdetmkelkaykseleeqltpvaeetrarlskelqaaqarlgadmedvcgrlvqyrgevqamlgqsteelrvrlashlrklrkrllrdaddlqkrlavyqagaregaerglsairerlgplveqgrvraatvgslagqplqeraqawgerlrarmeemgsrtrdrldevkeqvaevrakleeqaqqirlqaeafqarlkswfeplvedmqrqwaglvekvqaavgtsaapvpsdnh"
+    },
+    {
+      "name": "apoe-stop",
+      "why": "The example with a final *"
+    },
+    {
+      "name": "apoe-uncommon",
+      "why": "The example with B, J, O, U, X and Z at residues 50, 100, 150, 200, 250 and 300"
+    },
+    {
+      "name": "apoe-dot",
+      "why": "The example with a . after residues 80, 160 and 240, which 3.1b2 and 3.4 read as positions"
+    },
+    {
+      "name": "apoe-underscore",
+      "why": "The example with a _ after residues 80, 160 and 240"
+    },
+    {
+      "name": "apoe-tilde",
+      "why": "The example with a ~ after residues 80, 160 and 240"
+    },
+    {
+      "name": "apoe-star",
+      "why": "The example with a * after residues 80, 160 and 240"
+    },
+    {
+      "name": "titin-10000",
+      "why": "The first 10,000 residues of titin, UniProt Q8WZ42: the API's residue limit (divergence 11), and the time limit's check"
+    }
+  ]
+}

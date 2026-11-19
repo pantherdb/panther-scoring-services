@@ -193,6 +193,10 @@ Conditions:
      - **The image downloads the public script.** `pantherdb/RefProteomeMapper` is public, so the `refmap-reference` image downloads `map_panther.pl` at the full commit of `4fc6a09` when it's built, and checks its pinned sha256. No checkout is needed. It holds Debian's Perl 5 and that script, beside the engine, and mounts the refmap data read-only. The commands are in [golden-setup.md](../parity/golden-setup.md#refmap). CI doesn't build this image either.
      - **The goldens** cover the data server's own test lists against one organism, hand-made lists, and small made-up classification files for what the release never holds.
      - **The full run compares every ID** of every organism in the release, 22,961,201 lines, with seeded extras, through both the Perl and the port. On the pinned data, it's M1's acceptance for refmap's engine.
+   - **For `hmmscore`** (`port-hmmscore`):
+     - **The image, `hmmscore-reference`,** holds `scoreAlignXml.cgi`, `pantherScore.pl` and its `lib/` at `pantherScoring`'s `89ea0ae`, from a developer's checkout as for `csnp`, since the repository is private. Each file is checked against a pinned sha256. It adds Debian's Perl 5 with YAML::XS, beside the engine, and mounts the hmmscore data read-only. The commands are in [golden-setup.md](../parity/golden-setup.md#hmmscore). CI doesn't build this image either.
+     - **HMMER 3.1b2, production's version,** from Bioconda's image at a pinned digest, so the goldens are production's answers. The runtime image keeps 3.4, which gives 3.1b2's tables and alignments on amd64 ([the survey](../parity/hmmscore-library-survey.md#hmmer-31b2-against-34)).
+     - **amd64 only,** since 3.1b2 has no arm64 build with vector code. Goldens made on amd64 are the parity target; an arm64 copy is kept only for a case whose result differs there.
 4. **Keep external tools as binaries,** called with `subprocess`.
 5. **Adopt `treegrafter`, don't port it.**
    - Pin EBI's repository by git commit. It doesn't appear to be on PyPI; needs team verification.

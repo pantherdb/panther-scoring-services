@@ -95,7 +95,7 @@
           "jobs"
         ],
         "summary": "Start a job",
-        "description": "Start a job for `service` with its `input`. The job runs after this request returns.\n\nAn input the job can't run with is a 422, and no job is created. A problem only the work can\nfind, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid\nrequest is a 503 when it would wait and too many jobs are already waiting. A valid `hmmscore`\nrequest gets a 501 until its scoring is available; its input, and its residue limit, are still\nvalidated first.",
+        "description": "Start a job for `service` with its `input`. The job runs after this request returns.\n\nAn input the job can't run with is a 422, and no job is created. A problem only the work can\nfind, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid\nrequest is a 503 when it would wait and too many jobs are already waiting. An `hmmscore`\nsequence over the configured residue limit is a 422 too.",
         "operationId": "create_job_api_v1_jobs_post",
         "requestBody": {
           "content": {
@@ -202,16 +202,6 @@
                 }
               }
             },
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "The service can't run jobs yet: `hmmscore`, until its scoring is ported. The request was valid, and no job was created.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -854,7 +844,7 @@
           "versions"
         ],
         "title": "HmmscoreJob",
-        "description": "An `hmmscore` job, with the same fields as every job. `result` is the best-scoring\nPANTHER HMM, or a null `hit`.\n\nNone is created until the engine's scoring is wired in: a valid request gets a 501."
+        "description": "An `hmmscore` job, with the same fields as every job. `result` is the best-scoring\nPANTHER HMM, or a null `hit`.\n\nIts search has a time limit that grows with the sequence's length. It fails with the generic\n500 when the HMM library is missing or a search tool fails."
       },
       "HmmscoreJobRequest": {
         "properties": {
@@ -873,7 +863,7 @@
           "input"
         ],
         "title": "HmmscoreJobRequest",
-        "description": "Start an `hmmscore` job: score one protein against PANTHER's HMM library.\n\nUntil the engine's hmmscore scoring is wired in, a valid request gets a 501, and no job."
+        "description": "Start an `hmmscore` job: score one protein against PANTHER's HMM library."
       },
       "HmmscoreResult": {
         "properties": {

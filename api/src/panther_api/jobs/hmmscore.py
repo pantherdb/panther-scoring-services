@@ -7,15 +7,16 @@ gives the legacy line for each rule (decision 3), and `docs/parity/hmmscore-lega
 the quirks. No message quotes the submitted value. The residue limit is a setting, so the router
 checks it, not the model (decision 7).
 
-The result mirrors the dataclasses proposed for the engine's `panther_engine.hmmscore`, field for
-field (decision 4). Until the engine scores, the API answers a valid request with a 501, and
-nothing builds a result. A worker process imports this module, so keep its imports light and set
-up no state at import time.
+The result mirrors the engine's `panther_engine.hmmscore` dataclasses, field for field (decision
+4), and `run_hmmscore()` converts between the two: it's what a worker runs for an `hmmscore` job
+(openspec wire-hmmscore, design.md, decision 1). A worker process imports this module, so keep its
+imports light and set up no state at import time.
 """
 
 import re
 from typing import Annotated
 
+from panther_engine import hmmscore as engine
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from panther_api.jobs.fields import (
@@ -107,3 +108,27 @@ class HmmscoreResult(BaseModel):
     1e-3, as the legacy service applied its cutoff."""
 
     hit: HmmHit | None
+
+
+def run_hmmscore(request: HmmscoreInput, *, cpu: int, timeout: int) -> HmmscoreResult:
+    """Score the input with the engine. Runs in a worker process, never on the event loop.
+
+    The sequence goes to the engine as the model normalised it, with `cpu` for both `hmmscan` and
+    `hmmsearch`, and `timeout`, in seconds, for the whole search, counted from this call. The
+    engine reads its data folder from `PANTHER_DATA_DIR`, which a worker inherits. Its exceptions
+    pass through unchanged, for the runner to sort.
+    """
+    hit = engine.score(
+        engine.HmmscoreInput(sequence=request.sequence), cpu=cpu, timeout=timeout
+    ).hit
+    if hit is None:
+        return HmmscoreResult(hit=None)
+    return HmmscoreResult(
+        hit=HmmHit(
+            panther_id=hit.panther_id,
+            name=hit.name,
+            evalue=hit.evalue,
+            score=hit.score,
+            alignment=hit.alignment,
+        )
+    )

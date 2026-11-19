@@ -7,37 +7,19 @@ needs from `run_job`'s arguments: the request, and the options the API read from
 worker. Keep the imports light too: a worker imports this module, and doesn't need FastAPI.
 
 A scoring service joins by adding its request model to `JobRequest`, its result to `JobResult`,
-and a case to `run_job`. One whose contract comes before its port also gets a row in
-`UNAVAILABLE`, which the router answers with a 501, and a `run_job` case that refuses to run.
+and a case to `run_job`.
 """
 
 from dataclasses import dataclass
-from typing import Annotated, Literal, NamedTuple, get_args
+from typing import Annotated, Literal, get_args
 
 from pydantic import BaseModel, Field
 
 from panther_api.jobs.csnp import CsnpInput, CsnpResult, run_csnp
-from panther_api.jobs.hmmscore import HmmscoreInput, HmmscoreResult
+from panther_api.jobs.hmmscore import HmmscoreInput, HmmscoreResult, run_hmmscore
 from panther_api.jobs.refmap import RefmapInput, run_refmap
 from panther_api.jobs.tools import ToolsInput, ToolsResult, run_tools
-
-
-class Unavailable(NamedTuple):
-    """Why a service's valid request gets a 501 and no job."""
-
-    detail: str
-    """The 501's `detail`."""
-    until: str
-    """Ends the 501's description after the service's name, such as "until it's ported"."""
-
-
-UNAVAILABLE: dict[str, Unavailable] = {
-    # Removed, with run_job's hmmscore case, when the engine's hmmscore scoring is wired in. The
-    # same change calls `score()` with the time limit and `--cpu` settings, adds hmmscore's data
-    # check at startup and its data version (openspec add-hmmscore-job, design.md, Migration Plan).
-    "hmmscore": Unavailable("HMM scoring isn't available yet.", "until its scoring is ported"),
-}
-"""The services whose requests are validated, then refused with a 501 (routers/jobs.py)."""
+from panther_api.settings import HMMSCORE_MAX_RESIDUES
 
 
 class ToolsJobRequest(BaseModel):
@@ -62,10 +44,7 @@ class RefmapJobRequest(BaseModel):
 
 
 class HmmscoreJobRequest(BaseModel):
-    """Start an `hmmscore` job: score one protein against PANTHER's HMM library.
-
-    Until the engine's hmmscore scoring is wired in, a valid request gets a 501, and no job.
-    """
+    """Start an `hmmscore` job: score one protein against PANTHER's HMM library."""
 
     service: Literal["hmmscore"]
     input: HmmscoreInput
@@ -120,6 +99,21 @@ JobResult = ToolsResult | CsnpResult | HmmscoreResult | SerializedResult
 """What a job's work returns. A small result is a model; a large one, refmap's, is serialised."""
 
 
+def hmmscore_time_limit(residues: int, options: JobOptions) -> int:
+    """An hmmscore job's time limit, in seconds: the minimum, plus the difference between the time
+    limit and the minimum, times the residues over 10,000, rounded to the nearest second, a half
+    up.
+
+    It divides by 10,000, the most residues the API ever takes, not by the configured residue
+    limit, so a server that lowers that doesn't lengthen anyone's limit (openspec wire-hmmscore,
+    design.md, decision 3; divergence row 14). With the defaults, APOE's 317 residues get 139 s.
+    """
+    floor = options.hmmscore_min_time_limit_seconds
+    spread = options.hmmscore_time_limit_seconds - floor
+    # In whole numbers, so the rounding is exact.
+    return floor + (2 * spread * residues + HMMSCORE_MAX_RESIDUES) // (2 * HMMSCORE_MAX_RESIDUES)
+
+
 def run_job(request: JobRequest, options: JobOptions) -> JobResult:
     """Do a job's work, with the API's options. The runner submits this function to the worker
     pool."""
@@ -131,6 +125,8 @@ def run_job(request: JobRequest, options: JobOptions) -> JobResult:
         case RefmapJobRequest():
             return SerializedResult(run_refmap(request.input))
         case HmmscoreJobRequest():
-            # The router answers 501 and never submits one. If one gets here anyway, the job
-            # fails with the generic error, never a made-up hit. The wiring calls the engine here.
-            raise NotImplementedError(UNAVAILABLE["hmmscore"].detail)
+            return run_hmmscore(
+                request.input,
+                cpu=options.hmmscore_cpu,
+                timeout=hmmscore_time_limit(request.input.residues, options),
+            )

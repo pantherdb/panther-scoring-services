@@ -13,6 +13,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import panther_engine.csnp
+import panther_engine.hmmscore
 from panther_engine.core.errors import InputError
 
 from panther_api.jobs.hmmscore import HmmscoreResult
@@ -131,15 +132,49 @@ def fake_score(
     )
 
 
+# The hit from fake_hmmscore(). Its alignment names the options the search was given, so a test
+# can see what reached the engine in the worker.
+FAKE_PANTHER_ID = "PTHR18976:SF2"
+FAKE_HMM_NAME = "APOLIPOPROTEIN E"
+FAKE_EVALUE = "2.2e-133"
+FAKE_SCORE = "439.0"
+# The sequence fake_hmmscore() finds no hit for.
+NO_HIT_SEQUENCE = "NOHITWHATSOEVER"
+
+
+def fake_alignment(cpu: int, timeout: float | None) -> str:
+    """fake_hmmscore()'s alignment for these options."""
+    return f"cpu {cpu}, timeout {timeout}"
+
+
+def fake_hmmscore(
+    request: panther_engine.hmmscore.HmmscoreInput,
+    *,
+    data_dir: Path | str | None = None,
+    cpu: int = 0,
+    timeout: float | None = None,
+) -> panther_engine.hmmscore.HmmscoreResult:
+    """The engine's hmmscore `score()` without HMMER or data: the same hit for every sequence but
+    NO_HIT_SEQUENCE, which has none."""
+    del data_dir
+    if request.sequence == NO_HIT_SEQUENCE:
+        return panther_engine.hmmscore.HmmscoreResult(None)
+    return panther_engine.hmmscore.HmmscoreResult(
+        panther_engine.hmmscore.HmmHit(
+            FAKE_PANTHER_ID, FAKE_HMM_NAME, FAKE_EVALUE, FAKE_SCORE, fake_alignment(cpu, timeout)
+        )
+    )
+
+
 def score_with_a_fake_engine(request: JobRequest, options: JobOptions) -> JobResult:
-    """The real `run_job`, in a worker, with the engine's `score()` replaced by fake_score(), and
-    the options passed on."""
+    """The real `run_job`, in a worker, with the engine's cSNP and hmmscore `score()` replaced by
+    fake_score() and fake_hmmscore(), and the options passed on."""
     panther_engine.csnp.score = fake_score
+    panther_engine.hmmscore.score = fake_hmmscore
     return run_job(request, options)
 
 
-# hmmscore jobs, with no engine: the router answers 501, so these run on a JobRunner, or with
-# the 501 removed for one test.
+# hmmscore jobs, with stand-ins for the work.
 
 NO_HIT = HmmscoreResult(hit=None)
 

@@ -59,9 +59,8 @@ export interface paths {
          *
          *     An input the job can't run with is a 422, and no job is created. A problem only the work can
          *     find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid
-         *     request is a 503 when it would wait and too many jobs are already waiting. A valid `hmmscore`
-         *     request gets a 501 until its scoring is available; its input, and its residue limit, are still
-         *     validated first.
+         *     request is a 503 when it would wait and too many jobs are already waiting. An `hmmscore`
+         *     sequence over the configured residue limit is a 422 too.
          */
         post: operations["create_job_api_v1_jobs_post"];
         delete?: never;
@@ -313,7 +312,8 @@ export interface components {
          * @description An `hmmscore` job, with the same fields as every job. `result` is the best-scoring
          *     PANTHER HMM, or a null `hit`.
          *
-         *     None is created until the engine's scoring is wired in: a valid request gets a 501.
+         *     Its search has a time limit that grows with the sequence's length. It fails with the generic
+         *     500 when the HMM library is missing or a search tool fails.
          */
         HmmscoreJob: {
             /**
@@ -343,8 +343,6 @@ export interface components {
         /**
          * HmmscoreJobRequest
          * @description Start an `hmmscore` job: score one protein against PANTHER's HMM library.
-         *
-         *     Until the engine's hmmscore scoring is wired in, a valid request gets a 501, and no job.
          */
         HmmscoreJobRequest: {
             /**
@@ -746,15 +744,6 @@ export interface operations {
             };
             /** @description Unexpected error */
             500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description The service can't run jobs yet: `hmmscore`, until its scoring is ported. The request was valid, and no job was created. */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };

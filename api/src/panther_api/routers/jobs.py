@@ -12,7 +12,7 @@ from fastapi.exceptions import RequestValidationError
 from panther_api.jobs.models import JOB_ADAPTER, Job
 from panther_api.jobs.runner import JobRunner, QueueFullError
 from panther_api.jobs.store import JobRecord
-from panther_api.jobs.work import UNAVAILABLE, HmmscoreJobRequest, JobRequest, SerializedResult
+from panther_api.jobs.work import HmmscoreJobRequest, JobRequest, SerializedResult
 from panther_api.problems import Problem
 from panther_api.settings import Settings
 
@@ -47,15 +47,6 @@ _CREATE_RESPONSES: dict[int | str, dict[str, Any]] = {
         },
     },
 }
-# Documented while any service is unavailable (jobs/work.py's UNAVAILABLE, which says when each
-# row goes, and what lands with it).
-if UNAVAILABLE:
-    _CREATE_RESPONSES[status.HTTP_501_NOT_IMPLEMENTED] = {
-        "model": Problem,
-        "description": "The service can't run jobs yet: "
-        + "; ".join(f"`{service}`, {why.until}" for service, why in UNAVAILABLE.items())
-        + ". The request was valid, and no job was created.",
-    }
 
 
 def _runner(request: Request) -> JobRunner:
@@ -132,15 +123,11 @@ async def create_job(
 
     An input the job can't run with is a 422, and no job is created. A problem only the work can
     find, such as a `csnp` sequence BLAST+ can't read, fails the job with a 422 `error`. A valid
-    request is a 503 when it would wait and too many jobs are already waiting. A valid `hmmscore`
-    request gets a 501 until its scoring is available; its input, and its residue limit, are still
-    validated first.
+    request is a 503 when it would wait and too many jobs are already waiting. An `hmmscore`
+    sequence over the configured residue limit is a 422 too.
     """
     if isinstance(job_request, HmmscoreJobRequest):
         _check_hmmscore_residues(job_request, _settings(request).hmmscore_max_residues)
-    unavailable = UNAVAILABLE.get(job_request.service)
-    if unavailable is not None:
-        raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, detail=unavailable.detail)
     try:
         record = _runner(request).submit(job_request)
     except QueueFullError:

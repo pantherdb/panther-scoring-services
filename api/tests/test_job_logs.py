@@ -26,7 +26,6 @@ from job_helpers import (
 from polling import Job, submit_and_wait
 
 from panther_api.jobs.runner import INPUT_ERROR_OUTCOME, REFUSAL_INTERVAL, TRACEBACK_INTERVAL
-from panther_api.jobs.work import UNAVAILABLE
 from panther_api.main import create_app
 
 RUNNER = "panther_api.jobs.runner"
@@ -100,9 +99,7 @@ def test_a_csnp_job_line_has_its_size_and_none_of_its_input(
 def test_an_hmmscore_job_line_has_its_residues_and_not_its_sequence(
     monkeypatch: pytest.MonkeyPatch, client: TestClient, caplog: pytest.LogCaptureFixture
 ) -> None:
-    # The router answers 501 until hmmscore's scoring is wired in: lift it for this job, and stand
-    # in for the work. 317 residues and a final stop, which isn't one.
-    monkeypatch.delitem(UNAVAILABLE, "hmmscore")
+    # A stand-in for the work. 317 residues and a final stop, which isn't one.
     monkeypatch.setattr("panther_api.jobs.runner.run_job", no_hmm_hit)
     body = {"service": "hmmscore", "input": {"sequence": SEQUENCE[:317] + "*"}}
 

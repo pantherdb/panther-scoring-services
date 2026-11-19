@@ -10,6 +10,7 @@ from typing import Any, cast, get_args
 from uuid import UUID, uuid4
 
 import panther_engine.csnp as engine_csnp
+import panther_engine.hmmscore as engine_hmmscore
 import pytest
 from clock import Clock
 from fastapi import FastAPI
@@ -18,18 +19,26 @@ from job_helpers import (
     DEFAULT_OPTIONS,
     FAILING_SEQUENCE,
     FAKE_AGE,
+    FAKE_EVALUE,
     FAKE_FAMILY,
+    FAKE_HMM_NAME,
     FAKE_MESSAGE,
+    FAKE_PANTHER_ID,
     FAKE_PDEL,
     FAKE_RESULT,
+    FAKE_SCORE,
     GATE_VARIABLE,
     INPUT_ERROR_MESSAGE,
     INTERNAL_PATH,
+    NO_HIT_SEQUENCE,
     exit_worker,
     fail,
+    fake_alignment,
+    fake_hmmscore,
     fake_score,
     hold_hmmscore_jobs,
     input_error_for_csnp,
+    no_hmm_hit,
     raise_input_error,
     report_fake_tools,
     score_with_a_fake_engine,
@@ -41,7 +50,7 @@ from polling import poll
 from pydantic import ValidationError
 
 from panther_api.jobs.csnp import CsnpInput, CsnpResult, SubstitutionScore, run_csnp
-from panther_api.jobs.hmmscore import HmmscoreInput
+from panther_api.jobs.hmmscore import HmmHit, HmmscoreInput, HmmscoreResult, run_hmmscore
 from panther_api.jobs.models import JobStatus
 from panther_api.jobs.refmap import MOST_IDS
 from panther_api.jobs.runner import (
@@ -57,13 +66,16 @@ from panther_api.jobs.work import (
     SERVICES,
     CsnpJobRequest,
     HmmscoreJobRequest,
+    JobOptions,
     JobRequest,
     Service,
     ToolsJobRequest,
+    hmmscore_time_limit,
     run_job,
 )
-from panther_api.main import create_app
+from panther_api.main import create_app, job_options
 from panther_api.problems import MOST_FIELD_ERRORS
+from panther_api.settings import Settings
 from panther_api.versions import read_versions
 
 # The directory in conftest's fake report paths. No job may contain it.
@@ -741,32 +753,36 @@ def test_a_refmap_job_without_the_data_fails_with_the_generic_500(
     assert str(tmp_path) not in str(job)
 
 
-# The hmmscore job: validated, the configured residue limit checked, then a 501 until the engine
-# scores. No hit is made up.
+# The hmmscore job: validated, the configured residue limit checked, then scored by the engine, in
+# a worker, with the options the settings give.
 
 HMMSCORE_SEQUENCE = "MKVLWAALLVTFLAGCQAKV"
 HMMSCORE_LOC: list[str | int] = ["body", "hmmscore", "input", "sequence"]
-HMMSCORE_UNAVAILABLE = {
-    "type": "about:blank",
-    "title": "Not Implemented",
-    "status": 501,
-    "detail": "HMM scoring isn't available yet.",
-}
+# APOE's length, in residues: the form's example.
+APOE_RESIDUES = 317
 
 
 def hmmscore_job(sequence: object = HMMSCORE_SEQUENCE, **changes: object) -> dict[str, object]:
     return {"service": "hmmscore", "input": {"sequence": sequence, **changes}}
 
 
-def assert_unavailable(client: TestClient, body: object) -> None:
-    """Valid: the 501 problem, with no `Location`, and no job stored."""
+@pytest.fixture
+def hmmscore_client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+    """A client whose hmmscore jobs find no hit, in place of the engine."""
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", no_hmm_hit)
+    with TestClient(create_app()) as client:
+        yield client
+
+
+def assert_accepted(client: TestClient, body: object) -> None:
+    """Valid: a 202 and an `hmmscore` job, polled at `Location`."""
     response = client.post("/api/v1/jobs", json=body)
 
-    assert response.status_code == 501, response.text
-    assert response.headers["content-type"] == PROBLEM
-    assert "location" not in response.headers
-    assert response.json() == HMMSCORE_UNAVAILABLE
-    assert len(runner(client).store) == 0
+    assert response.status_code == 202, response.text
+    job = response.json()
+    assert job["service"] == "hmmscore"
+    assert response.headers["location"] == f"/api/v1/jobs/{job['id']}"
+    assert len(runner(client).store) == 1
 
 
 def assert_over_the_residue_limit(client: TestClient, residues: int, limit: str) -> None:
@@ -782,25 +798,213 @@ def assert_over_the_residue_limit(client: TestClient, residues: int, limit: str)
     assert len(runner(client).store) == 0
 
 
-def test_a_valid_hmmscore_request_is_a_501_and_creates_no_job(client: TestClient) -> None:
-    assert_unavailable(client, hmmscore_job())
+def test_a_valid_hmmscore_request_is_a_202_and_a_job(hmmscore_client: TestClient) -> None:
+    assert_accepted(hmmscore_client, hmmscore_job())
 
 
-def test_a_fasta_hmmscore_request_with_a_final_stop_is_a_501(client: TestClient) -> None:
-    assert_unavailable(client, hmmscore_job(">sp|P02649|APOE_HUMAN\nmkvlwaallv\ntflagcqakv*\n"))
+def test_a_fasta_hmmscore_request_with_a_final_stop_is_accepted(
+    hmmscore_client: TestClient,
+) -> None:
+    assert_accepted(
+        hmmscore_client, hmmscore_job(">sp|P02649|APOE_HUMAN\nmkvlwaallv\ntflagcqakv*\n")
+    )
 
 
-def test_dots_underscores_tildes_and_inner_stops_are_a_501(client: TestClient) -> None:
-    assert_unavailable(client, hmmscore_job("MKV.LW_AA~LL*VT"))
+def test_dots_underscores_tildes_and_inner_stops_are_accepted(hmmscore_client: TestClient) -> None:
+    assert_accepted(hmmscore_client, hmmscore_job("MKV.LW_AA~LL*VT"))
 
 
-def test_tools_jobs_still_run_after_an_hmmscore_501(client: TestClient) -> None:
-    assert client.post("/api/v1/jobs", json=hmmscore_job()).status_code == 501
+# The job, with the engine's `score()` replaced in the worker (job_helpers.fake_hmmscore).
 
-    job = poll(client, submit(client)["id"])[-1]
+FAKE_HIT = {
+    "panther_id": FAKE_PANTHER_ID,
+    "name": FAKE_HMM_NAME,
+    "evalue": FAKE_EVALUE,
+    "score": FAKE_SCORE,
+}
+
+
+@pytest.fixture
+def fake_engine(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", score_with_a_fake_engine)
+
+
+@pytest.mark.usefixtures("fake_engine")
+def test_an_hmmscore_job_succeeds_with_the_engines_hit(client: TestClient) -> None:
+    job = poll(client, submit(client, hmmscore_job())["id"])[-1]
 
     assert job["status"] == "succeeded"
-    assert len(runner(client).store) == 1
+    assert job["error"] is None
+    # 20 residues, with the default settings: 120 + 600 * 20 / 10,000 = 121.2 s.
+    assert job["result"] == {"hit": {**FAKE_HIT, "alignment": fake_alignment(0, 121)}}
+
+
+@pytest.mark.usefixtures("fake_engine")
+def test_an_hmmscore_job_without_a_hit_succeeds_with_a_null_hit(client: TestClient) -> None:
+    job = poll(client, submit(client, hmmscore_job(NO_HIT_SEQUENCE))["id"])[-1]
+
+    assert job["status"] == "succeeded"
+    assert job["result"] == {"hit": None}
+    assert job["error"] is None
+
+
+@pytest.mark.usefixtures("fake_engine")
+def test_other_jobs_still_run_beside_hmmscore(client: TestClient) -> None:
+    hmmscore = submit(client, hmmscore_job())
+    csnp = submit(client, csnp_job())
+
+    hmmscore, csnp = poll(client, hmmscore["id"])[-1], poll(client, csnp["id"])[-1]
+
+    assert (hmmscore["status"], csnp["status"]) == ("succeeded", "succeeded")
+    assert hmmscore["result"]["hit"]["panther_id"] == FAKE_PANTHER_ID
+    assert csnp["result"]["family"] == FAKE_FAMILY
+    assert FAKE_PANTHER_ID not in json.dumps(csnp)
+    assert FAKE_FAMILY not in json.dumps(hmmscore)
+
+
+# The time limit and the threads reach the search (scoring-jobs: hmmscore job time limit and
+# threads; hmmscore time limit by length).
+
+
+def alignment_of(client: TestClient, sequence: str) -> str:
+    """The fake hit's alignment, which names the options the search was given."""
+    job = poll(client, submit(client, hmmscore_job(sequence))["id"])[-1]
+    assert job["status"] == "succeeded", job
+    return job["result"]["hit"]["alignment"]
+
+
+@pytest.mark.usefixtures("fake_engine")
+def test_the_settings_reach_the_search(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS", "600")
+    monkeypatch.setenv("PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS", "600")
+    monkeypatch.setenv("PANTHER_API_HMMSCORE_CPU", "2")
+    with TestClient(create_app()) as client:
+        assert alignment_of(client, HMMSCORE_SEQUENCE) == fake_alignment(2, 600)
+
+
+@pytest.mark.usefixtures("fake_engine")
+@pytest.mark.parametrize(("residues", "seconds"), [(10_000, 720), (APOE_RESIDUES, 139)])
+def test_the_default_settings_reach_the_search(
+    client: TestClient, residues: int, seconds: int
+) -> None:
+    assert alignment_of(client, "W" * residues) == fake_alignment(0, seconds)
+
+
+@pytest.mark.parametrize(
+    ("residues", "seconds"),
+    [(1, 120), (APOE_RESIDUES, 139), (4_646, 399), (5_000, 420), (10_000, 720)],
+)
+def test_the_time_limit_grows_with_the_length(residues: int, seconds: int) -> None:
+    assert hmmscore_time_limit(residues, job_options(Settings())) == seconds
+
+
+def test_a_lower_residue_limit_doesnt_change_the_time_limits(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # It divides by 10,000, the most the API ever takes, not by the server's residue limit.
+    monkeypatch.setenv("PANTHER_API_HMMSCORE_MAX_RESIDUES", "5000")
+    options = job_options(Settings())
+
+    assert [hmmscore_time_limit(residues, options) for residues in (APOE_RESIDUES, 5_000)] == [
+        139,
+        420,
+    ]
+
+
+def test_a_minimum_equal_to_the_time_limit_gives_every_job_that_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS", "600")
+    monkeypatch.setenv("PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS", "600")
+    options = job_options(Settings())
+
+    assert {hmmscore_time_limit(residues, options) for residues in (1, 317, 10_000)} == {600}
+
+
+def test_the_time_limit_rounds_to_the_nearest_second() -> None:
+    # One second between the two: half of it at 5,000 residues.
+    options = JobOptions(
+        hmmscore_cpu=0, hmmscore_time_limit_seconds=121, hmmscore_min_time_limit_seconds=120
+    )
+
+    assert [hmmscore_time_limit(residues, options) for residues in (4_999, 5_000, 7_499)] == [
+        120,
+        121,
+        121,
+    ]
+
+
+# The work, in this process: run_hmmscore and run_job's hmmscore case.
+
+
+def test_run_hmmscore_maps_the_engines_hit_field_for_field(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[engine_hmmscore.HmmscoreInput, dict[str, object]]] = []
+
+    def score(
+        request: engine_hmmscore.HmmscoreInput, **options: object
+    ) -> engine_hmmscore.HmmscoreResult:
+        calls.append((request, options))
+        return engine_hmmscore.HmmscoreResult(
+            engine_hmmscore.HmmHit("PTHR10000:SF1", "A NAME", "1.5e-20", "70.2", "the alignment")
+        )
+
+    monkeypatch.setattr("panther_engine.hmmscore.score", score)
+
+    result = run_hmmscore(
+        HmmscoreInput.model_validate({"sequence": ">P1\nmkv\nlw*"}), cpu=3, timeout=200
+    )
+
+    assert result == HmmscoreResult(
+        hit=HmmHit(
+            panther_id="PTHR10000:SF1",
+            name="A NAME",
+            evalue="1.5e-20",
+            score="70.2",
+            alignment="the alignment",
+        )
+    )
+    # The sequence as the model normalised it, unchanged.
+    assert calls == [(engine_hmmscore.HmmscoreInput("MKVLW*"), {"cpu": 3, "timeout": 200})]
+
+
+def test_run_hmmscore_maps_no_hit(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("panther_engine.hmmscore.score", fake_hmmscore)
+
+    result = run_hmmscore(
+        HmmscoreInput.model_validate({"sequence": NO_HIT_SEQUENCE}), cpu=0, timeout=120
+    )
+
+    assert result == HmmscoreResult(hit=None)
+
+
+def test_run_hmmscore_passes_the_engines_errors_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    def score(
+        _request: engine_hmmscore.HmmscoreInput, **_options: object
+    ) -> engine_hmmscore.HmmscoreResult:
+        raise engine_hmmscore.HmmscoreError(f"hmmscan exited with status 1: {INTERNAL_PATH}")
+
+    monkeypatch.setattr("panther_engine.hmmscore.score", score)
+
+    with pytest.raises(engine_hmmscore.HmmscoreError):
+        run_hmmscore(HmmscoreInput.model_validate({"sequence": "MKV"}), cpu=0, timeout=120)
+
+
+def test_run_job_scores_an_hmmscore_job_with_its_options(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("panther_engine.hmmscore.score", fake_hmmscore)
+    request = hmmscore_request("W" * APOE_RESIDUES)
+    options = JobOptions(
+        hmmscore_cpu=2, hmmscore_time_limit_seconds=600, hmmscore_min_time_limit_seconds=600
+    )
+
+    alignments: list[str] = []
+    for result in (run_job(request, DEFAULT_OPTIONS), run_job(request, options)):
+        assert isinstance(result, HmmscoreResult)
+        assert result.hit is not None
+        alignments.append(result.hit.alignment)
+
+    assert alignments == [fake_alignment(0, 139), fake_alignment(2, 600)]
 
 
 def test_two_hmmscore_sequences_are_a_422_without_the_residues(client: TestClient) -> None:
@@ -845,19 +1049,19 @@ def test_a_field_the_hmmscore_input_doesnt_take_is_a_422(client: TestClient) -> 
     assert_rejected(client, hmmscore_job(opType="hmm"), [["body", "hmmscore", "input", "opType"]])
 
 
-def test_the_default_residue_limit_takes_10000(client: TestClient) -> None:
-    assert_unavailable(client, hmmscore_job("W" * 10_000))
+def test_the_default_residue_limit_takes_10000(hmmscore_client: TestClient) -> None:
+    assert_accepted(hmmscore_client, hmmscore_job("W" * 10_000))
 
 
-def test_a_final_stop_isnt_counted_toward_the_limit(client: TestClient) -> None:
-    assert_unavailable(client, hmmscore_job("W" * 10_000 + "*"))
+def test_a_final_stop_isnt_counted_toward_the_limit(hmmscore_client: TestClient) -> None:
+    assert_accepted(hmmscore_client, hmmscore_job("W" * 10_000 + "*"))
 
 
-def test_dots_and_inner_stops_count_toward_the_limit(client: TestClient) -> None:
+def test_dots_and_inner_stops_count_toward_the_limit(hmmscore_client: TestClient) -> None:
     # Every position hmmscan reads counts, but a final `*` (engine developer, 2026-11-13).
-    assert_unavailable(client, hmmscore_job("W" * 9_997 + ".*~" + "*"))
+    assert_accepted(hmmscore_client, hmmscore_job("W" * 9_997 + ".*~" + "*"))
 
-    response = client.post("/api/v1/jobs", json=hmmscore_job("W" * 9_998 + ".*~"))
+    response = hmmscore_client.post("/api/v1/jobs", json=hmmscore_job("W" * 9_998 + ".*~"))
 
     assert response.status_code == 422
     [error] = response.json()["errors"]
@@ -870,29 +1074,21 @@ def test_past_the_default_residue_limit_is_a_422_naming_it(client: TestClient) -
 
 def test_a_lower_residue_limit_the_server_sets(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PANTHER_API_HMMSCORE_MAX_RESIDUES", "5000")
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", no_hmm_hit)
     with TestClient(create_app()) as client:
-        assert_unavailable(client, hmmscore_job("W" * 5_000))
         assert_over_the_residue_limit(client, 5_001, "5,000")
+        assert_accepted(client, hmmscore_job("W" * 5_000))
 
 
-def test_the_residue_limit_counts_after_normalising(client: TestClient) -> None:
+def test_the_residue_limit_counts_after_normalising(hmmscore_client: TestClient) -> None:
     # 10,000 residues in lines of 50, after a header.
     sequence = ">header\n" + "\n".join(["W" * 50] * 200)
 
-    assert_unavailable(client, hmmscore_job(sequence))
+    assert_accepted(hmmscore_client, hmmscore_job(sequence))
 
 
-def test_run_job_refuses_an_hmmscore_job() -> None:
-    request = HmmscoreJobRequest(
-        service="hmmscore", input=HmmscoreInput.model_validate({"sequence": HMMSCORE_SEQUENCE})
-    )
-
-    with pytest.raises(NotImplementedError):
-        run_job(request, DEFAULT_OPTIONS)
-
-
-# The cap on hmmscore jobs running at once, on a JobRunner, since the router answers 501
-# (openspec add-hmmscore-job, design.md, decision 6). hold_hmmscore_jobs() stands in for the work.
+# The cap on hmmscore jobs running at once, on a JobRunner of its own (openspec add-hmmscore-job,
+# design.md, decision 6). hold_hmmscore_jobs() stands in for the work.
 
 HOLD_TIMEOUT = 60.0
 

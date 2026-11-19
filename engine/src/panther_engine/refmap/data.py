@@ -53,6 +53,7 @@ from panther_engine.refmap.organisms import (
     CLASSIFICATION,
     CODE,
     FOLDER,
+    ORGANISM_CODES,
     ORGANISMS,
     STATS,
     VERSION,
@@ -371,8 +372,12 @@ def build_classification_json(
     file, written beside its target and then moved into place, so the API never sends a partial
     file. The gzip header has no name or time, so the same file gives the same bytes.
 
-    Raises MissingDataError if an organism's classification file is missing.
+    Raises ValueError, before writing anything, if `codes` names an organism refmap doesn't map
+    for, naming them; and MissingDataError if an organism's classification file is missing.
     """
+    codes = list(codes)
+    if unknown := [code for code in codes if code not in ORGANISM_CODES]:
+        raise ValueError(f"not organisms refmap maps for: {joined(unknown)}")
     root = data_root(folder)
     written = 0
     for code in codes:

@@ -32,7 +32,7 @@
 
 ### Next action
 
-The engine developer's review of #73 is answered in `c7dad98` (2026-11-13). The frontend developer's review, written against the commit before it, is answered too: the 404 message names the organism list, and the spec's memory requirement became design.md's property (decision 4); the data version in the response is left for a later issue. Waiting for both re-reviews.
+The engine developer's review of #73 is answered in `c7dad98` (2026-11-13). The frontend developer's review, written against the commit before it, is answered too: the 404 message names the organism list, and the spec's memory requirement became design.md's property (decision 4); the data version in the response is left for a later issue. Both approved #73 (2026-11-13), with non-blocking notes, now done: `build-json` refuses an organism list naming a code the engine doesn't map for, with a one-line error; the route opens the file before taking its size; the runbook copies the JSON with `rsync --delay-updates`, never in place; and the engine tests accept either path separator and skip the file-mode check on Windows. #73 merged on 2026-11-14 (`eff9eb1`); these notes' follow-ups are #77. The review of #77 (2026-11-18) is answered: the runbook's `rsync` gains `-p`, the build on the server runs in the API image, `build_classification_json` refuses an unknown code before writing anything, the route sends no more than the size it opened and closes the file if it can't take its size, an API test replaces the file mid-request, and `test_refmap_cli.py`'s two Windows failures are fixed. Next: #77's re-review and merge; then build the classification JSON (HPC or the server) and copy it as the runbook says, then archive with `/opsx:archive`.
 
 ### Blockers
 
@@ -49,3 +49,5 @@ None.
 - **`tempfile.mkstemp` makes a file readable by its owner only;** a file the API reads as another user needs its mode set before it's moved into place.
 - **Starlette's `FileResponse` adds `ETag` and `Last-Modified`;** a response that mustn't carry them is streamed instead.
 - **httpx normalises `..` out of a URL, and an encoded `/` matches no route,** so a test of a route's own 404 asserts its detail, which the router's unmatched-route 404 doesn't have.
+- **Take a file's size from the open file, not its path, and send no more than that** (#73, #77): a size taken before opening lets a replacement change the response, and a file written in place meanwhile can make the body disagree with `Content-Length`.
+- **`cp` and `scp` write in place, so a live folder is copied with `rsync -p --delay-updates`** (#73, #77): `--delay-updates` renames every file into place once all have arrived, and `--chmod` needs `-p` to set the mode of a replaced file, or a file the API can't read passes the startup check, which only looks for each file.

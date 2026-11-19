@@ -42,6 +42,55 @@ def data_client(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[Tes
         yield client
 
 
+class ReplacedOnOpen:
+    """ENDPU's JSON file, replaced by a rename into place the moment the route opens it, as an
+    rsync --delay-updates landing mid-request would."""
+
+    def __init__(self, path: Path, replacement: bytes) -> None:
+        self.path = path
+        self.replacement = replacement
+
+    def open(self, mode: str) -> object:
+        stream = self.path.open(mode)
+        incoming = self.path.with_name(".incoming")
+        incoming.write_bytes(self.replacement)
+        incoming.replace(self.path)
+        return stream
+
+
+def test_a_file_replaced_after_opening_is_sent_as_it_was(
+    data_client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Fails if the size is taken from the path, not the open file: the new file's is longer.
+    path = classification_json_file("ENDPU", tmp_path)
+    original = path.read_bytes()
+    longer = gzip.compress(json.dumps(RESULT | {"organism": "REPLACED" * 100}).encode())
+
+    def replaced_on_open(_code: str) -> ReplacedOnOpen:
+        return ReplacedOnOpen(path, longer)
+
+    monkeypatch.setattr(refmap, "classification_json_file", replaced_on_open)
+
+    response = data_client.get(PATH.format("ENDPU"), headers={"Accept-Encoding": "gzip"})
+
+    assert response.headers["content-length"] == str(len(original))
+    assert response.json() == RESULT
+
+
+def test_the_body_stops_at_the_size_it_was_opened_with(tmp_path: Path) -> None:
+    # A file written in place while it's sent can't make the body longer than Content-Length.
+    path = tmp_path / "file"
+    path.write_bytes(b"x" * 100_000)
+    stream = path.open("rb")
+    with path.open("ab") as appended:
+        appended.write(b"y" * 50_000)
+
+    sent = b"".join(refmap._chunks(stream, 100_000))  # pyright: ignore[reportPrivateUsage]
+
+    assert sent == b"x" * 100_000
+    assert stream.closed
+
+
 def test_a_client_that_accepts_gzip_gets_the_file_as_it_is(
     data_client: TestClient, tmp_path: Path
 ) -> None:

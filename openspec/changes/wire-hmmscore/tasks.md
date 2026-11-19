@@ -1,11 +1,11 @@
 # Tasks
 
-Start once #82 (`add-hmmscore-form`'s archive) has merged and row 14 is approved, from `main`. #81 (`port-hmmscore`) merged on 2026-11-17. Group 0 is the engine developer's, and comes first: groups 1 and 2 import what it exports.
+Start once #82 (`add-hmmscore-form`'s archive) has merged, from `main`. Row 14 was approved on #83 (2026-11-18). #81 (`port-hmmscore`) merged on 2026-11-17. Group 0 is the engine developer's, and comes first: groups 1 and 2 import what it exports.
 
 ## 0. Engine (the engine developer's)
 
 - [ ] 0.1 The timeout error: past the time limit, `score()` raises a new exception, named by the engine developer and exported from `panther_engine.hmmscore`, instead of `InputError` (design.md, decision 3). It isn't an `InputError` or a subclass, and keeps its type across processes. `TIME_LIMIT_MESSAGE` needn't be exported: the API writes its own `detail`, and the engine's message is for its own CLI and the log. Verify in `engine/tests/test_hmmscore_scoring.py`: past the limit raises the new error, not `InputError`, no tool is left running, the folder is removed, and it pickles with its type (spec, hmmscore-engine, The time limit)
-- [ ] 0.2 A tool doesn't outlive its worker: `core/process.py`'s `run_tool`, with the mechanism of the engine developer's choice (decision 9): on Linux, `PR_SET_PDEATHSIG` with `SIGKILL` in the child, checking its parent afterwards; or each tool in its own session (`start_new_session=True`), with a way for the API's runner to kill a dead worker's sessions when it replaces the pool, which then joins group 1. Verify in `engine/tests/test_process.py`: a child process runs a long-running tool and is killed with `SIGKILL`, and the tool is gone shortly after (Linux only, skipped elsewhere); `run_tool`'s existing tests pass unchanged (spec, engine-core, A tool doesn't outlive the process that started it)
+- [ ] 0.2 A search tool doesn't outlive its worker (decision 9): a keyword on `core/process.py`'s `run_tool` that, on Linux, sets `PR_SET_PDEATHSIG` with `SIGKILL` in the child through `preexec_fn` and checks its parent is still there; `core/hmmer.py` (`hmmscan`, `hmmsearch`) and `csnp/blast.py` (`blastp`) pass it, and every other call runs as before. Verify in `engine/tests/test_process.py`, Linux only: a child process runs a long-running tool with the keyword and is killed with `SIGKILL`, and the tool counts as gone shortly after when `/proc/<pid>` is missing or its state is `Z`, since nothing in the container reaps it; a control case without the keyword, where the tool survives; `run_tool`'s existing tests and csnp's pass unchanged (spec, engine-core, A search tool doesn't outlive the process that started it)
 - [ ] 0.3 `hmmscore/parity.py` gains an `__all__` with what the API's tests use: `Case`, `read_cases` and `expected_result` (decision 7). Verify the engine's checks pass
 - [ ] 0.4 Engine checks: `uv run ruff check`, `ruff format --check`, `basedpyright` and `pytest` pass, natively and in the engine image
 
@@ -42,12 +42,13 @@ Start once #82 (`add-hmmscore-form`'s archive) has merged and row 14 is approved
 - [ ] 4.1 `docs/testing/api.md`: the hmmscore section shows a real job with the example on the data sample, and how to fetch the sample. It shows no time limit example, which the sample can't reproduce through the API, and says the tests cover it (decision 8). The `501` goes; the settings table and its note drop "takes effect when hmmscore's scoring is wired in", the time limit's row says it's the most a job gets, at 10,000 residues, `--cpu`'s row says both tools, and a row for `PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS` (120) joins it; the links to `add-hmmscore-job` point to its archive. `api/README.md`: hmmscore runs. `compose.yaml`: the `api` service's comment names the hmmscore sample
 - [ ] 4.2 `docs/testing/frontend.md`: the hmmscore mocks and specs without the `501`, and the `@api` spec's real hit. `docs/manual-qa/04-hmmscore-form.md`: no notice or mark; the real API scores the example, and the job page shows `PTHR18976:SF2`, its alignment and PANTHER 19, replacing the "not available yet" step
 - [ ] 4.3 `docs/deployment/runbook-server.md`: the full library under `hmmscore/19/`, downloaded on the host and passed to `panther-engine hmmscore data fetch --tarball`; the hmmscore settings, with the engine developer setting the server's values (#68). Checked against `engine/src/panther_engine/hmmscore/cli.py`'s options, and with no memory figure for the server
-- [ ] 4.4 `docs/parity/divergences.md`: row 14, `hmmscore`, the time limit by length: a job past its limit (120 s for the shortest sequence, up to 720 s at 10,000 residues) fails with a `503`, where the reference answered however long it took; the margins on Endeavour at `--cpu 0`, about 10 times APOE's 13 s, 4 times Q14204's cold 93 s and 3 times `titin-10000`'s 231 s, and that they aren't the server's; the approver, the engine developer, and the date left blank until approved. Verify with `npx markdownlint-cli2`
-- [ ] 4.5 `api/CLAUDE.md`: "Adding a Service" says hmmscore has been through all four steps, that the `501` mechanism is gone until a service needs it again, and how the settings reach the worker (`JobOptions`). `frontend/CLAUDE.md` if a convention changed. Final check, from the root: `npx markdownlint-cli2`, `npx openspec validate --all` and `npx openspec validate wire-hmmscore --strict`
+- [ ] 4.4 `docs/parity/divergences.md`: row 14, `hmmscore`, the time limit by length: a job past its limit (120 s for the shortest sequence, up to 720 s at 10,000 residues) fails with a `503`, where the reference answered however long it took; the margins on Endeavour at `--cpu 0`, about 10 times APOE's 13 s, 4 times Q14204's cold 93 s and 3 times `titin-10000`'s 231 s, and that they aren't the server's; approved by the engine developer, 2026-11-18, on #83. Verify with `npx markdownlint-cli2`
+- [ ] 4.5 Reap killed tools (decision 9): `init: true` on the `api` service in `compose.yaml`, and `--init` where `docs/deployment/runbook-server.md` starts the API container. Verify `docker compose config` shows it
+- [ ] 4.6 `api/CLAUDE.md`: "Adding a Service" says hmmscore has been through all four steps, that the `501` mechanism is gone until a service needs it again, and how the settings reach the worker (`JobOptions`). `frontend/CLAUDE.md` if a convention changed. Final check, from the root: `npx markdownlint-cli2`, `npx openspec validate --all` and `npx openspec validate wire-hmmscore --strict`
 
 ## Workflow follow-up
 
-- **Review:** the API developer and the frontend developer approve; the engine developer approves group 0, reviews the use of `panther_engine.hmmscore` and the server's data step, and approves or rejects row 14.
+- **Review:** the API developer and the frontend developer approve; the engine developer approves group 0 and reviews the use of `panther_engine.hmmscore` and the server's data step. Row 14 is approved (2026-11-18).
 - **On the server:** the engine developer fetches the full library and sets the hmmscore settings before or with the deploy (#68).
 - **After the implementation merges,** archive with `/opsx:archive`, after `port-hmmscore`'s archive, which puts `hmmscore-engine` in `openspec/specs/`.
 
@@ -55,12 +56,11 @@ Start once #82 (`add-hmmscore-form`'s archive) has merged and row 14 is approved
 
 ### Next action
 
-Answer the review of #83 point by point. Once #82 has merged, row 14 is approved and the proposal is approved, merge `main` and start at group 0.
+The engine developer approved #83 on 2026-11-18, with row 14, and with task 0.2 narrowed to the search tools; the push with that change dismissed the approval, so it's asked for again. Once #82 has merged and #83 is approved, merge `main` and start at group 0.
 
 ### Blockers
 
 - **#82 (`add-hmmscore-form`'s archive) is still open.** The `scoring-ui` requirements this change modifies and removes are in `openspec/specs/` only once it merges; until then, archiving this change would fail.
-- **Row 14, hmmscore's time limit by length, needs the engine developer's approval** before the code ships (proposal, Parity).
 - **Group 0's engine tasks** come before groups 1 and 2, which import the timeout error and `parity`'s `__all__`, and rely on `run_tool`'s bound on orphans.
 - **`port-hmmscore` isn't archived.** This change's `hmmscore-engine` delta modifies a requirement that reaches `openspec/specs/` only with that archive.
 - #81 (`port-hmmscore`) merged on 2026-11-17 (`c74a30b`): no longer a blocker.
@@ -76,7 +76,8 @@ None yet.
 - **The review of #83 (2026-11-18),** the engine developer's, and what changed:
   - a time limit isn't always the input's fault: a short query reaches its limit on a busy server, so the engine raises its own timeout error, and the API fails the job with a `503` and its own message (decision 3);
   - a dead worker's `hmmscan` ran on, unlimited, beside the next job: `run_tool` now bounds it (decision 9, task 0.2);
-  - the length-scaled time limit is a divergence, row 14, proposed;
+  - the length-scaled time limit is a divergence, row 14, approved by the engine developer on 2026-11-18;
+  - only the search tools die with their worker, through `PR_SET_PDEATHSIG`, since `preexec_fn` isn't safe in the API's threaded process (decision 9);
   - the time limit divides by the fixed 10,000, so lowering the residue limit doesn't lengthen it;
   - `UNAVAILABLE` and the frontend's `unavailable` both go, one rule for both sides;
   - the API's real-data tests use the engine's `parity` readers and skip with another HMMER on `PATH`;

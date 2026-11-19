@@ -84,7 +84,7 @@ A worker is a `spawn` process: it imports `work.py` afresh, and gets everything 
 - **It divides by 10,000, the most the API ever takes,** `settings.HMMSCORE_MAX_RESIDUES`, the residue setting's upper bound, not the setting itself. A search's time depends on its length, not on the server's residue limit: if the deploy lowers `PANTHER_API_HMMSCORE_MAX_RESIDUES` to 5,000 for memory, APOE keeps 139 s and a 5,000-residue query 420 s, rather than 158 s and the full 720 s.
 - **The floor** covers what every search costs whatever its length: `hmmscan` reads all of `binHmm.h3f`, 4.9 GB, which is slower when the server can't keep it cached. Settings validation requires the floor to be at least 1 and at most the ceiling; equal values give every job the same limit.
 - **720 s stands as the ceiling.** `titin-10000`'s 231 s is under the 240 s estimate the default was scaled from. A slower server may need other values; those are the server's (#68), set once the deploy has measured a short and a long query there.
-- **It's divergence row 14, proposed.** A job past its limit fails where the reference would have answered. On Endeavour's timings at `--cpu 0`, the limits are about 10 times APOE's, 4 times Q14204's cold run and 3 times `titin-10000`'s. The engine developer approves the row before the code ships.
+- **It's divergence row 14, approved by the engine developer on 2026-11-18 (#83).** A job past its limit fails where the reference would have answered. On Endeavour's timings at `--cpu 0`, the limits are about 10 times APOE's, 4 times Q14204's cold run and 3 times `titin-10000`'s.
 
 **Past the limit:**
 
@@ -133,18 +133,23 @@ A worker is a `spawn` process: it imports `work.py` afresh, and gets everything 
 - **compose:** the `api` service already mounts `.data/` at `/data`; its comment names the hmmscore sample, fetched with `panther-engine hmmscore sample fetch --data-dir ../.data`, beside the cSNP and refmap data. Without it, every `hmmscore` job fails with the generic error.
 - **`docs/testing/api.md`:** the hmmscore section shows a real job with the example on the data sample. It shows no time limit example: on the sample a search finishes within a second, the setting's least, so a job would succeed. It says the tests cover the time limit. The settings table drops "takes effect when hmmscore's scoring is wired in"; the `501` goes; the links to `add-hmmscore-job` point to its archive.
 - **`docs/deployment/runbook-server.md`:** the full library under `hmmscore/19/`, 67 GB, downloaded on the host and passed to `panther-engine hmmscore data fetch --tarball`, as the refmap data is, since the container doesn't trust the server's proxy's CA; and the hmmscore settings, whose values the engine developer sets from measuring there (#68). It names no memory figure for the server.
-- **`docs/parity/divergences.md`:** row 14, proposed, with its approver blank (decision 3).
+- **`docs/parity/divergences.md`:** row 14, with its approver and date (decision 3).
+- **Zombies:** `init: true` on compose's `api` service, and `--init` in the runbook's `docker run` for the API (decision 9).
 
-### 9. A tool doesn't outlive its worker
+### 9. A search tool doesn't outlive its worker
 
 `run_tool` starts each tool with `subprocess.run`, in the worker's session. When the worker dies, from the out-of-memory killer's `SIGKILL` or the signal a broken pool sends its other workers, nothing reaches the tool. It's orphaned: it runs to the end with no time limit, up to 6 GiB for `titin-10000`; its temporary folder is never removed; and since `JobRunner._run` releases the hmmscore cap when the pool breaks, the replacement pool starts the next hmmscore job beside it, two large searches under the memory pressure that broke the pool.
 
-So `run_tool` makes sure a tool dies with the process that started it (task 0.2). The mechanism is the engine developer's choice:
+So the search tools die with the process that started them (task 0.2), as the engine developer decided on #83:
 
-- **`PR_SET_PDEATHSIG`:** on Linux, the child asks the kernel for `SIGKILL` when its parent dies, through `prctl` in a `preexec_fn`, and checks its parent is still there afterwards, in case it died first. It needs nothing from the API. A worker runs its tasks on its main thread, the one the signal follows.
-- **A session per tool:** `start_new_session=True`, and the runner kills the dead worker's tools' sessions when it replaces the pool. It also covers a worker that outlives a broken pool, but the API needs a way to find those sessions, from the engine.
+- **`PR_SET_PDEATHSIG` with `SIGKILL`,** set in the child through `preexec_fn`, which then checks that its parent is still there, in case it died first. The kernel kills the tool however the worker dies, and the API needs nothing.
+- **Only the search tools,** through a keyword on `run_tool` that `core/hmmer.py` (`hmmscan`, `hmmsearch`) and `csnp/blast.py` (`blastp`) pass. `preexec_fn` isn't safe in a process with threads, and the API process calls `run_tool` from a thread-pool thread for the versions report (`main.py` 89, `core/tools.py` 61). A worker runs its jobs on its main thread, with no other threads, which also matters because the signal follows the thread that started the tool.
+- **`blastp` too,** so a csnp job's search gets the same bound. Its results don't change.
+- **Elsewhere than Linux,** nothing changes.
 
-Either way, a test starts a long-running tool from a child process, kills the child, and checks that the tool is gone. Elsewhere than Linux, where only developers run the API, the first does nothing.
+Rejected: **a session per tool,** killed by the runner when it replaces the pool. A worker the kernel kills can't tell the runner which sessions it started, so the runner would need the pool's private `_processes`, or more communication with the workers.
+
+**Zombies:** the `api` container has no init process, so `fastapi run` is PID 1, and a killed tool stays a zombie until the container restarts. It's harmless, but `init: true` on compose's `api` service, and `--init` where the server starts the API container, reap them (task 4.5).
 
 ## Risks / Trade-offs
 

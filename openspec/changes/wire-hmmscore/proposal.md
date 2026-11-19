@@ -6,7 +6,6 @@
 
 - **`port-hmmscore` (#81), merged on 2026-11-17 (`c74a30b`):** the engine's `score()`, `check_data()`, `DATA_VERSION` and `HmmscoreError`, the goldens, and divergence row 13. Its archive puts `hmmscore-engine` in `openspec/specs/`, which this change's `hmmscore-engine` delta modifies.
 - **`add-hmmscore-form`'s archive (#82), still open:** it moves the form's requirements into `openspec/specs/scoring-ui/spec.md`, which this change's `scoring-ui` delta modifies and removes from.
-- **Divergence row 14 approved** (Parity, below), before the code ships.
 
 ## Why
 
@@ -20,12 +19,12 @@ The engine scores a protein against PANTHER 19's HMM library since `port-hmmscor
   - past the time limit, the engine raises a timeout error of its own (group 0), no longer its input error: a short query reaches its limit only on a busy server, so the time limit isn't the input's fault. The job fails with status `503` and the API's `detail`, "The search took longer than this service allows. The server may be busy: try again later, or with a shorter sequence.";
   - a tool that fails (`HmmscoreError`), a broken `names.tab` (`LibraryFormatError`), missing data (`MissingDataError`) or an unset `PANTHER_DATA_DIR` (`DataFolderError`) fails it with the generic `500`;
   - the engine's `ValueError` can't happen for a request the API accepted, and is the generic `500` too.
-- **A tool doesn't outlive its worker.** When a worker dies, its `hmmscan` is killed too (group 0), so it can't run on, unlimited, beside the next job.
+- **A search tool doesn't outlive its worker.** When a worker dies, its `hmmscan`, `hmmsearch` or `blastp` is killed too, on Linux (group 0), so it can't run on, unlimited, beside the next job.
 - **The startup check covers hmmscore's data,** logging an error, without stopping, when the folder lacks a file every search needs, as for cSNP and refmap.
 - **Versions:** `GET /api/v1/versions` lists hmmscore's data, PANTHER 19, beside cSNP's and refmap's, and an `hmmscore` job names only its own. HMMER's version is already in the report, as `hmmscan` and `hmmsearch`.
 - **The data:** `<PANTHER_DATA_DIR>/hmmscore/19/`. Developers and CI use the data sample, `hmmscore-sample-1` (33 MB); the hosting server needs the full library (67 GB), fetched with `panther-engine hmmscore data fetch`.
 - **The form:** HMM scoring is no longer "coming soon", so its tab, its home page card and its page lose the mark, and the page loses its notice. The `501` path goes from the form: a `501` from the API gets "couldn't be started", as any other error. A job past its time limit shows its `detail` on the job page, as any failed job does.
-- **Docs:** `docs/testing/api.md` and `docs/testing/frontend.md` move from the `501` to real jobs on the data sample; `docs/manual-qa/04-hmmscore-form.md` scores the example against the real API; `docs/deployment/runbook-server.md` gains the library's fetch; `docs/parity/divergences.md` gains the proposed row 14.
+- **Docs:** `docs/testing/api.md` and `docs/testing/frontend.md` move from the `501` to real jobs on the data sample; `docs/manual-qa/04-hmmscore-form.md` scores the example against the real API; `docs/deployment/runbook-server.md` gains the library's fetch; `docs/parity/divergences.md` gains row 14, approved.
 
 ## Capabilities
 
@@ -53,7 +52,7 @@ It ships three approved rows in `docs/parity/divergences.md`:
 
 It needs one new row, which must be approved before the code ships:
 
-- **Row 14, hmmscore's time limit by length (proposed).** A job past its limit fails, where the reference would have answered, however long it took. The limit runs from 120 s for the shortest sequence to 720 s at 10,000 residues. On the survey's and #68's timings, at `--cpu 0` on Endeavour, it's about 10 times APOE's 13 s (139 s), 4 times Q14204's cold 93 s (399 s at 4,646 residues), and 3 times `titin-10000`'s 231 s (720 s). Those times are Endeavour's, not the server's. The approver is the engine developer; the row is added with its approver blank, until approved.
+- **Row 14, hmmscore's time limit by length, approved by the engine developer on 2026-11-18 (#83).** A job past its limit fails, where the reference would have answered, however long it took. The limit runs from 120 s for the shortest sequence to 720 s at 10,000 residues. On the survey's and #68's timings, at `--cpu 0` on Endeavour, it's about 10 times APOE's 13 s (139 s), 4 times Q14204's cold 93 s (399 s at 4,646 residues), and 3 times `titin-10000`'s 231 s (720 s). Those times are Endeavour's, not the server's.
 
 ## Impact
 
@@ -62,9 +61,10 @@ It needs one new row, which must be approved before the code ships:
 - **Frontend:** `src/app/services.ts`, `src/features/hmmscore/`, `src/components/` (the `unavailable` submit problem), `src/mocks/`, `src/app/api/schema.d.ts` (regenerated: no `501`), unit tests, and the e2e specs.
 - **CI:** the `api-image` job fetches the hmmscore data sample from the cache the engine jobs fill, runs the API's hmmscore data tests, and scores the example through the running API.
 - **compose:** `.data/` is already mounted; its comments name the hmmscore sample beside the cSNP and refmap data.
-- **Docs:** `docs/parity/divergences.md` gains row 14, proposed.
+- **Docs:** `docs/parity/divergences.md` gains row 14, approved.
 - **The hosting server** needs the full library under its `PANTHER_DATA_DIR`, 67 GB, and its own values for the hmmscore settings. Until the library is there, `hmmscore` jobs fail with the generic `500` and the API logs why at startup.
-- **Unchanged:** the `csnp`, `refmap` and `tools` jobs, the hmmscore input rules, the residue limit, the running cap, and the scoring.
+- **`csnp` jobs:** their `blastp` dies with its worker too (decision 9), with the same results.
+- **Unchanged:** the `refmap` and `tools` jobs, the `csnp` jobs' results, the hmmscore input rules, the residue limit, the running cap, and the scoring.
 
 ## Open Questions
 

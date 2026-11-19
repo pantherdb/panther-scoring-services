@@ -1,0 +1,56 @@
+# hmmsearch :: search profile(s) against a sequence database
+# HMMER 3.1b2 (February 2015); http://hmmer.org/
+# Copyright (C) 2015 Howard Hughes Medical Institute.
+# Freely distributed under the GNU General Public License (GPLv3).
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# query HMM file:                  /data/hmmscore/19/books/PTHR34093/hmmer.hmm
+# target sequence database:        query.fasta
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Query:       PTHR34093.orig.30.pir  [M=511]
+Scores for complete sequences (score includes all domains):
+   --- full sequence ---   --- best 1 domain ---    -#dom-
+    E-value  score  bias    E-value  score  bias    exp  N  Sequence Description
+    ------- ------ -----    ------- ------ -----   ---- --  -------- -----------
+    1.6e-75  240.7  11.9    1.8e-75  240.5  11.9    1.0  1  sequence  
+
+
+Domain annotation for each sequence (and alignments):
+>> sequence  
+   #    score  bias  c-Evalue  i-Evalue hmmfrom  hmm to    alifrom  ali to    envfrom  env to     acc
+ ---   ------ ----- --------- --------- ------- -------    ------- -------    ------- -------    ----
+   1 !  240.5  11.9   1.8e-75   1.8e-75     176     384 ..      31     262 ..      16     269 .] 0.96
+
+  Alignments for each domain:
+  == domain 1  score: 240.5 bits;  conditional E-value: 1.8e-75
+  PTHR34093.orig.30.pir 176 wkwrfedsfgv.dvytvlmvllcllcavvlvateLwt............................vvswytqllrvllisfliSlgWn 234
+                              w+++++f + ++y++++++++l+c++v+++++Lw+                             ++w+++++++++++++iS++W+
+               sequence  31 XXWSMRSPFPTxNIYSKAFLSASLMCYIVAFSMGLWQxxxxxxxxxxxxxxxxxxxxxxxxxxxxLATWNQMFTLFIILCLFISVPWE 118
+                            45************************************************************************************** PP
+
+  PTHR34093.orig.30.pir 235 WlylYkeafakkqaevakmepleakCspekmswvgslkewlrsswtlqddpCekYyeallVdPlweVpptkAlavTvtnffteplkhi 322
+                            W++lY++++akk++ ++++++++  C+++++s++++++ +l++++++++++Ce+Yy+a++VdP+weV+p++A+ ++vt+++++pl+++
+               sequence 119 WVRLYQMEVAKKTSVLSEGYRRQ--CDGQDLSLWETIRVLLSWNFSWASNSCEDYYKAIIVDPFWEVTPLMAIGSAVTRTTIHPLELL 204
+                            ***********************..*************************************************************** PP
+
+  PTHR34093.orig.30.pir 323 GkgigeflrallkeiPvllqlpvlivlalaillflygagkysvnllrnlggperepptalsr 384
+                            ++++g++lr+++keiP+++qlpv++++ l++l++l++++  ++++++    ++++++t+++r
+               sequence 205 SHVLGRSLRNIMKEIPSQWQLPVFLLFPLTLLTLLFTIYLGRNRTIQ----VTCQASTMKTR 262
+                            ********************************************999....89999999988 PP
+
+
+
+Internal pipeline statistics summary:
+-------------------------------------
+Query model(s):                              1  (511 nodes)
+Target sequences:                            1  (269 residues searched)
+Passed MSV filter:                         1  (1); expected 0.0 (0.02)
+Passed bias filter:                        1  (1); expected 0.0 (0.02)
+Passed Vit filter:                         1  (1); expected 0.0 (0.001)
+Passed Fwd filter:                         1  (1); expected 0.0 (1e-05)
+Initial search space (Z):                  1  [actual number of targets]
+Domain search space  (domZ):               1  [number of targets reported over threshold]
+# CPU time: 0.03u 0.01s 00:00:00.04 Elapsed: 00:00:00.04
+# Mc/sec: 3.44
+//
+[ok]

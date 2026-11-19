@@ -1,6 +1,6 @@
 # hmmscore Library Survey
 
-The survey of PANTHER 19's HMM library, the data the `hmmscore` service scores with: one pass over its tarball with the engine's strict readers, beside `pantherScore.pl`'s own readings. It tells the port what the library holds and which of the Perl's readings it must reproduce. It also gives what was measured on the full library: fetching it, its models as text, the press check, `hmmscan`'s time and memory, and HMMER 3.1b2 against 3.4 (`add-hmmscore-survey-and-sample`, task groups 6, 7 and 10). And it says how the [hmmscore data sample](../testing/engine.md#the-hmmscore-data-sample) was chosen.
+The survey of PANTHER 19's HMM library, the data the `hmmscore` service scores with: one pass over its tarball with the engine's strict readers, beside `pantherScore.pl`'s own readings. It tells the port what the library holds and which of the Perl's readings it must reproduce. It also gives what was measured on the full library: fetching it, its models as text, the press check, `hmmscan`'s time and memory, and HMMER 3.1b2 against 3.4 (`add-hmmscore-survey-and-sample`, task groups 6, 7 and 10), with the port's time and memory at the residue limit (`port-hmmscore`, task 5.2). And it says how the [hmmscore data sample](../testing/engine.md#the-hmmscore-data-sample) was chosen.
 
 - **Run:** 2026-11-09, with the engine code of `add-hmmscore-survey-and-sample` before its first commit, on the branch `feat/add-hmmscore-survey-and-sample-apply`. The survey's code was committed as `72012f7`. Run again on 2026-11-10, with the engine at `b1a6db6`, it gave the same report, byte for byte, as text and as JSON.
 - **Run time:** 240 s and 431 MB of memory, natively on an Apple Silicon Mac, with a `data manifest` pass over the same tarball at the same time. The tarball is read as a stream and never unpacked.
@@ -205,11 +205,24 @@ Copies of the same query, started together, warm, at `--cpu 0`:
 
 Each copy's wall time grew far more than its CPU time: 8 times against 2 for the example. So the copies spent the time waiting on the file system, which other users share, and three at once, run after two, were faster than two. These numbers describe BeeGFS at that time, not a server. How many hmmscore jobs a server can run at once has to be measured on the server, with the pressed files on its own disk.
 
+### The Port at the Residue Limit
+
+`port-hmmscore`'s staging run, task 5.2, on 2026-11-17 ([inputs.md](inputs.md#the-hmmscore-staging-run)): the same node, `b11-19`, the whole of it, in the `hmmscore-reference` image through Apptainer, with the engine at `3b92fe6`. Each run was a fresh `panther-engine hmmscore score --usage --cpu 0`: `hmmscan`, then `hmmsearch` of the best hit's model file. The wall time is the whole command's. The peak memory is the larger of the two tools' peaks, from the kernel's accounting of child processes. Both runs of each query came after the job's parity runs, which had read the pressed files.
+
+| Query | Residues | Best hit | Wall time, run 1 | Wall time, run 2 | Peak memory |
+| ----- | -------- | -------- | ---------------- | ---------------- | ----------- |
+| The example | 317 | `PTHR18976:SF2` | 13.0 s | 12.9 s | 63 MiB |
+| `titin-10000`: titin's first 10,000 residues, UniProt Q8WZ42 | 10,000 | `PTHR11100:SF29` | 229.0 s | 231.3 s | 6,136 MiB |
+
+- **The example takes what `hmmscan` alone took** at `--cpu 0` ([Alone](#alone)). `hmmsearch` of one model file adds little.
+- **`titin-10000` takes about 4 minutes,** within the API's default time limit of 720 s, which `add-hmmscore-job` set at three times an estimate of 240 s. The job's `parity check` of the same case took 232.7 s. Slower cores, or a server's own disk read cold, would take longer, so the server's time comes with the deploy (#68).
+- **`titin-10000` needs 6.0 GiB.** Titin hits titin's own very long models, SF29's of 35,040 positions among them, so other sequences of that length may need less, as with `titin-50000`.
+
 ### What a Server Needs
 
 - **Memory:**
   - `binHmm.h3f`'s 5.3 GB kept in the page cache, since every query reads all of it. A query reads from `binHmm.h3p`, 15.8 GB, only the models that pass the first filters;
-  - plus each running query's peak: about 0.5 GiB at 5,000 residues and `--cpu 0`, and 21 GiB at 50,000, for titin. Each thread adds to it.
+  - plus each running query's peak: about 0.5 GiB at 5,000 residues and `--cpu 0`, 6.0 GiB at 10,000 for titin, through the port ([The Port at the Residue Limit](#the-port-at-the-residue-limit)), and 21 GiB at 50,000, for titin. Each thread adds to it.
 - **Disk:**
   - 67.1 GB for the kept files;
   - 18.5 GB more for the tarball, if fetching from a local copy;
@@ -217,6 +230,7 @@ Each copy's wall time grew far more than its CPU time: 8 times against 2 for the
 
   At most about 153 GB.
 - **Time at 50,000 residues:** about 20 minutes at `--cpu 0`, 10 at `--cpu 2` and 6 at `--cpu 4`, on these EPYC cores. If the API accepts the website's 50,000 residues, that sets its time limit for a job.
+- **Time at 10,000 residues,** the API's limit: about 4 minutes at `--cpu 0` for titin, through the port.
 
 ## The Sample
 
@@ -290,7 +304,7 @@ Neither version reproduces the shipped `.h3p`. Bioconda's 3.1b2 presses the firs
 | | The hosting server | What hmmscore needs ([What a Server Needs](#what-a-server-needs)) |
 | --- | ------------------ | ----------------------------------------------------------------- |
 | CPUs | 2 | 1 for each `hmmscan` at `--cpu 0`, the default |
-| Memory | 7 GiB in all, 5 GiB of it available, and 7 GiB of swap | `binHmm.h3f`'s 4.9 GiB in the page cache, plus each running query's peak: 0.5 GiB for Q14204's 4,646 residues, 21 GiB for `titin-50000` |
+| Memory | 7 GiB in all, 5 GiB of it available, and 7 GiB of swap | `binHmm.h3f`'s 4.9 GiB in the page cache, plus each running query's peak: 0.5 GiB for Q14204's 4,646 residues, 6.0 GiB for `titin-10000`, 21 GiB for `titin-50000` |
 | Free disk where the data folder is | 189 GiB (203 GB), on `/home` | At most 153 GB: 67.1 GB kept, 18.5 GB for a local copy of the tarball, and 67.1 GB more while a new copy replaces an older one |
 
 - **The disk is enough,** with about 50 GB to spare at the peak, if nothing else on `/home` grows.
@@ -300,3 +314,5 @@ Neither version reproduces the shipped `.h3p`. Bioconda's 3.1b2 presses the firs
 - **The two CPUs** run at most two `hmmscan`s at once at `--cpu 0`, and the other services' jobs share them.
 
 So before hmmscore runs there, it needs more memory, a residue limit below the website's 50,000, or both. That's for `port-hmmscore` and the deploy to decide, with the API developer.
+
+The limit is now 10,000 residues (divergence 11). `titin-10000` needs 6.0 GiB at `--cpu 0` through the port (`port-hmmscore`, 2026-11-17), more than the 5 GiB available even without `binHmm.h3f` cached. So the server is still short of memory for the longest queries the API accepts, and how it does with swap wasn't measured. The deploy measures it there (#68).

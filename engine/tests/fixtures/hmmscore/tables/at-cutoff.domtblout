@@ -1,0 +1,15 @@
+#                                                                             --- full sequence --- -------------- this domain -------------   hmm coord   ali coord   env coord
+# target name         accession   tlen query name           accession   qlen   E-value  score  bias   #  of  c-Evalue  i-Evalue  score  bias  from    to  from    to  from    to  acc description of target
+# ------------------- ---------- ----- -------------------- ---------- ----- --------- ------ ----- --- --- --------- --------- ------ ----- ----- ----- ----- ----- ----- ----- ---- ---------------------
+PTHR10000.SF1.pir     -            300 sequence             -            317     0.001   30.0   1.0   1   1   1.0e-10   1.0e-10   30.0   1.0     1   290     1   300     1   310 0.95 -
+PTHR20000.SF2.pir     -            300 sequence             -            317     1e-05   25.0   1.0   1   1   1.0e-10   1.0e-10   25.0   1.0     1   290     1   300     1   310 0.95 -
+#
+# Program:         hmmscan
+# Version:         3.4 (Aug 2023)
+# Pipeline mode:   SCAN
+# Query file:      query.fasta
+# Target file:     /data/hmmscore/19/globals/binHmm
+# Option settings: hmmscan --domtblout apoe.domtblout --cpu 0 /data/hmmscore/19/globals/binHmm query.fasta 
+# Current dir:     /w
+# Date:            Tue Nov 17 01:58:52 2026
+# [ok]

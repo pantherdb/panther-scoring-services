@@ -1,0 +1,596 @@
+# hmmsearch :: search profile(s) against a sequence database
+# HMMER 3.1b2 (February 2015); http://hmmer.org/
+# Copyright (C) 2015 Howard Hughes Medical Institute.
+# Freely distributed under the GNU General Public License (GPLv3).
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# query HMM file:                  /data/hmmscore/19/books/PTHR11100/SF29/hmmer.hmm
+# target sequence database:        query.fasta
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Query:       PTHR11100.SF29.pir  [M=35040]
+Scores for complete sequences (score includes all domains):
+   --- full sequence ---   --- best 1 domain ---    -#dom-
+    E-value  score  bias    E-value  score  bias    exp  N  Sequence Description
+    ------- ------ -----    ------- ------ -----   ---- --  -------- -----------
+          0 19443.0 303.8          0 12192.8 134.6    7.0  6  sequence  
+
+
+Domain annotation for each sequence (and alignments):
+>> sequence  
+   #    score  bias  c-Evalue  i-Evalue hmmfrom  hmm to    alifrom  ali to    envfrom  env to     acc
+ ---   ------ ----- --------- --------- ------- -------    ------- -------    ------- -------    ----
+   1 !  963.4  61.6  2.7e-294  2.7e-294       1     571 [.       1     538 [.       1     556 [. 0.97
+   2 ! 6212.5  86.3         0         0     490    3355 ..     552    3451 ..     538    3493 .. 0.98
+   3 !   40.5   0.0   1.9e-16   1.9e-16   32320   32415 ..    3500    3595 ..    3490    3606 .. 0.92
+   4 !   30.1   0.0   2.7e-13   2.7e-13    3139    3232 ..    3617    3711 ..    3606    3722 .. 0.75
+   5 !   11.5   0.8   1.1e-07   1.1e-07   34517   34593 ..    4303    4375 ..    4232    4379 .. 0.50
+   6 ! 12192.8 134.6         0         0    3846    9429 ..    4377    9992 ..    4372    9998 .. 1.00
+
+  Alignments for each domain:
+  == domain 1  score: 963.4 bits;  conditional E-value: 2.7e-294
+  PTHR11100.SF29.pir   1 matkaptftqplqsvvvlegsaatfeahvsglpvpevswyrdgqvlsaatlpgvqisfsdgraklvipavtkansgryslratngsgqats 91 
+                         m+t+aptftqplqsvvvlegs+atfeah+sg+pvpevsw+rdgqv+s++tlpgvqisfsdgrakl+ipavtkansgrysl+atngsgqats
+            sequence   1 MTTQAPTFTQPLQSVVVLEGSTATFEAHISGFPVPEVSWFRDGQVISTSTLPGVQISFSDGRAKLTIPAVTKANSGRYSLKATNGSGQATS 91 
+                         9****************************************************************************************** PP
+
+  PTHR11100.SF29.pir  92 taellvtaetappnfvqrlqsmtvrqgsqvrldvrvtgiptpvvkfyrdgveiqssldfqilqegelyslliaeaypedsgtysvnatnsv 182
+                         taellv aetappnfvqrlqsmtvrqgsqvrl+vrvtgiptpvvkfyrdg+eiqssldfqi+qeg+lyslliaeaypedsgtysvnatnsv
+            sequence  92 TAELLVKAETAPPNFVQRLQSMTVRQGSQVRLQVRVTGIPTPVVKFYRDGAEIQSSLDFQISQEGDLYSLLIAEAYPEDSGTYSVNATNSV 182
+                         ******************************************************************************************* PP
+
+  PTHR11100.SF29.pir 183 gratstaellvqgxeevvpakktktivstaqisetrqariekkieahfdarslasvemvvegxxxqqlphkapprippkpksksptppvia 273
+                         gratstaellvqg ee vpakktktivstaqise+rq+riekkieahfdars+a+vemv++g++ qqlphk+pprippkpks+sptpp+ia
+            sequence 183 GRATSTAELLVQG-EEEVPAKKTKTIVSTAQISESRQTRIEKKIEAHFDARSIATVEMVIDGAAGQQLPHKTPPRIPPKPKSRSPTPPSIA 272
+                         *************.999************************************************************************** PP
+
+  PTHR11100.SF29.pir 274 akaqlarqqspspvrqspspvrhvraptpspvrsvspagristspirsvkspllvrkaqvvt..qgaevlppwkqegyvas.aeaemketr 361
+                         akaqlarqqspsp+r+spspvrhvraptpspvrsvspa ristspirsv+spll+rk+q++t   g+ev+ppwkqegyvas +eaem+et+
+            sequence 273 AKAQLARQQSPSPIRHSPSPVRHVRAPTPSPVRSVSPAARISTSPIRSVRSPLLMRKTQASTvaTGPEVPPPWKQEGYVASsSEAEMRETT 363
+                         ***********************************************************999989**************96379******* PP
+
+  PTHR11100.SF29.pir 362 vxtsateirteerwegiyglqeevtisga.............aagevaagakevkreseksaavatvvaavdqarvrepvisvveqaakrt 439
+                         + t++t+irteerweg+yg+qe+vtisga             aa +va+gakevk++++ksaavatvvaavd+arvrepvis+veq+a+rt
+            sequence 364 L-TTSTQIRTEERWEGRYGVQEQVTISGAagaaasvsasasyAAEAVATGAKEVKQDADKSAAVATVVAAVDMARVREPVISAVEQTAQRT 453
+                         9.889************************************************************************************** PP
+
+  PTHR11100.SF29.pir 440 attavhvqpvqeqirkeaxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxektavtkvvvaadkakeqexlkrareeisakqe 530
+                         +ttavh+qp+qeq+rkea                                        ektavtkvvvaadkakeqe+ +r++e+i++kqe
+            sequence 454 TTTAVHIQPAQEQVRKEA----------------------------------------EKTAVTKVVVAADKAKEQELKSRTKEVITTKQE 504
+                         ******************........................................9******************************** PP
+
+  PTHR11100.SF29.pir 531 qvhvsheqirkedvkasvpkvvisadkxxxxxxxakekexx 571
+                         q+hv+heqirke++k++vpkvvisa+k++        +e +
+            sequence 505 QMHVTHEQIRKETEKTFVPKVVISAAKAKE-------QETR 538
+                         ***************************443.......3322 PP
+
+  == domain 2  score: 6212.5 bits;  conditional E-value: 0
+  PTHR11100.SF29.pir  490 xxxxxxxxektavtkvvvaadkakeqexlkrareeisakqeqvhvsheqirkedvkasvpkvvisadkxxxxxxxakekexxxxxxxxx 578 
+                            +++   e ta + vvva+ k+ + e +  a+ee +++q+q+h+s+e+i ke+ k++vpkv++++ k +   + ++ +e +  ++   
+            sequence  552 QEAIRQETEITAASMVVVATAKSTKLETVPGAQEETTTQQDQMHLSYEKIMKETRKTVVPKVIVATPKVKEQDLVSRGREGITTKREQV 640 
+                          4556678899*********************************************************************9887766554 PP
+
+  PTHR11100.SF29.pir  579 xxxxxxxxx......xxxxxxxxxxxxxxxxxsrireeitkkqeqkqlaqetvevgkkaeavatvvaavdqarvrepreteqleesyvk 661 
+                           +   + ++      ++ ++ + ++++    + r+re ++++qeq q+++ +v+vgkkaeavatvvaavdqarvrepre+ +leesy++
+            sequence  641 QITQEKMRKeaektaLSTIAVATAKAKEQETILRTRETMATRQEQIQVTHGKVDVGKKAEAVATVVAAVDQARVREPREPGHLEESYAQ 729 
+                          444333222000000222333344455667788******************************************************** PP
+
+  PTHR11100.SF29.pir  662 kktleygykeh....kvkehear..aehhvvtkevk..vvqvpsekhvtaaekkevqvsseikketelkieklvhvekxrprtasphft 742 
+                          ++tleygyke     kv+e ++r  +e+hvv+k+vk  v+q pse+h+ ++++k++++ss+ikk+t+l++e+lvhv+k rprtasphft
+            sequence  730 QTTLEYGYKERisaaKVAEPPQRpaSEPHVVPKAVKprVIQAPSETHIKTTDQKGMHISSQIKKTTDLTTERLVHVDK-RPRTASPHFT 817 
+                          **********999999*******99************9****************************************.********** PP
+
+  PTHR11100.SF29.pir  743 vskiavpktdhtyevsiagsaiatlekelsatsaaqkitksvkaptlkpaevkvkaesap.pqfpfaeiaetykaqadvevkkevdvsi 830 
+                          vski+vpkt+h+ye+siagsaiatl+kelsats+aqkitksvkapt+kp+e++v+ae++p pqfpfa+ ++tyk++a+vevkkev+vsi
+            sequence  818 VSKISVPKTEHGYEASIAGSAIATLQKELSATSSAQKITKSVKAPTVKPSETRVRAEPTPlPQFPFADTPDTYKSEAGVEVKKEVGVSI 906 
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir  831 kgeavreehllllkerevkvteaarvpvpveipvtpptlvsglknktviegesvtlechisgypspkvtwyredykiessidfqitfka 919 
+                          +g +vree +++l++re+kvte+arvp+pveipvtpptlvsglkn+tviegesvtlechisgypsp+vtwyredy+iessidfqitf++
+            sequence  907 TGTTVREERFEVLHGREAKVTETARVPAPVEIPVTPPTLVSGLKNVTVIEGESVTLECHISGYPSPTVTWYREDYQIESSIDFQITFQS 995 
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir  920 glarlvireafaedsgrftcsavnkagsvstscylavkvseetekeet.vaekvvteekryveskdvvmedvsxiaeeva..gepvapf 1005
+                          g+arl+ireafaedsgrftcsavn+ag+vstscylav+vsee+eke+t v+ek +teekr+ves+dvvm+d+s ++ee a  gep+ap+
+            sequence  996 GIARLMIREAFAEDSGRFTCSAVNEAGTVSTSCYLAVQVSEEFEKETTaVTEKFTTEEKRFVESRDVVMTDTS-LTEEQAgpGEPAAPY 1083
+                          ************************************************9************************.788887799****** PP
+
+  PTHR11100.SF29.pir 1006 firkpvvqklveggsivfecqvggnpkphvlwkksgvpltsgyrykvsykketgeckleismtfaddageytivirnkfgeasasvsll 1094
+                          fi+kpvvqklveggs+vf cqvggnpkphv+wkksgvplt+gyrykvsy+k+tgeckl+ismtfaddageytiv+rnk+ge+sas+sll
+            sequence 1084 FITKPVVQKLVEGGSVVFGCQVGGNPKPHVYWKKSGVPLTTGYRYKVSYNKQTGECKLVISMTFADDAGEYTIVVRNKHGETSASASLL 1172
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 1095 eeaeyealvksqqemlyqtqvtayvqepkvaevapgilyseyekeyekeqalirkkmakdtvmvrtfvedeefhissfeerlikeielr 1183
+                          eea+ye l+ksqqemlyqtqvta+vqepkv+e apg++yseyekeyekeqalirkkmakdtv+vrt+ved+efhissfeerlikeie+r
+            sequence 1173 EEADYELLMKSQQEMLYQTQVTAFVQEPKVGETAPGFVYSEYEKEYEKEQALIRKKMAKDTVVVRTYVEDQEFHISSFEERLIKEIEYR 1261
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 1184 iikttleelleedgee.mavdiseseaieagfelrlknyrilegtgvtfhcktsgyplpkiawykdgkrikhgeryqmevlqdgraslr 1271
+                          iikttleelleedgee mavdisesea+e+gf+ r+knyrileg+gvtfhck+sgyplpkiawykdgkrikhgeryqm++lqdgraslr
+            sequence 1262 IIKTTLEELLEEDGEEkMAVDISESEAVESGFDSRIKNYRILEGMGVTFHCKMSGYPLPKIAWYKDGKRIKHGERYQMDFLQDGRASLR 1350
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 1272 lpvvlpedegiytvfasnikgnaicsaklyvepvaplaaptyiptpevvrrirsvsprsvsrspirispar................sp 1344
+                          +pvvlpedegiyt+fasnikgnaics+klyvep+apl+aptyipt e+v+rirs+sprsvsrspir+spar                sp
+            sequence 1351 IPVVLPEDEGIYTAFASNIKGNAICSGKLYVEPAAPLGAPTYIPTLEPVSRIRSLSPRSVSRSPIRMSPARmsparmsparmsparmSP 1439
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 1345 arrleetdesqlerlykpvfvlkpasvkclegqtarfdlkvvgrpmpetywfhdgqqvvndythkvvikedgtqsliivpaapedsgew 1433
+                          +rrleetdesqlerlykpvfvlkp s+kclegqtarfdlkvvgrpmpet+wfhdgqq+vndythkvvikedgtqsliivpa+p+dsgew
+            sequence 1440 GRRLEETDESQLERLYKPVFVLKPVSFKCLEGQTARFDLKVVGRPMPETFWFHDGQQIVNDYTHKVVIKEDGTQSLIIVPATPSDSGEW 1528
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 1434 avvaqnragkasvsvtlsveakedlvkpvfveklknvsvkegsrlemkvkatgnpnpdivwlknsdiivphkypkiriegtkgeaalki 1522
+                          +vvaqnrag++s+sv+l+vea+e++vkp+fveklknv++kegsrlemkv+atgnpnpdivwlknsdiivphkypkiriegtkgeaalki
+            sequence 1529 TVVAQNRAGRSSISVILTVEAVEHQVKPMFVEKLKNVNIKEGSRLEMKVRATGNPNPDIVWLKNSDIIVPHKYPKIRIEGTKGEAALKI 1617
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 1523 estvrqdaawytatainkagrdttrckvnvevefaepeperrliipkgtykakeiaapeleplhlrygqeqweegdlydkekqqkpffk 1611
+                          +stv+qd+awytatainkagrdttrckvnvevefaepeper+liip+gty+akeiaapeleplhlrygqeqweegdlydkekqqkpffk
+            sequence 1618 DSTVSQDSAWYTATAINKAGRDTTRCKVNVEVEFAEPEPERKLIIPRGTYRAKEIAAPELEPLHLRYGQEQWEEGDLYDKEKQQKPFFK 1706
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 1612 kkltslrlkrfgpahfecrltpigdptmvvewlhdgkpleaanrlrminefgycsldygvaysrdsgvitcratnkygtdhtsatlivk 1700
+                          kkltslrlkrfgpahfecrltpigdptmvvewlhdgkpleaanrlrminefgycsldygvaysrdsg+itcratnkygtdhtsatlivk
+            sequence 1707 KKLTSLRLKRFGPAHFECRLTPIGDPTMVVEWLHDGKPLEAANRLRMINEFGYCSLDYGVAYSRDSGIITCRATNKYGTDHTSATLIVK 1795
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 1701 dekslveesqlpegrkglqrieelermahegaltavavdqkekqkpelvlvpepvrvlegetarfrcrvtgyplpkvnwylnsqlirks 1789
+                          dekslveesqlpegrkglqrieelermahegalt+v++dqkekqkp++vl+pepvrvlegetarfrcrvtgyp+pkvnwyln+qlirks
+            sequence 1796 DEKSLVEESQLPEGRKGLQRIEELERMAHEGALTGVTTDQKEKQKPDIVLYPEPVRVLEGETARFRCRVTGYPQPKVNWYLNGQLIRKS 1884
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 1790 krfrlrydgihyldivdcksydtgevkvtaenpegviehkvkleiqqredfrsvlrrapepkhefvvtepgkllfevqkvdkpveat.t 1877
+                          krfr+rydgihyldivdcksydtgevkvtaenpegviehkvkleiqqredfrsvlrrapep++ef+v+epgkl+fevqkvd+pv++t t
+            sequence 1885 KRFRVRYDGIHYLDIVDCKSYDTGEVKVTAENPEGVIEHKVKLEIQQREDFRSVLRRAPEPRPEFHVHEPGKLQFEVQKVDRPVDTTeT 1973
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 1878 kevvklkraeritheklseeseelrskfkrrteegyyeaitavelksrkkdesyeellkktkeellhwtkelteeekkalaeegkitip 1966
+                          kevvklkraerithek+ eeseelrskfkrrteegyyeaitavelksrkkdesyeell+ktk+ellhwtkelteeekkalaeegkitip
+            sequence 1974 KEVVKLKRAERITHEKVPEESEELRSKFKRRTEEGYYEAITAVELKSRKKDESYEELLRKTKDELLHWTKELTEEEKKALAEEGKITIP 2062
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 1967 tfkpekvelspsmeapkiferiqsqtvaqgsdahfrvrvvgkpdpecewykngvkiersdriywywpednvcelvirdvtaedsasimv 2055
+                          tfkp+k+elspsmeapkiferiqsqtv+qgsdahfrvrvvgkpdpecewykngvkiersdriywywpednvcelvirdvtaedsasimv
+            sequence 2063 TFKPDKIELSPSMEAPKIFERIQSQTVGQGSDAHFRVRVVGKPDPECEWYKNGVKIERSDRIYWYWPEDNVCELVIRDVTAEDSASIMV 2151
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 2056 kavniagetsshafllvqakqlisfiqelqdvvakekdsmatfecetsepfvkvkwykdgveihkgekyrmhsdrkvhflsvlavemsd 2144
+                          ka+niagetsshafllvqakqli+f+qelqdvvakekd+matfecetsepfvkvkwykdg+e+h+g+kyrmhsdrkvhfls+l++++sd
+            sequence 2152 KAINIAGETSSHAFLLVQAKQLITFTQELQDVVAKEKDTMATFECETSEPFVKVKWYKDGMEVHEGDKYRMHSDRKVHFLSILTIDTSD 2240
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 2145 aedyscvlvedesvkttaklivegavvefvkeledvevpesfsgelecivspediegkwyhndvelksngkyvlasrrgrriltvkdvt 2233
+                          aedyscvlvede+vkttaklivegavvefvkel+d+evpes+sgelecivspe+iegkwyhndvelksngky+++srrgr++ltvkdvt
+            sequence 2241 AEDYSCVLVEDENVKTTAKLIVEGAVVEFVKELQDIEVPESYSGELECIVSPENIEGKWYHNDVELKSNGKYTITSRRGRQNLTVKDVT 2329
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 2234 kedqgeysfvvdgkkttcklkmkprpiailqglsdqkvcegdivqlevkvslenvegvwmkdgqevqssdrvfivldkqshmlliedat 2322
+                          kedqgeysfv+dgkkttcklkmkprpiailqglsdqkvcegdivqlevkvsle vegvwmkdgqevq sdrv+iv+dkqshmllied+t
+            sequence 2330 KEDQGEYSFVIDGKKTTCKLKMKPRPIAILQGLSDQKVCEGDIVQLEVKVSLESVEGVWMKDGQEVQPSDRVHIVIDKQSHMLLIEDMT 2418
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 2323 kedagtysfslpalelstsgrvsvysvevivplkdvnvvegtkavleckvsvpdvtsvkwylndeqikpdervqavvkgtkqrlvitrt 2411
+                          kedag+ysf++pal+lstsgrvsvysv+vi+plkdvnv+egtkavleckvsvpdvtsvkwylndeqikpd+rvqa+vkgtkqrlvi+rt
+            sequence 2419 KEDAGNYSFTIPALGLSTSGRVSVYSVDVITPLKDVNVIEGTKAVLECKVSVPDVTSVKWYLNDEQIKPDDRVQAIVKGTKQRLVINRT 2507
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 2412 hasdeghyklmvgkvetscdlsvekikiirglrdltctetqnvvfevelshsgidvlwnfkgkeikanakykieargkiykltvlkmmk 2500
+                          hasdeg+ykl+vg+vet c+lsvekikiirglrdltctetqnvvfevelshsgidvlwnfk keik+++kykiea+gkiykltvl+mmk
+            sequence 2508 HASDEGPYKLIVGRVETNCNLSVEKIKIIRGLRDLTCTETQNVVFEVELSHSGIDVLWNFKDKEIKPSSKYKIEAHGKIYKLTVLNMMK 2596
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 2501 ddegeyvfyagekktsgklivaggaiskpladltvaesqeavfecevanpesegewlkdgkhlplsdqirsesdgvkrrliiaaakldd 2589
+                          ddeg+y+fyage++tsgkl+vaggaiskpl+d+tvaesqeavfecevanp+s+gewl+dgkhlpl+++irsesdg+krrliiaa+kldd
+            sequence 2597 DDEGKYTFYAGENMTSGKLTVAGGAISKPLTDQTVAESQEAVFECEVANPDSKGEWLRDGKHLPLTNNIRSESDGHKRRLIIAATKLDD 2685
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 2590 igeysykvassktsaklkveavkikktlknltvtetqeavfsvelshpdvkgvlwikngvelesndkyevsvkgtvyslkikncvvsde 2678
+                          igey+ykva+sktsaklkveavkikktlknltvtetq+avf+vel+hp+vkgv+wikngv+lesn+ky +svkgt+ysl+iknc++ de
+            sequence 2686 IGEYTYKVATSKTSAKLKVEAVKIKKTLKNLTVTETQDAVFTVELTHPNVKGVQWIKNGVVLESNEKYAISVKGTIYSLRIKNCAIVDE 2774
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 2679 svysfklgklgasarlhvetvkiikkpkdvtalenavvafelsvshdtvpvkwfhknvelkqsdkyklvserkvhklmlqnispadage 2767
+                          svy+f+lg+lgasarlhvetvkiikkpkdvtalena+vafe+svshdtvpvkwfhk ve+k+sdk++lvserkvhklmlqnisp+dage
+            sequence 2775 SVYGFRLGRLGASARLHVETVKIIKKPKDVTALENATVAFEVSVSHDTVPVKWFHKSVEIKPSDKHRLVSERKVHKLMLQNISPSDAGE 2863
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 2768 ytavvgqleckaklfvetlhitktmksievpetktasfecevshfnvpsvwlkngveiemsekfkivvqgklhqllimntssedaaeyt 2856
+                          ytavvgqleckaklfvetlhitktmk+ievpetktasfecevshfnvps+wlkngveiemsekfkivvqgklhql imnts+ed+aeyt
+            sequence 2864 YTAVVGQLECKAKLFVETLHITKTMKNIEVPETKTASFECEVSHFNVPSMWLKNGVEIEMSEKFKIVVQGKLHQLIIMNTSTEDSAEYT 2952
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 2857 fvcgndrvsatlkvkpilitsmlkdinaeekdtitfevtvnyegisykwlkngveikstdkcqirtkklthslsirnvhfgdaaeysfv 2945
+                          fvcgnd+vsatl+v+pi+itsmlkdinaeekdtitfevtvnyegisykwlkngveikstdkcq+rtkklthsl+irnvhfgdaa+y+fv
+            sequence 2953 FVCGNDQVSATLTVTPIMITSMLKDINAEEKDTITFEVTVNYEGISYKWLKNGVEIKSTDKCQMRTKKLTHSLNIRNVHFGDAADYTFV 3041
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 2946 agkaassatlyvearhiefrkhikdikvlekkraifecevsepdvtvqwmkdgqelqivdrikiqkekyvhrllipstkmsdagqytvv 3034
+                          agka+s+atlyvearhiefrkhikdikvlekkra+fecevsepd+tvqwmkd qelqi+drikiqkekyvhrllipst+msdag+ytvv
+            sequence 3042 AGKATSTATLYVEARHIEFRKHIKDIKVLEKKRAMFECEVSEPDITVQWMKDDQELQITDRIKIQKEKYVHRLLIPSTRMSDAGKYTVV 3130
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 3035 aggntssanlivegrdvrirsikkevqviekqraevefevneddveaqwykdgieinfqieerysyvverrihrmsisetrysdageyt 3123
+                          aggn+s+a+l+vegrdvrirsikkevqviekqra+vefevneddv+a+wykdgieinfq++er++yvverrihrm+isetr sdageyt
+            sequence 3131 AGGNVSTAKLFVEGRDVRIRSIKKEVQVIEKQRAVVEFEVNEDDVDAHWYKDGIEINFQVQERHKYVVERRIHRMFISETRQSDAGEYT 3219
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 3124 fvagrnrssvvlyvnapeppqilqelqpvtvesgkparfcavisgkpqpkvswykeeqllstgfkckflhdaqeytlllieafpedaav 3212
+                          fvagrnrssv+lyvnapeppq+lqelqpvtv+sgkparfcavisg+pqpk+swykeeqllstgfkckflhd+qeytlllieafpedaav
+            sequence 3220 FVAGRNRSSVTLYVNAPEPPQVLQELQPVTVQSGKPARFCAVISGRPQPKISWYKEEQLLSTGFKCKFLHDGQEYTLLLIEAFPEDAAV 3308
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 3213 ytceakndygvattsaslsvevpevvspelevpvyppavivplrdavtsegqsarfqcrvsgtdlkvswyskdkkikpsrffrmtqfed 3301
+                          ytceakndygvattsaslsvevpevvsp++e+pvyppa+i+pl+d+vtsegq+arfqcrvsgtdlkvswyskdkkikpsrffrmtqfed
+            sequence 3309 YTCEAKNDYGVATTSASLSVEVPEVVSPDQEMPVYPPAIITPLQDTVTSEGQPARFQCRVSGTDLKVSWYSKDKKIKPSRFFRMTQFED 3397
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 3302 tyqleiaeaypedegtytfvasnavgqvsstailklexxxxxxxxxxxxxxxxx 3355
+                          tyqleiaeaypedegtytfvasnavgqvssta+l le++ ++++ ++   +   
+            sequence 3398 TYQLEIAEAYPEDEGTYTFVASNAVGQVSSTANLSLEAPESILHERIEQEIEME 3451
+                          *************************************87766665554444433 PP
+
+  == domain 3  score: 40.5 bits;  conditional E-value: 1.9e-16
+  PTHR11100.SF29.pir 32320 geapavrkelkdvttklgeaaqlscqivgrplpdikwyrfgkeliqsrkykmssdgrthtltvlteeqedeglytcmaanevgevet 32406
+                           g  p   ke+ +    +g+ a ls+ ++g p p i+w+  g  l  s  yk+  dg +h+l +l  + edeg ytcma+n+ g+   
+            sequence  3500 GTGPIFIKEVSNADISMGDVATLSVTVIGIPKPKIQWFFNGVLLTPSADYKFVFDGDDHSLIILFTKLEDEGEYTCMASNDYGKTIC 3586 
+                           7789999*****************************************************************************999 PP
+
+  PTHR11100.SF29.pir 32407 ssklllqat 32415
+                           s+ l +++ 
+            sequence  3587 SAYLKINSK 3595 
+                           998877665 PP
+
+  == domain 4  score: 30.1 bits;  conditional E-value: 2.7e-13
+  PTHR11100.SF29.pir 3139 apeppqilqelqpvtvesgkparfcavisgkpqpkvswykeeqllstgfkckflhdaqey.tlllieafpedaavytceakndygvatt 3226
+                           p pp  l+el+p+    g pa f   + g p p v+w+ke+++l t     ++h+ +   t+++ +   ed+ +y c+a n  g +t 
+            sequence 3617 GPCPPHFLKELKPIRCAQGLPAIFEYTVVGEPAPTVTWFKENKQLCTSVYYTIIHNPNGSgTFIVNDPQREDSGLYICKAENMLGESTC 3705
+                          57788888888888888888888888888888888888888888888888888887664415666667778888888888888888888 PP
+
+  PTHR11100.SF29.pir 3227 saslsv 3232
+                          +a l v
+            sequence 3706 AAELLV 3711
+                          887766 PP
+
+  == domain 5  score: 11.5 bits;  conditional E-value: 1.1e-07
+  PTHR11100.SF29.pir 34517 kdkvklscavessvlsikevawykdgkklkedghfkfhyaadgtyelkihnl.tesdkgeyvceisgeggisktnfqf 34593
+                           +d+v+l+    +s+  +kev wy + k +  d++fk     + ty l i ++ te  +geyvce   + g + t  ++
+            sequence  4303 GDIVHLT----TSITNAKEVNWYFENKLVPSDEKFKCL-QDQNTYTLVIDKVnTEDHQGEYVCEALNDSGKTATSAKL 4375 
+                           2333333....234444444444444444444444432.233444444443323444444444444444444443333 PP
+
+  == domain 6  score: 12192.8 bits;  conditional E-value: 0
+  PTHR11100.SF29.pir 3846 vevkvapvlrrrleplevalnhlakftcevesapnvkfqwykagreiydsdkysirsskylssleilrsqvvdcgeysckasneygsvs 3934
+                          v  ++apv++r++epleval+hlakftce++sapnv+fqw+kagreiy+sdk sirssky+ssleilr+qvvdcgey+ckasneygsvs
+            sequence 4377 VVKRAAPVIKRKIEPLEVALGHLAKFTCEIQSAPNVRFQWFKAGREIYESDKCSIRSSKYISSLEILRTQVVDCGEYTCKASNEYGSVS 4465
+                          55689************************************************************************************ PP
+
+  PTHR11100.SF29.pir 3935 statltvtealpptflsrpksvttfvgkaakflctvlgtpvievvwqkdgaalspsdnykisdvenkhvlelslltisdrgvysckasn 4023
+                          +tatltvtea+pptflsrpks+ttfvgkaakf+ctv+gtpvie++wqkdgaalsps+n++isd+enkh+lels+lti+drgvysckasn
+            sequence 4466 CTATLTVTEAYPPTFLSRPKSLTTFVGKAAKFICTVTGTPVIETIWQKDGAALSPSPNWRISDAENKHILELSNLTIQDRGVYSCKASN 4554
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 4024 kfgadvcqaelviidkphfikvlesvqsavnkkirlecqvdedrkvrvewkkdgnklppgkdykiyfedkiasleiplaklkdsgtyvc 4112
+                          kfgad+cqael+iidkphfik+le+vqsa+nkk++lecqvdedrkv+v+w kdg+klppgkdyki fedkia+leiplaklkdsgtyvc
+            sequence 4555 KFGADICQAELIIIDKPHFIKELEPVQSAINKKVHLECQVDEDRKVTVTWSKDGQKLPPGKDYKICFEDKIATLEIPLAKLKDSGTYVC 4643
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 4113 tvsneagsssssasvtvreppsfvkkvepsylllpgesarlqcklkgspeiqvswfkdnkkllesntirmsfvnsvavldisevkveds 4201
+                          t+sneagsss sa+vtvreppsfvkkv+psyl+lpgesarl+cklkgsp+iqv+wfk+nk+l esnt+rm fvns+a+ldi++vkveds
+            sequence 4644 TASNEAGSSSCSATVTVREPPSFVKKVDPSYLMLPGESARLHCKLKGSPVIQVTWFKNNKELSESNTVRMYFVNSEAILDITDVKVEDS 4732
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 4202 gsysceavnevgsdscsaevvvkeppsfvktlepaevvkgsnallqcevagtgpfeiswykdkkqirsskkyrltsqkalvslevsafn 4290
+                          gsysceavn+vgsdscs+e+v+keppsf+ktlepa++v+g+nallqcev+gtgpfeisw+kdkkqirsskkyrl+sqk+lv le+++fn
+            sequence 4733 GSYSCEAVNDVGSDSCSTEIVIKEPPSFIKTLEPADIVRGTNALLQCEVSGTGPFEISWFKDKKQIRSSKKYRLFSQKSLVCLEIFSFN 4821
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 4291 sadvgeyecvvanevgkciclatyllkeppsfvkkvedvtalagdtvtlqavvkgsepisvtwmkgkevikednkvkvsfenglavlii 4379
+                          sadvgeyecvvanevgkc+c+at+llkepp+fvkkv+d+ al g+tvtlqa+v+gsepisvtwmkg+evi+ed+k+k+sf+ng+avlii
+            sequence 4822 SADVGEYECVVANEVGKCGCMATHLLKEPPTFVKKVDDLIALGGQTVTLQAAVRGSEPISVTWMKGQEVIREDGKIKMSFSNGVAVLII 4910
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 4380 advqlssgdkytclaeneagsqssvgelivkepakiiekaeliqvtagdpaileytvtgtpelktkwykdgkpliaskkyrisfknnva 4468
+                          +dvq+s+g+kytclaeneagsq+svgelivkepakiie+aeliqvtagdpa+leytv+gtpelk+kwykdg+pl+askkyrisfknnva
+            sequence 4911 PDVQISFGGKYTCLAENEAGSQTSVGELIVKEPAKIIERAELIQVTAGDPATLEYTVAGTPELKPKWYKDGRPLVASKKYRISFKNNVA 4999
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 4469 qlkfyaaelqdsgeytfeisnevgisscetsftvldrdlapfftkplknvdsivstscrldckiagslpmrvswfkddkeiassdkyri 4557
+                          qlkfy+ael+dsg+ytfeisnevg+sscet+ftvldrd+apfftkpl+nvds+v ++crldckiagslpmrvswfkd+keia+sd+yri
+            sequence 5000 QLKFYSAELHDSGQYTFEISNEVGSSSCETTFTVLDRDIAPFFTKPLRNVDSVVNGTCRLDCKIAGSLPMRVSWFKDGKEIAASDRYRI 5088
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 4558 afvegsasleikrldasdagvyicratnsvgskdsssalivkeppsfvakpeskdvlpasavrlkstfkgsapltvkwfkgdkelvsgg 4646
+                          afveg+aslei r+d++dag+++cratnsvgskdss+aliv+eppsfv+kp skdvlp sav+lkstf+gs+plt++wfkg+kelvsgg
+            sequence 5089 AFVEGTASLEIIRVDMNDAGNFTCRATNSVGSKDSSGALIVQEPPSFVTKPGSKDVLPGSAVCLKSTFQGSTPLTIRWFKGNKELVSGG 5177
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 4647 acyitkealesslelyavktsdsgkyickvsnvagsvesvanlfvkepaafveklelsqllkkgetaelackvtgtpeikitwfkddre 4735
+                          +cyitkealesslely vktsdsg+y+ckvsnvag ve++anlfvkepa+fvekle+sqllkkg+ ++lackvtgtp+ikitwf +dre
+            sequence 5178 SCYITKEALESSLELYLVKTSDSGTYTCKVSNVAGGVECSANLFVKEPATFVEKLEPSQLLKKGDATQLACKVTGTPPIKITWFANDRE 5266
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 4736 lkesdkfrmsfvkslavlrltevetedsgeyicearneagkdtcstvlivkeapyfskefksievlkesdvvleaevlgtppfevtwvk 4824
+                          +kes+k+rmsfv+s+avlrlt+v  edsgey+cea+neag+d+cs+++ivke+pyf+kefk+ievlke+dv+l+aev+gtppfe+tw+k
+            sequence 5267 IKESSKHRMSFVESTAVLRLTDVGIEDSGEYMCEAQNEAGSDHCSSIVIVKESPYFTKEFKPIEVLKEYDVMLLAEVAGTPPFEITWFK 5355
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 4825 ddktlrsskkykiliedslvslqvlkfvaadvgeyqcrvtnevgsslcsaevtlkepptflkriesisslrggtvvfqaalkgslpitv 4913
+                          d++ lrs++kyk+ i+d+lvslq+lkfvaad+geyqcrvtnevgss+csa+vtl+epp+f+k+ies+sslrggt++fqa+lkgslpitv
+            sequence 5356 DNTILRSGRKYKTFIQDHLVSLQILKFVAADAGEYQCRVTNEVGSSICSARVTLREPPSFIKKIESTSSLRGGTAAFQATLKGSLPITV 5444
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 4914 swlkdsdeviedenikmtfvnnvaslllksielkhdgkyvcqakneagiqrcsallsvkepativekavsidvtegdpatlqvkfsgtk 5002
+                          +wlkdsde++ed+ni+mtf+nnvasl+l++ie+khdgkyvcqakn+agiqrcsallsvkepati+e+avsidvt+gdpatlqvkfsgtk
+            sequence 5445 TWLKDSDEITEDDNIRMTFENNVASLYLSGIEVKHDGKYVCQAKNDAGIQRCSALLSVKEPATITEEAVSIDVTQGDPATLQVKFSGTK 5533
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 5003 eitakwykdgkeltlgqkykisvtdtvsvlkvlsaekkdsgeyvfevqndvgrsscrasinvldliippkftkklkkmdsikgssvdle 5091
+                          eitakw+kdg+eltlg kykisvtdtvs+lk++s+ekkdsgey+fevqndvgrssc+a invldliipp+ftkklkkmdsikgs++dle
+            sequence 5534 EITAKWFKDGQELTLGSKYKISVTDTVSILKIISTEKKDSGEYTFEVQNDVGRSSCKARINVLDLIIPPSFTKKLKKMDSIKGSFIDLE 5622
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 5092 civagshpisiqwykddqeisasekykysfhdntafleisklegtdsgsytceatnkagsnqcsgfltvkeppyfvekpqsqevvpnar 5180
+                          civagshpisiqw+kddqeisasekyk+sfhdntafleis+legtdsg+ytc+atnkag+nqcsg+ltvkeppyfvekpqsq+v+pn+r
+            sequence 5623 CIVAGSHPISIQWFKDDQEISASEKYKFSFHDNTAFLEISQLEGTDSGTYTCSATNKAGHNQCSGHLTVKEPPYFVEKPQSQDVNPNTR 5711
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 5181 vqlkalvrgsapltikwfkdskellsgaarsvwkddtssvlelfsakaadsgtyicqlsndvgtvtskvtlfvkepprfikkpspvlvl 5269
+                          vqlkalv+g+ap+tikwfkd+kel+sgaarsvwkddts+ lelf+aka+dsgtyicqlsndvgt+tsk+tlfvkepp+fikkpspvlvl
+            sequence 5712 VQLKALVGGTAPMTIKWFKDNKELHSGAARSVWKDDTSTSLELFAAKATDSGTYICQLSNDVGTATSKATLFVKEPPQFIKKPSPVLVL 5800
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 5270 regqsttfecqvvgtpeirvswyldgnevtdiakygisfvdglatlkvsqarvedsgiyvcearndagsescsielkvkepptfvrelr 5358
+                          r+gqsttfecq++gtp+irvswyldgne+t+i+k+gisf+dglat+++s+arve+sg+yvcearndag++scsielkvkepptf+rel+
+            sequence 5801 RNGQSTTFECQITGTPKIRVSWYLDGNEITAIQKHGISFIDGLATFQISGARVENSGTYVCEARNDAGTASCSIELKVKEPPTFIRELK 5889
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 5359 pvevvkdldvelecevtgtspfevkwlknnkeirsskkyalsdkesvftlnvtkcdtsdigeyqciissevgscscsarlslkepasfv 5447
+                          pvevvk +dvelecevtgt+pfev+wlknn+eirsskky+l+d++svf l++tkcd+sd+geyqci+s+e+gscscs+r++lkep+sf+
+            sequence 5890 PVEVVKYSDVELECEVTGTPPFEVTWLKNNREIRSSKKYTLTDRVSVFNLHITKCDPSDTGEYQCIVSNEGGSCSCSTRVALKEPPSFI 5978
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 5448 kklenvttvlkssasfqsvvagaqllsvswlkdekileedeyvhisfennvatlklrtvdlshrgrytcqaknesgvekcyalllvqep 5536
+                          kk+en ttvlkssa+fqs+vag++++s++wlkd++il+ed++v+isf++ vatl++r+vd++h+grytcqaknesgve+cya+llvqep
+            sequence 5979 KKIENTTTVLKSSATFQSTVAGSPPISITWLKDDQILDEDDNVYISFVDSVATLQIRSVDNGHSGRYTCQAKNESGVERCYAFLLVQEP 6067
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 5537 ariiekaksldvtekdpvtlecvvegtpelkvkwlkdgkqllpsryysmsfennvasfriesvskedsgtysfkvendfgsssceailr 5625
+                          a+i+ekaks+dvtekdp+tlecvv+gtpelkvkwlkdgkq++psry+smsfennvasfri+sv+k+dsg+y+fkvendfgsssc+a+lr
+            sequence 6068 AQIVEKAKSVDVTEKDPMTLECVVAGTPELKVKWLKDGKQIVPSRYFSMSFENNVASFRIQSVMKQDSGQYTFKVENDFGSSSCDAYLR 6156
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 5626 vldqaipplfikkltkkdkvlgssvqmeckvsgslpisakwfkdgkeisdsakyrllchentvslevanleledtanytckvsnvagdd 5714
+                          vldq+ipp+f+kkltk+dkvlgss++meckvsgslpisa+wfkdgkeis+sakyrl+che +vslev+nleledtanytckvsnvagdd
+            sequence 6157 VLDQNIPPSFTKKLTKMDKVLGSSIHMECKVSGSLPISAQWFKDGKEISTSAKYRLVCHERSVSLEVNNLELEDTANYTCKVSNVAGDD 6245
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 5715 acsavltvkeppsflvkperqqaipdstvefkavlkgtppfkvkwfkedlelvsgpkcfiglegstsfltlysvdasksgqytcqvsnd 5803
+                          acs++ltvkeppsflvkp rqqaipdstvefka+lkgtppfk+kwfk+d+elvsgpkcfiglegstsfl+lysvdask+gqytc+v+nd
+            sequence 6246 ACSGILTVKEPPSFLVKPGRQQAIPDSTVEFKAILKGTPPFKIKWFKDDVELVSGPKCFIGLEGSTSFLNLYSVDASKTGQYTCHVTND 6334
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 5804 vgsdscttlllvteppkfvkkleaakivkagdsarleckvsgspeikvvwyrnehelvasekyrtsfidsvavlemnnlsteesgdyic 5892
+                          vgsdsctt+llvteppkfvkklea+kivkagds+rleck++gspei+vvw+rnehel+as+kyr++fidsvav++mnnlste+sgd+ic
+            sequence 6335 VGSDSCTTMLLVTEPPKFVKKLEASKIVKAGDSSRLECKIAGSPEIRVVWFRNEHELPASDKYRMTFIDSVAVIQMNNLSTEDSGDFIC 6423
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 5893 eaqnpagkascstkvivkeppvfsrkpsvvetlkntevslecelsgtppfevvwykdkrqlrsskkykvvaknyhasirilnvevadvg 5981
+                          eaqnpag++scstkvivkeppvfs++p++vetlkn+evslecelsgtppfevvwykdkrqlrsskkyk+++kn+h+si+ilnv+++d+g
+            sequence 6424 EAQNPAGSTSCSTKVIVKEPPVFSSFPPIVETLKNAEVSLECELSGTPPFEVVWYKDKRQLRSSKKYKIASKNFHTSIHILNVDTSDIG 6512
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 5982 eyqckaqnevgsdtcictvklkeppkfvsklnsltvvvgepvelqarvegsqpisvqwlkekeeviresenikitlveniatlqlvrae 6070
+                          ey+ckaqnevgsdtc+ctvklkepp+fvsklnsltvv+gep+elqa++eg+qpi+vqwlkekeevireseni+it+ven+atlq+++ae
+            sequence 6513 EYHCKAQNEVGSDTCVCTVKLKEPPRFVSKLNSLTVVAGEPAELQASIEGAQPIFVQWLKEKEEVIRESENIRITFVENVATLQFAKAE 6601
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 6071 tasagkyicqikndagsrenmatltvlepavivekaesmrvtvgeactleckvagtpelsvewykdgkeltssqkykisfvnkvsslki 6159
+                          +a+agkyicqiknd+g renmatl vlepaviveka++m+vtvge+ctleckvagtpelsvewykdgk+ltssqk+k+sf+nk+ssl+i
+            sequence 6602 PANAGKYICQIKNDGGMRENMATLMVLEPAVIVEKAGPMTVTVGETCTLECKVAGTPELSVEWYKDGKLLTSSQKHKFSFYNKISSLRI 6690
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 6160 ldvekedaglytfavqndvgkssctavvevldrivppsftrklketggvlgasalleckvagsspisvawfhektklvsgekynitfsd 6248
+                          l+ve++dag+ytf+vqn+vgkssctavv+v+dr vppsftr+lk+tggvlgas++leckvagsspisvawfhektk+vsg+ky++tfsd
+            sequence 6691 LSVERQDAGTYTFQVQNNVGKSSCTAVVDVSDRAVPPSFTRRLKNTGGVLGASCILECKVAGSSPISVAWFHEKTKIVSGAKYQTTFSD 6779
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 6249 nlcilelnsldssdtgtytckaanvagsdecravlavqeppsfekepeplevlpgksvtftsvirgtspfkvnwfrgarelvkgdkcni 6337
+                          n+c+l+lnsldssd+g+ytc+aanvagsdecravl+vqeppsf+kepeplevlpgk+vtftsvirgt+pfkvnwfrgarelvkgd+cni
+            sequence 6780 NVCTLQLNSLDSSDMGNYTCVAANVAGSDECRAVLTVQEPPSFVKEPEPLEVLPGKNVTFTSVIRGTPPFKVNWFRGARELVKGDRCNI 6868
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 6338 yledsvvelelfdvdilqsgeytclvsneagrafcttrltvkepavfvkklsdqsvepgksiilestytgslpisvtwkkdgftlaqse 6426
+                          y+ed+v+elelf++di+qsgeytc+vsn+ag+a cttrl+vkepa+f+k+lsd+svepgksiilestytg+lpisvtwkkdgf+++ se
+            sequence 6869 YFEDTVAELELFNIDISQSGEYTCVVSNNAGQASCTTRLFVKEPAAFLKRLSDHSVEPGKSIILESTYTGTLPISVTWKKDGFNITTSE 6957
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 6427 kcsivtteksclleildstkedageysceveneagkdvcealvstleppyfvteleplevsvgdsvslqcqvagtpeitvswykgdtkl 6515
+                          kc+ivttek+c+leil+stk+dag+ysce+eneag+dvc alvstleppyfvteleple++vgdsvslqcqvagtpeitvswykgdtkl
+            sequence 6958 KCNIVTTEKTCILEILNSTKRDAGQYSCEIENEAGRDVCGALVSTLEPPYFVTELEPLEAAVGDSVSLQCQVAGTPEITVSWYKGDTKL 7046
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 6516 rstpeykvyfkdnvatlvfnkvvindsgeyickaensvgtasskallrvqerklppsfarrlkdieqtvglplkltcrlngsepitvsw 6604
+                          r+tpey++yf++nvatlvfnkv+indsgey+ckaens+gtassk+++r+qer+lppsfar+lkdieqtvglp++ltcrlngs+pi+v+w
+            sequence 7047 RPTPEYRTYFTNNVATLVFNKVNINDSGEYTCKAENSIGTASSKTVFRIQERQLPPSFARQLKDIEQTVGLPVTLTCRLNGSAPIQVCW 7135
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 6605 ykdgvllrddenlqtsfvdnvavlkllrtelshsgqyscsasnalgtasssarltvrepkkapvfdikpesidviagesadfechvtga 6693
+                          y+dgvllrddenlqtsfvdnva+lk+l+t+lshsgqyscsasn+lgtasssarlt+repkk+p+fdikp+sidviagesadfechvtga
+            sequence 7136 YRDGVLLRDDENLQTSFVDNVATLKILQTDLSHSGQYSCSASNPLGTASSSARLTAREPKKSPFFDIKPVSIDVIAGESADFECHVTGA 7224
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 6694 qpiritwskdnkeirtggnytitfvantahlrvlkvgkgdsgqytcqasnevgkdlcsaqlsvkeppkfvkklealkvvkqgesvqlec 6782
+                          qp+ritwskdnkeir+ggnytit+v+nt+hlr+lkvgkgdsgqytcqa+n+vgkd+csaqlsvkeppkfvkklea+kv+kqges+qlec
+            sequence 7225 QPMRITWSKDNKEIRPGGNYTITCVGNTPHLRILKVGKGDSGQYTCQATNDVGKDMCSAQLSVKEPPKFVKKLEASKVAKQGESIQLEC 7313
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 6783 kisgspeikvlwykndsvlqesnklnmsfvesvalltvleasaedagdyiceaqnsvgdascstalsvkeppvfskkpspvdalkgsdv 6871
+                          kisgspeikv w++nds+l+es+k+nmsf++svallt++easaed+gdyicea+n+vgdascstal+vk+ppvf++kpspv+alkgsdv
+            sequence 7314 KISGSPEIKVSWFRNDSELHESWKYNMSFINSVALLTINEASAEDSGDYICEAHNGVGDASCSTALTVKAPPVFTQKPSPVGALKGSDV 7402
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 6872 vlqceiagtppfevvwvkdrkqvrsskkfkvtaknsiaslhilsleasdvgeyqckasnevgsdtcvctvkfkepprfvkklsdtailv 6960
+                          +lqcei+gtppfevvwvkdrkqvr skkfk+t+k++++slhil+leasdvgey+cka+nevgsdtc c+vkfkepprfvkklsdt++l+
+            sequence 7403 ILQCEISGTPPFEVVWVKDRKQVRNSKKFKITSKHFDTSLHILNLEASDVGEYHCKATNEVGSDTCSCSVKFKEPPRFVKKLSDTSTLI 7491
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 6961 geavelravvegsqpisvvwlkdkgeviresenvrisfidnvatlelasaeaadvgkyvcqikndagmrecsavltvlepavilektep 7049
+                          g+avelra+veg+qpisvvwlkd+geviresen+risfidn+atl+l+s+ea+++gky+cqikndagmrecsavltvlepa+i+ek+ep
+            sequence 7492 GDAVELRAIVEGFQPISVVWLKDRGEVIRESENTRISFIDNIATLQLGSPEASNSGKYICQIKNDAGMRECSAVLTVLEPARIIEKPEP 7580
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 7050 itvtagnpfaleckvtgtpelitkwykdgrelrsdrkyqitfvnkvaslkvfsaeksdkglysfevknevgdssctvsvdvsdrlvpps 7138
+                          +tvt+gnpfalec+vtgtpel++kw+kdgrel++d+k++itf+nkvaslk+++ae+sdkglysfevkn+vg+s+ctvsv+vsdr+vpps
+            sequence 7581 MTVTTGNPFALECVVTGTPELSAKWFKDGRELSADSKHHITFINKVASLKIPCAEMSDKGLYSFEVKNSVGKSNCTVSVHVSDRIVPPS 7669
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 7139 firklkelnavlgssvlleckvagsapisvawfqdgneivsgekyeisflenvcalklsalevsdtgvytcvaanvagsdecsavltvq 7227
+                          firklk++na+lg+sv+lec+v+gsapisv+wfqdgneivsg+k+++sf+envc+l+ls le+sdtg+ytcvaanvagsdecsavltvq
+            sequence 7670 FIRKLKDVNAILGASVVLECRVSGSAPISVGWFQDGNEIVSGPKCQSSFSENVCTLNLSLLEPSDTGIYTCVAANVAGSDECSAVLTVQ 7758
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 7228 eppsfvktpdsvevlpgvsltftsvikgstpfkvkwfkgirelvsddscsisleeskaelelfeveplnsgdyaclvtndagsascttq 7316
+                          eppsf++tpdsvevlpg+sltftsvi+g++pfkvkwfkg+relv+++sc isle++++elelfev+pl+sgdy+clvtndagsasctt+
+            sequence 7759 EPPSFEQTPDSVEVLPGMSLTFTSVIRGTPPFKVKWFKGSRELVPGESCNISLEDFVTELELFEVQPLESGDYSCLVTNDAGSASCTTH 7847
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 7317 lfvkepavfvkkladfsvetgkpivleaiytgtppisvswkknelplaqsqrcsvtttekstileildstkedeaeysceveneagqdv 7405
+                          lfvkepa+fvk+ladfsvetg+pivlea+ytgtppisvsw k+e+ ++qs+rcs+t+tekstileil+st+ed+a+ysc++eneagqd+
+            sequence 7848 LFVKEPATFVKRLADFSVETGSPIVLEATYTGTPPISVSWIKDEYLISQSERCSITMTEKSTILEILESTIEDYAQYSCLIENEAGQDI 7936
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 7406 cdalvsvleppyfiehlervevkigeplvlkckvdgapeikvswykedtklrsaqaykmqfknnvaslviskvedsdvgeysckaensv 7494
+                          c+alvsvleppyfie+le+ve+ igep +l+ckvdg+pei++swyke+tklrsa+aykmqfknnvaslvi+kv++sdvgeyscka+nsv
+            sequence 7937 CEALVSVLEPPYFIEPLEHVEAVIGEPATLQCKVDGTPEIRISWYKEHTKLRSAPAYKMQFKNNVASLVINKVDHSDVGEYSCKADNSV 8025
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 7495 gavassallvvkerklppsfarklkdvqetlgapvafecringseplqvswykdgvllkdddnlqssflnnvatlqilqtsqayvgqyt 7583
+                          gavassa+lv+k rklpp farklkdv+etlg+pvafecringseplqvswykdgvllkdd nlq+sf++nvatlqilqt+q+++gqy+
+            sequence 8026 GAVASSAVLVIKARKLPPFFARKLKDVHETLGFPVAFECRINGSEPLQVSWYKDGVLLKDDANLQTSFVHNVATLQILQTDQSHIGQYN 8114
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 7584 csasnalgtasssaklllsehlvppffdlkpvsvdlalgesasfkchvtgsapikivwakdnreirpggnykmtlventaslvvlkvgk 7672
+                          csasn+lgtasssakl+lseh+vppffdlkpvsvdlalges++fkchvtg+apiki+wakdnreirpggnykmtlventa+l+vlkvgk
+            sequence 8115 CSASNPLGTASSSAKLILSEHEVPPFFDLKPVSVDLALGESGTFKCHVTGTAPIKITWAKDNREIRPGGNYKMTLVENTATLTVLKVGK 8203
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 7673 gdaglytctasnvvgkdacaaqlavqepprfikklessrlvkqdestryeckvggspeikvlwykdeteiqesekyrmsfldsvavlem 7761
+                          gdag+ytc+asn++gkd+c+aql+vqepprfikkle+sr+vkqde+tryeck+ggspeikvlwykdeteiqes+k+rmsf+dsvavlem
+            sequence 8204 GDAGQYTCYASNIAGKDSCSAQLGVQEPPRFIKKLEPSRIVKQDEFTRYECKIGGSPEIKVLWYKDETEIQESSKFRMSFVDSVAVLEM 8292
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 7762 hslsvedsgdyscearnaagsassstslkvkeppifrkkphpvetlkgadvhlecelqgtppfqvswykdkrelrsskkykvmsenyla 7850
+                          h+lsvedsgdy+cea+naagsassstslkvkeppifrkkphp+etlkgadvhlecelqgtppf vswykdkrelrs+kkyk+msen+l+
+            sequence 8293 HNLSVEDSGDYTCEAHNAAGSASSSTSLKVKEPPIFRKKPHPIETLKGADVHLECELQGTPPFHVSWYKDKRELRSGKKYKIMSENFLT 8381
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 7851 sihilnvdaadvgeyqckavndvgsdscigsvtlrapprfvkklsdvsvvvgeevelqaavegaepisvlwlkdkgevvresenlwisy 7939
+                          sihilnvdaad+geyqcka+ndvgsd+c+gs++l+apprfvkklsd+s+vvg+ev+lq+++egaepisv+w+kdkge+vres+n+wisy
+            sequence 8382 SIHILNVDAADIGEYQCKATNDVGSDTCVGSIALKAPPRFVKKLSDISTVVGKEVQLQTTIEGAEPISVVWFKDKGEIVRESDNIWISY 8470
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 7940 senvaslkisraepanagkyicqvkndaglqecfaklsvlepavivekpesvkvtagdsctlectvdgtpelsakwfkdgkelssdsky 8028
+                          sen+a+l++sr epanagky+cq+kndag+qecfa+lsvlepa+ivekpes+kvt+gd+ctlectv gtpels+kwfkdgkel+sd+ky
+            sequence 8471 SENIATLQFSRVEPANAGKYTCQIKNDAGMQECFATLSVLEPATIVEKPESIKVTTGDTCTLECTVAGTPELSTKWFKDGKELTSDNKY 8559
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 8029 kisffnkvsglkilnvaledsgeysfevknsvgkdsctaslrvsdrivapsftrklketygllgssvvleckvygsppilvswfhegqe 8117
+                          kisffnkvsglki+nva+ dsg+ysfev+n+vgkdsctasl+vsdr v+psftrklket+gl+gssvv+eckvygsppi+vswfheg+e
+            sequence 8560 KISFFNKVSGLKIINVAPSDSGVYSFEVQNPVGKDSCTASLQVSDRTVPPSFTRKLKETNGLSGSSVVMECKVYGSPPISVSWFHEGNE 8648
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 8118 issgdkyqatltdntcalkvnsleesdagdyscvatnvagsdecsaflsvreppsfvkkpealdvlsgenvtftsivkgspplevkwfk 8206
+                          issg+kyq+tltdntcal+vn leesd gdy+c+atn+agsdecsa+l+vreppsfv+kp+++dvl+g+nvtftsivkg+pp+ v+wfk
+            sequence 8649 ISSGRKYQTTLTDNTCALTVNMLEESDSGDYTCIATNMAGSDECSAPLTVREPPSFVQKPDPMDVLTGTNVTFTSIVKGTPPFSVSWFK 8737
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 8207 gsielvpgdkcnvsledsvaelelfdvdtlqsgeytcivsneagkisctthlfvkepakfvkklndlsvekgknlilegtytgtppisv 8295
+                          gs+elvpgd+cnvsledsvaelelfdvdt qsgeytcivsneagk+sctthl++k+pakfvk+lnd+s+ekgk lilegt+tgtppisv
+            sequence 8738 GSSELVPGDRCNVSLEDSVAELELFDVDTSQSGEYTCIVSNEAGKASCTTHLYIKAPAKFVKRLNDYSIEKGKPLILEGTFTGTPPISV 8826
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 8296 twkkngvilkhsekcsittteksaileipsskledagqyscyiendsgkdscsaailileppyfvkqlepvkvtvgdsaslqcqlagtp 8384
+                          twkkng+++++s++c+ittteksaileipss++edagqy+cyien+sgkdscsa+ilileppyfvkqlepvkv+vgdsaslqcqlagtp
+            sequence 8827 TWKKNGINVTPSQRCNITTTEKSAILEIPSSTVEDAGQYNCYIENASGKDSCSAQILILEPPYFVKQLEPVKVSVGDSASLQCQLAGTP 8915
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 8385 eiivswykgdtklrgtatvkmhfknqvatlvfsqvdvddsgeyickvensvgevsssslltvqerklppsfsrklrdvqetvglpvvfe 8473
+                          ei+vswykgdtklr+t+t+kmhf+n+vatlvf+qvd++dsgeyick+ensvgevs+s++ltvqe+klppsfsr+lrdvqetvglpvvf+
+            sequence 8916 EIGVSWYKGDTKLRPTTTYKMHFRNNVATLVFNQVDINDSGEYICKAENSVGEVSASTFLTVQEQKLPPSFSRQLRDVQETVGLPVVFD 9004
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 8474 caiagsepievswykdnkrlkedynvqtsfldnvailqilktdkslagqysctasnaigsasssaklvltegktppffdipvapvdavv 8562
+                          cai+gsepi+vswykd+k+lk+ +nvqtsfldn a+l+i+ktd+slagqyscta+n+igsasssa+l+ltegk+ppffdi +apvdavv
+            sequence 9005 CAISGSEPISVSWYKDGKPLKDSPNVQTSFLDNTATLNIFKTDRSLAGQYSCTATNPIGSASSSARLILTEGKNPPFFDIRLAPVDAVV 9093
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 8563 gesadfechvsgtqpikvtwakdnreirsggnyqisylensahltilkvdkgdsgkytcyavnevgkdsctaqlnvkerkippsftkkl 8651
+                          gesadfechv+gtqpikv+wakd reirsgg+yqisylensahlt+lkvdkgdsg+ytcyavnevgkdsctaqln+ker+ippsftk+l
+            sequence 9094 GESADFECHVTGTQPIKVSWAKDSREIRSGGKYQISYLENSAHLTVLKVDKGDSGQYTCYAVNEVGKDSCTAQLNIKERLIPPSFTKRL 9182
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 8652 seaveetegnelklegrvagsqpltvawyknnvevhsssnceisfknntlllqvkkvgqsdaglytckvsneagsvlctssvvikepkk 8740
+                          se+veetegn++klegrvagsqp+tvawyknn e++++sncei+fknntl+lqv+k+g++daglytckvsn+ags+lctss+vikepkk
+            sequence 9183 SETVEETEGNSFKLEGRVAGSQPITVAWYKNNIEIQPTSNCEITFKNNTLVLQVRKAGMNDAGLYTCKVSNDAGSALCTSSIVIKEPKK 9271
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 8741 ppvfdqhltpvaveegetlqlschvrgsepiriqwlkagreikasercsfsfasgvallelkdvtkadsgeyvckasnvagsdtskskv 8829
+                          ppvfdqhltpv+v+ege++qlschv+gsepiriqwlkagreik+s+rcsfsfasg+a+lel+dv+kadsg+yvckasnvagsdt+kskv
+            sequence 9272 PPVFDQHLTPVTVSEGEYVQLSCHVQGSEPIRIQWLKAGREIKPSDRCSFSFASGTAVLELRDVAKADSGDYVCKASNVAGSDTTKSKV 9360
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 8830 tvkekaaavsaakkadvegklyfvsepqsikvvektvatfiakvggdpipnvkwtkgkwrqlnqggriiiqqkgdeakleikdttktds 8918
+                          t+k+k+a  +a+kka+v+g+l+fvsepqsi+vvekt+atfiakvggdpipnvkwtkgkwrqlnqggr++i+qkgdeaklei+dttktds
+            sequence 9361 TIKDKPAVAPATKKAAVDGRLFFVSEPQSIRVVEKTTATFIAKVGGDPIPNVKWTKGKWRQLNQGGRVFIHQKGDEAKLEIRDTTKTDS 9449
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 8919 glykcvafnkhgeiersvnlqveer.kqekveedlraklkkipv.kkkedeeeeidilellknvdpkeyekyarmygitdfrgllqafe 9005
+                          gly+cvafn+hgeie++vnlqv+er kqek+e+dlra+lkk+p+ kk+++eeeeidi+ellknvdpkeyekyarmygitdfrgllqafe
+            sequence 9450 GLYRCVAFNEHGEIESNVNLQVDERkKQEKIEGDLRAMLKKTPIlKKGAGEEEEIDIMELLKNVDPKEYEKYARMYGITDFRGLLQAFE 9538
+                          *************************99*****************9******************************************** PP
+
+  PTHR11100.SF29.pir 9006 llkqsreeeshrleieliekaekeekefeelvafiqqrlsqtepvtlikdienqtvlkdedavfeieikinypeiklswykgtekless 9094
+                          llkqs+eee+hrleie+ie++e++ekefeelv+fiqqrlsqtepvtlikdienqtvlkd+davfei+ikinypeiklswykgtekle+s
+            sequence 9539 LLKQSQEEETHRLEIEEIERSERDEKEFEELVSFIQQRLSQTEPVTLIKDIENQTVLKDNDAVFEIDIKINYPEIKLSWYKGTEKLEPS 9627
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 9095 dkykikiegdrhilkvkncqlkdqgnyrlvcgphiasakltviepaverhlqdvtlkegntctlscqfsvpnvksewyrngrilkiqgr 9183
+                          dk++i+i+gdrh+l+vkncqlkdqgnyrlvcgphiasakltviepa+erhlqdvtlkeg+tct++cqfsvpnvksew+rngrilk+qgr
+            sequence 9628 DKFEISIDGDRHTLRVKNCQLKDQGNYRLVCGPHIASAKLTVIEPAWERHLQDVTLKEGQTCTMTCQFSVPNVKSEWFRNGRILKPQGR 9716
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 9184 yktevedkvhkliikdvraedqgqytckledletsaelrieaepiqftkriqnivvsehqsatfecevsfddavvtwykgpteltesqk 9272
+                          +kteve+kvhkl+i+dvraedqgqytck+edletsaelrieaepiqftkriqnivvsehqsatfecevsfdda+vtwykgpteltesqk
+            sequence 9717 HKTEVEHKVHKLTIADVRAEDQGQYTCKYEDLETSAELRIEAEPIQFTKRIQNIVVSEHQSATFECEVSFDDAIVTWYKGPTELTESQK 9805
+                          ***************************************************************************************** PP
+
+  PTHR11100.SF29.pir 9273 ysfrsegrchymtihnvtaedegvysviarleprgearstaelylvtkeiklelkppdvpdakv........avppdk..paeiapipl 9351
+                          y+fr++grchymtihnvt++degvysviarleprgearstaelyl+tkeiklelkppd+pd++v        avpp++  p  ++pipl
+            sequence 9806 YNFRNDGRCHYMTIHNVTPDDEGVYSVIARLEPRGEARSTAELYLTTKEIKLELKPPDIPDSRVpiptmpirAVPPEEipPVVAPPIPL 9894
+                          *******************************************************************************9999****** PP
+
+  PTHR11100.SF29.pir 9352 llxxxpapeekk.pekkvevkkka.....kkvvkxxpkeipppkvpev..............lpe......kakevkitsiarrkevqk 9414
+                          ll   p+peekk p k++ev+kka     kkvv  +pke+ p +  e+              +pe      ka+evki++i+r+kevqk
+            sequence 9895 LL---PTPEEKKpPPKRIEVTKKAvkkdaKKVVA-KPKEMTPRE--EIvkkppppttlipakAPEiidvssKAEEVKIMTITRKKEVQK 9977
+                          **...*******999****987753222266665.688887765..3334577777787887666777788****************** PP
+
+  PTHR11100.SF29.pir 9415 ekeevyekkkkvyee 9429
+                          eke+vyekk++v++e
+            sequence 9978 EKEAVYEKKQAVHKE 9992
+                          ************987 PP
+
+
+
+Internal pipeline statistics summary:
+-------------------------------------
+Query model(s):                              1  (35040 nodes)
+Target sequences:                            1  (10000 residues searched)
+Passed MSV filter:                         1  (1); expected 0.0 (0.02)
+Passed bias filter:                        1  (1); expected 0.0 (0.02)
+Passed Vit filter:                         1  (1); expected 0.0 (0.001)
+Passed Fwd filter:                         1  (1); expected 0.0 (1e-05)
+Initial search space (Z):                  1  [actual number of targets]
+Domain search space  (domZ):               1  [number of targets reported over threshold]
+# CPU time: 5.18u 1.79s 00:00:06.97 Elapsed: 00:00:06.85
+# Mc/sec: 51.15
+//
+[ok]

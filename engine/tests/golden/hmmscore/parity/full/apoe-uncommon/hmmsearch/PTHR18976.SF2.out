@@ -1,0 +1,61 @@
+# hmmsearch :: search profile(s) against a sequence database
+# HMMER 3.1b2 (February 2015); http://hmmer.org/
+# Copyright (C) 2015 Howard Hughes Medical Institute.
+# Freely distributed under the GNU General Public License (GPLv3).
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# query HMM file:                  /data/hmmscore/19/books/PTHR18976/SF2/hmmer.hmm
+# target sequence database:        query.fasta
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Query:       PTHR18976.SF2.pir  [M=290]
+Scores for complete sequences (score includes all domains):
+   --- full sequence ---   --- best 1 domain ---    -#dom-
+    E-value  score  bias    E-value  score  bias    exp  N  Sequence Description
+    ------- ------ -----    ------- ------ -----   ---- --  -------- -----------
+   4.5e-132  426.0  18.5   5.4e-132  425.8  18.5    1.0  1  sequence  
+
+
+Domain annotation for each sequence (and alignments):
+>> sequence  
+   #    score  bias  c-Evalue  i-Evalue hmmfrom  hmm to    alifrom  ali to    envfrom  env to     acc
+ ---   ------ ----- --------- --------- ------- -------    ------- -------    ------- -------    ----
+   1 !  425.8  18.5  5.4e-132  5.4e-132       1     288 [.       1     309 [.       1     316 [. 0.97
+
+  Alignments for each domain:
+  == domain 1  score: 425.8 bits;  conditional E-value: 5.4e-132
+  PTHR18976.SF2.pir   1 mkvlwvllalallaGcqarsle..............adqpktkwEealdrFwdylrevqtladevqeelkssqvtkeLetLiedtmkElkaY 78 
+                        mkvlw++l++++laGcqa++++              + q+ ++wE al+ Fwdylr+vqtl+++vqeel+ssqvt+eL++L+++tmkElkaY
+           sequence   1 MKVLWAALLVTFLAGCQAKVEQavetepepelrqqtEWQSGQRWELALGBFWDYLRWVQTLSEQVQEELLSSQVTQELRALMDETMKELKAY 92 
+                        9******************988**********99986677789************************************************* PP
+
+  PTHR18976.SF2.pir  79 keeleeqlePvaeetrarlskelqalqarLkadmedvkerlaqYrselqamlgqnteelrarvasylrkLrKRllkDaeelkkrlavYqaga 170
+                        k+eleeq++Pvaeetrarlskelqa+qarL+admedv  rl+qYr+e+qamlgq+te lr r+as+lrkLrKRll+Da++l+krlavYqaga
+           sequence  93 KSELEEQJTPVAEETRARLSKELQAAQARLGADMEDVCGRLVQYRGEVQAMLGQSTEOLRVRLASHLRKLRKRLLRDADDLQKRLAVYQAGA 184
+                        ******************************************************************************************** PP
+
+  PTHR18976.SF2.pir 171 regaersvealrerlePlve.......xxxxxxxxplkeraqakleklrerleeqgeevrdrldevkeqleevkakveeqaeelrlqlekfq 255
+                        regaer+++a+rerl Plve          +++  pl+eraqa++e+lr+r+ee+g+++rdrlde keq++ev+ak+eeqa+++rlq+e+fq
+           sequence 185 REGAERGLSAIRERLUPLVEqgrvraaTVGSLAGQPLQERAQAWGERLRARMEEMGSRTRDRLDEXKEQVAEVRAKLEEQAQQIRLQAEAFQ 276
+                        ********************887776656666677********************************************************* PP
+
+  PTHR18976.SF2.pir 256 erlkswfePlvedlrrqlaelvekvqeavaksa 288
+                        +rlkswfePlved++rq+a+lve+vq+av +sa
+           sequence 277 ARLKSWFEPLVEDMQRQWAGLVEZVQAAVGTSA 309
+                        ****************************99775 PP
+
+
+
+Internal pipeline statistics summary:
+-------------------------------------
+Query model(s):                              1  (290 nodes)
+Target sequences:                            1  (317 residues searched)
+Passed MSV filter:                         1  (1); expected 0.0 (0.02)
+Passed bias filter:                        1  (1); expected 0.0 (0.02)
+Passed Vit filter:                         1  (1); expected 0.0 (0.001)
+Passed Fwd filter:                         1  (1); expected 0.0 (1e-05)
+Initial search space (Z):                  1  [actual number of targets]
+Domain search space  (domZ):               1  [number of targets reported over threshold]
+# CPU time: 0.00u 0.09s 00:00:00.09 Elapsed: 00:00:00.01
+# Mc/sec: 9.19
+//
+[ok]

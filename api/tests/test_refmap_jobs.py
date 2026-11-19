@@ -14,7 +14,7 @@ from typing import cast
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from job_helpers import FAKE_FAMILY, score_with_a_fake_engine
+from job_helpers import DEFAULT_OPTIONS, FAKE_FAMILY, score_with_a_fake_engine
 from panther_engine import refmap as engine
 from polling import poll, submit_and_wait
 from refmap_golden import (
@@ -132,7 +132,7 @@ def test_run_job_returns_the_refmap_result_serialised(
     monkeypatch.setenv("PANTHER_DATA_DIR", str(tmp_path))
     request = RefmapInput(organism=ORGANISM, ids=list(EXAMPLE_IDS))
 
-    result = run_job(RefmapJobRequest(service="refmap", input=request))
+    result = run_job(RefmapJobRequest(service="refmap", input=request), DEFAULT_OPTIONS)
 
     assert isinstance(result, SerializedResult)
     assert result.json == run_refmap(request)

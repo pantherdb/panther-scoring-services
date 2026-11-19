@@ -17,6 +17,7 @@ def test_defaults() -> None:
     # hmmscore's (openspec add-hmmscore-job, design.md, decision 5).
     assert settings.hmmscore_max_residues == 10_000
     assert settings.hmmscore_time_limit_seconds == 720
+    assert settings.hmmscore_min_time_limit_seconds == 120
     assert settings.hmmscore_max_running == 1
     assert settings.hmmscore_cpu == 0
 
@@ -74,6 +75,8 @@ def test_environment_overrides_the_defaults(monkeypatch: pytest.MonkeyPatch) -> 
         ("PANTHER_API_HMMSCORE_MAX_RESIDUES", "5000", "hmmscore_max_residues"),
         ("PANTHER_API_HMMSCORE_MAX_RESIDUES", "1", "hmmscore_max_residues"),
         ("PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS", "3600", "hmmscore_time_limit_seconds"),
+        ("PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS", "60", "hmmscore_min_time_limit_seconds"),
+        ("PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS", "1", "hmmscore_min_time_limit_seconds"),
         ("PANTHER_API_HMMSCORE_MAX_RUNNING", "2", "hmmscore_max_running"),
         ("PANTHER_API_HMMSCORE_CPU", "4", "hmmscore_cpu"),
     ],
@@ -106,6 +109,8 @@ def test_each_hmmscore_setting_is_read_from_its_variable(
         ("PANTHER_API_HMMSCORE_MAX_RESIDUES", "10k"),
         ("PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS", "0"),
         ("PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS", "12 minutes"),
+        ("PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS", "0"),
+        ("PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS", "2 minutes"),
         ("PANTHER_API_HMMSCORE_MAX_RUNNING", "0"),
         ("PANTHER_API_HMMSCORE_MAX_RUNNING", "one"),
         ("PANTHER_API_HMMSCORE_CPU", "-1"),
@@ -129,3 +134,41 @@ def test_invalid_values_are_rejected(
 
     with pytest.raises(ValidationError):
         Settings()
+
+
+# hmmscore's minimum time limit is at most its time limit (scoring-jobs: hmmscore time limit by
+# length).
+
+
+def test_a_minimum_over_the_time_limit_is_refused_naming_both(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS", "800")
+
+    with pytest.raises(ValidationError) as raised:
+        Settings()
+
+    message = str(raised.value)
+    assert "PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS (800)" in message
+    assert "PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS (720)" in message
+
+
+def test_a_time_limit_under_the_default_minimum_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS", "60")
+
+    with pytest.raises(ValidationError, match="MIN_TIME_LIMIT_SECONDS"):
+        Settings()
+
+
+def test_a_minimum_equal_to_the_time_limit_is_accepted(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS", "600")
+    monkeypatch.setenv("PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS", "600")
+
+    settings = Settings()
+
+    assert (settings.hmmscore_min_time_limit_seconds, settings.hmmscore_time_limit_seconds) == (
+        600,
+        600,
+    )

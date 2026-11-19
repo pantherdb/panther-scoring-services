@@ -15,6 +15,7 @@ from clock import Clock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from job_helpers import (
+    DEFAULT_OPTIONS,
     FAILING_SEQUENCE,
     FAKE_AGE,
     FAKE_FAMILY,
@@ -115,7 +116,7 @@ def test_run_tools_leaves_out_the_paths() -> None:
 
 
 def test_run_job_runs_the_tools_job() -> None:
-    result = run_job(ToolsJobRequest(service="tools", input=ToolsInput()))
+    result = run_job(ToolsJobRequest(service="tools", input=ToolsInput()), DEFAULT_OPTIONS)
 
     assert result == run_tools(ToolsInput())
     assert result == FAKE_RESULT
@@ -582,7 +583,7 @@ def test_run_job_runs_the_csnp_job(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("panther_engine.csnp.score", fake_score)
     request = CsnpJobRequest(service="csnp", input=CsnpInput.model_validate(CSNP_INPUT))
 
-    assert run_job(request) == run_csnp(request.input)
+    assert run_job(request, DEFAULT_OPTIONS) == run_csnp(request.input)
 
 
 def test_a_csnp_job_succeeds_with_the_engines_scores(
@@ -887,7 +888,7 @@ def test_run_job_refuses_an_hmmscore_job() -> None:
     )
 
     with pytest.raises(NotImplementedError):
-        run_job(request)
+        run_job(request, DEFAULT_OPTIONS)
 
 
 # The cap on hmmscore jobs running at once, on a JobRunner, since the router answers 501
@@ -931,6 +932,7 @@ def run_with_a_capped_runner(
             expiry=timedelta(hours=1),
             results_budget=1024 * 1024,
             versions=read_versions(),
+            options=DEFAULT_OPTIONS,
             max_running={"hmmscore": 1},
         )
         try:
@@ -1098,6 +1100,7 @@ def test_a_cap_on_a_service_that_doesnt_exist_is_refused() -> None:
             expiry=timedelta(hours=1),
             results_budget=1024 * 1024,
             versions=read_versions(),
+            options=DEFAULT_OPTIONS,
             max_running=cast(dict[Service, int], {"hmmscor": 1}),
         )
 
@@ -1110,5 +1113,6 @@ def test_a_cap_below_one_is_refused() -> None:
             expiry=timedelta(hours=1),
             results_budget=1024 * 1024,
             versions=read_versions(),
+            options=DEFAULT_OPTIONS,
             max_running={"hmmscore": 0},
         )

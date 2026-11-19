@@ -5,9 +5,9 @@ takes a request. There is no `.env` file. docs/testing/api.md lists the variable
 """
 
 import re
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 MIB = 1024 * 1024
@@ -30,9 +30,15 @@ owner's starting limit of 2026-11-12, in place of the website's 50,000 (openspec
 design.md, decision 5; divergence row 11). A server may set it lower."""
 
 HMMSCORE_TIME_LIMIT_SECONDS = 720
-"""The default time one hmmscore job may run: about three times the 240 s a 10,000-residue query
-should take, scaled from the library survey's times (openspec add-hmmscore-job, design.md,
-decision 5). Not used until the engine's scoring is wired in."""
+"""The default time limit of an hmmscore job of 10,000 residues, the most a job gets: about three
+times the 240 s a 10,000-residue query should take, scaled from the library survey's times
+(openspec add-hmmscore-job, design.md, decision 5). `titin-10000` took 231 s on the full library
+(#68)."""
+
+HMMSCORE_MIN_TIME_LIMIT_SECONDS = 120
+"""The default time limit of the shortest hmmscore sequence: what every search costs whatever its
+length, since `hmmscan` reads the whole library (openspec wire-hmmscore, design.md, decision 3;
+divergence row 14)."""
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 """The log levels a setting may name. Not CRITICAL: the API logs nothing at that level, so it
@@ -82,6 +88,14 @@ class Settings(BaseSettings):
         ge=1,
         description="How long one hmmscore job may run; takes effect once hmmscore is wired in",
     )
+    hmmscore_min_time_limit_seconds: int = Field(
+        default=HMMSCORE_MIN_TIME_LIMIT_SECONDS,
+        ge=1,
+        description=(
+            "How long an hmmscore job of the shortest sequence may run; a longer one gets more, "
+            "up to the time limit at 10,000 residues. At most the time limit"
+        ),
+    )
     hmmscore_max_running: int = Field(
         default=1,
         ge=1,
@@ -104,6 +118,17 @@ class Settings(BaseSettings):
             "https://pantherdb.github.io; empty allows none, and adds no CORS headers"
         ),
     )
+
+    @model_validator(mode="after")
+    def _floor_within_the_time_limit(self) -> Self:
+        """Refuse a minimum time limit over the time limit, naming both settings."""
+        if self.hmmscore_min_time_limit_seconds > self.hmmscore_time_limit_seconds:
+            raise ValueError(
+                "PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS "
+                f"({self.hmmscore_min_time_limit_seconds}) must be at most "
+                f"PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS ({self.hmmscore_time_limit_seconds})"
+            )
+        return self
 
     @field_validator("log_level", mode="before")
     @classmethod

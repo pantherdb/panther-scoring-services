@@ -27,7 +27,7 @@ from panther_engine.core.errors import InputError
 
 from panther_api.jobs import store as job_store
 from panther_api.jobs.store import JobRecord, JobStore
-from panther_api.jobs.work import SERVICES, JobRequest, Service, run_job
+from panther_api.jobs.work import SERVICES, JobOptions, JobRequest, Service, run_job
 from panther_api.problems import Problem
 from panther_api.versions import Versions
 
@@ -166,9 +166,13 @@ class JobRunner:
         expiry: timedelta,
         results_budget: int,
         versions: Versions,
+        options: JobOptions,
         max_running: Mapping[Service, int] | None = None,
     ) -> None:
-        """`max_running` caps the jobs of a service that may run at once, such as
+        """`options` go to every job's work, beside its request: what it needs from the settings,
+        which a worker never reads (openspec wire-hmmscore, design.md, decision 2).
+
+        `max_running` caps the jobs of a service that may run at once, such as
         `{"hmmscore": 1}`; a service it doesn't name is capped only by the workers.
 
         Raises ValueError if `max_running` names a service `JobRequest` doesn't have: a misspelled
@@ -181,6 +185,7 @@ class JobRunner:
             raise ValueError(f"max_running caps services below 1: {', '.join(below)}")
         self.store = JobStore(expiry, results_budget=results_budget)
         self._versions = versions
+        self._options = options
         self._workers = workers
         self._max_queued = max_queued
         self._pool = self._new_pool()
@@ -261,7 +266,7 @@ class JobRunner:
             pool = self._pool
             try:
                 # Looked up when called, so a test can patch `run_job` with a function of its own.
-                result = await asyncio.wrap_future(pool.submit(run_job, request))
+                result = await asyncio.wrap_future(pool.submit(run_job, request, self._options))
             except BrokenProcessPool as error:
                 # A worker died. The pool fails every job it holds and takes no more, so replace
                 # it; jobs still queued here then run on the new one.

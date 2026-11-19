@@ -75,6 +75,17 @@ test('opens each service from its tab, and marks it current', async ({ page }) =
   }
 })
 
+test('marks only TreeGrafter coming soon in the tabs', async ({ page }) => {
+  await page.goto('/')
+  const nav = page.getByRole('navigation', { name: /services/i })
+  await expect(nav.getByRole('link')).toHaveCount(4)
+
+  const marked = nav.getByRole('link', { name: /coming soon/i })
+
+  await expect(marked).toHaveCount(1)
+  await expect(marked).toHaveAccessibleName(/treegrafter/i)
+})
+
 test('says a service without a form is coming soon', async ({ page }) => {
   await page.goto('/treegrafter')
 

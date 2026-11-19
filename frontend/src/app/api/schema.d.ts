@@ -254,8 +254,8 @@ export interface components {
         /**
          * DataVersion
          * @description The PANTHER release whose data a scoring service reads, such as "9" for cSNP's frozen
-         *     PANTHER 9 data, or "19" for refmap's. It names the release the engine reads, not whether the
-         *     data is installed.
+         *     PANTHER 9 data, or "19" for refmap's and hmmscore's. It names the release the engine reads,
+         *     not whether the data is installed.
          */
         DataVersion: {
             /** Service */

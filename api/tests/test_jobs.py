@@ -840,6 +840,16 @@ def test_an_hmmscore_job_succeeds_with_the_engines_hit(client: TestClient) -> No
 
 
 @pytest.mark.usefixtures("fake_engine")
+def test_an_hmmscore_job_names_only_its_own_data(client: TestClient) -> None:
+    job = poll(client, submit(client, hmmscore_job())["id"])[-1]
+
+    assert job["versions"] == {
+        **client.get("/api/v1/versions").json(),
+        "data": [{"service": "hmmscore", "panther": "19"}],
+    }
+
+
+@pytest.mark.usefixtures("fake_engine")
 def test_an_hmmscore_job_without_a_hit_succeeds_with_a_null_hit(client: TestClient) -> None:
     job = poll(client, submit(client, hmmscore_job(NO_HIT_SEQUENCE))["id"])[-1]
 

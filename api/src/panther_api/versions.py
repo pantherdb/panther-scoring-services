@@ -10,6 +10,7 @@ from importlib.metadata import version as package_version
 
 from panther_engine.core.tools import TOOLS, report_tools
 from panther_engine.csnp import DATA_VERSION as CSNP_DATA_VERSION
+from panther_engine.hmmscore import DATA_VERSION as HMMSCORE_DATA_VERSION
 from panther_engine.refmap import DATA_VERSION as REFMAP_DATA_VERSION
 from pydantic import BaseModel
 
@@ -18,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 class DataVersion(BaseModel):
     """The PANTHER release whose data a scoring service reads, such as "9" for cSNP's frozen
-    PANTHER 9 data, or "19" for refmap's. It names the release the engine reads, not whether the
-    data is installed."""
+    PANTHER 9 data, or "19" for refmap's and hmmscore's. It names the release the engine reads,
+    not whether the data is installed."""
 
     service: str
     panther: str
@@ -72,5 +73,6 @@ def read_versions() -> Versions:
         data=[
             DataVersion(service="csnp", panther=CSNP_DATA_VERSION),
             DataVersion(service="refmap", panther=REFMAP_DATA_VERSION),
+            DataVersion(service="hmmscore", panther=HMMSCORE_DATA_VERSION),
         ],
     )

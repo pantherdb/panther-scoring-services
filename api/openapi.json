@@ -844,7 +844,7 @@
           "versions"
         ],
         "title": "HmmscoreJob",
-        "description": "An `hmmscore` job, with the same fields as every job. `result` is the best-scoring\nPANTHER HMM, or a null `hit`.\n\nIts search has a time limit that grows with the sequence's length. It fails with the generic\n500 when the HMM library is missing or a search tool fails."
+        "description": "An `hmmscore` job, with the same fields as every job. `result` is the best-scoring\nPANTHER HMM, or a null `hit`.\n\nIts search has a time limit that grows with the sequence's length. Past it, the job fails with\na 503 `error`: the server may be busy, so try again later, or with a shorter sequence. It fails\nwith the generic 500 when the HMM library is missing or a search tool fails."
       },
       "HmmscoreJobRequest": {
         "properties": {

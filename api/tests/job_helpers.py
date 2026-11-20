@@ -187,6 +187,34 @@ def no_hmm_hit(request: JobRequest, _options: JobOptions) -> JobResult:
     return NO_HIT if isinstance(request, HmmscoreJobRequest) else FAKE_RESULT
 
 
+# The sequences fail_hmmscore_jobs() fails, each as the engine can, and the message of each. A
+# sequence that starts with PAST_THE_TIME_LIMIT runs past its time limit.
+PAST_THE_TIME_LIMIT = "PASTTHETIMELIMIT"
+TOOL_FAILS = "THETOOLFAILS"
+UNEXPECTED_VALUE = "UNEXPECTEDVALUE"
+TOOL_FAILURE_MESSAGE = f"hmmscan exited with status 1: can't open {INTERNAL_PATH}"
+VALUE_ERROR_MESSAGE = f"the sequence must hold a letter: {INTERNAL_PATH}"
+
+
+def fail_hmmscore_jobs(request: JobRequest, _options: JobOptions) -> JobResult:
+    """An hmmscore job raises what the engine raises past its time limit, for a tool that fails
+    or for a sequence it never gets, by its sequence, across the process boundary; any other finds
+    no hit. Any other service's job reports the fake tools."""
+    if not isinstance(request, HmmscoreJobRequest):
+        return FAKE_RESULT
+    sequence = request.input.sequence
+    # A prefix, so a test can give the job the length it needs.
+    if sequence.startswith(PAST_THE_TIME_LIMIT):
+        raise panther_engine.hmmscore.TimeLimitError(
+            "The search took longer than this service allows. Try a shorter sequence."
+        )
+    if sequence == TOOL_FAILS:
+        raise panther_engine.hmmscore.HmmscoreError(TOOL_FAILURE_MESSAGE)
+    if sequence == UNEXPECTED_VALUE:
+        raise ValueError(VALUE_ERROR_MESSAGE)
+    return NO_HIT
+
+
 def hold_hmmscore_jobs(request: JobRequest, options: JobOptions) -> JobResult:
     """An hmmscore job stays running until the gate opens, then finds no hit, or fails if its
     sequence is FAILING_SEQUENCE. Any other job succeeds at once."""

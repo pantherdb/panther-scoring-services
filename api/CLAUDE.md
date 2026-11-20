@@ -42,6 +42,7 @@ If the schema changed, also run `npm run api:types` in `frontend/` and commit `s
 - **Shapes that more than one service checks** live in `jobs/fields.py`, such as `SPECIES_CODE` and `PRINTABLE`. Each service keeps its own messages. Put a shape into the schema with `schema_pattern()`.
 - **How a job fails:**
   - When the engine raises `panther_engine.core.errors.InputError`, the input as a whole can't be processed. The job fails with a `422`, and the engine's message as `detail`; the engine writes that message for the user.
+  - When the engine raises `panther_engine.hmmscore.TimeLimitError`, the search ran past its time limit. That's not the input's fault, since a short query gets there only on a busy server, so the job fails with a `503` and the API's own `detail` (`runner.TIME_LIMIT_DETAIL`), and the finish line is a `WARNING` naming the limit, without a traceback (`wire-hmmscore`, decision 3).
   - Any other exception fails the job with the generic `500` detail, and its details go only to the log.
   - A problem with one item, such as one substitution that can't be mapped, isn't an error: it belongs in the result.
 - **Jobs are kept in memory** until they expire (`PANTHER_API_JOB_EXPIRY_SECONDS`), so a restart loses them. Mind the size of what a job keeps: a result of 100,000 items is tens of megabytes as models.

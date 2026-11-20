@@ -312,8 +312,9 @@ export interface components {
          * @description An `hmmscore` job, with the same fields as every job. `result` is the best-scoring
          *     PANTHER HMM, or a null `hit`.
          *
-         *     Its search has a time limit that grows with the sequence's length. It fails with the generic
-         *     500 when the HMM library is missing or a search tool fails.
+         *     Its search has a time limit that grows with the sequence's length. Past it, the job fails with
+         *     a 503 `error`: the server may be busy, so try again later, or with a shorter sequence. It fails
+         *     with the generic 500 when the HMM library is missing or a search tool fails.
          */
         HmmscoreJob: {
             /**

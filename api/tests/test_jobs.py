@@ -31,8 +31,14 @@ from job_helpers import (
     INPUT_ERROR_MESSAGE,
     INTERNAL_PATH,
     NO_HIT_SEQUENCE,
+    PAST_THE_TIME_LIMIT,
+    TOOL_FAILS,
+    TOOL_FAILURE_MESSAGE,
+    UNEXPECTED_VALUE,
+    VALUE_ERROR_MESSAGE,
     exit_worker,
     fail,
+    fail_hmmscore_jobs,
     fake_alignment,
     fake_hmmscore,
     fake_score,
@@ -55,6 +61,7 @@ from panther_api.jobs.models import JobStatus
 from panther_api.jobs.refmap import MOST_IDS
 from panther_api.jobs.runner import (
     INPUT_ERROR_OUTCOME,
+    TIME_LIMIT_DETAIL,
     UNEXPECTED_JOB_DETAIL,
     WORKER_STOPPED_DETAIL,
     JobRunner,
@@ -870,6 +877,66 @@ def test_other_jobs_still_run_beside_hmmscore(client: TestClient) -> None:
     assert csnp["result"]["family"] == FAKE_FAMILY
     assert FAKE_PANTHER_ID not in json.dumps(csnp)
     assert FAKE_FAMILY not in json.dumps(hmmscore)
+
+
+# How an hmmscore job fails, with the engine's errors raised in the worker
+# (job_helpers.fail_hmmscore_jobs). scoring-jobs: An hmmscore job past its time limit; A tool
+# fails; A failing job reveals nothing internal.
+
+
+@pytest.fixture
+def failing_engine(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", fail_hmmscore_jobs)
+
+
+@pytest.mark.usefixtures("failing_engine")
+def test_an_hmmscore_job_past_its_time_limit_fails_with_a_503(client: TestClient) -> None:
+    failed = poll(client, submit(client, hmmscore_job(PAST_THE_TIME_LIMIT))["id"])[-1]
+    succeeded = poll(client, submit(client, hmmscore_job())["id"])[-1]
+
+    assert failed["status"] == "failed"
+    assert failed["result"] is None
+    assert failed["error"] == {
+        "type": "about:blank",
+        "title": "Service Unavailable",
+        "status": 503,
+        "detail": TIME_LIMIT_DETAIL,
+    }
+    # The API's text, not the engine's, which tells a busy server's user to shorten the sequence.
+    assert "Try a shorter sequence" not in json.dumps(failed)
+    assert succeeded["status"] == "succeeded"
+    assert succeeded["result"] == {"hit": None}
+
+
+@pytest.mark.usefixtures("failing_engine")
+def test_a_tools_job_still_runs_beside_an_hmmscore_job_past_its_limit(client: TestClient) -> None:
+    failed = submit(client, hmmscore_job(PAST_THE_TIME_LIMIT))
+    tools = submit(client)
+
+    assert poll(client, failed["id"])[-1]["error"]["status"] == 503
+    assert poll(client, tools["id"])[-1]["status"] == "succeeded"
+
+
+@pytest.mark.usefixtures("failing_engine")
+@pytest.mark.parametrize(
+    ("sequence", "message"),
+    [(TOOL_FAILS, TOOL_FAILURE_MESSAGE), (UNEXPECTED_VALUE, VALUE_ERROR_MESSAGE)],
+    ids=["a tool fails", "a ValueError"],
+)
+def test_an_hmmscore_job_that_fails_otherwise_gets_the_generic_500(
+    client: TestClient, sequence: str, message: str
+) -> None:
+    failed = poll(client, submit(client, hmmscore_job(sequence))["id"])[-1]
+    succeeded = poll(client, submit(client, hmmscore_job())["id"])[-1]
+
+    assert failed["status"] == "failed"
+    assert failed["result"] is None
+    assert failed["error"]["status"] == 500
+    assert failed["error"]["detail"] == UNEXPECTED_JOB_DETAIL
+    # Neither the engine's message nor the path it names reaches the job.
+    assert message not in json.dumps(failed)
+    assert INTERNAL_PATH not in json.dumps(failed)
+    assert succeeded["status"] == "succeeded"
 
 
 # The time limit and the threads reach the search (scoring-jobs: hmmscore job time limit and

@@ -447,7 +447,18 @@ On the sample, the search takes about a second, and the first job also starts a 
 
 The full library gives the same hit, with an E-value of `7e-131`: an E-value depends on the models searched. A sequence that matches no family, or whose best hit's E-value is over 1e-3, succeeds with `{"hit": null}`, as the legacy service applied its cutoff. A tool that fails, or a missing library, fails the job with the generic `500`, and the details go only to the log.
 
-Each job's search has a time limit that grows with its length ([Settings](#settings)), and a job that runs past it fails. On the sample, a search finishes within a second, the least the setting allows, so the time limit can't be shown here; the API's tests cover it.
+Each job's search has a time limit that grows with its length ([Settings](#settings)). Past it, the running tool is killed, and the job fails with an `error` of status `503`, since a short query gets there only on a busy server ([divergence 14](../parity/divergences.md)):
+
+```json
+{
+  "type": "about:blank",
+  "title": "Service Unavailable",
+  "status": 503,
+  "detail": "The search took longer than this service allows. The server may be busy: try again later, or with a shorter sequence."
+}
+```
+
+The log has its finish line at `WARNING`, without a traceback, such as `Job <id> hmmscore, 317 residues: failed 503, past its time limit of 139 s, waited 0.0 s, ran 139.0 s`. On the sample, a search finishes within a second, the least the setting allows, so a job can't be made to reach its limit here; the API's tests cover it.
 
 #### Requests That Are Refused (hmmscore)
 

@@ -110,7 +110,7 @@ class HmmscoreResult(BaseModel):
     hit: HmmHit | None
 
 
-def run_hmmscore(request: HmmscoreInput, *, cpu: int, timeout: int) -> HmmscoreResult:
+def run_hmmscore(request: HmmscoreInput, *, cpu: int, timeout: float) -> HmmscoreResult:
     """Score the input with the engine. Runs in a worker process, never on the event loop.
 
     The sequence goes to the engine as the model normalised it, with `cpu` for both `hmmscan` and

@@ -497,7 +497,7 @@ On Windows, the export writes CRLF line endings. Git stores the file with LF (`.
 
 ## Tests (pytest)
 
-Tests live in `tests/` and call the app through FastAPI's `TestClient`, so no server needs to be running. Only the tests in `tests/test_csnp_scoring.py` and `tests/test_refmap_data.py` need the tools or data; see [Tests With the Tools and Data](#tests-with-the-tools-and-data).
+Tests live in `tests/` and call the app through FastAPI's `TestClient`, so no server needs to be running. Only the tests in `tests/test_csnp_scoring.py`, `tests/test_refmap_data.py` and `tests/test_hmmscore_scoring.py` need the tools or data; see [Tests With the Tools and Data](#tests-with-the-tools-and-data).
 
 - **The `client` fixture** in `tests/conftest.py` gives a client for a fresh app.
 - **`TestClient` is built on `httpx2`, not `httpx`** (Starlette 1.x). Type a test's responses as `httpx2.Response`; `httpx.Response` fails the type check. `fastapi[standard]` installs both.
@@ -519,13 +519,16 @@ uv run pytest -k "outside_the_prefix"
 
 `tests/test_refmap_data.py` runs real `refmap` jobs against the refmap data: the form's example, checked against `map_panther.pl`'s golden, and a job of 100,000 of ARAVE's own IDs, checked against the engine, whose kept result must stay under 8 MB and whose poll must take under 2 seconds. With the classification JSON built ([An Organism's Classification](#an-organisms-classification)), it also fetches every organism's classification, gzipped and not, and checks it against the engine's reading of the file, about 50 s; without the JSON, that test is skipped. It needs no tools. `tests/test_refmap_jobs.py` runs the same kind of jobs everywhere, against a made-up data folder holding only ENDPU's file, written from the golden.
 
-Their tests are marked as the engine's are, `tools("blastp")`, `data("csnp")` and `data("refmap")` (`tests/markers.py`):
+`tests/test_hmmscore_scoring.py` runs real `hmmscore` jobs: the API, a `spawn` worker, the engine, HMMER 3.4 and the hmmscore data sample. It submits three of the engine's golden cases, the form's example (`apoe`), a sequence with no hit (`no-hit`) and one whose family and subfamily tie (`tie-pthr35774`, [divergence 13](../parity/divergences.md)), and checks each job's result against the golden. It reads each case's sequence and expected result through the engine's `panther_engine.hmmscore.parity` (`read_cases`, `Case.sequence`, `expected_result`), from `engine/tests/golden/hmmscore/parity/`, which gives the sample's arm64 results on arm64. It also calls `run_hmmscore` with a time limit of a millisecond, beside one with time enough, and checks the engine's `TimeLimitError`. The four take a few seconds.
 
-- **Where `blastp` or the data is missing,** they're skipped with the reason, as natively on Windows and in CI's `api` job. CI's `api-image` job runs the `refmap` data tests in the image on both architectures. On amd64, it also runs the real `csnp` jobs with the image's tools and data, with both set, so a change that breaks the example or a sample protein fails CI. It runs the command below, so it tests the checkout's `api/` and `engine/`, not the packages the image ships.
+Their tests are marked as the engine's are, `tools("blastp")`, `tools("hmmscan", "hmmsearch")`, `data("csnp")`, `data("refmap")` and `data("hmmscore")` (`tests/markers.py`):
+
+- **Where `blastp` or the data is missing,** they're skipped with the reason, as natively on Windows and in CI's `api` job. CI's `api-image` job runs the `refmap` data tests and the `hmmscore` real jobs in the image on both architectures. On amd64, it also runs the real `csnp` jobs with the image's tools and data, with both set, so a change that breaks the example or a sample protein fails CI. It runs the command below, so it tests the checkout's `api/` and `engine/`, not the packages the image ships.
 - **With `PANTHER_REQUIRE_TOOLS=1` and `PANTHER_REQUIRE_DATA=1`,** missing tools or data fail them.
+- **`hmmscan` and `hmmsearch` count only at the image's version,** HMMER 3.4, as in the engine's tests: with another HMMER on `PATH`, such as 3.1b2, which can't read the sample's presses, the hmmscore tests are skipped, naming the version found, or fail where tools are required.
 - **The data folder is `PANTHER_DATA_DIR`,** or `.data/` at the repository root.
 
-To run the whole suite with them, with the API image's tools, which has `blastp` and uv but not the dev tools: from the repository root, with the cSNP sample and the refmap data in `.data/`:
+To run the whole suite with them, with the API image's tools, which has `blastp`, HMMER and uv but not the dev tools: from the repository root, with the cSNP sample, the refmap data and the hmmscore sample in `.data/`:
 
 ```sh
 docker build --target api -t panther-api .

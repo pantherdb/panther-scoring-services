@@ -224,6 +224,8 @@ docker compose run --rm -T engine panther-engine hmmscore parity check
 
 `--goldens full` checks the staging run's goldens, with the full library as the data folder. It exits with status 1 if any case differs, or has no reference outputs. Making the goldens needs the CGI and `pantherScore.pl` with HMMER 3.1b2, in the `hmmscore-reference` image: see [golden-setup.md](../parity/golden-setup.md#hmmscore).
 
+**Settle HMMER questions on amd64,** production's architecture. A HMMER build for CPUs without SSE, as a Mac's build of 3.1b2 was (`impl_dummy`), split hits at `.`, `_`, `~`, `-` and an inner `*`, where production's builds didn't (#76, 2026-11-13). And 3.4 on arm64 can give a score a different last digit ([the survey](../parity/hmmscore-library-survey.md#hmmscan-on-arm64)). So the hmmscore reference image is amd64 only. Check what HMMER does on amd64, `treegrafter`'s HMMER included: natively, or under Docker's emulation, which gives amd64's numbers but not its times (`port-hmmscore`).
+
 ## Input Errors
 
 A service raises `InputError` (`src/panther_engine/core/errors.py`) when it can't process the input **as a whole**, and only the engine can tell. For example, an organism its data doesn't have. The API fails the job with status `422` and shows the message to the user as it is.

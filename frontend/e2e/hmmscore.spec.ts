@@ -5,7 +5,6 @@ import { hmmscoreResult } from '../src/mocks/data/jobs'
 import { expectNoSidewaysScroll } from './layout'
 
 const BUILD_DETAILS = /localhost|127\.0\.0\.1|:\d{4,5}\b|VITE_|API_PROXY|npm |npx /
-const STATUS_CODES = /\b50[0-3]\b|not implemented|service unavailable/i
 const JOB_URL = /\/jobs\/[0-9a-f-]{36}$/
 const FORM_URL = /\/hmmscore$/
 
@@ -35,20 +34,14 @@ async function openFormWithExample(page: Page) {
   await expect(fields(page).sequence).toHaveValue(APOE_SEQUENCE)
 }
 
-// Untagged: the notice and the client checks send nothing, so this holds in every mode.
-test('shows a notice before the box, and checks an empty form', async ({ page }) => {
+// Untagged: the client checks send nothing, so this holds in every mode.
+test('checks an empty form', async ({ page }) => {
   await page.goto('/hmmscore')
   const main = page.getByRole('main')
   const { sequence, submit } = fields(page)
-  // The notice that HMM scoring isn't available yet, before the box.
-  const notice = main.getByRole('note')
-  await expect(notice).toBeVisible()
-  const noticeFirst = await notice.evaluate(
-    (element, box) =>
-      box !== null && !!(element.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING),
-    await sequence.elementHandle()
-  )
-  expect(noticeFirst).toBe(true)
+  await expect(sequence).toBeVisible()
+  // HMM scoring runs: no notice that it isn't available.
+  await expect(main.getByRole('note')).toHaveCount(0)
 
   await submit.click()
 
@@ -112,23 +105,28 @@ test(
   }
 )
 
-// The @api tests below create no job: the API answers 501 until hmmscore is wired in, or 422.
+// Creates a real job: the API needs the hmmscore data sample. Its E-value depends on the library
+// (2.2e-133 on the sample, 7e-131 on the full library), so only the hit's ID and name are checked.
 
 test(
-  "shows the API's 501 as not available yet, and keeps the sequence",
+  'scores the example against the API, and shows the real hit and its alignment',
   { tag: '@api' },
   async ({ page }) => {
+    // The job can wait for the one running hmmscore job and a worker, behind other specs' jobs.
+    test.setTimeout(90_000)
     await openFormWithExample(page)
-    const { sequence, submit, alert } = fields(page)
 
-    await submit.click()
+    await fields(page).submit.click()
 
-    await expect(alert).toBeVisible()
-    await expect(alert).not.toHaveText(STATUS_CODES)
-    await expect(sequence).not.toHaveAttribute('aria-invalid', 'true')
-    await expect(sequence).toHaveValue(APOE_SEQUENCE)
-    await expect(submit).toBeEnabled()
-    await expect(page).toHaveURL(FORM_URL)
+    await expect(page).toHaveURL(JOB_URL)
+    const main = page.getByRole('main')
+    // A search on the data sample takes about a second, but a cold start can take longer.
+    await expect(main.getByRole('status')).toHaveText(/succeeded/i, { timeout: 60_000 })
+    await expect(main.getByRole('link', { name: /opens in a new tab/i })).toHaveText(
+      'PTHR18976:SF2'
+    )
+    await expect(main.getByText('APOLIPOPROTEIN E', { exact: true })).toBeVisible()
+    await expect(main.getByRole('region', { name: /alignment/i })).toBeVisible()
     await expectNoBuildDetails(page)
   }
 )

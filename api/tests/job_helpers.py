@@ -13,6 +13,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import panther_engine.csnp
+import panther_engine.hmmscore
 from panther_engine.core.errors import InputError
 
 from panther_api.jobs.hmmscore import HmmscoreResult
@@ -20,10 +21,12 @@ from panther_api.jobs.tools import ToolsResult
 from panther_api.jobs.work import (
     CsnpJobRequest,
     HmmscoreJobRequest,
+    JobOptions,
     JobRequest,
     JobResult,
     run_job,
 )
+from panther_api.settings import HMMSCORE_MIN_TIME_LIMIT_SECONDS, HMMSCORE_TIME_LIMIT_SECONDS
 from panther_api.versions import ToolVersion
 
 # The fake tool versions, as conftest's FAKE_REPORTS gives them.
@@ -36,6 +39,13 @@ FAKE_RESULT = ToolsResult(
     ]
 )
 
+# The options the settings' defaults give (main.job_options), for a test that calls run_job.
+DEFAULT_OPTIONS = JobOptions(
+    hmmscore_cpu=0,
+    hmmscore_time_limit_seconds=HMMSCORE_TIME_LIMIT_SECONDS,
+    hmmscore_min_time_limit_seconds=HMMSCORE_MIN_TIME_LIMIT_SECONDS,
+)
+
 INTERNAL_PATH = "/data/panther/19/books/PTHR10000/hmmer.hmm"
 
 # wait_for_gate() holds its job until a file at this path exists.
@@ -43,37 +53,37 @@ GATE_VARIABLE = "PANTHER_TEST_JOB_GATE"
 GATE_TIMEOUT = 60.0
 
 
-def report_fake_tools(_request: JobRequest) -> ToolsResult:
+def report_fake_tools(_request: JobRequest, _options: JobOptions) -> ToolsResult:
     """What every test's workers run unless a test says otherwise: no real tools."""
     return FAKE_RESULT
 
 
-def fail(_request: JobRequest) -> ToolsResult:
+def fail(_request: JobRequest, _options: JobOptions) -> ToolsResult:
     raise RuntimeError(f"failed reading {INTERNAL_PATH}")
 
 
-def fail_differently(_request: JobRequest) -> ToolsResult:
+def fail_differently(_request: JobRequest, _options: JobOptions) -> ToolsResult:
     """Fail as fail() does, with another message: another error to the log."""
     raise RuntimeError("another failure")
 
 
-def fail_with_a_new_message(_request: JobRequest) -> ToolsResult:
+def fail_with_a_new_message(_request: JobRequest, _options: JobOptions) -> ToolsResult:
     """Fail from one place with a message that differs every time, as a time limit that scales
     with the input does: the same error to the log."""
     raise RuntimeError(f"ran past its time limit of {uuid4().hex} s")
 
 
-def fail_elsewhere(_request: JobRequest) -> ToolsResult:
+def fail_elsewhere(_request: JobRequest, _options: JobOptions) -> ToolsResult:
     """Fail with fail()'s message, raised from another place: another error to the log."""
     raise RuntimeError(f"failed reading {INTERNAL_PATH}")
 
 
-def exit_worker(_request: JobRequest) -> ToolsResult:
+def exit_worker(_request: JobRequest, _options: JobOptions) -> ToolsResult:
     """End the worker process at once, as a crash would, past the pool's exception handling."""
     os._exit(1)
 
 
-def wait_for_gate(_request: JobRequest) -> ToolsResult:
+def wait_for_gate(_request: JobRequest, _options: JobOptions) -> ToolsResult:
     """Stay running until the test creates the gate file, then succeed."""
     gate = Path(os.environ[GATE_VARIABLE])
     deadline = time.monotonic() + GATE_TIMEOUT
@@ -87,17 +97,17 @@ def wait_for_gate(_request: JobRequest) -> ToolsResult:
 INPUT_ERROR_MESSAGE = "Unknown organism."
 
 
-def raise_input_error(_request: JobRequest) -> ToolsResult:
+def raise_input_error(_request: JobRequest, _options: JobOptions) -> ToolsResult:
     """Report the input as unprocessable, as an engine service does: across the process boundary,
     so the test covers how the error is pickled as well as how the runner handles it."""
     raise InputError(INPUT_ERROR_MESSAGE)
 
 
-def input_error_for_csnp(request: JobRequest) -> ToolsResult:
+def input_error_for_csnp(request: JobRequest, options: JobOptions) -> ToolsResult:
     """A `csnp` job raises the input error; any other job waits for the gate, then succeeds."""
     if isinstance(request, CsnpJobRequest):
         raise InputError(INPUT_ERROR_MESSAGE)
-    return wait_for_gate(request)
+    return wait_for_gate(request, options)
 
 
 # Each substitution's score from fake_score(): the fields after the token.
@@ -122,14 +132,49 @@ def fake_score(
     )
 
 
-def score_with_a_fake_engine(request: JobRequest) -> JobResult:
-    """The real `run_job`, in a worker, with the engine's `score()` replaced by fake_score()."""
+# The hit from fake_hmmscore(). Its alignment names the options the search was given, so a test
+# can see what reached the engine in the worker.
+FAKE_PANTHER_ID = "PTHR18976:SF2"
+FAKE_HMM_NAME = "APOLIPOPROTEIN E"
+FAKE_EVALUE = "2.2e-133"
+FAKE_SCORE = "439.0"
+# The sequence fake_hmmscore() finds no hit for.
+NO_HIT_SEQUENCE = "NOHITWHATSOEVER"
+
+
+def fake_alignment(cpu: int, timeout: float | None) -> str:
+    """fake_hmmscore()'s alignment for these options."""
+    return f"cpu {cpu}, timeout {timeout}"
+
+
+def fake_hmmscore(
+    request: panther_engine.hmmscore.HmmscoreInput,
+    *,
+    data_dir: Path | str | None = None,
+    cpu: int = 0,
+    timeout: float | None = None,
+) -> panther_engine.hmmscore.HmmscoreResult:
+    """The engine's hmmscore `score()` without HMMER or data: the same hit for every sequence but
+    NO_HIT_SEQUENCE, which has none."""
+    del data_dir
+    if request.sequence == NO_HIT_SEQUENCE:
+        return panther_engine.hmmscore.HmmscoreResult(None)
+    return panther_engine.hmmscore.HmmscoreResult(
+        panther_engine.hmmscore.HmmHit(
+            FAKE_PANTHER_ID, FAKE_HMM_NAME, FAKE_EVALUE, FAKE_SCORE, fake_alignment(cpu, timeout)
+        )
+    )
+
+
+def score_with_a_fake_engine(request: JobRequest, options: JobOptions) -> JobResult:
+    """The real `run_job`, in a worker, with the engine's cSNP and hmmscore `score()` replaced by
+    fake_score() and fake_hmmscore(), and the options passed on."""
     panther_engine.csnp.score = fake_score
-    return run_job(request)
+    panther_engine.hmmscore.score = fake_hmmscore
+    return run_job(request, options)
 
 
-# hmmscore jobs, with no engine: the router answers 501, so these run on a JobRunner, or with
-# the 501 removed for one test.
+# hmmscore jobs, with stand-ins for the work.
 
 NO_HIT = HmmscoreResult(hit=None)
 
@@ -137,17 +182,45 @@ NO_HIT = HmmscoreResult(hit=None)
 FAILING_SEQUENCE = "FAILTHISIMAGINARYPROTEIN"
 
 
-def no_hmm_hit(request: JobRequest) -> JobResult:
+def no_hmm_hit(request: JobRequest, _options: JobOptions) -> JobResult:
     """An hmmscore job finds no hit; any other job reports the fake tools."""
     return NO_HIT if isinstance(request, HmmscoreJobRequest) else FAKE_RESULT
 
 
-def hold_hmmscore_jobs(request: JobRequest) -> JobResult:
+# The sequences fail_hmmscore_jobs() fails, each as the engine can, and the message of each. A
+# sequence that starts with PAST_THE_TIME_LIMIT runs past its time limit.
+PAST_THE_TIME_LIMIT = "PASTTHETIMELIMIT"
+TOOL_FAILS = "THETOOLFAILS"
+UNEXPECTED_VALUE = "UNEXPECTEDVALUE"
+TOOL_FAILURE_MESSAGE = f"hmmscan exited with status 1: can't open {INTERNAL_PATH}"
+VALUE_ERROR_MESSAGE = f"the sequence must hold a letter: {INTERNAL_PATH}"
+
+
+def fail_hmmscore_jobs(request: JobRequest, _options: JobOptions) -> JobResult:
+    """An hmmscore job raises what the engine raises past its time limit, for a tool that fails
+    or for a sequence it never gets, by its sequence, across the process boundary; any other finds
+    no hit. Any other service's job reports the fake tools."""
+    if not isinstance(request, HmmscoreJobRequest):
+        return FAKE_RESULT
+    sequence = request.input.sequence
+    # A prefix, so a test can give the job the length it needs.
+    if sequence.startswith(PAST_THE_TIME_LIMIT):
+        raise panther_engine.hmmscore.TimeLimitError(
+            "The search took longer than this service allows. Try a shorter sequence."
+        )
+    if sequence == TOOL_FAILS:
+        raise panther_engine.hmmscore.HmmscoreError(TOOL_FAILURE_MESSAGE)
+    if sequence == UNEXPECTED_VALUE:
+        raise ValueError(VALUE_ERROR_MESSAGE)
+    return NO_HIT
+
+
+def hold_hmmscore_jobs(request: JobRequest, options: JobOptions) -> JobResult:
     """An hmmscore job stays running until the gate opens, then finds no hit, or fails if its
     sequence is FAILING_SEQUENCE. Any other job succeeds at once."""
     if not isinstance(request, HmmscoreJobRequest):
         return FAKE_RESULT
-    wait_for_gate(request)
+    wait_for_gate(request, options)
     if request.input.sequence == FAILING_SEQUENCE:
         raise RuntimeError("the hmmscore job failed")
     return NO_HIT

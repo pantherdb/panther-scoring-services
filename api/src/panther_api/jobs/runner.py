@@ -24,10 +24,19 @@ from http import HTTPStatus
 
 from fastapi.concurrency import run_in_threadpool
 from panther_engine.core.errors import InputError
+from panther_engine.hmmscore import TimeLimitError
 
 from panther_api.jobs import store as job_store
 from panther_api.jobs.store import JobRecord, JobStore
-from panther_api.jobs.work import SERVICES, JobRequest, Service, run_job
+from panther_api.jobs.work import (
+    SERVICES,
+    HmmscoreJobRequest,
+    JobOptions,
+    JobRequest,
+    Service,
+    hmmscore_time_limit,
+    run_job,
+)
 from panther_api.problems import Problem
 from panther_api.versions import Versions
 
@@ -35,6 +44,13 @@ logger = logging.getLogger(__name__)
 
 UNEXPECTED_JOB_DETAIL = "The job hit an unexpected error and could not complete."
 WORKER_STOPPED_DETAIL = "The worker running the job stopped unexpectedly."
+TIME_LIMIT_DETAIL = (
+    "The search took longer than this service allows. The server may be busy: try again later, "
+    "or with a shorter sequence."
+)
+"""A job past its time limit: a 503, since a short query gets there only on a busy server, so the
+input isn't at fault (openspec wire-hmmscore, design.md, decision 3). The API's own text, not the
+engine's."""
 
 TRACEBACK_INTERVAL = timedelta(minutes=10)
 """An unexpected error's traceback is logged once in this time; repeats name that job instead."""
@@ -166,9 +182,13 @@ class JobRunner:
         expiry: timedelta,
         results_budget: int,
         versions: Versions,
+        options: JobOptions,
         max_running: Mapping[Service, int] | None = None,
     ) -> None:
-        """`max_running` caps the jobs of a service that may run at once, such as
+        """`options` go to every job's work, beside its request: what it needs from the settings,
+        which a worker never reads (openspec wire-hmmscore, design.md, decision 2).
+
+        `max_running` caps the jobs of a service that may run at once, such as
         `{"hmmscore": 1}`; a service it doesn't name is capped only by the workers.
 
         Raises ValueError if `max_running` names a service `JobRequest` doesn't have: a misspelled
@@ -181,6 +201,7 @@ class JobRunner:
             raise ValueError(f"max_running caps services below 1: {', '.join(below)}")
         self.store = JobStore(expiry, results_budget=results_budget)
         self._versions = versions
+        self._options = options
         self._workers = workers
         self._max_queued = max_queued
         self._pool = self._new_pool()
@@ -261,7 +282,7 @@ class JobRunner:
             pool = self._pool
             try:
                 # Looked up when called, so a test can patch `run_job` with a function of its own.
-                result = await asyncio.wrap_future(pool.submit(run_job, request))
+                result = await asyncio.wrap_future(pool.submit(run_job, request, self._options))
             except BrokenProcessPool as error:
                 # A worker died. The pool fails every job it holds and takes no more, so replace
                 # it; jobs still queued here then run on the new one.
@@ -270,6 +291,13 @@ class JobRunner:
                 self.store.fail(job, _job_problem(WORKER_STOPPED_DETAIL))
                 self._replace_pool(pool)
                 self._log_unexpected(job, error, "failed 500, the worker stopped")
+            except TimeLimitError:
+                # Not a fault, and not the input's: the server was too busy, or the sequence too
+                # long, for the limit. Logged as a fixed outcome with the limit, no traceback.
+                self.store.fail(
+                    job, _job_problem(TIME_LIMIT_DETAIL, HTTPStatus.SERVICE_UNAVAILABLE)
+                )
+                logger.warning("%s", self._finish_line(job, self._past_its_time_limit(request)))
             except InputError as error:
                 # The user's input, not a fault: the engine writes the message for the user, with
                 # no paths or tool output (engine-core, "Input errors"). Shown to the user as
@@ -285,6 +313,14 @@ class JobRunner:
             else:
                 self.store.succeed(job, result)
                 logger.info("%s", self._finish_line(job, "succeeded"))
+
+    def _past_its_time_limit(self, request: JobRequest) -> str:
+        """The outcome of a job past its time limit, worked out as the work did, from the
+        request and the options, so it needs nothing from the exception."""
+        if not isinstance(request, HmmscoreJobRequest):
+            return "failed 503, past its time limit"
+        limit = hmmscore_time_limit(request.input.residues, self._options)
+        return f"failed 503, past its time limit of {limit} s"
 
     @staticmethod
     def _finish_line(job: JobRecord, outcome: str) -> str:

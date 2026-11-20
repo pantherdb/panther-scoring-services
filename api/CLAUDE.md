@@ -34,7 +34,7 @@ If the schema changed, also run `npm run api:types` in `frontend/` and commit `s
 ## Jobs
 
 - **The work runs in `spawn` worker processes** (`jobs/runner.py`):
-  - A worker imports `jobs/work.py` afresh, and gets everything from `run_job`'s argument.
+  - A worker imports `jobs/work.py` afresh, and gets everything from `run_job`'s arguments: the request, and the `JobOptions` the lifespan built from the settings (`main.job_options`). A worker never reads the settings; a setting the work needs, such as hmmscore's `--cpu` or time limit, becomes a field of `JobOptions`, and `JobRunner` submits the options with every job (`wire-hmmscore`, decision 2).
   - Keep that module, and everything it imports, free of import-time state, and keep its imports light: no FastAPI.
 - **Only the event loop touches a job.** The handlers are `async def` and never run work themselves.
 - **Validate and normalise in the request model,** before a job starts. Follow the legacy website's clean-up, as `scoring-input` records it, so the engine gets what the legacy scripts got.
@@ -42,6 +42,7 @@ If the schema changed, also run `npm run api:types` in `frontend/` and commit `s
 - **Shapes that more than one service checks** live in `jobs/fields.py`, such as `SPECIES_CODE` and `PRINTABLE`. Each service keeps its own messages. Put a shape into the schema with `schema_pattern()`.
 - **How a job fails:**
   - When the engine raises `panther_engine.core.errors.InputError`, the input as a whole can't be processed. The job fails with a `422`, and the engine's message as `detail`; the engine writes that message for the user.
+  - When the engine raises `panther_engine.hmmscore.TimeLimitError`, the search ran past its time limit. That's not the input's fault, since a short query gets there only on a busy server, so the job fails with a `503` and the API's own `detail` (`runner.TIME_LIMIT_DETAIL`), and the finish line is a `WARNING` naming the limit, without a traceback (`wire-hmmscore`, decision 3).
   - Any other exception fails the job with the generic `500` detail, and its details go only to the log.
   - A problem with one item, such as one substitution that can't be mapped, isn't an error: it belongs in the result.
 - **Jobs are kept in memory** until they expire (`PANTHER_API_JOB_EXPIRY_SECONDS`), so a restart loses them. Mind the size of what a job keeps: a result of 100,000 items is tens of megabytes as models.
@@ -53,8 +54,8 @@ If the schema changed, also run `npm run api:types` in `frontend/` and commit `s
   - `limits.BodyLimit` refuses a body over `PANTHER_API_MAX_BODY_BYTES` with a `413`, before FastAPI reads it. A new service's largest valid request must fit under it; `refmap`'s, about 13 MB, sets the 16 MiB default.
   - `JobRunner.submit()` raises `QueueFullError`, and stores nothing, when `PANTHER_API_MAX_QUEUED_JOBS` jobs already wait; the router answers `503` with `Retry-After`. It counts from the unfinished jobs by service, not jobs whose status is `queued`, which lags a loop turn behind: a job waiting for its service's running cap counts as waiting (`JobRunner._waiting`).
 - **CORS** (`deploy-frontend-to-pages`): `cors.Cors` wraps Starlette's `CORSMiddleware` for the origins in `PANTHER_API_CORS_ORIGINS`, and adds nothing when it's empty. It's added after `BodyLimit`, so it runs outside it: a preflight is answered before the limit, and a `413` still carries the CORS headers. Keep that order. A new response header a browser must read goes in `cors.EXPOSED_HEADERS`.
-- **Each job names its own service's data:** `versions.read_versions()` lists every ported service's `DataVersion`, from the engine's `DATA_VERSION`, and the store gives each job `Versions.for_service`, so a `refmap` job names PANTHER 19, a `csnp` job PANTHER 9 and a `tools` job none (`wire-refmap`, decision 9). A ported service adds its entry there.
-- **The startup checks each service's data** with its engine module's `check_data()` (`main.DATA_CHECKS`: `csnp` and `refmap`), and only logs an error for each one that's missing. The checks are independent. Don't make one stop the API: natively, developers run without the data.
+- **Each job names its own service's data:** `versions.read_versions()` lists every ported service's `DataVersion`, from the engine's `DATA_VERSION`, and the store gives each job `Versions.for_service`, so a `refmap` or `hmmscore` job names PANTHER 19, a `csnp` job PANTHER 9 and a `tools` job none (`wire-refmap`, decision 9). A ported service adds its entry there.
+- **The startup checks each service's data** with its engine module's `check_data()` (`main.DATA_CHECKS`: `csnp`, `refmap` and `hmmscore`), and only logs an error for each one that's missing. The checks are independent. Don't make one stop the API: natively, developers run without the data.
 - **The log** (`add-api-logging`):
   - `logs.configure_logging()` runs first in the lifespan. It puts one handler on the root logger and routes Uvicorn's loggers through it, so log with `logging.getLogger(__name__)` and nothing else; don't add handlers.
   - `JobRunner` writes each job's one line when it finishes, and a `DEBUG` line when it's submitted. Each service's input model has a `log_summary()` giving its size, such as `HUMAN, 347 residues, 3 substitutions`; basedpyright fails if a new service's input lacks it.
@@ -77,17 +78,18 @@ The order that worked for `csnp`:
    - the request and result models in `jobs/<service>.py`;
    - the request in `work.py`'s `JobRequest` union, and the result in `JobResult`;
    - a job model in `models.py`, subclassing `JobFields`;
-   - a row in `work.py`'s `UNAVAILABLE` table, so a valid request gets a `501` and no job until the port exists, and a `run_job` case that refuses to run.
+   - until the port exists, a valid request got a `501` and no job, from a row in a table of unavailable services in `work.py`, and its `run_job` case refused to run. `wire-hmmscore` removed that mechanism, with the frontend's handling of it, once no service needed it: a service whose contract comes before its port brings it back, with a requirement of its own.
 2. **The form,** against the contract (#20).
 3. **The port and its parity goldens,** in the engine (#24).
-4. **Wiring:** the `UNAVAILABLE` row goes, `run_job` calls the engine, and the code check against the engine's list lands in the same change (#26).
+4. **Wiring:** the `501` goes, `run_job` calls the engine, and the code check against the engine's list lands in the same change (#26).
 
 `refmap` has been through all four: its contract (#30), its form (#35), the engine's port (#63), and its wiring (`wire-refmap`, #40). Its wiring also checks its data at startup and keeps its large results as JSON.
 
-`hmmscore` has its contract (`add-hmmscore-job`, #42), so `UNAVAILABLE` holds its row; its form is `add-hmmscore-form` (#71). It adds two things to the pattern:
+`hmmscore` has been through all four too: its contract (`add-hmmscore-job`, #42), its form (`add-hmmscore-form`, #71), the engine's port (`port-hmmscore`, #81), and its wiring (`wire-hmmscore`). It adds three things to the pattern:
 
-- **A limit that's a setting is checked in the router,** after the model and before the `501`, as a `RequestValidationError` on the field (`_check_hmmscore_residues`): the schema is committed, so the model can't hold a value read at startup.
-- **A cap on a service's running jobs** (`JobRunner`'s `max_running`, `PANTHER_API_HMMSCORE_MAX_RUNNING`): its job takes the service's place before a worker slot, so a job waiting for the cap holds no worker, and counts as waiting toward `PANTHER_API_MAX_QUEUED_JOBS`. Its keys are `work.Service`, and `JobRunner` refuses any other. While the router answers `501`, it's tested on a `JobRunner` with a stand-in `run_job`.
+- **A limit that's a setting is checked in the router,** after the model, as a `RequestValidationError` on the field (`_check_hmmscore_residues`): the schema is committed, so the model can't hold a value read at startup.
+- **A cap on a service's running jobs** (`JobRunner`'s `max_running`, `PANTHER_API_HMMSCORE_MAX_RUNNING`): its job takes the service's place before a worker slot, so a job waiting for the cap holds no worker, and counts as waiting toward `PANTHER_API_MAX_QUEUED_JOBS`. Its keys are `work.Service`, and `JobRunner` refuses any other. It's tested on a `JobRunner` of its own, with a stand-in `run_job`.
+- **Settings the work needs reach the worker as `JobOptions`:** hmmscore's `--cpu`, and its time limit, which `work.hmmscore_time_limit` scales with the sequence's residues over the fixed 10,000, never over the configured residue limit (divergence 14).
 
 ## Tests
 
@@ -99,12 +101,12 @@ The setup is in [docs/testing/api.md](../docs/testing/api.md), "Tests (pytest)".
 - **The autouse `fake_tools` fixture** fakes the engine's tool report, so tests pass with or without the tools installed.
 - **`TestClient` doesn't go through Uvicorn,** so there's no access log. A test of the request log serves the app with a real Uvicorn server on a free port (`tests/serving.py`).
 - **The root logger is at `INFO` once an app has started,** so `caplog` also captures the test client's own request lines, which contain job ids. Select records by `record.name`. The autouse `restore_logging` fixture undoes each app's logging setup after the test.
-- **Real jobs** (`tests/test_csnp_scoring.py`, `tests/test_refmap_data.py`) are marked `tools` and `data`, and skipped where `blastp` or the data is missing, as natively on Windows. CI's `api-image` job runs them: the `refmap` data tests on both architectures, and the `csnp` real jobs on amd64, with the image's tools and data. Run them by hand with the API image's tools, by the command in the testing doc. `tests/test_refmap_jobs.py` runs real `refmap` jobs everywhere, against a made-up data folder written from the engine's golden (`refmap_golden.py`).
+- **Real jobs** (`tests/test_csnp_scoring.py`, `tests/test_refmap_data.py`, `tests/test_hmmscore_scoring.py`) are marked `tools` and `data`, and skipped where the tools or the data are missing, as natively on Windows. An HMMER program counts only at the image's version (`markers.other_hmmer`). CI's `api-image` job runs them: the `refmap` data tests and the `hmmscore` real jobs on both architectures, and the `csnp` real jobs on amd64, with the image's tools and data. The hmmscore tests read the goldens through the engine's `panther_engine.hmmscore.parity`, never the files directly: `tie-pthr35774`'s `cgi.xml` holds the CGI's hash-order pick, not divergence 13's. Run them by hand with the API image's tools, by the command in the testing doc. `tests/test_refmap_jobs.py` runs real `refmap` jobs everywhere, against a made-up data folder written from the engine's golden (`refmap_golden.py`).
 - **Keep a success test beside every failure test.** A test that expects an error also passes when everything fails for another reason.
 
 ## Running It With Docker
 
-- **The data:** the compose `api` service reads the cSNP data and the refmap data from `.data/`. Fetch them there first; [docs/testing/engine.md](../docs/testing/engine.md), "The cSNP Data Sample", and [docs/testing/api.md](../docs/testing/api.md), "The refmap Data", say how.
+- **The data:** the compose `api` service reads the cSNP data sample, the refmap data and the hmmscore data sample from `.data/`. Fetch them there first; [docs/testing/engine.md](../docs/testing/engine.md), "The cSNP Data Sample", and [docs/testing/api.md](../docs/testing/api.md), "The refmap Data" and "The hmmscore Job", say how. Without a service's data, its jobs fail with the generic error: without the hmmscore sample, every `hmmscore` job does, the `@api` e2e spec and manual QA's TC 4.4 included.
 - **In Git Bash, start a `docker run` line with `MSYS_NO_PATHCONV=1`.** Otherwise Git Bash rewrites container paths such as `/data` into Windows paths, and every `csnp` job fails with the generic error.
 - **Check that the image was loaded.** If `docker build` warns that the result stays in the build cache, `docker run` starts an older image. Build with `docker buildx build --load`.
 - **Don't disturb a developer's running API.** An agent, or a script, testing the image should run it with `docker run` on another port, such as 8001. Never `docker compose down`, `stop` or `up` the repository's project, which may be serving the developer's frontend on port 8000.

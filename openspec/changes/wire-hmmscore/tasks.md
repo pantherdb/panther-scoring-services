@@ -1,0 +1,109 @@
+# Tasks
+
+Start once #82 (`add-hmmscore-form`'s archive) has merged, from `main`. Row 14 was approved on #83 (2026-11-18). #81 (`port-hmmscore`) merged on 2026-11-17. Group 0 is the engine developer's, and comes first: groups 1 and 2 import what it exports.
+
+## 0. Engine (the engine developer's)
+
+- [x] 0.1 The timeout error: past the time limit, `score()` raises a new exception, `TimeLimitError` (named by the engine developer), exported from `panther_engine.hmmscore`, instead of `InputError` (design.md, decision 3). It isn't an `InputError` or a subclass, and keeps its type across processes. `TIME_LIMIT_MESSAGE` needn't be exported: the API writes its own `detail`, and the engine's message is for its own CLI and the log. Verify in `engine/tests/test_hmmscore_scoring.py`: past the limit raises the new error, not `InputError`, no tool is left running, the folder is removed, and it pickles with its type (spec, hmmscore-engine, The time limit)
+- [x] 0.2 A search tool doesn't outlive its worker (decision 9): a keyword on `core/process.py`'s `run_tool` that, on Linux, sets `PR_SET_PDEATHSIG` with `SIGKILL` in the child through `preexec_fn` and checks its parent is still there; `core/hmmer.py` (`hmmscan`, `hmmsearch`) and `csnp/blast.py` (`blastp`) pass it, and every other call runs as before. Verify in `engine/tests/test_process.py`, Linux only: a child process runs a long-running tool with the keyword and is killed with `SIGKILL`, and the tool counts as gone shortly after when `/proc/<pid>` is missing or its state is `Z`, since nothing in the container reaps it; a control case without the keyword, where the tool survives; `run_tool`'s existing tests and csnp's pass unchanged (spec, engine-core, A search tool doesn't outlive the process that started it)
+- [x] 0.3 `hmmscore/parity.py` gains an `__all__` with what the API's tests use: `Case`, `read_cases` and `expected_result` (decision 7). Verify the engine's checks pass
+- [x] 0.4 Engine checks: `uv run ruff check`, `ruff format --check`, `basedpyright` and `pytest` pass, natively and in the engine image
+
+## 1. API: hmmscore jobs run
+
+- [x] 1.1 `work.py`: `JobOptions` (`hmmscore_cpu`, `hmmscore_time_limit_seconds`, `hmmscore_min_time_limit_seconds`); `run_job(request, options)`. `JobRunner` takes `options` and submits them with every job; `main.py`'s lifespan builds them from the settings (design.md, decision 2). Every caller changes with it: the pure stand-ins in `tests/job_helpers.py` take the second argument and ignore it; `score_with_a_fake_engine` (`job_helpers.py` 125), which calls the real `run_job`, passes the options on; the direct calls in `tests/test_jobs.py` (118, 585 and 890) and `tests/test_refmap_jobs.py` (135) pass options. Verify every existing job, runner and store test passes unchanged in what it checks
+- [x] 1.2 `jobs/hmmscore.py`: `run_hmmscore(request, *, cpu, timeout)`, with `panther_engine.hmmscore` imported at module level, as `jobs/csnp.py` and `jobs/refmap.py` import theirs. It calls `score()` with the sequence, `cpu`, and a `timeout` from `hmmscore_time_limit(residues, options)`, the length-scaled limit (decision 3), and builds `HmmscoreResult` and `HmmHit` field for field (decision 1). `run_job`'s hmmscore case calls it with the options. The `501` goes, with its mechanism: `UNAVAILABLE`, `Unavailable`, the router's `501` branch and the `if UNAVAILABLE:` schema block. Every text that promises the `501` goes: the module docstrings, `HmmscoreJobRequest`'s, `create_job`'s (`routers/jobs.py`, `POST /api/v1/jobs`'s description) and `HmmscoreJob`'s (`jobs/models.py`). Verify in `tests/test_jobs.py`, with the engine's `score` replaced in-process: the options reach it; a hit and a `null` hit map field for field; a valid request gets `202` and a job; `run_job`'s refusing test goes (spec, hmmscore job scores with the engine; hmmscore job time limit and threads; hmmscore time limit by length)
+- [x] 1.3 How a job fails, through stand-ins in `job_helpers.py`: the engine's timeout error (0.1) fails the job with `503` and the API's `detail`, a constant in the API that the tests import; the runner logs it at `WARNING`, "failed 503, past its time limit of N s", with the residues and the run time and no traceback (decision 3). `HmmscoreError` with a path in its message, and `ValueError`, fail it with the generic `500`, and the job holds neither. Verify in `tests/test_jobs.py`, each beside a success, and in `tests/test_job_logs.py` (spec, An hmmscore job past its time limit; A job past its time limit is logged as such; A failing job reveals nothing internal)
+- [x] 1.4 The `501` tests go or change: the `assert_unavailable` cases in `tests/test_jobs.py` become `202` cases where they test the residue limit and the characters, and the residue limit's `422`s stay as they are; `tests/test_job_logs.py` 105's `monkeypatch.delitem(UNAVAILABLE, "hmmscore")` goes, since the row is gone; `tests/test_openapi.py`'s 501 tests become one plain check that no `501` is documented, without reloading the router (decision 1); the DEBUG log tests no longer send a request that gets a `501`. Verify the three files pass (spec, A job's submission is logged at DEBUG)
+- [x] 1.5 Startup: `main.DATA_CHECKS` gains hmmscore (decision 4). The startup tests in `tests/test_limits.py` that count each service's line change, or their fixture provides the hmmscore sample's parts: `csnp, refmap = main_records(caplog)` (295), the three `[record] = main_records(caplog)` tests (312, 332 and 346), the unset folder's `== ["csnp", "refmap"]` (364) and `test_complete_data_logs_nothing` (382). Verify: the cSNP and refmap data without the hmmscore data logs only the hmmscore error, and health is 200; with the hmmscore sample's parts, no hmmscore error (spec, Startup check of the hmmscore data)
+- [x] 1.6 Versions: `read_versions()` lists hmmscore's `DATA_VERSION` after refmap's (decision 5). Verify in `tests/test_versions.py` and `tests/test_jobs.py`: the report lists all three in order; an `hmmscore` job's `versions.data` is hmmscore's alone (spec, Versions report; Job shape)
+- [x] 1.7 `settings.py`: the new `hmmscore_min_time_limit_seconds` (120, at least 1), refused at startup when it's over `hmmscore_time_limit_seconds`, naming both; the time limit's description and docstring drop "takes effect once hmmscore is wired in", and say it's the most a job gets, at 10,000 residues; `--cpu`'s description says it's passed to both `hmmscan` and `hmmsearch`. `hmmscore_time_limit` divides by `HMMSCORE_MAX_RESIDUES`, the fixed 10,000, not the setting. Verify `tests/test_settings.py`, and `hmmscore_time_limit` at 1, 317, 4,646, 5,000 and 10,000 residues; with `PANTHER_API_HMMSCORE_MAX_RESIDUES` lowered to 5,000, the same limits (139 s and 420 s at 317 and 5,000 residues); and with the floor equal to the ceiling (spec, hmmscore time limit by length)
+- [x] 1.8 Regenerate `api/openapi.json` with `uv run python -m panther_api.openapi`. Verify `tests/test_openapi.py` passes, `501` appears nowhere in `api/openapi.json`, and `git diff --ignore-cr-at-eol api/openapi.json` shows only the `501`'s removal and the descriptions
+
+## 2. API: with the tools and the data sample
+
+- [x] 2.1 `tests/markers.py`: `hmmscore` joins `DATA_MANIFESTS`, with `panther_engine.hmmscore.sample.MANIFEST`; `tools("hmmscan", "hmmsearch")` also skips, or fails where tools are required, when the HMMER on `PATH` isn't the image's, with `hmmer_version` and `HMMER_VERSION` from `panther_engine.hmmscore.sample`, as the engine's `other_hmmer` does (decision 7). Verify with a test of the marker against a stand-in program reporting another version
+- [x] 2.2 A new `tests/test_hmmscore_scoring.py`, marked `tools("hmmscan", "hmmsearch")` and `data("hmmscore")`, runs real jobs through the API for `apoe`, `no-hit` and `tie-pthr35774`, with each case's sequence and expected result from `panther_engine.hmmscore.parity` (`read_cases`, `Case.sequence`, `expected_result`, 0.3) on `engine/tests/golden/hmmscore/parity/`, read-only; and calls `run_hmmscore` in-process with a timeout of a millisecond for the timeout error. Verify they pass in the API image with the sample (`docs/testing/api.md`, "Tests With the Tools and Data"), and skip natively on Windows (spec, hmmscore job scores with the engine: The form's example, No hit, Tied best hits)
+- [x] 2.3 CI's `api-image` job, both architectures: restore `.data/hmmscore` from the cache the engine jobs fill, `panther-engine hmmscore sample fetch` with the image's CLI, run `tests/test_hmmscore_scoring.py` with `PANTHER_REQUIRE_TOOLS=1` and `PANTHER_REQUIRE_DATA=1`, and score APOE through the running API with `curl`, checking `PTHR18976:SF2`, "APOLIPOPROTEIN E" and `versions.data`. The "Start the API" step already mounts `.data/`. Verify in the pull request's CI logs that the tests run, not skip, on both legs
+- [x] 2.4 API checks: `uv run ruff check`, `ruff format --check`, `basedpyright` and `pytest` pass natively, and the image's tests pass with the cSNP, refmap and hmmscore data
+
+## 3. Frontend
+
+- [x] 3.1 Regenerate the types (`npm run api:types`): the `501` goes from `schema.d.ts`. Verify `npm run api:types:check` and `type-check`
+- [x] 3.2 `services.ts`: HMM scoring's `comingSoon` is `false`, and its comment goes. `HmmscorePage.tsx` loses `NotAvailableNotice`. Verify in `tests/layout/AppHeader.test.tsx`, `tests/features/home/HomePage.test.tsx` and `tests/features/hmmscore/HmmscorePage.test.tsx`: only TreeGrafter is marked; `/hmmscore` has no badge and no notice (spec, Services marked coming soon; The home page shows every service)
+- [x] 3.3 The `501` path goes: `submitProblem`'s `unavailable`, `SubmitAlert`'s text for it, and their tests, as the API's `UNAVAILABLE` goes (decision 6). Verify in `tests/components/submitProblem.test.ts` and `HmmscorePage.test.tsx`: a `501` with problem details is "couldn't be started", one without is "can't be reached", each with the sequence kept, beside a `202` that opens the job; cSNP's and refmap's submit failure tests pass unchanged (spec, hmmscore submit failures)
+- [x] 3.4 The job page: a failed `hmmscore` job whose `error` has status 503 shows its `detail`, no hit and no alignment, and not the unreachable message. Verify in `tests/features/jobs/JobPage.test.tsx`, beside a succeeded job (spec, An hmmscore job past its time limit on the job page)
+- [x] 3.5 Mocks: `versions.ts` lists hmmscore's PANTHER 19; the comments that say the real API answers `501` go (`handlers.ts`, `jobs.ts`). Verify in `tests/features/jobs/HmmscoreHit.test.tsx` or `JobPage.test.tsx` that a mocked `hmmscore` job's page shows PANTHER 19 (spec, hmmscore results on the job page)
+- [x] 3.6 e2e: the untagged spec in `e2e/hmmscore.spec.ts` drops the notice and keeps the empty form's check; `e2e/shell.spec.ts` checks only TreeGrafter is marked. The `@api` spec that expected the `501` becomes one that scores the example against a real API with the hmmscore data sample, and checks the hit's PANTHER ID `PTHR18976:SF2` and its name, not its E-value, waiting up to 60 s (decision 7). The `@api` `422` spec stays. Verify with `npm run test:e2e` in mock mode, and in api mode against an API run with `docker run` on another port, such as 8001, with `.data/` mounted
+- [x] 3.7 Frontend checks: `format:check`, `lint`, `type-check`, `npm test -- --run` and `npm run test:e2e`, desktop and mobile
+
+## 4. Docs
+
+- [x] 4.1 `docs/testing/api.md`: the hmmscore section shows a real job with the example on the data sample, and how to fetch the sample. It shows no time limit example, which the sample can't reproduce through the API, and says the tests cover it (decision 8). The `501` goes; the settings table and its note drop "takes effect when hmmscore's scoring is wired in", the time limit's row says it's the most a job gets, at 10,000 residues, `--cpu`'s row says both tools, and a row for `PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS` (120) joins it; the links to `add-hmmscore-job` point to its archive. `api/README.md`: hmmscore runs. `compose.yaml`: the `api` service's comment names the hmmscore sample
+- [x] 4.2 `docs/testing/frontend.md`: the hmmscore mocks and specs without the `501`, and the `@api` spec's real hit. `docs/manual-qa/04-hmmscore-form.md`: no notice or mark; the real API scores the example, and the job page shows `PTHR18976:SF2`, its alignment and PANTHER 19, replacing the "not available yet" step
+- [x] 4.3 `docs/deployment/runbook-server.md`: the full library under `hmmscore/19/`, downloaded on the host and passed to `panther-engine hmmscore data fetch --tarball`; the hmmscore settings, with the engine developer setting the server's values (#68). Checked against `engine/src/panther_engine/hmmscore/cli.py`'s options, and with no memory figure for the server
+- [x] 4.4 `docs/parity/divergences.md`: row 14, `hmmscore`, the time limit by length: a job past its limit (120 s for the shortest sequence, up to 720 s at 10,000 residues) fails with a `503`, where the reference answered however long it took; the margins on Endeavour at `--cpu 0`, about 10 times APOE's 13 s, 4 times Q14204's cold 93 s and 3 times `titin-10000`'s 231 s, and that they aren't the server's; approved by the engine developer, 2026-11-18, on #83. Verify with `npx markdownlint-cli2`
+- [x] 4.5 Reap killed tools (decision 9): `init: true` on the `api` service in `compose.yaml`, and `--init` where `docs/deployment/runbook-server.md` starts the API container. Verify `docker compose config` shows it
+- [x] 4.6 `api/CLAUDE.md`: "Adding a Service" says hmmscore has been through all four steps, that the `501` mechanism is gone until a service needs it again, and how the settings reach the worker (`JobOptions`). `frontend/CLAUDE.md` if a convention changed. Final check, from the root: `npx markdownlint-cli2`, `npx openspec validate --all` and `npx openspec validate wire-hmmscore --strict`
+
+## Workflow follow-up
+
+- **Review:** the API developer and the frontend developer approve; the engine developer approves group 0 and reviews the use of `panther_engine.hmmscore` and the server's data step. Row 14 is approved (2026-11-18).
+- **On the server:** the engine developer fetches the full library and sets the hmmscore settings before or with the deploy (#68).
+- **After the implementation merges,** archive with `/opsx:archive`, after `port-hmmscore`'s archive, which puts `hmmscore-engine` in `openspec/specs/`.
+
+## Notes
+
+### Next action
+
+Every task is applied (2026-11-19), with the three review comments of 2026-11-19 on #83 answered. Next: one review of the whole pull request by the engine developer, with 2.3's CI legs checked in its logs; then merge, and archive with `/opsx:archive` once #82 and `port-hmmscore`'s archive have merged.
+
+### Blockers
+
+- **#82 (`add-hmmscore-form`'s archive) is still open.** The `scoring-ui` requirements this change modifies and removes are in `openspec/specs/` only once it merges; until then, archiving this change would fail. It doesn't block merging the code.
+- **`port-hmmscore` isn't archived.** This change's `hmmscore-engine` delta modifies a requirement that reaches `openspec/specs/` only with that archive. It doesn't block merging the code either.
+- **#83 needs its approval again,** after the pushes that added the code.
+- #81 (`port-hmmscore`) merged on 2026-11-17 (`c74a30b`), and group 0 is applied (2026-11-19): neither blocks any more.
+
+### Failed approaches
+
+None in the code.
+
+### Lessons learned
+
+- **The engine's interface fits the plan, with one addition.** `score()` is `add-hmmscore-job`'s decision 4 as proposed. Beside the time limit's error, `HmmscoreError` and `ValueError`, it can raise `LibraryFormatError` for a broken `names.tab`, `MissingDataError`, and `DataFolderError` when `PANTHER_DATA_DIR` isn't set; all three are the generic `500` (proposal draft, 2026-11-17).
+- **`run_job` takes only the request,** and a `spawn` worker has no settings, so the time limit and `--cpu` need a way in: `JobOptions` (design.md, decision 2).
+- **The review of #83 (2026-11-18),** the engine developer's, and what changed:
+  - a time limit isn't always the input's fault: a short query reaches its limit on a busy server, so the engine raises its own timeout error, and the API fails the job with a `503` and its own message (decision 3);
+  - a dead worker's `hmmscan` ran on, unlimited, beside the next job: `run_tool` now bounds it (decision 9, task 0.2);
+  - the length-scaled time limit is a divergence, row 14, approved by the engine developer on 2026-11-18;
+  - only the search tools die with their worker, through `PR_SET_PDEATHSIG`, since `preexec_fn` isn't safe in the API's threaded process (decision 9);
+  - the time limit divides by the fixed 10,000, so lowering the residue limit doesn't lengthen it;
+  - `UNAVAILABLE` and the frontend's `unavailable` both go, one rule for both sides;
+  - the API's real-data tests use the engine's `parity` readers and skip with another HMMER on `PATH`;
+  - the tests, stand-ins and texts that change are named in the tasks.
+- **Applying groups 1, 3 and 4 (2026-11-18):**
+  - the time limit rounds a half up, in whole numbers (`hmmscore_time_limit`), so 317 residues give 139 s and 5,000 give 420 s exactly, with no float rounding;
+  - `score_with_a_fake_engine` replaces both engines' `score()`, and the fake hmmscore hit's alignment names the `cpu` and `timeout` the search got, so a test through the API sees what reached the worker;
+  - a commit that changes `api/openapi.json` carries the regenerated `schema.d.ts`, so CI's `frontend` job passes on each commit;
+  - in api-mode e2e, real hmmscore searches hold the two workers for 10 to 25 s under load, so `e2e/jobs.spec.ts`'s tools check waits up to 60 s, not 15;
+  - through the API image with the data sample, the form's example gives `PTHR18976:SF2`, "APOLIPOPROTEIN E", `2.2e-133`, `439.0` and PANTHER 19; the first job ran 8.5 s, a worker's start included, and the startup check logs nothing for hmmscore;
+  - natively on Windows, `tests/test_refmap_classification.py::test_a_file_replaced_after_opening_is_sent_as_it_was` fails before and after this change (`WinError 5` on the rename), from `main`; not this change's.
+- **Applying group 0 (2026-11-19):**
+  - `TimeLimitError` is a plain `Exception` raised with one argument, the message, so it pickles with its type; `score()` raises it from `remaining()` too, when no time is left to start `hmmsearch`. The `hmmscore score` CLI catches it beside `InputError`, so `--timeout` still prints the message and exits 1;
+  - before 0.2, in the engine image, `hmmscan`, `hmmsearch` and `blastp` all ran on after their parent was killed with `SIGKILL`: the orphan was real;
+  - `prctl` is looked up with `ctypes` once, at import, so the child runs as little Python as it can between `fork` and `exec`;
+  - in the image, the container's first process can reap a killed tool between the test opening `/proc/<pid>/stat` and reading it, which raises `ProcessLookupError`; the test counts that as gone. It failed one full run in the image before that;
+  - the check that the parent is still there after `prctl` has no test: the race can't be reproduced reliably;
+  - an exception in `preexec_fn` reaches the parent only as `SubprocessError("Exception occurred in preexec_fn.")`, which the callers, catching `OSError`, missed; `run_tool` raises it as `OSError`, as for a program that can't start (from the review of #83's code);
+  - natively on macOS, the Linux-only tests skip, as do the tool tests with a HMMER other than 3.4.
+- **Applying 1.3 and group 2, and the review of 2026-11-19:**
+  - the runner catches `TimeLimitError` before any other exception, and works the limit out again from the request and the options for its `WARNING` line, so it needs nothing from the exception;
+  - a stand-in's parameter can't reach a worker, so `fail_hmmscore_jobs` picks its failure by the sequence, and treats `PAST_THE_TIME_LIMIT` as a prefix, so a test can give the job APOE's 317 residues and its 139 s limit;
+  - `tests/test_markers.py` runs stand-in HMMERs on both systems (a `.cmd` on Windows, a shell script elsewhere), and clears `PANTHER_REQUIRE_TOOLS`, which the image run sets: with it set, a missing tool fails rather than skips;
+  - `run_hmmscore` takes a float `timeout`, for the test of a millisecond's limit;
+  - in the image with the sample, the four hmmscore tests and the six marker tests passed (10 in 71 s), and the `csnp` and `refmap` real-job tests with them;
+  - in a full api-mode e2e run, the example's hmmscore job waited 22.7 s behind other specs' jobs, for the one running hmmscore job and a worker, then ran 7.8 s, past Playwright's default 30 s per test: the `@api` hmmscore and tools specs get `test.setTimeout(90_000)`, as cSNP's and refmap's have;
+  - `HMMSCORE_MAX_RESIDUES` lives in `jobs/hmmscore.py`, so `work.py`, which every worker imports, no longer loads `panther_api.settings` or `pydantic_settings` (review);
+  - CI's hmmscore `curl` step, run against the image on port 8001 with `jq` in a container, passed: `PTHR18976:SF2`, "APOLIPOPROTEIN E", PANTHER 19.
+  - the whole API suite in the image, on Docker Desktop for Windows, is impractically slow: each app start's data check stats refmap's 1,534 files and the classification JSON over the bind mount, about 9 s, and the suite starts hundreds of apps. 2.4 rests on the native suite and, in the image, every test that needs the tools or data, as CI's `api-image` job runs them.

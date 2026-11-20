@@ -16,7 +16,6 @@ function show(failure: NotStarted | null, limited = false) {
 
 describe('SubmitAlert', () => {
   it.each([
-    [{ problem: 'unavailable', retryAfter: null }, /hmm scoring isn.t available yet/i],
     [{ problem: 'busy', retryAfter: 30 }, /hmm scoring is busy.*about 30 seconds/i],
     [{ problem: 'unreachable', retryAfter: null }, /can.t be reached/i],
     [{ problem: 'failed', retryAfter: null }, /couldn.t be started/i],
@@ -27,7 +26,6 @@ describe('SubmitAlert', () => {
   })
 
   it.each([
-    { problem: 'unavailable', retryAfter: null },
     { problem: 'busy', retryAfter: 30 },
     { problem: 'failed', retryAfter: null },
   ] as const)('limited, says %o as the job not started', failure => {

@@ -272,7 +272,8 @@ def test_a_failed_job_frees_its_place(monkeypatch: pytest.MonkeyPatch) -> None:
             assert poll(client, response.json()["id"], until=("succeeded", "failed")) == "failed"
 
 
-# The startup checks of each service's data (scoring-jobs: Startup check of the refmap data).
+# The startup checks of each service's data (scoring-jobs: Startup check of the refmap data;
+# Startup check of the hmmscore data).
 
 
 def main_records(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
@@ -281,6 +282,24 @@ def main_records(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
 
 def complete(_data_dir: object = None) -> None:
     """A data check that passes."""
+
+
+def write_hmmscore_parts(data_dir: Path) -> None:
+    """The parts of the hmmscore data that every search needs, as the data sample has them, empty:
+    what the engine's startup check looks for."""
+    library = data_dir / "hmmscore" / "19"
+    (library / "globals").mkdir(parents=True)
+    (library / "books").mkdir()
+    for name in ("names.tab", *(f"binHmm.{suffix}" for suffix in ("h3f", "h3i", "h3m", "h3p"))):
+        (library / "globals" / name).touch()
+
+
+@pytest.fixture
+def hmmscore_data(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    """`PANTHER_DATA_DIR` names a folder with the hmmscore data's parts, and nothing else."""
+    monkeypatch.setenv("PANTHER_DATA_DIR", str(tmp_path))
+    write_hmmscore_parts(tmp_path)
+    return tmp_path
 
 
 def test_missing_data_is_logged_for_each_service_and_the_api_starts(
@@ -292,18 +311,55 @@ def test_missing_data_is_logged_for_each_service_and_the_api_starts(
         health = client.get("/api/v1/health")
 
     assert health.status_code == 200
-    csnp, refmap = main_records(caplog)
-    assert (csnp.levelno, refmap.levelno) == (logging.ERROR, logging.ERROR)
+    csnp, refmap, hmmscore = main_records(caplog)
+    assert {record.levelno for record in (csnp, refmap, hmmscore)} == {logging.ERROR}
     assert "csnp jobs will fail until the cSNP data is in place" in csnp.getMessage()
     assert "refmap jobs will fail until the refmap data is in place" in refmap.getMessage()
-    assert str(tmp_path) in csnp.getMessage()
-    assert str(tmp_path) in refmap.getMessage()
+    assert "hmmscore jobs will fail until the hmmscore data is in place" in hmmscore.getMessage()
+    for record in (csnp, refmap, hmmscore):
+        assert str(tmp_path) in record.getMessage()
 
 
-def test_csnp_data_without_refmap_data_logs_only_refmaps_error(
+def test_csnp_and_refmap_data_without_hmmscore_data_logs_only_hmmscores_error(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     monkeypatch.setenv("PANTHER_DATA_DIR", str(tmp_path))
+    monkeypatch.setattr("panther_engine.csnp.check_data", complete)
+    monkeypatch.setattr("panther_engine.refmap.check_data", complete)
+    monkeypatch.setattr("panther_engine.refmap.check_classification_json", complete)
+
+    with TestClient(create_app()) as client:
+        assert client.get("/api/v1/health").status_code == 200
+
+    [record] = main_records(caplog)
+    assert record.levelno == logging.ERROR
+    assert record.getMessage().startswith(
+        "hmmscore jobs will fail until the hmmscore data is in place: "
+    )
+    # The engine's message: the folder, and each part that's missing.
+    assert str(tmp_path / "hmmscore" / "19") in record.getMessage()
+    assert "globals/names.tab" in record.getMessage()
+    assert "books/" in record.getMessage()
+
+
+@pytest.mark.usefixtures("hmmscore_data")
+def test_the_hmmscore_data_samples_parts_log_no_hmmscore_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setattr("panther_engine.csnp.check_data", complete)
+    monkeypatch.setattr("panther_engine.refmap.check_data", complete)
+    monkeypatch.setattr("panther_engine.refmap.check_classification_json", complete)
+
+    with TestClient(create_app()) as client:
+        assert client.get("/api/v1/health").status_code == 200
+
+    assert main_records(caplog) == []
+
+
+@pytest.mark.usefixtures("hmmscore_data")
+def test_csnp_data_without_refmap_data_logs_only_refmaps_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     monkeypatch.setattr("panther_engine.csnp.check_data", complete)
 
     with TestClient(create_app()) as client:
@@ -319,10 +375,10 @@ def test_csnp_data_without_refmap_data_logs_only_refmaps_error(
     assert "lacks 1,534 of 1,534 files" in record.getMessage()
 
 
+@pytest.mark.usefixtures("hmmscore_data")
 def test_refmap_data_without_csnp_data_logs_only_csnps_error(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    monkeypatch.setenv("PANTHER_DATA_DIR", str(tmp_path))
     monkeypatch.setattr("panther_engine.refmap.check_data", complete)
     monkeypatch.setattr("panther_engine.refmap.check_classification_json", complete)
 
@@ -333,10 +389,10 @@ def test_refmap_data_without_csnp_data_logs_only_csnps_error(
     assert "csnp jobs will fail until the cSNP data is in place" in record.getMessage()
 
 
+@pytest.mark.usefixtures("hmmscore_data")
 def test_refmap_data_without_its_classification_json_logs_only_that(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    monkeypatch.setenv("PANTHER_DATA_DIR", str(tmp_path))
     monkeypatch.setattr("panther_engine.csnp.check_data", complete)
     monkeypatch.setattr("panther_engine.refmap.check_data", complete)
 
@@ -361,7 +417,7 @@ def test_an_unset_data_folder_is_logged_and_the_api_starts(
         assert client.get("/api/v1/health").status_code == 200
 
     records = main_records(caplog)
-    assert [record.getMessage().split()[0] for record in records] == ["csnp", "refmap"]
+    assert [record.getMessage().split()[0] for record in records] == ["csnp", "refmap", "hmmscore"]
     assert all("PANTHER_DATA_DIR" in record.getMessage() for record in records)
 
 
@@ -371,6 +427,7 @@ def test_complete_data_logs_nothing(
     calls: list[str] = []
     monkeypatch.setattr("panther_engine.csnp.check_data", lambda: calls.append("csnp"))
     monkeypatch.setattr("panther_engine.refmap.check_data", lambda: calls.append("refmap"))
+    monkeypatch.setattr("panther_engine.hmmscore.check_data", lambda: calls.append("hmmscore"))
     monkeypatch.setattr(
         "panther_engine.refmap.check_classification_json", lambda: calls.append("json")
     )
@@ -378,7 +435,7 @@ def test_complete_data_logs_nothing(
     with TestClient(create_app()) as client:
         assert client.get("/api/v1/health").status_code == 200
 
-    assert calls == ["csnp", "refmap", "json"]
+    assert calls == ["csnp", "refmap", "hmmscore", "json"]
     assert main_records(caplog) == []
 
 

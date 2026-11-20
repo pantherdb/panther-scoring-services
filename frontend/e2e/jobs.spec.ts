@@ -83,6 +83,7 @@ test(
   'checks the scoring tools against the API, and keeps the result at its URL',
   { tag: '@api' },
   async ({ page }) => {
+    test.setTimeout(90_000)
     const response = await page.request.get('/api/v1/versions')
     expect(response.ok()).toBe(true)
     const reported: Versions = await response.json()
@@ -90,8 +91,9 @@ test(
     await startToolsCheck(page)
 
     const status = page.getByRole('main').getByRole('status')
-    // The API's first job also starts a worker process, which takes a second or two.
-    await expect(status).toHaveText(/succeeded/i, { timeout: 15_000 })
+    // The API's first job also starts a worker process, which takes a second or two, and the job
+    // may wait for a worker behind other specs' real jobs, such as an hmmscore search.
+    await expect(status).toHaveText(/succeeded/i, { timeout: 60_000 })
     await expectToolsShown(page, reported.tools)
     // A tools job reads no data, so its versions name none.
     await expectJobVersionsShown(page, { ...reported, data: [] })

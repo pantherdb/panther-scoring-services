@@ -3,8 +3,8 @@ import type { components } from '@/app/api/schema'
 type Versions = components['schemas']['Versions']
 
 // The mocked GET /api/v1/versions body: the tool versions pinned in the API image,
-// cSNP's frozen PANTHER 9 data and refmap's PANTHER 19. Also read by the @mock e2e
-// spec, so keep this file free of runtime imports.
+// cSNP's frozen PANTHER 9 data, and refmap's and hmmscore's PANTHER 19. Also read by the
+// @mock e2e spec, so keep this file free of runtime imports.
 export const versions: Versions = {
   api: '0.1.0',
   engine: '0.1.0',
@@ -17,6 +17,7 @@ export const versions: Versions = {
   data: [
     { service: 'csnp', panther: '9' },
     { service: 'refmap', panther: '19' },
+    { service: 'hmmscore', panther: '19' },
   ],
 }
 

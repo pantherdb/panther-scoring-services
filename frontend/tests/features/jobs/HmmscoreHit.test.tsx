@@ -87,6 +87,9 @@ describe('an hmmscore job with a hit', () => {
     expect(within(shown).getByText('API').nextSibling).toHaveTextContent(versions.api)
     expect(within(shown).getByText('Engine').nextSibling).toHaveTextContent(versions.engine)
     expect(within(shown).getByText('hmmscan').nextSibling).toHaveTextContent('3.4')
+    // Traced to hmmscore's PANTHER 19 library, and only to it.
+    expect(within(shown).getByText('hmmscore data').nextSibling).toHaveTextContent('PANTHER 19')
+    expect(within(shown).queryByText(/csnp data|refmap data/i)).not.toBeInTheDocument()
   })
 })
 

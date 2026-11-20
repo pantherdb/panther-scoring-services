@@ -13,10 +13,12 @@ from fastapi.testclient import TestClient
 from job_helpers import (
     GATE_VARIABLE,
     INPUT_ERROR_MESSAGE,
+    PAST_THE_TIME_LIMIT,
     exit_worker,
     fail,
     fail_differently,
     fail_elsewhere,
+    fail_hmmscore_jobs,
     fail_with_a_new_message,
     no_hmm_hit,
     raise_input_error,
@@ -26,7 +28,6 @@ from job_helpers import (
 from polling import Job, submit_and_wait
 
 from panther_api.jobs.runner import INPUT_ERROR_OUTCOME, REFUSAL_INTERVAL, TRACEBACK_INTERVAL
-from panther_api.jobs.work import UNAVAILABLE
 from panther_api.main import create_app
 
 RUNNER = "panther_api.jobs.runner"
@@ -100,9 +101,7 @@ def test_a_csnp_job_line_has_its_size_and_none_of_its_input(
 def test_an_hmmscore_job_line_has_its_residues_and_not_its_sequence(
     monkeypatch: pytest.MonkeyPatch, client: TestClient, caplog: pytest.LogCaptureFixture
 ) -> None:
-    # The router answers 501 until hmmscore's scoring is wired in: lift it for this job, and stand
-    # in for the work. 317 residues and a final stop, which isn't one.
-    monkeypatch.delitem(UNAVAILABLE, "hmmscore")
+    # A stand-in for the work. 317 residues and a final stop, which isn't one.
     monkeypatch.setattr("panther_api.jobs.runner.run_job", no_hmm_hit)
     body = {"service": "hmmscore", "input": {"sequence": SEQUENCE[:317] + "*"}}
 
@@ -113,6 +112,32 @@ def test_an_hmmscore_job_line_has_its_residues_and_not_its_sequence(
     [record] = job_records(caplog, job)
     assert record.getMessage().startswith(f"Job {job['id']} hmmscore, 317 residues: succeeded, ")
     assert SEQUENCE[:20] not in caplog.text
+
+
+def test_an_hmmscore_job_past_its_time_limit_has_one_warning_line_without_a_traceback(
+    monkeypatch: pytest.MonkeyPatch, client: TestClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    # 317 residues, as APOE has, so a limit of 139 s with the default settings.
+    monkeypatch.setattr("panther_api.jobs.runner.run_job", fail_hmmscore_jobs)
+    sequence = PAST_THE_TIME_LIMIT + "W" * (317 - len(PAST_THE_TIME_LIMIT))
+
+    failed = run(client, {"service": "hmmscore", "input": {"sequence": sequence}})
+    succeeded = run(client, {"service": "hmmscore", "input": {"sequence": SEQUENCE[:317]}})
+
+    assert failed["error"]["status"] == 503
+    [record] = job_records(caplog, failed)
+    assert record.levelno == logging.WARNING
+    message = record.getMessage()
+    assert message.startswith(
+        f"Job {failed['id']} hmmscore, 317 residues: failed 503, past its time limit of 139 s, "
+        "waited "
+    )
+    assert ", ran " in message
+    assert record.exc_info is None
+    assert sequence[:20] not in caplog.text
+    assert succeeded["status"] == "succeeded"
+    [record] = job_records(caplog, succeeded)
+    assert record.levelno == logging.INFO
 
 
 def test_a_job_that_fails_on_its_input_has_one_info_line_without_a_traceback(

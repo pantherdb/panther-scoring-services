@@ -8,12 +8,14 @@ from importlib.metadata import version
 from typing import Any, override
 
 import panther_engine.csnp
+import panther_engine.hmmscore
 import panther_engine.refmap
 from fastapi import APIRouter, FastAPI
 from fastapi.concurrency import run_in_threadpool
 
 from panther_api.cors import Cors
 from panther_api.jobs.runner import JobRunner
+from panther_api.jobs.work import JobOptions
 from panther_api.limits import BodyLimit
 from panther_api.logs import configure_logging
 from panther_api.prefix import API_PREFIX
@@ -35,7 +37,11 @@ class PantherAPI(FastAPI):
         return self.openapi_schema
 
 
-DATA_CHECKS = (("csnp", "cSNP", panther_engine.csnp), ("refmap", "refmap", panther_engine.refmap))
+DATA_CHECKS = (
+    ("csnp", "cSNP", panther_engine.csnp),
+    ("refmap", "refmap", panther_engine.refmap),
+    ("hmmscore", "hmmscore", panther_engine.hmmscore),
+)
 """Each service whose jobs need data: its name, its data's name, and the engine module whose
 `check_data()` checks it. Looked up when called, so a test can patch a module's check."""
 
@@ -75,6 +81,15 @@ def check_data() -> None:
         )
 
 
+def job_options(settings: Settings) -> JobOptions:
+    """What every job's work gets from the settings: a worker never reads them itself."""
+    return JobOptions(
+        hmmscore_cpu=settings.hmmscore_cpu,
+        hmmscore_time_limit_seconds=settings.hmmscore_time_limit_seconds,
+        hmmscore_min_time_limit_seconds=settings.hmmscore_min_time_limit_seconds,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Before the app takes requests: read the settings, set up the log, read the versions, and
@@ -94,6 +109,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         expiry=timedelta(seconds=settings.job_expiry_seconds),
         results_budget=settings.results_budget_mib * MIB,
         versions=app.state.versions,
+        options=job_options(settings),
         max_running={"hmmscore": settings.hmmscore_max_running},
     )
     app.state.jobs = runner

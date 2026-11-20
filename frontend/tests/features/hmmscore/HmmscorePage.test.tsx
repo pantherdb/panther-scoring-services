@@ -107,11 +107,12 @@ describe('the HMM scoring form', () => {
     expect(tabs.getByRole('link', { name: /hmm scoring/i })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('says HMM scoring is not available yet, before the box, and stays usable', () => {
+  it('has no coming-soon mark and no notice, and is usable', () => {
     renderRoute('/hmmscore')
 
-    const notice = main().getByText(/isn.t available on this site yet/i)
-    expect(notice.compareDocumentPosition(sequenceBox())).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(main().queryByText(/coming soon/i)).not.toBeInTheDocument()
+    expect(main().queryByText(/isn.t available/i)).not.toBeInTheDocument()
+    expect(main().queryByRole('note')).not.toBeInTheDocument()
     expect(sequenceBox()).toBeEnabled()
     expect(submitButton()).toBeEnabled()
   })
@@ -370,7 +371,7 @@ describe("the API's validation errors", () => {
 })
 
 describe('when the job is not started', () => {
-  it("says HMM scoring isn't available yet on the API's 501, in fixed text", async () => {
+  it('says the job could not be started on a 501 with problem details, as from an older API', async () => {
     const bodies = serveProblem(501, problem(501, 'Not Implemented'))
     const rendered = renderRoute('/hmmscore')
     enter(VALID)
@@ -378,7 +379,8 @@ describe('when the job is not started', () => {
     await rendered.user.click(submitButton())
 
     const alert = await main().findByRole('alert')
-    expect(alert).toHaveTextContent(/hmm scoring isn.t available yet/i)
+    expect(alert).toHaveTextContent(/couldn.t be started/i)
+    expect(alert).not.toHaveTextContent(/isn.t available/i)
     expect(bodies).toHaveLength(1)
     expect(screen.getByRole('main').textContent).not.toMatch(BUILD_DETAILS)
     expect(screen.getByRole('main').textContent).not.toMatch(STATUS_CODES)

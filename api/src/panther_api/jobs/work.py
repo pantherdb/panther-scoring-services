@@ -1,42 +1,29 @@
-"""What the worker processes run: the job request union, the result union and `run_job()`.
+"""What the worker processes run: the job request union, the result union, the job's options
+and `run_job()`.
 
 Workers are started with `spawn`, so each one imports this module afresh and gets everything it
-needs from `run_job`'s argument. Keep it that way: no state set up at import time in the API
-process reaches a worker. Keep the imports light too: a worker imports this module, and doesn't
-need FastAPI.
+needs from `run_job`'s arguments: the request, and the options the API read from its settings
+(`JobOptions`). Keep it that way: no state set up at import time in the API process reaches a
+worker. Keep the imports light too: a worker imports this module, and doesn't need FastAPI.
 
 A scoring service joins by adding its request model to `JobRequest`, its result to `JobResult`,
-and a case to `run_job`. One whose contract comes before its port also gets a row in
-`UNAVAILABLE`, which the router answers with a 501, and a `run_job` case that refuses to run.
+and a case to `run_job`.
 """
 
 from dataclasses import dataclass
-from typing import Annotated, Literal, NamedTuple, get_args
+from typing import Annotated, Literal, get_args
 
 from pydantic import BaseModel, Field
 
 from panther_api.jobs.csnp import CsnpInput, CsnpResult, run_csnp
-from panther_api.jobs.hmmscore import HmmscoreInput, HmmscoreResult
+from panther_api.jobs.hmmscore import (
+    HMMSCORE_MAX_RESIDUES,
+    HmmscoreInput,
+    HmmscoreResult,
+    run_hmmscore,
+)
 from panther_api.jobs.refmap import RefmapInput, run_refmap
 from panther_api.jobs.tools import ToolsInput, ToolsResult, run_tools
-
-
-class Unavailable(NamedTuple):
-    """Why a service's valid request gets a 501 and no job."""
-
-    detail: str
-    """The 501's `detail`."""
-    until: str
-    """Ends the 501's description after the service's name, such as "until it's ported"."""
-
-
-UNAVAILABLE: dict[str, Unavailable] = {
-    # Removed, with run_job's hmmscore case, when the engine's hmmscore scoring is wired in. The
-    # same change calls `score()` with the time limit and `--cpu` settings, adds hmmscore's data
-    # check at startup and its data version (openspec add-hmmscore-job, design.md, Migration Plan).
-    "hmmscore": Unavailable("HMM scoring isn't available yet.", "until its scoring is ported"),
-}
-"""The services whose requests are validated, then refused with a 501 (routers/jobs.py)."""
 
 
 class ToolsJobRequest(BaseModel):
@@ -61,10 +48,7 @@ class RefmapJobRequest(BaseModel):
 
 
 class HmmscoreJobRequest(BaseModel):
-    """Start an `hmmscore` job: score one protein against PANTHER's HMM library.
-
-    Until the engine's hmmscore scoring is wired in, a valid request gets a 501, and no job.
-    """
+    """Start an `hmmscore` job: score one protein against PANTHER's HMM library."""
 
     service: Literal["hmmscore"]
     input: HmmscoreInput
@@ -85,6 +69,24 @@ SERVICES: frozenset[str] = frozenset(get_args(Service))
 
 
 @dataclass(frozen=True)
+class JobOptions:
+    """What a job's work needs from the API's settings, which only the API process reads.
+
+    The lifespan builds them once from the settings (main.py), and the runner submits them with
+    every job, beside its request (openspec wire-hmmscore, design.md, decision 2). Each case of
+    `run_job` takes what it needs and ignores the rest.
+    """
+
+    hmmscore_cpu: int
+    """`--cpu` for both `hmmscan` and `hmmsearch` (`PANTHER_API_HMMSCORE_CPU`)."""
+    hmmscore_time_limit_seconds: int
+    """The time limit at 10,000 residues, the most a job gets
+    (`PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS`)."""
+    hmmscore_min_time_limit_seconds: int
+    """The time limit of the shortest sequence (`PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS`)."""
+
+
+@dataclass(frozen=True)
 class SerializedResult:
     """A result already serialised as JSON, in the worker: a `RefmapResult`'s bytes.
 
@@ -101,8 +103,24 @@ JobResult = ToolsResult | CsnpResult | HmmscoreResult | SerializedResult
 """What a job's work returns. A small result is a model; a large one, refmap's, is serialised."""
 
 
-def run_job(request: JobRequest) -> JobResult:
-    """Do a job's work. The runner submits this function to the worker pool."""
+def hmmscore_time_limit(residues: int, options: JobOptions) -> int:
+    """An hmmscore job's time limit, in seconds: the minimum, plus the difference between the time
+    limit and the minimum, times the residues over 10,000, rounded to the nearest second, a half
+    up.
+
+    It divides by 10,000, the most residues the API ever takes, not by the configured residue
+    limit, so a server that lowers that doesn't lengthen anyone's limit (openspec wire-hmmscore,
+    design.md, decision 3; divergence row 14). With the defaults, APOE's 317 residues get 139 s.
+    """
+    floor = options.hmmscore_min_time_limit_seconds
+    spread = options.hmmscore_time_limit_seconds - floor
+    # In whole numbers, so the rounding is exact.
+    return floor + (2 * spread * residues + HMMSCORE_MAX_RESIDUES) // (2 * HMMSCORE_MAX_RESIDUES)
+
+
+def run_job(request: JobRequest, options: JobOptions) -> JobResult:
+    """Do a job's work, with the API's options. The runner submits this function to the worker
+    pool."""
     match request:
         case ToolsJobRequest():
             return run_tools(request.input)
@@ -111,6 +129,8 @@ def run_job(request: JobRequest) -> JobResult:
         case RefmapJobRequest():
             return SerializedResult(run_refmap(request.input))
         case HmmscoreJobRequest():
-            # The router answers 501 and never submits one. If one gets here anyway, the job
-            # fails with the generic error, never a made-up hit. The wiring calls the engine here.
-            raise NotImplementedError(UNAVAILABLE["hmmscore"].detail)
+            return run_hmmscore(
+                request.input,
+                cpu=options.hmmscore_cpu,
+                timeout=hmmscore_time_limit(request.input.residues, options),
+            )

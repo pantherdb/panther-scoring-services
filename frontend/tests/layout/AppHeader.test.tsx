@@ -9,12 +9,7 @@ import { server } from '../mocks/server'
 import { renderRoute } from '../utils/render'
 
 const ID = '0b6f5ad2-5d1e-4f63-9f4e-3c1de2a8f001'
-const TABS = [
-  /^cSNP scoring$/,
-  /^ID mapping$/,
-  /^HMM scoring \(coming soon\)$/,
-  /^TreeGrafter \(coming soon\)$/,
-]
+const TABS = [/^cSNP scoring$/, /^ID mapping$/, /^HMM scoring$/, /^TreeGrafter \(coming soon\)$/]
 
 function tabs() {
   return within(screen.getByRole('navigation', { name: /services/i })).getAllByRole('link')
@@ -41,7 +36,7 @@ describe('the header', () => {
     expect(await screen.findByRole('link', { name: /score coding snps/i })).toBeInTheDocument()
   })
 
-  it('lists the four services in priority order, marking the ones not available yet', () => {
+  it('lists the four services in priority order, marking only TreeGrafter not available yet', () => {
     renderRoute('/')
 
     const shown = tabs()
@@ -79,7 +74,7 @@ describe('the header', () => {
     expect(currentTabs()[0]).toHaveAccessibleName(/cSNP scoring/)
   })
 
-  it("opens HMM scoring's form from its tab while it's coming soon, and marks it current", async () => {
+  it("opens HMM scoring's form from its tab, and marks it current", async () => {
     const { user } = renderRoute('/')
 
     await user.click(screen.getByRole('link', { name: /hmm scoring/i }))

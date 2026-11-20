@@ -49,7 +49,7 @@ describe('the home page', () => {
     expect(refmap.queryByText(/coming soon/i)).not.toBeInTheDocument()
   })
 
-  it('links to the HMM scoring form, still marked coming soon', () => {
+  it('links to the HMM scoring form, with no coming-soon mark', () => {
     renderRoute('/')
 
     const hmmscore = card(/hmm scoring/i)
@@ -57,28 +57,25 @@ describe('the home page', () => {
       'href',
       '/hmmscore'
     )
-    expect(hmmscore.getByText(/coming soon/i)).toBeInTheDocument()
+    expect(hmmscore.queryByText(/coming soon/i)).not.toBeInTheDocument()
   })
 
-  it('marks only HMM scoring and tree grafting coming soon', () => {
+  it('marks only tree grafting coming soon', () => {
     renderRoute('/')
 
     const marked = main()
       .getAllByRole('heading', { level: 2 })
       .filter(heading => within(heading.closest('section')!).queryByText(/coming soon/i))
       .map(heading => heading.textContent)
-    expect(marked).toEqual(['HMM scoring', 'Tree grafting'])
+    expect(marked).toEqual(['Tree grafting'])
   })
 
-  it.each([
-    [/hmm scoring/i, '/hmmscore'],
-    [/tree grafting/i, '/treegrafter'],
-  ])('marks %s coming soon, and links to its page', (name, path) => {
+  it('marks tree grafting coming soon, and links to its page', () => {
     renderRoute('/')
 
-    const shown = card(name)
+    const shown = card(/tree grafting/i)
     expect(shown.getByText(/coming soon/i)).toBeInTheDocument()
-    expect(shown.getByRole('link')).toHaveAttribute('href', path)
+    expect(shown.getByRole('link')).toHaveAttribute('href', '/treegrafter')
   })
 
   it('keeps the scoring tools check', () => {

@@ -70,6 +70,8 @@ Every external tool is started through `run_tool()` in `src/panther_engine/core/
 
 **BLAST+'s usage reports are off.** BLAST+ 2.17.0 otherwise sends NCBI a usage report on every run, `-version` included, and where that traffic is dropped it waits about 10 seconds first. `run_tool()` sets `BLAST_USAGE_REPORT=false` for every tool, over whatever the caller's environment has, and the `Dockerfile`'s `tools` stage sets it too, so a `blastp` run by hand in any image doesn't report either.
 
+**A search tool dies with its parent.** `hmmscan`, `hmmsearch` and `blastp` run with `run_tool()`'s `die_with_parent`. On Linux, the kernel then kills the tool with `SIGKILL` when the process that started it dies, so a job's worker killed by the out-of-memory killer, or by a broken pool, doesn't leave its search running without its time limit. Other tools, such as the version checks, don't use it: it runs Python in the child before the tool starts, which isn't safe in a process with threads, such as the API's. Its tests in `tests/test_process.py` run on Linux only, natively in CI's `engine` job and in the image. Without an init process, as in the image, a killed tool stays a zombie until something reaps it, so the tests count a zombie as gone.
+
 In tests, the `make_tool` fixture (`tests/conftest.py`) writes a fake tool: a small shell script in a temporary folder. `tests/test_process.py` and `tests/test_tools.py` show how to use it.
 
 ## Scoring From the Command Line
@@ -117,7 +119,7 @@ alignment
 
 - **The protein** is a FASTA file with one header line, or the sequence alone, or standard input for `-` or no file. It's normalised as `csnp score`'s is. A character the API refuses, such as a digit or `-`, is refused (divergence 12).
 - **No hit** prints `No hit`: no model reported, or the best one's E-value over 1e-3.
-- **`--cpu N`** is `hmmscan`'s and `hmmsearch`'s `--cpu`, 0 by default, which uses the least memory. **`--timeout S`** limits the whole search to S seconds, as the API's `hmmscore_time_limit_seconds` will; past it, it fails with the API's message. With none, it isn't limited.
+- **`--cpu N`** is `hmmscan`'s and `hmmsearch`'s `--cpu`, 0 by default, which uses the least memory. **`--timeout S`** limits the whole search to S seconds, as the API's time limit will. Past it, the engine raises its `TimeLimitError`, and the command prints its message, "The search took longer than this service allows. Try a shorter sequence.", and exits with status 1. The API writes its own message for a job past its limit (wire-hmmscore). With no `--timeout`, the search isn't limited.
 - **`--usage`** prints, to standard error, the wall time and the largest peak memory of the tools it ran, from the kernel's accounting of child processes. Run it in a fresh process for each query.
 - **`--json`** prints the result as `score()` returns it. **`--data-dir`** overrides `PANTHER_DATA_DIR`.
 - **Exit status 1** for input it can't score, missing data or a tool that fails, with the reason on standard error.

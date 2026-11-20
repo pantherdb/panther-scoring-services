@@ -4,7 +4,8 @@ Thin layers over `run_tool`: an argument list and no shell, the program found on
 `core/tools.py` finds it, and the output written to a file byte for byte. `hmmscan` writes its
 `--domtblout` table, which `hmmscore` reads; `hmmsearch` writes its full text report, with the
 alignments, which `hmmscore` shows and `treegrafter` will read. Each returns the finished process:
-checking its exit status is the caller's job, as with `run_tool`.
+checking its exit status is the caller's job, as with `run_tool`. Each dies with the process that
+started it, on Linux (`run_tool`'s `die_with_parent`).
 """
 
 import os
@@ -38,7 +39,14 @@ def hmmscan(
     kills it and raises `subprocess.TimeoutExpired`.
     """
     args = ["--domtblout", str(table), "--cpu", str(cpu), str(database), str(query)]
-    return run_tool(program("hmmscan"), args, timeout=timeout, cwd=cwd, stdout=Path(os.devnull))
+    return run_tool(
+        program("hmmscan"),
+        args,
+        timeout=timeout,
+        cwd=cwd,
+        stdout=Path(os.devnull),
+        die_with_parent=True,
+    )
 
 
 def hmmsearch(
@@ -56,4 +64,6 @@ def hmmsearch(
     `timeout` seconds kills it and raises `subprocess.TimeoutExpired`.
     """
     args = ["--cpu", str(cpu), str(model), str(query)]
-    return run_tool(program("hmmsearch"), args, timeout=timeout, cwd=cwd, stdout=report)
+    return run_tool(
+        program("hmmsearch"), args, timeout=timeout, cwd=cwd, stdout=report, die_with_parent=True
+    )

@@ -91,7 +91,7 @@ docker run ...                                     # the same command as above
 
 **To roll back,** remove the container and run the same command with `panther-web:previous`.
 
-**When the API's container is replaced,** start the new one with `--network panther` and the same name. `panther-web` finds it without a restart.
+**When the API's container is replaced,** start the new one with `--network panther`, the same name and `--init` ([The API's Container](#the-apis-container)). `panther-web` finds it without a restart.
 
 ## B: The Built Files
 
@@ -186,7 +186,7 @@ The five `hmmscore` settings bound what an HMM search may take: `PANTHER_API_HMM
 
 ### The API's Container
 
-Start the API's container with an init process: `--init` on its `docker run`, as compose's `init: true` does for the `api` service. When a worker process dies, the search tool it was running (`hmmscan`, `hmmsearch` or `blastp`) is handed to the container's first process, and the engine has it killed (`wire-hmmscore`, design.md, decision 9). Without an init, that first process is the API, which doesn't reap it, so each such tool stays a zombie until the container restarts: harmless, but it shouldn't build up.
+Start the API's container with an init process: `--init` on its `docker run`, as compose's `init: true` does for the `api` service. When a worker process dies, however it dies, the kernel kills the search tool it was running (`hmmscan`, `hmmsearch` or `blastp`), so no search runs on without its time limit: the engine starts each search tool with `PR_SET_PDEATHSIG` (`wire-hmmscore`, design.md, decision 9). The killed tool is left to the container's first process to reap. Without an init, that's the API, which doesn't, so each such tool stays a zombie until the container restarts: harmless, but it shouldn't build up.
 
 ## Checking It Works
 

@@ -11,9 +11,7 @@ When an `hmmscore` job has failed past its time limit, with an `error` of status
 - **WHEN** the user opens the page of an `hmmscore` job that failed with status 503 and the `detail` "The search took longer than this service allows. The server may be busy: try again later, or with a shorter sequence."
 - **THEN** the page says the job failed, shows that `detail`, shows no hit or alignment, and doesn't say the scoring service can't be reached
 
-## MODIFIED Requirements
-
-### Requirement: Services that aren't available yet
+### Requirement: Services marked coming soon
 
 Every service the API can't score yet SHALL be marked "coming soon", in its tab and on the home page: today TreeGrafter. TreeGrafter MUST open a page that says what the service will do, that it's coming soon, and links home.
 
@@ -31,6 +29,8 @@ Every service the API can't score yet SHALL be marked "coming soon", in its tab 
 
 - **WHEN** the user follows the HMM scoring tab
 - **THEN** the HMM scoring form is shown, HMM scoring is marked as current, and the page has no "coming soon" mark and no notice that HMM scoring isn't available
+
+## MODIFIED Requirements
 
 ### Requirement: The home page shows every service
 
@@ -90,6 +90,12 @@ When an `hmmscore` job has succeeded with a hit, the job page SHALL show the hit
 - **THEN** the page shows no hit and no alignment
 
 ## REMOVED Requirements
+
+### Requirement: Services that aren't available yet
+
+**Reason**: HMM scoring is available, so only TreeGrafter is marked, and HMM scoring's scenario changes from "HMM scoring's form while coming soon" to a form with no mark or notice. A MODIFIED block can't drop a scenario, so the requirement is replaced by "Services marked coming soon".
+
+**Migration**: None. "Services marked coming soon" keeps the marks and TreeGrafter's page, and its "HMM scoring's form" scenario replaces "HMM scoring's form while coming soon".
 
 ### Requirement: HMM scoring form says it isn't available yet
 

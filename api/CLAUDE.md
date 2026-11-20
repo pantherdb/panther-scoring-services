@@ -106,7 +106,7 @@ The setup is in [docs/testing/api.md](../docs/testing/api.md), "Tests (pytest)".
 
 ## Running It With Docker
 
-- **The data:** the compose `api` service reads the cSNP data and the refmap data from `.data/`. Fetch them there first; [docs/testing/engine.md](../docs/testing/engine.md), "The cSNP Data Sample", and [docs/testing/api.md](../docs/testing/api.md), "The refmap Data", say how.
+- **The data:** the compose `api` service reads the cSNP data sample, the refmap data and the hmmscore data sample from `.data/`. Fetch them there first; [docs/testing/engine.md](../docs/testing/engine.md), "The cSNP Data Sample", and [docs/testing/api.md](../docs/testing/api.md), "The refmap Data" and "The hmmscore Job", say how. Without a service's data, its jobs fail with the generic error: without the hmmscore sample, every `hmmscore` job does, the `@api` e2e spec and manual QA's TC 4.4 included.
 - **In Git Bash, start a `docker run` line with `MSYS_NO_PATHCONV=1`.** Otherwise Git Bash rewrites container paths such as `/data` into Windows paths, and every `csnp` job fails with the generic error.
 - **Check that the image was loaded.** If `docker build` warns that the result stays in the build cache, `docker run` starts an older image. Build with `docker buildx build --load`.
 - **Don't disturb a developer's running API.** An agent, or a script, testing the image should run it with `docker run` on another port, such as 8001. Never `docker compose down`, `stop` or `up` the repository's project, which may be serving the developer's frontend on port 8000.

@@ -28,8 +28,10 @@ def item(*marks: pytest.MarkDecorator) -> pytest.Item:
 
 @pytest.fixture
 def on_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[[str, str], None]:
-    """Puts a program on PATH, alone, that prints `-h`'s first line as an HMMER of `version`."""
+    """Puts a program on PATH, alone, that prints `-h`'s first line as an HMMER of `version`.
+    Tools aren't required unless a test says so, whatever the run sets, as in the image."""
     monkeypatch.setenv("PATH", str(tmp_path))
+    monkeypatch.delenv("PANTHER_REQUIRE_TOOLS", raising=False)
 
     def write(name: str, version: str) -> None:
         line = f"# HMMER {version} (Aug 2023); http://hmmer.org/"

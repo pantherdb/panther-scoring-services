@@ -16,10 +16,14 @@ from typing import Annotated, Literal, get_args
 from pydantic import BaseModel, Field
 
 from panther_api.jobs.csnp import CsnpInput, CsnpResult, run_csnp
-from panther_api.jobs.hmmscore import HmmscoreInput, HmmscoreResult, run_hmmscore
+from panther_api.jobs.hmmscore import (
+    HMMSCORE_MAX_RESIDUES,
+    HmmscoreInput,
+    HmmscoreResult,
+    run_hmmscore,
+)
 from panther_api.jobs.refmap import RefmapInput, run_refmap
 from panther_api.jobs.tools import ToolsInput, ToolsResult, run_tools
-from panther_api.settings import HMMSCORE_MAX_RESIDUES
 
 
 class ToolsJobRequest(BaseModel):

@@ -10,6 +10,10 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+# The default, and the most allowed, for hmmscore's residue limit. It lives with hmmscore's input,
+# so the workers, which import that module, don't load the settings.
+from panther_api.jobs.hmmscore import HMMSCORE_MAX_RESIDUES
+
 MIB = 1024 * 1024
 
 MAX_BODY_BYTES = 16 * MIB
@@ -23,13 +27,6 @@ point the server sets to suit it (openspec wire-refmap, design.md, decision 4)."
 MAX_QUEUED_JOBS = 50
 """The default cap on jobs waiting for a worker. Why 50: openspec harden-api-for-hosting,
 design.md, decision 3."""
-
-HMMSCORE_MAX_RESIDUES = 10_000
-"""The default, and the most allowed, for the residues an hmmscore sequence may have: the product
-owner's starting limit of 2026-11-12, in place of the website's 50,000 (openspec add-hmmscore-job,
-design.md, decision 5; divergence row 11). A server may set it lower. An hmmscore job's time limit
-scales with its residues over this fixed 10,000, not over the setting (jobs/work.py,
-`hmmscore_time_limit`)."""
 
 HMMSCORE_TIME_LIMIT_SECONDS = 720
 """The default time limit of an hmmscore job of 10,000 residues, the most a job gets: about three

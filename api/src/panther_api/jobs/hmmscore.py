@@ -26,6 +26,14 @@ from panther_api.jobs.fields import (
     normalise_sequence,
 )
 
+HMMSCORE_MAX_RESIDUES = 10_000
+"""The most residues an hmmscore sequence may ever have, and the setting's default: the product
+owner's starting limit of 2026-11-12, in place of the website's 50,000 (openspec add-hmmscore-job,
+design.md, decision 5; divergence row 11). A server may set `PANTHER_API_HMMSCORE_MAX_RESIDUES`
+lower (settings.py, which imports it from here). An hmmscore job's time limit scales with its
+residues over this fixed 10,000, not over the setting (jobs/work.py, `hmmscore_time_limit`). It's
+here, not in settings.py, so a worker importing work.py doesn't load the settings."""
+
 STOP = "*"
 """A stop. A final one, which translated sequences often end with, isn't counted as a residue."""
 

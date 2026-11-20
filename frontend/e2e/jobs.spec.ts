@@ -83,6 +83,7 @@ test(
   'checks the scoring tools against the API, and keeps the result at its URL',
   { tag: '@api' },
   async ({ page }) => {
+    test.setTimeout(90_000)
     const response = await page.request.get('/api/v1/versions')
     expect(response.ok()).toBe(true)
     const reported: Versions = await response.json()

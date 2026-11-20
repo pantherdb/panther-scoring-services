@@ -112,6 +112,8 @@ test(
   'scores the example against the API, and shows the real hit and its alignment',
   { tag: '@api' },
   async ({ page }) => {
+    // The job can wait for the one running hmmscore job and a worker, behind other specs' jobs.
+    test.setTimeout(90_000)
     await openFormWithExample(page)
 
     await fields(page).submit.click()

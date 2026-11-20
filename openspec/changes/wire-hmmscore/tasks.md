@@ -25,7 +25,7 @@ Start once #82 (`add-hmmscore-form`'s archive) has merged, from `main`. Row 14 w
 - [x] 2.1 `tests/markers.py`: `hmmscore` joins `DATA_MANIFESTS`, with `panther_engine.hmmscore.sample.MANIFEST`; `tools("hmmscan", "hmmsearch")` also skips, or fails where tools are required, when the HMMER on `PATH` isn't the image's, with `hmmer_version` and `HMMER_VERSION` from `panther_engine.hmmscore.sample`, as the engine's `other_hmmer` does (decision 7). Verify with a test of the marker against a stand-in program reporting another version
 - [x] 2.2 A new `tests/test_hmmscore_scoring.py`, marked `tools("hmmscan", "hmmsearch")` and `data("hmmscore")`, runs real jobs through the API for `apoe`, `no-hit` and `tie-pthr35774`, with each case's sequence and expected result from `panther_engine.hmmscore.parity` (`read_cases`, `Case.sequence`, `expected_result`, 0.3) on `engine/tests/golden/hmmscore/parity/`, read-only; and calls `run_hmmscore` in-process with a timeout of a millisecond for the timeout error. Verify they pass in the API image with the sample (`docs/testing/api.md`, "Tests With the Tools and Data"), and skip natively on Windows (spec, hmmscore job scores with the engine: The form's example, No hit, Tied best hits)
 - [x] 2.3 CI's `api-image` job, both architectures: restore `.data/hmmscore` from the cache the engine jobs fill, `panther-engine hmmscore sample fetch` with the image's CLI, run `tests/test_hmmscore_scoring.py` with `PANTHER_REQUIRE_TOOLS=1` and `PANTHER_REQUIRE_DATA=1`, and score APOE through the running API with `curl`, checking `PTHR18976:SF2`, "APOLIPOPROTEIN E" and `versions.data`. The "Start the API" step already mounts `.data/`. Verify in the pull request's CI logs that the tests run, not skip, on both legs
-- [ ] 2.4 API checks: `uv run ruff check`, `ruff format --check`, `basedpyright` and `pytest` pass natively, and the image's tests pass with the cSNP, refmap and hmmscore data
+- [x] 2.4 API checks: `uv run ruff check`, `ruff format --check`, `basedpyright` and `pytest` pass natively, and the image's tests pass with the cSNP, refmap and hmmscore data
 
 ## 3. Frontend
 
@@ -56,22 +56,14 @@ Start once #82 (`add-hmmscore-form`'s archive) has merged, from `main`. Row 14 w
 
 ### Next action
 
-Groups 1 (but 1.3), 3 and 4 are applied (2026-11-18), and group 0 (2026-11-19), all on #83's branch, `feat/propose-wire-hmmscore`. Next, on this branch, are task 1.3 and group 2, and the follow-ups below.
-
-### What's left for after group 0
-
-- **Task 1.3, the job past its time limit.** In `jobs/runner.py`, an `except` for the engine's timeout error (`TimeLimitError`, imported from `panther_engine.hmmscore`), before `except Exception`: fail the job with `503` and the API's `detail`, a constant the tests import ("The search took longer than this service allows. The server may be busy: try again later, or with a shorter sequence."), and log the finish line at `WARNING`, "failed 503, past its time limit of N s", with N from `work.hmmscore_time_limit(request.input.residues, self._options)`, and no traceback. Stand-ins in `tests/job_helpers.py` that raise the timeout error, an `HmmscoreError` with a path in its message, and a `ValueError`; tests in `tests/test_jobs.py` and `tests/test_job_logs.py`, each beside a success. None of 1.3 is written yet.
-- **Until 1.3 lands,** a job past its time limit fails as an unexpected error does: `TimeLimitError` reaches the runner's `except Exception`, so the generic `500`, logged at `ERROR` with a traceback. Don't ship that.
-- **With 1.3, the texts that name the 503:** `HmmscoreJob`'s docstring in `jobs/models.py` (then regenerate `api/openapi.json` and `frontend/src/app/api/schema.d.ts` in the same commit), `api/CLAUDE.md`'s "How a job fails", and `docs/testing/api.md`'s hmmscore section, which now says only that a job past its limit fails.
-- **Group 2:** 2.1 (`tests/markers.py`'s `hmmscore` manifest and HMMER version check), 2.2 (`tests/test_hmmscore_scoring.py` with `parity`'s readers), 2.3 (CI's `api-image` job) and 2.4. With them, `docs/testing/api.md`'s "Tests With the Tools and Data" and `docs/testing/README.md`'s `api-image` row name the hmmscore tests.
+Every task is applied (2026-11-19), with the three review comments of 2026-11-19 on #83 answered. Next: one review of the whole pull request by the engine developer, with 2.3's CI legs checked in its logs; then merge, and archive with `/opsx:archive` once #82 and `port-hmmscore`'s archive have merged.
 
 ### Blockers
 
-- **#82 (`add-hmmscore-form`'s archive) is still open.** The `scoring-ui` requirements this change modifies and removes are in `openspec/specs/` only once it merges; until then, archiving this change would fail.
-- **`port-hmmscore` isn't archived.** This change's `hmmscore-engine` delta modifies a requirement that reaches `openspec/specs/` only with that archive.
-- **#83 needs its approval again,** after the pushes that narrowed task 0.2 and added the code.
-- #81 (`port-hmmscore`) merged on 2026-11-17 (`c74a30b`): no longer a blocker.
-- Group 0 is applied (2026-11-19): it no longer blocks task 1.3 or group 2.
+- **#82 (`add-hmmscore-form`'s archive) is still open.** The `scoring-ui` requirements this change modifies and removes are in `openspec/specs/` only once it merges; until then, archiving this change would fail. It doesn't block merging the code.
+- **`port-hmmscore` isn't archived.** This change's `hmmscore-engine` delta modifies a requirement that reaches `openspec/specs/` only with that archive. It doesn't block merging the code either.
+- **#83 needs its approval again,** after the pushes that added the code.
+- #81 (`port-hmmscore`) merged on 2026-11-17 (`c74a30b`), and group 0 is applied (2026-11-19): neither blocks any more.
 
 ### Failed approaches
 
@@ -105,3 +97,13 @@ None in the code.
   - the check that the parent is still there after `prctl` has no test: the race can't be reproduced reliably;
   - an exception in `preexec_fn` reaches the parent only as `SubprocessError("Exception occurred in preexec_fn.")`, which the callers, catching `OSError`, missed; `run_tool` raises it as `OSError`, as for a program that can't start (from the review of #83's code);
   - natively on macOS, the Linux-only tests skip, as do the tool tests with a HMMER other than 3.4.
+- **Applying 1.3 and group 2, and the review of 2026-11-19:**
+  - the runner catches `TimeLimitError` before any other exception, and works the limit out again from the request and the options for its `WARNING` line, so it needs nothing from the exception;
+  - a stand-in's parameter can't reach a worker, so `fail_hmmscore_jobs` picks its failure by the sequence, and treats `PAST_THE_TIME_LIMIT` as a prefix, so a test can give the job APOE's 317 residues and its 139 s limit;
+  - `tests/test_markers.py` runs stand-in HMMERs on both systems (a `.cmd` on Windows, a shell script elsewhere), and clears `PANTHER_REQUIRE_TOOLS`, which the image run sets: with it set, a missing tool fails rather than skips;
+  - `run_hmmscore` takes a float `timeout`, for the test of a millisecond's limit;
+  - in the image with the sample, the four hmmscore tests and the six marker tests passed (10 in 71 s), and the `csnp` and `refmap` real-job tests with them;
+  - in a full api-mode e2e run, the example's hmmscore job waited 22.7 s behind other specs' jobs, for the one running hmmscore job and a worker, then ran 7.8 s, past Playwright's default 30 s per test: the `@api` hmmscore and tools specs get `test.setTimeout(90_000)`, as cSNP's and refmap's have;
+  - `HMMSCORE_MAX_RESIDUES` lives in `jobs/hmmscore.py`, so `work.py`, which every worker imports, no longer loads `panther_api.settings` or `pydantic_settings` (review);
+  - CI's hmmscore `curl` step, run against the image on port 8001 with `jq` in a container, passed: `PTHR18976:SF2`, "APOLIPOPROTEIN E", PANTHER 19.
+  - the whole API suite in the image, on Docker Desktop for Windows, is impractically slow: each app start's data check stats refmap's 1,534 files and the classification JSON over the bind mount, about 9 s, and the suite starts hundreds of apps. 2.4 rests on the native suite and, in the image, every test that needs the tools or data, as CI's `api-image` job runs them.

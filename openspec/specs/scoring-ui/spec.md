@@ -785,25 +785,6 @@ The header SHALL list the four services on every page but the root error page, i
 - **WHEN** the user follows the ID mapping tab
 - **THEN** the refmap form is shown, and ID mapping is marked as current
 
-### Requirement: Services that aren't available yet
-
-Every service the API can't score yet SHALL be marked "coming soon", in its tab and on the home page: today HMM scoring and TreeGrafter. HMM scoring's tab MUST still open its form. TreeGrafter MUST open a page that says what the service will do, that it's coming soon, and links home.
-
-#### Scenario: The marks
-
-- **WHEN** the user opens any page
-- **THEN** the HMM scoring and TreeGrafter tabs say they're coming soon, and cSNP scoring and ID mapping don't
-
-#### Scenario: A service without a form
-
-- **WHEN** the user follows the TreeGrafter tab
-- **THEN** a page says TreeGrafter is coming soon, says what it will do, and links home
-
-#### Scenario: HMM scoring's form while coming soon
-
-- **WHEN** the user follows the HMM scoring tab
-- **THEN** the HMM scoring form is shown, and HMM scoring is marked as current
-
 ### Requirement: The home page shows every service
 
 The home page SHALL show the four services, in the tabs' order, each with what it does and the same "coming soon" mark. A service with a form MUST link to it.
@@ -811,7 +792,7 @@ The home page SHALL show the four services, in the tabs' order, each with what i
 #### Scenario: The four services
 
 - **WHEN** the user opens `/`
-- **THEN** the page shows cSNP scoring, ID mapping, HMM scoring and TreeGrafter, with links to the cSNP, refmap and HMM scoring forms, and the last two marked coming soon
+- **THEN** the page shows cSNP scoring, ID mapping, HMM scoring and TreeGrafter, with links to the cSNP, refmap and HMM scoring forms, and only TreeGrafter marked coming soon
 
 ### Requirement: The next step from a job's page
 
@@ -917,15 +898,6 @@ The UI SHALL offer an HMM scoring form at `/hmmscore`, linked from the home page
 - **WHEN** the user chooses to use an example on `/hmmscore`
 - **THEN** the sequence box holds the 317 residues of human APOE that start `MKVLWAALLVTFLAGCQAKV`, in lines of 35 as the help page shows them
 
-### Requirement: HMM scoring form says it isn't available yet
-
-While HMM scoring is marked "coming soon", its form SHALL say, before the sequence box, that HMM scoring isn't available yet, so a sequence submitted now won't be scored. The form MUST stay usable.
-
-#### Scenario: The notice
-
-- **WHEN** the user opens `/hmmscore`
-- **THEN** the form says HMM scoring isn't available yet, before the sequence box, and the box and the submit action can be used
-
 ### Requirement: hmmscore form checks the input before sending
 
 Before sending, the HMM scoring form SHALL check the sequence against `scoring-input`'s hmmscore rules, with the most residues the API's setting allows, 10,000; the API checks the server's own limit. Letters are A to Z, in either case. Every character but a final `*` counts as a residue. A broken rule MUST be shown on the sequence field, without quoting the sequence, and no request MUST be sent. The form MUST NOT reject a sequence the rules accept.
@@ -984,23 +956,9 @@ When the API answers an HMM scoring request with 422, the form SHALL show each e
 - **WHEN** the API answers 422 with an error whose `loc` is `["body", "hmmscore", "input", "opType"]`
 - **THEN** the form shows that error's message with the form
 
-### Requirement: HMM scoring not yet available
-
-When the API answers an HMM scoring request with 501 and problem details, the form SHALL say that HMM scoring isn't available yet, in fixed text, keep the sequence, stay at `/hmmscore`, and stay usable. A 501 without problem details didn't come from the API, and MUST be shown as the scoring service being unreachable.
-
-#### Scenario: The API answers 501 (hmmscore)
-
-- **WHEN** the user submits a valid sequence and the API answers 501 with problem details
-- **THEN** the form says HMM scoring isn't available yet, the sequence is unchanged, the UI stays at `/hmmscore`, and the form can be submitted again
-
-#### Scenario: A 501 from something in between (hmmscore)
-
-- **WHEN** the user submits a valid sequence and the answer is 501 with no problem-details body
-- **THEN** the form says the scoring service can't be reached, and keeps the sequence
-
 ### Requirement: hmmscore submit failures
 
-When the API answers an HMM scoring request with 503 and problem details, the form SHALL say HMM scoring is busy, and when to try again from `Retry-After`, or in a few minutes without it. When the API can't be reached, it MUST say so; for any other error but a 422, 501 or 503, that the job couldn't be started. No message MUST show a status code or build details. The form MUST keep the sequence, stay at `/hmmscore`, and stay usable.
+When the API answers an HMM scoring request with 503 and problem details, the form SHALL say HMM scoring is busy, and when to try again from `Retry-After`, or in a few minutes without it. When the API can't be reached, it MUST say so; for any other error but a 422 or 503, that the job couldn't be started. No message MUST show a status code or build details. The form MUST keep the sequence, stay at `/hmmscore`, and stay usable.
 
 #### Scenario: The API is busy (hmmscore)
 
@@ -1011,6 +969,16 @@ When the API answers an HMM scoring request with 503 and problem details, the fo
 
 - **WHEN** the user submits a valid sequence and the API answers 500 with problem details
 - **THEN** the form says the job couldn't be started, with no status code or build details
+
+#### Scenario: The API answers 501 (hmmscore)
+
+- **WHEN** the user submits a valid sequence and the API answers 501 with problem details, as an API from before this change did
+- **THEN** the form says the job couldn't be started, with no status code, and keeps the sequence
+
+#### Scenario: A 501 from something in between (hmmscore)
+
+- **WHEN** the user submits a valid sequence and the answer is 501 with no problem-details body
+- **THEN** the form says the scoring service can't be reached, and keeps the sequence
 
 #### Scenario: The network fails (hmmscore)
 
@@ -1033,12 +1001,12 @@ When the API accepts an HMM scoring request with 202, the UI SHALL open `/jobs/{
 
 ### Requirement: hmmscore results on the job page
 
-When an `hmmscore` job has succeeded with a hit, the job page SHALL show the hit's PANTHER ID, linking to its page on pantherdb.org, its name, its E-value and its bit score, each exactly as the API gives it, and the alignment. With a `null` hit, the page MUST say there were no hits to PANTHER for the sequence. The job's versions MUST be shown with it.
+When an `hmmscore` job has succeeded with a hit, the job page SHALL show the hit's PANTHER ID, linking to its page on pantherdb.org, its name, its E-value and its bit score, each exactly as the API gives it, and the alignment. With a `null` hit, the page MUST say there were no hits to PANTHER for the sequence. The job's versions MUST be shown with it, its hmmscore data among them.
 
 #### Scenario: A job with a hit
 
 - **WHEN** the user opens the page of a succeeded `hmmscore` job whose hit is `PTHR00000:SF1`, named "MOCK FAMILY", with E-value `7e-131` and score `439.0`
-- **THEN** the page shows `PTHR00000:SF1`, "MOCK FAMILY", `7e-131` and `439.0`, the alignment, and the job's API, engine and tool versions
+- **THEN** the page shows `PTHR00000:SF1`, "MOCK FAMILY", `7e-131` and `439.0`, the alignment, and the job's API, engine and tool versions, and its hmmscore data as PANTHER 19
 
 #### Scenario: A job with no hit
 
@@ -1077,3 +1045,31 @@ The job page SHALL show an `hmmscore` hit's alignment as monospaced text, exactl
 
 - **WHEN** the user moves through the job page with the Tab key
 - **THEN** the alignment's box takes the focus, named as the alignment, and the arrow keys scroll it
+
+### Requirement: An hmmscore job past its time limit on the job page
+
+When an `hmmscore` job has failed past its time limit, with an `error` of status 503, the job page SHALL show the error's `detail` and no result, as for any failed job, and MUST NOT say that the scoring service can't be reached, nor show a status code.
+
+#### Scenario: A job past its time limit
+
+- **WHEN** the user opens the page of an `hmmscore` job that failed with status 503 and the `detail` "The search took longer than this service allows. The server may be busy: try again later, or with a shorter sequence."
+- **THEN** the page says the job failed, shows that `detail`, shows no hit or alignment, and doesn't say the scoring service can't be reached
+
+### Requirement: Services marked coming soon
+
+Every service the API can't score yet SHALL be marked "coming soon", in its tab and on the home page: today TreeGrafter. TreeGrafter MUST open a page that says what the service will do, that it's coming soon, and links home.
+
+#### Scenario: The marks
+
+- **WHEN** the user opens any page
+- **THEN** the TreeGrafter tab says it's coming soon, and the cSNP scoring, ID mapping and HMM scoring tabs don't
+
+#### Scenario: A service without a form
+
+- **WHEN** the user follows the TreeGrafter tab
+- **THEN** a page says TreeGrafter is coming soon, says what it will do, and links home
+
+#### Scenario: HMM scoring's form
+
+- **WHEN** the user follows the HMM scoring tab
+- **THEN** the HMM scoring form is shown, HMM scoring is marked as current, and the page has no "coming soon" mark and no notice that HMM scoring isn't available

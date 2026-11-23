@@ -140,7 +140,12 @@ The API SHALL answer `GET /api/v1/versions` with status 200 and a JSON body givi
 #### Scenario: refmap's data
 
 - **WHEN** a client sends `GET /api/v1/versions`, with or without the refmap data installed
-- **THEN** the body's `data` is `[{"service": "csnp", "panther": "9"}, {"service": "refmap", "panther": "19"}]`, in the order the services were ported, and a `refmap` job's `versions.data` is `[{"service": "refmap", "panther": "19"}]`
+- **THEN** the body's `data` lists `{"service": "refmap", "panther": "19"}` second, and a `refmap` job's `versions.data` is `[{"service": "refmap", "panther": "19"}]`
+
+#### Scenario: hmmscore's data
+
+- **WHEN** a client sends `GET /api/v1/versions`, with or without the hmmscore data installed
+- **THEN** the body's `data` is `[{"service": "csnp", "panther": "9"}, {"service": "refmap", "panther": "19"}, {"service": "hmmscore", "panther": "19"}]`, in the order the services were ported, and an `hmmscore` job's `versions.data` is `[{"service": "hmmscore", "panther": "19"}]`
 
 ### Requirement: Versions read once at startup
 

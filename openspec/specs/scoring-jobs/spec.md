@@ -48,6 +48,11 @@ A job SHALL have an `id`, its `service`, a `status` of `queued`, `running`, `suc
 - **WHEN** a client polls a `refmap` job and a `csnp` job
 - **THEN** the `refmap` job's `versions.data` is `[{"service": "refmap", "panther": "19"}]`, and the `csnp` job's is `[{"service": "csnp", "panther": "9"}]`
 
+#### Scenario: An hmmscore job's data version
+
+- **WHEN** a client polls an `hmmscore` job
+- **THEN** its `versions.data` is `[{"service": "hmmscore", "panther": "19"}]`
+
 ### Requirement: Unguessable job ids
 
 Each job id SHALL be a random version 4 UUID, so that knowing one job's id gives no way to find another's. The API MUST NOT offer a way to list jobs.
@@ -381,7 +386,7 @@ When the API accepts a job, it SHALL log one `DEBUG` line with the job's id, its
 
 #### Scenario: A request that creates no job
 
-- **WHEN** the log level is `DEBUG` and a client submits a request that gets a `422`, a `501` or a `503`
+- **WHEN** the log level is `DEBUG` and a client submits a request that gets a `422` or a `503`
 - **THEN** no submission line is logged
 
 ### Requirement: An unexpected error's traceback is logged once in ten minutes
@@ -474,20 +479,6 @@ The API SHALL accept an `hmmscore` job request, `{"service": "hmmscore", "input"
 - **WHEN** a client sends an `hmmscore` request whose `input` also has `"opType": "hmm"`, as the website's form sent
 - **THEN** the API responds with status 422 and an error whose `loc` names `opType`
 
-### Requirement: hmmscore not available yet
-
-Until the engine's hmmscore scoring is wired in, the API SHALL answer a valid `hmmscore` job request with status 501 and a problem-details body whose `detail` is "HMM scoring isn't available yet.", and MUST NOT create a job. Validation comes first: an invalid `hmmscore` request, the residue limit included, gets the 422. The schema MUST document the 501 on `POST /api/v1/jobs`. A response MUST NOT contain a hit.
-
-#### Scenario: A valid hmmscore request
-
-- **WHEN** a client sends `POST /api/v1/jobs` with `{"service": "hmmscore", "input": {"sequence": "MKVLWAALLVTFLAGCQAKV"}}`
-- **THEN** the API responds with status 501, content type `application/problem+json`, `detail` "HMM scoring isn't available yet.", no `Location` header, and no job is created
-
-#### Scenario: The hmmscore 501 in the schema
-
-- **WHEN** a client fetches `/api/v1/openapi.json`
-- **THEN** `POST /api/v1/jobs` lists a 501 response whose body is the problem-details schema and whose description names `hmmscore`
-
 ### Requirement: hmmscore job shape
 
 An `hmmscore` job SHALL have the shape every job has, with `service` `hmmscore` and a `result` that is `null` or `{"hit"}`. `hit` MUST be `null` when no model passes the cutoff, or have `panther_id`, `name`, `evalue`, `score` and `alignment`, each a string. `hit` MUST be present, even when `null`.
@@ -530,3 +521,107 @@ The API SHALL run at most a configured number of `hmmscore` jobs at once, 1 by d
 
 - **WHEN** a running `hmmscore` job fails, and another is waiting for the cap
 - **THEN** the waiting job starts
+
+### Requirement: hmmscore job scores with the engine
+
+A valid `hmmscore` job request SHALL get status 202 and a job, whose work scores the input's sequence, as `scoring-input` normalised it, with the engine's hmmscore scoring. The job MUST succeed with the engine's hit, unchanged, or with a `null` `hit` when the engine finds none. A sequence that matches no family is a success with no hit, not a failure.
+
+#### Scenario: The hmmscore form's example
+
+- **WHEN** a client submits an `hmmscore` job for human APOE, the form's example, where `hmmscan`, `hmmsearch` and the hmmscore data sample are available, and polls it until it finishes
+- **THEN** the job has status `succeeded` and a hit with `panther_id` `PTHR18976:SF2`, `name` "APOLIPOPROTEIN E", `score` `439.0`, `evalue` `2.2e-133`, and the alignment of the engine's golden for that case
+
+#### Scenario: No hit
+
+- **WHEN** a client submits an `hmmscore` job for the engine's golden case `no-hit`, where the tools and the data sample are available
+- **THEN** the job has status `succeeded` and the result `{"hit": null}`
+
+#### Scenario: Tied best hits
+
+- **WHEN** a client submits an `hmmscore` job for the consensus of PTHR35774, the engine's golden case `tie-pthr35774`, whose family and subfamily models tie
+- **THEN** the job succeeds with the hit `PTHR35774:SF1`, as divergence row 13 gives it
+
+#### Scenario: The hmmscore data isn't there
+
+- **WHEN** the API runs without the hmmscore data and a client submits a valid `hmmscore` job
+- **THEN** the job ends with status `failed` and an `error` with status 500 and the generic `detail`
+
+#### Scenario: A tool fails
+
+- **WHEN** an `hmmscore` job's search fails because a tool exits with an error whose message names a file path
+- **THEN** the job ends with status `failed` and an `error` with status 500 and the generic `detail`, and the job contains neither the message nor the path
+
+#### Scenario: Other jobs still run beside hmmscore
+
+- **WHEN** an `hmmscore` job and a `csnp` job are submitted one after the other
+- **THEN** each reaches its own final status, and neither's result holds the other's
+
+### Requirement: hmmscore job time limit and threads
+
+Each `hmmscore` job's search SHALL run with the configured thread count, passed to both `hmmscan` and `hmmsearch`, and with its time limit as "hmmscore time limit by length" gives it. The time limit MUST count from when the search starts, not from when the job was submitted, so a job that waited for a worker or for the running cap has all of it.
+
+#### Scenario: The settings reach the search
+
+- **WHEN** the API starts with `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` set to 600, `PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS` set to 600 and `PANTHER_API_HMMSCORE_CPU` set to 2, and an `hmmscore` job runs
+- **THEN** its search is given a time limit of 600 seconds and a thread count of 2, for both tools
+
+#### Scenario: The default settings reach the search
+
+- **WHEN** the API starts with no hmmscore settings in the environment, and an `hmmscore` job runs with 10,000 residues
+- **THEN** its search is given a time limit of 720 seconds and a thread count of 0
+
+### Requirement: hmmscore time limit by length
+
+An `hmmscore` job's time limit SHALL grow with its residues: the minimum time limit, plus the difference between the time limit and the minimum, times the residues divided by 10,000, the most residues the API ever takes, rounded to the nearest second. It MUST NOT depend on the configured residue limit. The API MUST refuse to start when the minimum is over the time limit.
+
+#### Scenario: A short sequence gets a shorter limit
+
+- **WHEN** the API starts with no hmmscore settings in the environment, and an `hmmscore` job runs with APOE's 317 residues
+- **THEN** its search is given a time limit of 139 seconds
+
+#### Scenario: A lowered residue limit
+
+- **WHEN** the API starts with `PANTHER_API_HMMSCORE_MAX_RESIDUES` set to 5,000 and no other hmmscore settings, and `hmmscore` jobs run with 317 and with 5,000 residues
+- **THEN** their searches are given time limits of 139 and 420 seconds, as with the default residue limit
+
+#### Scenario: A minimum above the time limit
+
+- **WHEN** the API starts with `PANTHER_API_HMMSCORE_MIN_TIME_LIMIT_SECONDS` set to 800 and `PANTHER_API_HMMSCORE_TIME_LIMIT_SECONDS` left at 720
+- **THEN** it refuses to start, naming both settings
+
+### Requirement: An hmmscore job past its time limit
+
+A search that runs past its time limit SHALL be stopped, and the job MUST fail with status 503 and a `detail` that says the server may be busy, and to try again later or with a shorter sequence. A short query reaches its limit only on a busy server, so this MUST NOT be reported as an input error. Other jobs MUST be unaffected.
+
+#### Scenario: Past the time limit
+
+- **WHEN** an `hmmscore` job's search runs past its time limit
+- **THEN** the job ends with status `failed`, a `null` `result`, and an `error` with status 503 whose `detail` is "The search took longer than this service allows. The server may be busy: try again later, or with a shorter sequence."
+
+#### Scenario: Other jobs beside a job past its limit
+
+- **WHEN** one `hmmscore` job runs past its time limit while a `tools` job runs
+- **THEN** the `tools` job still ends with status `succeeded`
+
+### Requirement: A job past its time limit is logged as such
+
+When an `hmmscore` job fails past its time limit, its finish line SHALL be a `WARNING` that says so, with the job's residues, its time limit and how long it ran, and no traceback. The line MUST NOT contain the sequence.
+
+#### Scenario: The line
+
+- **WHEN** an `hmmscore` job of 317 residues runs past its time limit of 139 seconds
+- **THEN** the log has one `WARNING` finish line for it, naming 317 residues, the limit of 139 s and its run time, with no traceback and no residue of the sequence
+
+### Requirement: Startup check of the hmmscore data
+
+When it starts, the API SHALL check the hmmscore data folder with the engine's data check, as it checks the cSNP and refmap data. If the folder isn't set, or lacks a part every search needs, the API MUST log an error that says `hmmscore` jobs will fail, with the engine's message, and MUST still start. The checks MUST be independent: missing hmmscore data MUST NOT stop other services' jobs, nor the reverse.
+
+#### Scenario: No hmmscore data
+
+- **WHEN** the API starts with `PANTHER_DATA_DIR` naming a folder that holds the cSNP and refmap data but no hmmscore data
+- **THEN** it logs an error saying `hmmscore` jobs will fail, logs none about the cSNP or refmap data, and `GET /api/v1/health` responds with status 200
+
+#### Scenario: Complete hmmscore data
+
+- **WHEN** the API starts and the engine's hmmscore data check passes, as it does for the data sample
+- **THEN** it logs no error about the hmmscore data

@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR11442:SF48	232.2	7.2e-66	232.0	8e-66	1	141	1	142	1	142	AN149	GO:0005344,GO:0005833,GO:0015671,GO:0020037,GO:0031838,GO:0048821	PC00107

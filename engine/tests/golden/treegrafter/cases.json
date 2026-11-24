@@ -1,0 +1,52 @@
+{
+  "cases": [
+    {
+      "name": "apoe",
+      "why": "The site's example, human APOE: one placement, PTHR18976:SF2 at AN163"
+    },
+    {
+      "name": "hbb",
+      "why": "Human HBB: several placements in the globins, PTHR11442"
+    },
+    {
+      "name": "hba",
+      "why": "Human HBA: several placements in the globins, PTHR11442"
+    },
+    {
+      "name": "pthr11034",
+      "why": "Human NDRG1, of PTHR11034, one of the ten families that can't be placed: the family alone, with no node"
+    },
+    {
+      "name": "apoe-hbb",
+      "why": "APOE followed by HBB: two families pass, and EBI's code keeps the higher full-sequence score"
+    },
+    {
+      "name": "apoe-peptide60",
+      "why": "APOE's residues 91 to 150: reported, but over the 1e-8 cutoff, so no hit"
+    },
+    {
+      "name": "random300",
+      "why": "300 random residues, from a recorded seed (20261124): nothing reported, so no hit"
+    },
+    {
+      "name": "apoe-stop",
+      "why": "APOE and a final *: a character the engine takes"
+    },
+    {
+      "name": "apoe-dot",
+      "why": "APOE with a . after residues 80, 160 and 240: HMMER reads it as a gap"
+    },
+    {
+      "name": "apoe-underscore",
+      "why": "APOE with a _ after residues 80, 160 and 240: HMMER reads it as a gap"
+    },
+    {
+      "name": "apoe-star",
+      "why": "APOE with a * after residues 80, 160 and 240: a character the engine takes"
+    },
+    {
+      "name": "apoe-uncommon",
+      "why": "APOE with B, J, O, U, X and Z in place of residues 50, 100, 150, 200, 250 and 300: EBI's code turns U and O into X"
+    }
+  ]
+}

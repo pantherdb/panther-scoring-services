@@ -70,7 +70,7 @@ The best family SHALL be the one EBI's code picks: among the families whose full
 
 #### Scenario: Over the cutoff
 
-- **WHEN** 30 residues of APOE are grafted against the fixture
+- **WHEN** APOE's residues 91 to 150, which `hmmsearch` reports at a full-sequence E-value of 2.8e-6, are grafted against the fixture
 - **THEN** there is no hit
 
 #### Scenario: No family reported

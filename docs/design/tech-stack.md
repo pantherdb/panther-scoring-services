@@ -126,7 +126,7 @@ What the EBI version does differently:
 
 Its core functions take explicit arguments and can be imported. But it calls `sys.exit()` on bad input, and it discards EPA-ng's stderr.
 
-The website's `treeGrafter.cgi` isn't in `panther-workspace`. Needs team verification.
+The website's `treeGrafter.cgi` isn't in `panther-workspace`, and doesn't need to be: the site moves to the JSON API. EBI's `--print-go` output has every field the site showed: the graft node, the subfamily, the GO terms and the protein class. The graft point's public ID, which the site also showed, is in EBI's prepared annotations, and the engine returns it too (`adopt-treegrafter`, design.md, decision 1).
 
 Sources: `legacy/TreeGrafter/`, `docs/phase1/developer-guide/treegrafter.md` and the EBI repository.
 
@@ -199,7 +199,7 @@ Conditions:
      - **amd64 only,** since 3.1b2 has no arm64 build with vector code. Goldens made on amd64 are the parity target; an arm64 copy is kept only for a case whose result differs there.
 4. **Keep external tools as binaries,** called with `subprocess`.
 5. **Adopt `treegrafter`, don't port it.**
-   - Pin EBI's repository by git commit. It doesn't appear to be on PyPI; needs team verification.
+   - Pin EBI's repository by commit. Answered by `adopt-treegrafter`: PyPI has no `treegrafter`, so the pin is the commit's archive, installed through a `pyproject.toml` proposed upstream ([ebi-pf-team/treegrafter#9](https://github.com/ebi-pf-team/treegrafter/pull/9)). The engine calls EBI's functions in-process, and runs EPA-ng itself (its design.md, decision 8).
    - Wrap it in our adapter. The adapter catches `SystemExit` and checks EPA-ng's result itself.
    - Run its `prepare` step as part of data provisioning for each PAINT release, not per request.
 6. **Fix legacy bugs on purpose, and record each one as a divergence.** For cSNP:
@@ -282,11 +282,11 @@ The other three services have no M2 defined.
 
 ## Shared Concerns
 
-- **Data.** Large external files, mounted read-only from three versioned roots:
+- **Data.** Large external files, mounted read-only from four versioned roots, one per service:
 
   | Root | Contents | Used by |
   | ---- | -------- | ------- |
-  | `/data/panther/<version>/` | The current PANTHER release (19 today): HMM library, family MSAs and trees, PAINT annotations, and treegrafter's `prepare` output | `treegrafter` |
+  | `/data/treegrafter/<version>/` | The current release's TreeGrafter library (19 today), from `PANTHER19.0_data_trees_hmms_only.tar.gz`: `famhmm/binHmm` and each family's alignment and trees, pinned by `engine/src/panther_engine/treegrafter/data.json`. Beside it, the PAINT annotation releases, each prepared by EBI's `prepare` under `annotations/<date>/`, with the one grafting reads named in `annotations/active` (`adopt-treegrafter`) | `treegrafter` |
   | `/data/hmmscore/<version>/` | The current release's HMM library (19 today), from `PANTHER19.0_hmmscoring.tgz`: `globals/` and every family and subfamily model, pinned by `engine/src/panther_engine/hmmscore/data.json` (`add-hmmscore-survey-and-sample`) | `hmmscore` |
   | `/data/refmap/<version>/` | The current release's classification files (19 today), one per Reference Proteome organism and saved under its code, and their `stats`, pinned by `engine/src/panther_engine/refmap/data.json` (`port-refmap`) | `refmap` |
   | `/data/csnp/<version>/` | Frozen precomputed data from PANTHER 9: BLAST database, PAML library, species tree (checksums pinned in the legacy behaviour spec §7.1) | `csnp` |
@@ -343,7 +343,7 @@ Each needs team verification.
 - **Transition:** the site moves to the JSON API ([API recommendation 2](#api-api-agree-built-around-jobs)). Does anything other than the site call the legacy URLs? Access logs, if they still exist, would show this, and whether any service needs XML.
 - **Input size:** what is the largest request we accept for each service? This decides how soon we need a real queue.
 - **Jobs vs synchronous:** does `refmap` go through jobs, or get a synchronous endpoint?
-- **Who builds the data for each release:** the HMM library, the classification files, the treegrafter `prepare` output?
+- **Who builds the data for each release:** the HMM library, the classification files, the treegrafter `prepare` output? For `treegrafter`, answered: the PANTHER team publishes the library and the PAINT annotation releases on `data.pantherdb.org`, and the engine's `treegrafter data fetch` runs `prepare` (`adopt-treegrafter`).
 - **Staging server:** which existing server, and does it have room for the full data of all four services (cSNP's alone is 19.2 GB unpacked) and the Perl reference image?
 - **Making the original repositories public:** `pantherdb/cSNP_analysis` and `pantherdb/pantherScoring` are private; `RefProteomeMapper` is public. So the reference images for `csnp` and `hmmscore` build from a developer's checkout. Public repositories would let the images clone at build time, as Engine condition 3 first said, and let CI build them. To consider eventually (engine developer, 2026-10-29).
 - **Licence:** the PSEP 1.01 release is GPLv2, copyright 2016 Paul Thomas, and this repository has no licence. A port is arguably a derivative work. Does this repository need a licence, and which one?
@@ -370,8 +370,8 @@ The legacy behaviour spec's §8 lists these in full.
 
 ### `treegrafter`
 
-- **Website CGI:** where is the source of `treeGrafter.cgi`, and what does it return?
-- **Packaging:** is EBI's `treegrafter` on PyPI, or do we pin a git commit? Do we call its functions in-process, or run its CLI?
+- **Website CGI:** answered. Its source isn't needed: the site moves to the JSON API, and EBI's `--print-go` output has every field the site showed: the graft node, the subfamily, the GO terms and the protein class (`adopt-treegrafter`).
+- **Packaging:** answered. PyPI has no `treegrafter`, so the engine pins a commit's archive, through a `pyproject.toml` proposed upstream ([ebi-pf-team/treegrafter#9](https://github.com/ebi-pf-team/treegrafter/pull/9)). It calls EBI's functions in-process, and runs EPA-ng itself, with a time limit (`adopt-treegrafter`, design.md, decision 8).
 
 ## Review
 
@@ -380,6 +380,6 @@ The legacy behaviour spec's §8 lists these in full.
 | Frontend developer | Frontend ↔ api contract (the frontend stack is accepted in [frontend-stack.md](frontend-stack.md)) | Pending |
 | API developer | API section; both contracts | Pending |
 | Engine developer | Engine section; M1 scope for each service | Pending |
-| Science owner (`thomaspd`) | cSNP thresholds, after production; cSNP's M2; the TreeGrafter divergence | Pending |
+| Science owner (`thomaspd`) | cSNP thresholds, after production; cSNP's M2; the TreeGrafter divergence | The TreeGrafter divergence approved on 2026-11-18 ([divergence 1](../parity/divergences.md)). The rest pending |
 
 Once everyone has signed off and the open questions are answered, change the status at the top to **Accepted**.

@@ -210,7 +210,7 @@ The layout is in the `treegrafter-data` spec.
 | `hbb`, `hba` | Several placements |
 | `pthr11034` | A family that can't be placed |
 | `apoe-hbb` | Two families: EBI's code keeps the higher score |
-| `apoe-peptide30` | Over the 1e-8 cutoff: no hit |
+| `apoe-peptide60` | Over the 1e-8 cutoff: no hit. APOE's residues 91 to 150, which `hmmsearch` reports at 2.8e-6. No 30 residues of APOE are reported at all with `-Z 65000000`, so a 30-residue case would test only what `random300` does (task 7.1's Notes) |
 | `random300` | Nothing reported: no hit |
 | `apoe-stop`, `apoe-dot`, `apoe-underscore`, `apoe-star` | The characters the engine takes |
 | `apoe-uncommon` | `B`, `J`, `O`, `U`, `X` and `Z`: EBI's code turns `U` and `O` into `X` |

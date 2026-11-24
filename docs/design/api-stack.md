@@ -52,7 +52,11 @@ These stay in [tech-stack.md](tech-stack.md), or come with their own change:
 
 ## Needs Team Verification
 
-- **Does EBI's `treegrafter`,** and what it depends on, run on Python 3.13?
+None open.
+
+Answered by `adopt-treegrafter` (2026-11-24):
+
+- **Does EBI's `treegrafter`,** and what it depends on, run on Python 3.13? Yes. Biopython 1.88 has CPython 3.13 wheels for amd64 and arm64, and EBI's code ran unchanged in the engine image, with Python 3.13, on 2026-11-24.
 
 Answered while scaffolding (`scaffold-api`, #11, 2026-10-28):
 

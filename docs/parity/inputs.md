@@ -236,3 +236,35 @@ A case's expected result comes from `best.tsv`: no hit when it's empty; otherwis
 - **Time:** the port took 6 to 14 s for each case, at `--cpu 0`, and 233 s for `titin-10000`. The whole job, `data verify` included, took about 3 hours.
 
 Each case has the sample's hit, at the same score, with an E-value about 316 times the sample's: the library has 144,361 models to the sample's 456. `titin-10000` alone has a hit only here. The golden folder's README lists the files and their sha256s, and [the survey](hmmscore-library-survey.md#the-port-at-the-residue-limit) has the timings at the residue limit.
+
+## `treegrafter`
+
+Each case is one protein, grafted by EBI's command line at the pinned commit, and by the engine, against the committed fixture: PANTHER 19's library cut to three families, PTHR18976, PTHR11442 and PTHR11034, with their lines of release 2026-08-28. With `hmmsearch -Z 65000000`, a protein whose best family is one of these gets the full library's numbers. The cases are listed in `engine/tests/golden/treegrafter/cases.json`, in this order, and each input's source and sha256 is in that folder's README.
+
+| Folder | What it is | Made by |
+| ------ | ---------- | ------- |
+| `inputs/` | Each case's sequence, as the API sends it | Written for `adopt-treegrafter`, from the site's example and UniProt |
+| `parity/fixture/` | EBI's `--print-go` output for each case, on the fixture | `panther-engine treegrafter parity reference`, in the engine image, on amd64 |
+| `parity/full/` | The same on the full library | The full-library run (below) |
+
+| Case | Sequence | What it shows, on the fixture |
+| ---- | -------- | ----------------------------- |
+| `apoe` | The site's example, human APOE, 317 residues | One placement: `PTHR18976:SF2` at node `AN163`, 172.6 bits and 5.7e-47, protein class PC00052 and 12 GO terms |
+| `hbb` | Human HBB, UniProt P68871 | Five placements in the globins: `PTHR11442:SF42` at `AN248` |
+| `hba` | Human HBA, UniProt P69905 | Seven placements: `PTHR11442:SF48` at `AN149` |
+| `pthr11034` | Human NDRG1, UniProt Q92597 | A family that can't be placed: its tree's leaf `AN186` has no row in its alignment. The family alone, `PTHR11034`, with `-` for the node, GO terms and protein class |
+| `apoe-hbb` | APOE, then HBB | Two families pass: EBI's code keeps the higher full-sequence score, the globins' at 206.0 bits, over APOE's |
+| `apoe-peptide60` | APOE's residues 91 to 150 | Reported at a full-sequence E-value of 2.8e-6, so EBI's cutoff at 1e-8 drops it: no hit. No 30 residues of APOE are reported at all |
+| `random300` | 300 random residues, from a recorded seed | Nothing reported: no hit |
+| `apoe-stop` | APOE and a final `*` | A character the engine takes: AN163, at 5.8e-47 |
+| `apoe-dot`, `apoe-underscore`, `apoe-star` | APOE with three of the character, after residues 80, 160 and 240 | HMMER reads `.` and `_` as gaps, and `*` as a position: all three give AN163 at 142.9 bits |
+| `apoe-uncommon` | APOE with `B`, `J`, `O`, `U`, `X` and `Z` | The uncommon letters, which EBI's code passes to EPA-ng with `U` and `O` as `X`: AN163 at 166.3 bits |
+
+### What Isn't in the treegrafter Set
+
+- **Sequences the engine refuses** (divergence 12, and proposed divergence 15), such as one with `~`, `-`, a digit or no letter: the API never sends them. `score()` raises `ValueError` for each, before any tool runs.
+- **A failing tool:** EPA-ng's abort, `hmmsearch` exiting with an error, or EBI's parser exiting. The engine fails the graft, where EBI's code printed the family alone or exited, so the scoring tests check these with fake tools instead.
+
+### The treegrafter Full-Library Run
+
+Not yet run ([golden-setup.md](golden-setup.md#the-treegrafter-full-library-run)). The machine, the date and the times go here.

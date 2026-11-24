@@ -3,7 +3,13 @@ name = "panther-engine"
 version = "0.1.0"
 description = "Scoring engine for the PANTHER services: hmmscore, refmap, csnp and treegrafter."
 requires-python = ">=3.13"
-dependencies = []
+# EBI's treegrafter, for the treegrafter service only, by a commit's archive: PyPI has none, and a
+# git dependency would need git in the images. The commit is ebi-pf-team/treegrafter#9's head, on
+# the engine developer's fork, until EBI merges it (openspec adopt-treegrafter, design.md,
+# decision 8). uv.lock pins the archive's sha256. Biopython and NumPy come with it.
+dependencies = [
+    "treegrafter @ https://github.com/dustine32/ebi-treegrafter/archive/d633328f559fbb74d6e29ced7068eed4e5ef8629.tar.gz",
+]
 
 [project.scripts]
 panther-engine = "panther_engine.cli:main"

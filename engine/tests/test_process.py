@@ -186,7 +186,7 @@ def test_text_capture_translates_carriage_returns(
 PARENT = """
 import os, sys
 from pathlib import Path
-from panther_engine.core import hmmer
+from panther_engine.core import epang, hmmer
 from panther_engine.core.process import run_tool
 from panther_engine.csnp import blast
 work = Path(sys.argv[1])
@@ -197,6 +197,7 @@ CALLS = {
     "hmmscan": "hmmer.hmmscan(work / 'db', work / 'q', table=work / 't', cpu=0, timeout=60)",
     "hmmsearch": "hmmer.hmmsearch(work / 'm', work / 'q', report=work / 'r', cpu=0, timeout=60)",
     "blastp": "blast.search('MKVLW', work / 'data', timeout=60)",
+    "epa-ng": "epang.place(work / 't', work / 's', work / 'q', work / 'o', timeout=60)",
 }
 
 
@@ -251,6 +252,7 @@ def still_running_after(pid: int, seconds: float) -> bool:
         ("hmmscan", "hmmscan"),
         ("hmmsearch", "hmmsearch"),
         ("blastp", "blastp"),
+        ("epa-ng", "epa-ng"),
     ],
 )
 def test_a_search_tool_dies_with_its_parent(

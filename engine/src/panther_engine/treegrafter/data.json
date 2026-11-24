@@ -1,0 +1,36 @@
+{
+  "families": 15683,
+  "files": {
+    "treegrafter/19/library.sha256": "6c0dbbed095554a12c508d40a212af8e14215839e3b4e53553f1a0834fe34ae5"
+  },
+  "prefix": "PANTHER19.0_data/",
+  "releases": {
+    "2026-01-05": {
+      "bytes": 24063007,
+      "go_release": "2025-10-06",
+      "prepared": "fbd2e38f07280d24df60e315fe5b5d72fe4f61660921726e5b1b747dd1c75967",
+      "sha256": "3ed5780acb332967b304445bff9534ff387b56bddce8bc63795125bc0989db1a",
+      "url": "https://data.pantherdb.org/ftp/downloads/paint/19.0/2026-01-05/PAINT_TreeGrafter_Annotations_TOTAL.txt.gz"
+    },
+    "2026-06-02": {
+      "bytes": 23970953,
+      "go_release": "2026-04-28",
+      "prepared": "93101f9d458e1773fdc8e9f7f4f93ef46ee8b83527f244d0cbd6830c2fcd814b",
+      "sha256": "f17e2b9c9de7151f508750731cb8fb3bd0ec86bbaef4e1bbc299c48b89e729c5",
+      "url": "https://data.pantherdb.org/ftp/downloads/paint/19.0/2026-06-02/PAINT_TreeGrafter_Annotations_TOTAL.txt.gz"
+    },
+    "2026-08-28": {
+      "bytes": 23980614,
+      "go_release": "2026-08-05",
+      "prepared": "8eaa968bb66cc94ba73cbf7eca91ed569af12d17f5f1194f65db68da2116697e",
+      "sha256": "03ad195b42a48ff2fb0caadd337bf2c98464382855618c1f14fe2869b3d6bf3f",
+      "url": "https://data.pantherdb.org/ftp/downloads/paint/19.0/2026-08-28/PAINT_TreeGrafter_Annotations_TOTAL.txt.gz"
+    }
+  },
+  "tarball": {
+    "bytes": 3073460727,
+    "sha256": "789c31d7f1e051ae3dfdd4c6c41e97a970395cc490cab52da850d1b5abfd5e4f",
+    "url": "https://data.pantherdb.org/ftp/downloads/TreeGrafter/PANTHER19.0_data_trees_hmms_only.tar.gz"
+  },
+  "version": "19"
+}

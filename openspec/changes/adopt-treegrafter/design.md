@@ -242,7 +242,7 @@ The layout is in the `treegrafter-data` spec.
 - **[EBI doesn't merge the `pyproject.toml`]** → The fork commit's pin works the same way. Copying the module in is a team decision (proposal, Open Questions).
 - **[GitHub regenerates a commit archive, and its sha256 changes]** → `uv sync --locked` fails loudly. Then switch to the git form, and install `git` in the build stages.
 - **[Biopython and NumPy add about 100 MB to both images, and CI's licence check may reject them]** → Task 2.3 runs the dependency review.
-  - Biopython's licence is its own agreement or BSD-3-Clause.
+  - Biopython's licence is its own, the Biopython License Agreement, a permissive licence with no SPDX ID. Some of its files are also offered under BSD-3-Clause, but not the package as a whole.
   - NumPy's wheels bundle code under further licences.
   - An entry in the allow-list, with a comment, is the fix the review already uses for two packages.
 - **[A near-tie moves between architectures or versions]** → amd64 is the target, with arm64 copies. The fixture's multi-placement cases are the globins', whose best placement weighs 17% to 27%.

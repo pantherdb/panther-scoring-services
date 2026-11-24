@@ -67,7 +67,7 @@ Groups 1, 3.1 and 3.2 don't need EBI's code, so they can start while group 0 wai
   - in both, `python -c "import treegrafter, Bio; print(Bio.__version__)"` prints `1.88`;
   - each image's size before and after is in Notes. About 100 MB more is expected.
 - [ ] 2.3 Open this change's pull request early enough to see CI's `dependency-review` on the new packages. If it rejects Biopython or NumPy for a licence it misreads, add them to `allow-dependencies-licenses` in `.github/workflows/ci.yml`, each with a comment like the two already there:
-  - Biopython's licence is its own agreement, or BSD-3-Clause;
+  - Biopython's licence is its own, the Biopython License Agreement, with no SPDX ID (some of its files are also BSD-3-Clause, not the package);
   - NumPy's wheels bundle code under further licences.
 
   Verify the `dependency-review` job passes.

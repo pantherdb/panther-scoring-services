@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR11654:SF91	214.5	9.5e-60	214.2	1.2e-59	8	453	45	532	23	544	AN98	GO:0016020,GO:0022857,GO:0055085	PC00227

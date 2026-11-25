@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR24055:SF584	401.2	1.1e-116	400.9	1.4e-116	7	286	24	315	11	352	AN2190	GO:0004674,GO:0005634,GO:0005737,GO:0007166,GO:0035556	PC00167

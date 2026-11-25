@@ -8,6 +8,7 @@ from panther_engine.core.tools import report_tools
 from panther_engine.csnp import cli as csnp_cli
 from panther_engine.hmmscore import cli as hmmscore_cli
 from panther_engine.refmap import cli as refmap_cli
+from panther_engine.treegrafter import cli as treegrafter_cli
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -51,6 +52,15 @@ def build_parser() -> argparse.ArgumentParser:
             "test against.",
         )
     )
+    treegrafter_cli.configure(
+        commands.add_parser(
+            "treegrafter",
+            help="treegrafter: the library and annotation releases",
+            description="The treegrafter service: grafting one protein onto a PANTHER 19 family "
+            "tree with EBI's treegrafter, the pinned library and PAINT annotation releases it "
+            "reads, and parity with EBI's command line.",
+        )
+    )
     return parser
 
 
@@ -79,5 +89,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return refmap_cli.run(args)
         case "hmmscore":
             return hmmscore_cli.run(args)
+        case "treegrafter":
+            return treegrafter_cli.run(args)
         case _:
             raise AssertionError(f"unhandled command: {args.command}")

@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR10666:SF437	489.4	7.3e-147	168.1	1.3e-46	2	79	77	154	76	155	AN682	GO:0003735,GO:0005634,GO:0016567,GO:0019941,GO:0022626,GO:0031386	-

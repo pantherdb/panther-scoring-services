@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR24049:SF22	1844.3	0.0	258.4	3.7e-73	122	350	555	780	553	782	AN254	GO:0005886,GO:0007157,GO:0032991,GO:0045197	PC00069

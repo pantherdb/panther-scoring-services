@@ -2,7 +2,7 @@
 
 The scoring engine for PANTHER's four scoring services (`csnp`, `refmap`, `hmmscore`, `treegrafter`): one Python package, `panther_engine`, with a command line, `panther-engine`. It's a library, not a web service. The API in [`api/`](../api/README.md) imports it as a path dependency and calls it in its worker processes, so the boundary between them is a typed function call, never HTTP.
 
-Each service is a submodule beside a shared `core/`. Each one either ports a legacy Perl service and proves it gives the same output, or, for `treegrafter`, adopts EBI's Python version. Only `csnp` is ported so far.
+Each service is a submodule beside a shared `core/`. Each one either ports a legacy Perl service and proves it gives the same output, or, for `treegrafter`, adopts EBI's Python version. `csnp`, `refmap` and `hmmscore` are ported and wired into the API; `treegrafter` adopts EBI's code (`adopt-treegrafter`), and its wiring comes next.
 
 ## Quick Start
 
@@ -32,7 +32,7 @@ The engine's architecture is **proposed**, not final: "Engine: Agree, With Condi
 | Language | Python 3.13 | The API's language, so the API can import the engine. Porting the Perl removes the last Perl from these services |
 | Shape | A library with a CLI, in a `src/` layout. Distribution `panther-engine`, package `panther_engine` | Engine condition 1: one function call between `api/` and `engine/` saves a network hop, a deployment and a second contract. The CLI is for checks by hand, the data sample and parity runs |
 | Packages | uv 0.13.6 or later, with the `uv_build` backend and a committed `uv.lock` | The same tool as the API, for Python, the virtualenv and the lockfile |
-| Runtime dependencies | None: the standard library only | Nothing has needed one yet. A new dependency comes with an OpenSpec proposal |
+| Runtime dependencies | For `treegrafter` only: EBI's [`treegrafter`](https://github.com/ebi-pf-team/treegrafter), pinned by a commit's archive, with Biopython 1.88 and NumPy through the lock. They load only when a protein is grafted or an annotation release prepared, never on import. The other services use the standard library only | `adopt-treegrafter` proposed them (its design.md, decision 8). A new dependency comes with an OpenSpec proposal |
 | Lint and format | Ruff 0.17.3, with the API's rules except `FAST`, which only checks FastAPI code | The rules include `S`, from bandit: `S603` flags a `subprocess` call outside `run_tool()` |
 | Types | basedpyright 1.40.2, strict, over `src/` and `tests/` | The same as the API |
 | Tests | pytest 9.2.0, with the `tools` and `data` markers | A test that needs a tool or a data sample says so, and skips without it. The image fails it instead when a tool is missing, and CI when the sample is |
@@ -45,9 +45,9 @@ The engine's architecture is **proposed**, not final: "Engine: Agree, With Condi
 | Service | Status | Tools | Reference |
 | ------- | ------ | ----- | --------- |
 | `csnp` | **Ported** (`port-csnp`). Matches the reference's goldens on the data sample | BLAST+ | The legacy Perl, `pantherdb/cSNP_analysis` at `cebb5ab` |
-| `refmap` | Not started: a docstring only | None | The legacy Perl, `RefProteomeMapper/` |
-| `hmmscore` | Not started: a docstring only | HMMER3 | The legacy Perl, `pantherScoring/` |
-| `treegrafter` | Not started: a docstring only | HMMER3, EPA-ng | EBI's [`treegrafter`](https://github.com/ebi-pf-team/treegrafter), to be adopted and pinned by commit, not ported (Engine condition 5) |
+| `refmap` | **Ported** (`port-refmap`) and wired (`wire-refmap`). Matches the reference's goldens, and the full run on every ID of the release | None | The legacy Perl, RefProteomeMapper's `map_panther.pl` at `4fc6a09` |
+| `hmmscore` | **Ported** (`port-hmmscore`) and wired (`wire-hmmscore`). Matches the reference's goldens on the data sample | HMMER3 | The legacy Perl, `pantherScoring/`'s `scoreAlignXml.cgi` and `pantherScore.pl` at `89ea0ae`, with HMMER 3.1b2 |
+| `treegrafter` | **Adopted** (`adopt-treegrafter`): EBI's code grafts, inside the engine's adapter. Matches EBI's command line's goldens on the fixture. Not wired yet (`add-treegrafter-job`) | HMMER3, EPA-ng | EBI's [`treegrafter`](https://github.com/ebi-pf-team/treegrafter) at the commit `pyproject.toml` pins, not ported (Engine condition 5, divergence 1) |
 
 ### `csnp`, From the API
 
@@ -96,8 +96,15 @@ src/panther_engine/
     full.py       the full data's manifest, full.json, built from the pinned archives
     parity.py     the parity cases, the run through the Perl, and the comparison
     cli.py        the csnp subcommands
-  hmmscore/, refmap/, treegrafter/
-                  a docstring each, naming the service's reference
+  hmmscore/, refmap/
+                  ported as csnp/ is, each citing its legacy script's lines
+  treegrafter/    EBI's treegrafter, adopted, not ported
+    scoring.py    score(), check_data(), annotations() and their types: the interface for the API
+    ebi.py        typed wrappers for EBI's functions, imported only when a protein is grafted
+    data.py       the library and the annotation releases: pin, fetch, prepare, verify, fixture.
+                  data.json pins them
+    parity.py     the golden cases, the run through EBI's command line, and the comparison
+    cli.py        the treegrafter subcommands
 tests/            pytest. conftest.py applies the tools and data markers, which pyproject.toml
                   declares, and has make_tool, which writes a fake tool
   fixtures/       hand-written library files, and each tool's recorded version output
@@ -117,6 +124,9 @@ tools-env/        EPA-ng's Bioconda lock, per architecture, for the image
 | `panther-engine csnp data verify` / `manifest` | Checks the full cSNP data in the data folder against `full.json`, or builds `full.json` from the pinned archives |
 | `panther-engine csnp survey ARCHIVE` | Checks every family of the PAML_RST library, streaming the archive |
 | `panther-engine csnp parity cases` / `reference` / `check` | Generates parity cases, runs them through the Perl in the `csnp-reference` image, and checks the port against its output |
+| `panther-engine treegrafter score FASTA` | Grafts one protein as the API's `treegrafter` job will. Needs `hmmsearch` and `epa-ng`, so run it in the image |
+| `panther-engine treegrafter data fetch` / `verify` / `manifest` / `fixture` | Fetches the library and an annotation release, prepared, into the data folder, checks them, pins them, or cuts the test fixture |
+| `panther-engine treegrafter parity reference` / `check` | Runs the golden cases through EBI's command line, and checks the engine against its output |
 
 ## Working on It
 

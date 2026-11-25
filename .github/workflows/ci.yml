@@ -585,7 +585,15 @@ jobs:
           #   code generated from your .proto files is yours.
           # - typing-extensions: PSF-2.0 per its metadata; tagged GPL-1.0-or-later because the
           #   PSF licence's history section mentions the GPL.
-          allow-dependencies-licenses: pkg:pypi/protobuf, pkg:pypi/typing-extensions
+          # Packages whose licence is reported correctly, but isn't in the list above: accepted by
+          # name, for treegrafter (openspec adopt-treegrafter, design.md, decision 8).
+          # - biopython: the Biopython License Agreement, a permissive licence with no SPDX ID,
+          #   reported as LicenseRef-Biopython-License-Agreement. Some of its files are also
+          #   offered under BSD-3-Clause.
+          # - numpy: BSD-3-Clause, with code its wheels bundle under 0BSD, MIT, Zlib and CC0-1.0.
+          #   Zlib isn't in the list. Biopython needs it.
+          allow-dependencies-licenses: >-
+            pkg:pypi/protobuf, pkg:pypi/typing-extensions, pkg:pypi/biopython, pkg:pypi/numpy
 
   ci-passed:
     name: ci-passed

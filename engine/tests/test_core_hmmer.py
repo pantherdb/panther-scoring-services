@@ -61,6 +61,29 @@ def test_hmmsearch_gets_its_arguments_as_a_list_with_cpu(
     assert not (tmp_path / "marker").exists()
 
 
+def test_hmmsearchs_options_come_before_the_model_and_the_query_each_as_one_argument(
+    make_tool: Callable[[str, str], Path], on_path: Path, tmp_path: Path
+) -> None:
+    tool = make_tool("hmmsearch", RECORD_ARGV)
+    model, query = tmp_path / "binHmm", tmp_path / "query.fasta"
+    # treegrafter's options (treegrafter.sh), and one with a space and a shell command in it.
+    options = ("-Z", "65000000", "-E", "0.001", "--notextw", "--tblout x; touch marker")
+
+    hmmer.hmmsearch(
+        model, query, report=tmp_path / "r", cpu=0, timeout=10, cwd=tmp_path, options=options
+    )
+
+    assert received_argv(tool) == ["--cpu", "0", *options, str(model), str(query)]
+    assert not (tmp_path / "marker").exists()
+
+
+def test_hmmsearchs_options_as_one_string_are_refused(on_path: Path, tmp_path: Path) -> None:
+    with pytest.raises(TypeError, match="not one string"):
+        hmmer.hmmsearch(
+            Path("m"), Path("q"), report=tmp_path / "r", cpu=0, timeout=10, options="-Z 1"
+        )
+
+
 def test_the_tools_run_in_cwd(
     make_tool: Callable[[str, str], Path], on_path: Path, tmp_path: Path
 ) -> None:

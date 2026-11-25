@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR11447:SF6	466.4	4.4e-136	466.2	5.2e-136	3	376	3	369	1	388	AN14	GO:0000785,GO:0000978,GO:0000981,GO:0005634,GO:0042771,GO:0042981,GO:0045944,GO:1990841	PC00253

@@ -331,3 +331,65 @@ On a cluster without Docker, such as CARC's Endeavour, where the survey fetched 
    rsync -a <cluster>:<scratch>/panther-scoring-services/engine/tests/golden/hmmscore/parity/full/ \
      engine/tests/golden/hmmscore/parity/full/
    ```
+
+## `treegrafter`
+
+The reference is EBI's `treegrafter` at the commit `engine/pyproject.toml` pins, run by its own command line, with the engine's tools. We adopt EBI's code rather than port the legacy Perl ([divergence 1](divergences.md)), so no reference image is needed: EBI's code and the tools are already in the engine image.
+
+| Piece | Version |
+| ----- | ------- |
+| EBI's code | `ebi-pf-team/treegrafter` at `5ef350f`, with the `pyproject.toml` of [ebi-pf-team/treegrafter#9](https://github.com/ebi-pf-team/treegrafter/pull/9), pinned in `engine/pyproject.toml` by that pull request's head commit, `d633328`, and in `engine/uv.lock` by its archive's sha256. Its `treegrafter.py` has sha256 `9741da411ef4ae7c2cf5bf80b133391ee45b78149bc8aa0e2c9143ddd55de44c`, which a test checks |
+| Python packages | Biopython 1.88 and NumPy 2.5.5, through `engine/uv.lock` |
+| HMMER and EPA-ng | 3.4 and 0.3.8, the engine image's ([tech-stack.md](../design/tech-stack.md)). EBI's own Dockerfile builds 3.3.1 and 0.3.7 |
+| The data | The committed fixture, `engine/tests/fixtures/treegrafter/`, for `fixture/`; the full library and release 2026-08-28, pinned by `engine/src/panther_engine/treegrafter/data.json`, for `full/` ([engine.md](../testing/engine.md#the-treegrafter-data)) |
+
+### Regenerating the treegrafter Goldens
+
+The cases are in `engine/tests/golden/treegrafter/cases.json`; why each is there is in [inputs.md](inputs.md#treegrafter). amd64 is the target, as for hmmscore. Build the engine image for amd64, then run the cases with your working copy mounted over the engine, from the repository root:
+
+```sh
+docker buildx build --platform linux/amd64 --load --target engine -t panther-engine:amd64 .
+docker run --rm --platform linux/amd64 -v "$PWD/engine:/work/engine" \
+  -e PYTHONDONTWRITEBYTECODE=1 --user "$(id -u):$(id -g)" \
+  panther-engine:amd64 panther-engine treegrafter parity reference
+```
+
+- **For each case, one at a time,** in a temporary folder: the case's sequence as `>query`, then `hmmsearch -Z 65000000 -E 0.001 --domE 0.00000001 --incdomE 0.00000001 --notextw` against `famhmm/binHmm`, `treegrafter.sh search`'s, then EBI's console script, `treegrafter run -e 0.00000001 --print-go`, with the active release. Its output replaces `parity/fixture/<case>/result.tsv` once it has run; a case that fails leaves its golden as it was.
+- **`--goldens fixture`, the default,** installs the committed fixture, prepared by EBI's `prepare`, in a temporary data folder. `--goldens full` reads the data folder, `--data-dir` or `PANTHER_DATA_DIR`.
+- **`--case NAME`** runs one case; repeat it for more.
+- **It took 21 s** for the twelve cases on an Apple Silicon Mac, under Docker's emulated amd64, on 2026-11-24. `hmmsearch`'s report isn't kept, since it ends with CPU times; EBI's output is the same bytes run to run.
+- **On arm64,** the same command writes to `parity/fixture-arm64/` instead. Keep such a copy only for a case whose arm64 result differs, and list it in the golden folder's README.
+- **Then check the engine against them,** in the engine image, on each architecture:
+
+  ```sh
+  docker compose run --rm -T engine panther-engine treegrafter parity check
+  ```
+
+  It prints each case's time, every difference, field by field, and how many cases match, and exits with status 1 if any differs or has no output. EBI's row has no graft point, so the engine's is left out of the comparison. CI runs the same comparison in `tests/test_treegrafter_parity.py`, on both `engine-image` legs.
+- **Update the sha256s** in the golden folder's README, and commit `parity/fixture/` with them.
+
+### The Cross-Check in InterPro's Published Image
+
+The goldens use HMMER 3.4 and EPA-ng 0.3.8, where EBI's Dockerfile builds 3.3.1 and 0.3.7. So the cases ran once, on amd64, with the tools of the image InterPro publishes for PANTHER, and the pinned EBI code.
+
+- **The image:** `interpro/panther:1.0`, digest `sha256:a486b8bcbbc26979d379b1909b793d83aeb7c044c722674546009ad7ef673127`, amd64 only. It holds HMMER 3.3, EPA-ng 0.3.8, Python 3.12.3 and Biopython 1.83, and no TreeGrafter code. `interpro/treegrafter` isn't published.
+- **What InterProScan 6 runs in it isn't EBI's `treegrafter`:** `ebi-pf-team/interproscan6`'s PANTHER module searches with `hmmsearch -Z 65000000 -E 0.001`, without the domain thresholds, picks the best family in Groovy, and places with its own `bin/treegrafter.py`. So the cross-check runs the pinned code in the image instead: `treegrafter.py` and `treegrafter.sh` from the archive `engine/uv.lock` pins, mounted read-only.
+- **How:** in the image, `treegrafter.sh prepare` on the fixture's annotation lines, then, for each case, `treegrafter.sh search`, which runs `hmmsearch` and `treegrafter.py run -e 0.00000001` without `--print-go`. Then again with `hmmsearch` as above and `treegrafter.py run -e 0.00000001 --print-go`, for the GO terms and protein class.
+- **The result, on 2026-11-24:** all twelve cases' rows equal the goldens. The 13 columns of `treegrafter.sh search` match, and with `--print-go`, every `result.tsv` is byte-identical. So HMMER 3.3 and Biopython 1.83 give what 3.4 and 1.88 give, and no divergence row is needed.
+- **Not covered:** EPA-ng 0.3.7, the version EBI's Dockerfile builds. The image has 0.3.8, as the engine does.
+
+### The treegrafter Full-Library Run
+
+The goldens' cases, and a second set, `full/`, on the full library with release 2026-08-28, on a machine where `panther-engine treegrafter data verify` reports nothing. With the data folder in `.data/`:
+
+```sh
+docker compose run --rm -T engine sh -c '
+  panther-engine treegrafter parity reference --goldens full &&
+  panther-engine treegrafter parity check --goldens full'
+```
+
+- **EBI's code and the engine read the same data folder:** the full library and the active release.
+- **Each graft reads the whole `binHmm`,** 3.4 GB of text HMMs: about 45 s a protein on an M1 Pro, for EBI's command line and the engine alike. The run on 2026-11-24 took about 2 hours for both sets.
+- **The second set,** 30 proteins in `engine/tests/golden/treegrafter/library/`, runs the same way, with `--golden tests/golden/treegrafter/library`.
+- **On arm64,** `parity reference` writes `parity/full-arm64/`, as for the fixture; on amd64, `parity/full/`.
+- **Record the machine, the date and the times** in [inputs.md](inputs.md#the-treegrafter-full-library-run), and commit the results with their sha256s in each golden folder's README.

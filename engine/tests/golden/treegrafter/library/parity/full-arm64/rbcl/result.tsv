@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR42704:SF16	954.3	2.9e-284	954.1	3.2e-284	1	459	1	474	1	475	AN101	-	PC00144

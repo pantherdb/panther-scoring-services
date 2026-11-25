@@ -124,6 +124,41 @@ alignment
 - **`--json`** prints the result as `score()` returns it. **`--data-dir`** overrides `PANTHER_DATA_DIR`.
 - **Exit status 1** for input it can't score, missing data or a tool that fails, with the reason on standard error.
 
+`panther-engine treegrafter score` grafts one protein as the API's `treegrafter` job will (`add-treegrafter-job`), and as EBI's `treegrafter.sh search` does: `hmmsearch` against the library's `famhmm/binHmm`, EBI's best family and its 1e-8 cutoff, EPA-ng on that family's tree, then EBI's graft node, with the active annotation release. It needs HMMER 3.4 and EPA-ng 0.3.8, so run it in the image, with the treegrafter data ([Test Data](#the-treegrafter-data)). From the repository root:
+
+```sh
+docker compose run --rm -T engine panther-engine treegrafter score tests/golden/treegrafter/example/apoe.fasta
+```
+
+It prints the hit's fields, tab-separated, with `-` for no value, then the release it read:
+
+```text
+panther_id     PTHR18976:SF2
+node_id        AN163
+graft_point    PTN002498710
+go_terms       GO:0005543,GO:0008203,GO:0033344,...,GO:1903561
+protein_class  PC00052
+score          172.6
+evalue         5.7e-47
+domain_score   172.4
+domain_evalue  6.8e-47
+hmm_from       11
+hmm_to         359
+ali_from       1
+ali_to         306
+env_from       1
+env_to         311
+annotations    2026-08-28
+```
+
+- **The protein** is a FASTA file with one header line, or the sequence alone, or standard input for `-` or no file. It's normalised as `hmmscore score`'s is. A character the API refuses is refused, and so are `~` and `-` (divergence 15).
+- **No hit** prints `No hit`: no family reported, or the best one's full-sequence E-value over 1e-8.
+- **A family that can't be placed,** one of the ten whose tree has a leaf its alignment lacks, prints the family alone, with `-` for the node, graft point, GO terms and protein class, as EBI's code does, and logs a warning.
+- **`--timeout S`** limits the whole graft to S seconds: `hmmsearch` gets it, then EPA-ng what's left. Past it, the command prints "The graft took longer than this service allows. Try a shorter sequence." and exits with status 1. With no `--timeout`, the graft isn't limited.
+- **`--usage`** prints, to standard error, the wall time and the largest peak memory of the tools it ran. APOE took about 50 s on an M1 Pro on 2026-11-24, almost all of it `hmmsearch`, which took about 44 s for any query, even an empty one, with the library in a Docker volume as through the bind mount: it's reading the 15,683 text HMMs, not the file, which `cat` read in 1.5 s. The spike measured 10 s on the same machine; why needs team verification ([the survey](../parity/treegrafter-library-survey.md#timings)).
+- **`--json`** prints the result as `score()` returns it. **`--data-dir`** overrides `PANTHER_DATA_DIR`.
+- **Exit status 1** for input it can't graft, missing data, or a tool or EBI's code failing, with the reason on standard error.
+
 ## Mapping IDs From the Command Line
 
 `panther-engine refmap map` maps IDs for one organism as the API's `refmap` job does, for checks by hand. It needs the refmap data ([Test Data](#the-refmap-data)), and no external tool. From `engine/`:
@@ -337,6 +372,62 @@ uv run panther-engine refmap data manifest panther_classifications.tar.gz stats 
 - **The same inputs give the same bytes.** Run on the pinned release, it writes the committed files unchanged.
 - **A new PANTHER version** also changes `VERSION` in `src/panther_engine/refmap/organisms.py`, so the files go under `refmap/<version>/`.
 - **Commit both files.** CI's cache is keyed on `data.json`, so the next run fetches the new release.
+
+### The treegrafter Data
+
+`treegrafter` reads PANTHER 19's TreeGrafter library and one PAINT annotation release. There's no sample: the tests use a committed fixture of three families (`engine/tests/fixtures/treegrafter/`), and the full data is for checks by hand and the full-library parity run.
+
+- **The library:** `PANTHER19.0_data_trees_hmms_only.tar.gz` on `data.pantherdb.org`, 3.07 GB, 8.2 GB unpacked. `engine/src/panther_engine/treegrafter/data.json` pins it by URL, size and sha256, with its member prefix, its 15,683 families and the sha256 of `library.sha256`, the list of every kept file's sha256.
+- **The annotation releases:** each `paint/19.0/<date>/PAINT_TreeGrafter_Annotations_TOTAL.txt.gz`, about 24 MB, pinned in `data.json` by date, with its size and sha256, the GO release its README states, and the sha256 of its prepared files' list. 2026-01-05, 2026-06-02 and 2026-08-28 are pinned; the 19.0 releases before them have no TreeGrafter file. `paint/current/` holds the latest: 2026-08-28, on 2026-11-24.
+- **Where they go:** the data folder, under `treegrafter/19/`: `famhmm/binHmm`, each family's `Tree_MSF/<family>.AN.fasta`, `.bifurcate.newick` and `.newick`, and `library.sha256`. Each release goes under `annotations/<date>/`, as EBI's `prepare` writes it, one JSON file per family, with `prepared.sha256`. `annotations/active` holds the date of the release grafting reads.
+- **The disk it takes:** about 4.4 GB for the library, plus 320 MB per prepared release. A fetch also needs room for the release's file and a release being prepared, in a temporary folder in the data folder, and about 1.4 GB of memory to prepare it.
+
+Fetch the library and the current release natively, from `engine/`:
+
+```sh
+uv run panther-engine treegrafter data fetch --data-dir ../.data
+uv run panther-engine treegrafter data verify --data-dir ../.data    # optional: check every file again
+```
+
+Or through compose, from the repository root, as for the samples:
+
+```sh
+docker compose run --rm --user "$(id -u):$(id -g)" -v "$PWD/.data:/fetch" engine \
+  panther-engine treegrafter data fetch --data-dir /fetch
+```
+
+It prints what it did:
+
+```text
+fetched the treegrafter library, and checked every file
+current is release 2026-08-28
+prepared release 2026-08-28, with an entry for every tree node
+release 2026-08-28 is active
+```
+
+- **The library is checked before it's saved.** `fetch` streams the tarball over HTTPS, keeps only what grafting reads, and writes each file into a temporary folder in the data folder. It checks the tarball's size and sha256, and every file, before moving any under `treegrafter/19/`. It skips the pressed `binHmm` files, the `.tree` files, the PAINT README and the empty `tmp/`. From a local copy, it took 67 s on an M1 Pro on 2026-11-24; the download adds a few minutes. When the folder already matches, it downloads nothing, and the check takes about 15 s.
+- **`--annotations current`, the default,** downloads `paint/current/`'s file and README, and resolves the file by its sha256 to the pinned release it is. A file no release pins is refused, naming its sha256 and the GO release its README states: pin it first (below). Nothing under `annotations/` changes.
+- **`--annotations <date>`** fetches that pinned release. A date that isn't pinned is refused, listing the pinned dates.
+- **Preparing a release** runs EBI's `prepare` into a temporary folder, checks that every node of every tree has an entry, all 3,564,945 for 2026-08-28, checks the prepared files against the pin, then moves the folder to `annotations/<date>/` and makes it active. It took 53 s for 2026-08-28, with the library's check.
+- **Going back to a release** that's still prepared and verified makes it active without a download, such as `--annotations 2026-06-02`, then `--annotations 2026-08-28` again. Each release stays prepared until you delete its folder. `annotations/active` is replaced atomically, so a graft reads either the old release or the new one.
+- **`--library FILE` and `--annotation-file FILE`** take local copies instead of downloading them, checked against the same pins. With `current`, a local release file is resolved by its sha256.
+- **`verify`** checks `library.sha256` and every library file it lists, then the active release's `prepared.sha256` and every prepared file it lists. It lists each file that is missing (`missing: PATH`) or differs (`differs: PATH`), and exits with status 1 if there is any, or if no release is active.
+
+**Pinning.** `data.json` is generated, never edited by hand. The library's part, from its tarball, keeping the releases already pinned:
+
+```sh
+uv run panther-engine treegrafter data manifest PANTHER19.0_data_trees_hmms_only.tar.gz \
+  --url https://data.pantherdb.org/ftp/downloads/TreeGrafter/PANTHER19.0_data_trees_hmms_only.tar.gz
+```
+
+It reads the tarball once, as a stream, in about 20 s, and writes nothing, naming each problem, for a member the layout doesn't have or a family without one of its three tree files. A new release, such as `paint/current/`'s once it has moved on, from its file, against a data folder holding the pinned library:
+
+```sh
+uv run panther-engine treegrafter data manifest --release <date> \
+  PAINT_TreeGrafter_Annotations_TOTAL.txt.gz --data-dir ../.data
+```
+
+It downloads the release's README for its GO release, or takes `--readme FILE`, prepares the release in a temporary folder, and refuses it, naming them, if any tree node has no entry. It took about 1 minute for each of the three releases. The same inputs give the same bytes. Commit `data.json`: a new release ships as a pull request that pins it.
 
 ### Tests That Need the Data
 

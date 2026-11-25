@@ -4,7 +4,6 @@ tarball, the pinned library, and the data sample."""
 import argparse
 import dataclasses
 import json
-import resource
 import sys
 import time
 from pathlib import Path
@@ -14,6 +13,7 @@ from panther_engine.core.download import DownloadError
 from panther_engine.core.errors import InputError
 from panther_engine.core.fasta import read_protein
 from panther_engine.core.manifest import ManifestError, checksums, read_manifest
+from panther_engine.core.process import peak_memory_mib
 from panther_engine.hmmscore import data, parity, sample
 from panther_engine.hmmscore.library import PREFIX, LibraryFormatError
 from panther_engine.hmmscore.scoring import (
@@ -409,13 +409,6 @@ def print_result(result: HmmscoreResult, *, as_json: bool) -> None:
     print(f"score\t{hit.score}")
     print("alignment")
     sys.stdout.write(hit.alignment)
-
-
-def peak_memory_mib() -> float:
-    """The largest peak resident memory of the child processes that have ended, in MiB: in a
-    fresh process, the tools scoring ran. Linux counts it in KiB, macOS in bytes."""
-    peak = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
-    return peak / (2**20 if sys.platform == "darwin" else 2**10)
 
 
 def read_families(path: Path) -> list[str]:

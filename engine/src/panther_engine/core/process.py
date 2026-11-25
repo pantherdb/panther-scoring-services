@@ -3,6 +3,7 @@
 import contextlib
 import ctypes
 import os
+import resource
 import signal
 import subprocess
 import sys
@@ -106,3 +107,10 @@ def _dies_with(parent: int) -> Callable[[], None] | None:
             raise OSError("the parent ended before the tool started")
 
     return set_up
+
+
+def peak_memory_mib() -> float:
+    """The largest peak resident memory of the child processes that have ended, in MiB: in a
+    fresh process, the tools a command ran. Linux counts it in KiB, macOS in bytes."""
+    peak = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+    return peak / (2**20 if sys.platform == "darwin" else 2**10)

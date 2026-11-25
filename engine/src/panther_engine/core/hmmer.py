@@ -3,7 +3,7 @@
 Thin layers over `run_tool`: an argument list and no shell, the program found on PATH as
 `core/tools.py` finds it, and the output written to a file byte for byte. `hmmscan` writes its
 `--domtblout` table, which `hmmscore` reads; `hmmsearch` writes its full text report, with the
-alignments, which `hmmscore` shows and `treegrafter` will read. Each returns the finished process:
+alignments, which `hmmscore` shows and `treegrafter` reads. Each returns the finished process:
 checking its exit status is the caller's job, as with `run_tool`. Each dies with the process that
 started it, on Linux (`run_tool`'s `die_with_parent`).
 """
@@ -11,6 +11,7 @@ started it, on Linux (`run_tool`'s `die_with_parent`).
 import os
 import shutil
 import subprocess
+from collections.abc import Sequence
 from pathlib import Path
 
 from panther_engine.core.process import run_tool
@@ -57,13 +58,18 @@ def hmmsearch(
     cpu: int,
     timeout: float | None,
     cwd: Path | None = None,
+    options: Sequence[str] = (),
 ) -> subprocess.CompletedProcess[str]:
-    """`hmmsearch --cpu cpu model query > report`, in the folder `cwd`.
+    """`hmmsearch --cpu cpu options model query > report`, in the folder `cwd`.
 
-    The report, `hmmsearch`'s standard output, goes to `report` byte for byte. Running past
-    `timeout` seconds kills it and raises `subprocess.TimeoutExpired`.
+    `options` are further arguments, such as treegrafter's `-Z 65000000`, each passed as one
+    argument, after `--cpu` and before the model and the query. The report, `hmmsearch`'s standard
+    output, goes to `report` byte for byte. Running past `timeout` seconds kills it and raises
+    `subprocess.TimeoutExpired`.
     """
-    args = ["--cpu", str(cpu), str(model), str(query)]
+    if isinstance(options, str):
+        raise TypeError("options must be a sequence of arguments, not one string")
+    args = ["--cpu", str(cpu), *options, str(model), str(query)]
     return run_tool(
         program("hmmsearch"), args, timeout=timeout, cwd=cwd, stdout=report, die_with_parent=True
     )

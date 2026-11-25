@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR45633:SF3	768.8	9.3e-228	768.5	1.1e-227	10	539	2	528	1	543	AN1022	GO:0005524,GO:0006457,GO:0009408,GO:1990220	-

@@ -175,10 +175,10 @@ Groups 1, 3.1 and 3.2 don't need EBI's code, so they can start while group 0 wai
   - a case with no output is named.
 
   Run them on both `engine-image` legs. Add an arm64 copy only for a case whose result differs there, and list it in the README. Verify CI's `engine-image` legs pass.
-- [ ] 7.4 Run the cases once in EBI's published `interpro/treegrafter` image, pinned by digest, on amd64, with the fixture, through its `treegrafter.sh search`. Compare its rows with the goldens. Verify: if they're equal, golden-setup says so, with the digest. If not, the differences are listed, and a row proposed, or Notes say why none is needed.
+- [x] 7.4 Run the cases once in EBI's published `interpro/treegrafter` image, pinned by digest, on amd64, with the fixture, through its `treegrafter.sh search`. Compare its rows with the goldens. Verify: if they're equal, golden-setup says so, with the digest. If not, the differences are listed, and a row proposed, or Notes say why none is needed.
 - [x] 7.5 In `docs/parity/golden-setup.md`, add a `treegrafter` section: the reference, which is EBI's command line at the pinned commit, in the engine image; regenerating the goldens; 7.4's cross-check; and the full-library run. In `docs/parity/inputs.md`, add a `treegrafter` section: each case, and why it's there. Verify `npx markdownlint-cli2` passes.
-- [ ] 7.6 On a machine with the full library and release 2026-08-28, and `data verify` clean, run `parity reference` and `parity check` for the cases, and for the spike's 33 queries as a second set, `full/`. Commit `full/`. Verify `parity check` exits 0 for both sets, and record the machine, the date and the times in `inputs.md`.
-- [ ] 7.7 Add `docs/parity/treegrafter-library-survey.md` (design.md, decision 11), from Notes' record of the spike and from 3.4 and 7.6:
+- [x] 7.6 On a machine with the full library and release 2026-08-28, and `data verify` clean, run `parity reference` and `parity check` for the cases, and for the spike's 33 queries as a second set, `full/`. Commit `full/`. Verify `parity check` exits 0 for both sets, and record the machine, the date and the times in `inputs.md`.
+- [x] 7.7 Add `docs/parity/treegrafter-library-survey.md` (design.md, decision 11), from Notes' record of the spike and from 3.4 and 7.6:
   - the library's checks, and the ten families that can't be placed;
   - the annotation releases, and the subfamilies at the root;
   - the timings;
@@ -207,12 +207,8 @@ Groups 1, 3.1 and 3.2 don't need EBI's code, so they can start while group 0 wai
 
 ### Next action
 
-Everything that runs on one machine is done. What's left needs a person:
-
-1. **Done: the pull request, [#90](https://github.com/pantherdb/panther-scoring-services/pull/90),** with CI green on `7855fa3`. 8.1's CI check is to run again once the rest is in.
-2. **7.6 needs the spike's 33 queries.** The spike's scratch folder is gone, and these Notes name only some of them: the 24 proteins compared with InterPro, and the timing queries. Their list, or a decision to choose a new set, is the engine developer's. The full library and release 2026-08-28 are fetched and verified in `.data/` on the M1 Pro, so the run can go there. 7.7 waits on 7.6's numbers.
-3. **7.4 needs the image identified, and permission to pull it.** `interpro/treegrafter` isn't on Docker Hub; InterPro's `interpro/panther:1.0` (amd64, 2026-04-20) may hold TreeGrafter. Pulling and running it was refused by the session's permission check, so the engine developer runs it, or allows it.
-4. **0.2, before the final check:** if EBI hasn't merged #9, the engine developer agrees here that the pin stays on `d633328`.
+1. **0.2, before the final check:** if EBI hasn't merged #9, the engine developer agrees here that the pin stays on `d633328`.
+2. **8.1:** the final check, then CI green on #90.
 
 ### The upstream pull request
 
@@ -305,11 +301,24 @@ On the M1 Pro, natively, with the library fetched from a local copy downloaded w
 - **`parity check` matched 12 of 12 on both architectures,** in the engine image, so there's no `fixture-arm64/` copy. Task 7.3 stays open until CI's two `engine-image` legs pass.
 - **The example against the full library,** through compose with `.data/` mounted from macOS, gave the fixture's APOE hit, field for field, in 59 s cold and 50 s warm, almost all of it `hmmsearch` reading the 3.4 GB `binHmm` through Docker Desktop's file sharing. The spike's 10 s had the library inside Docker's VM. The hosting server's own timings come with `add-treegrafter-job`.
 
+### The cross-check in InterPro's image, 2026-11-24 (task 7.4)
+
+- **There's no `interpro/treegrafter`.** The engine developer suggested `interpro/panther:1.0`: digest `sha256:a486b8bc…`, amd64 only, with HMMER 3.3, EPA-ng 0.3.8, Python 3.12.3 and Biopython 1.83, and no TreeGrafter code.
+- **InterProScan 6 doesn't run EBI's `treegrafter` repository:** its PANTHER module searches without `--domE`, picks the best family in Groovy, and places with its own `bin/treegrafter.py`. So InterPro's answers, which the spike compared with, come from that code, not from the pinned one.
+- **So the pinned `treegrafter.py` and `treegrafter.sh`,** from the locked archive, ran in the image on the fixture: `treegrafter.sh search` gave the goldens' 13 columns for all 12 cases, and `run --print-go` gave every `result.tsv` byte for byte. HMMER 3.3 and Biopython 1.83 change nothing here; EPA-ng 0.3.7 isn't covered, since the image has 0.3.8. No row needed.
+
+### The full-library run, 2026-11-24 (tasks 7.6 and 7.7)
+
+- **A new set, since the spike's 33 queries weren't kept:** the engine developer asked for one. 30 UniProt proteins in `engine/tests/golden/treegrafter/library/`: the spike's named ones (CFTR, DYNC1H1, titin's first 10,000 residues, OR1A1, MAPK1, H3.1, actin, calmodulin, GroEL, the SARS-CoV-2 spike), more human, bacterial, plant, yeast and archaeal proteins, SLC15A5 of PTHR11654, the largest tree with 3,226 leaves, and AP3B1, COX6B1 and MOCS2 of three families that can't be placed (PTHR11134, PTHR11387, PTHR23404), found through InterPro's API.
+- **The run:** the M1 Pro's Docker Desktop, 10 CPUs and 12.5 GB, the engine image on arm64, the data copied into a Docker volume (4.6 GB, 66 s), deleted after. `data verify` clean; the 12 cases matched, each byte-identical to its fixture golden, into `parity/full-arm64/`; the 30 matched, into `library/parity/full-arm64/`. No amd64 run.
+- **Times:** EBI's command line took 10 min 15 s for the 12 cases and 31 min 23 s for the 30; the engine 734 s and 1,708 s, 43 to 103 s a protein, a median of 50 s. `random300` (146 s) and `apoe-stop` (98 s) are outliers, before an hour's gap in the log: the Mac may have slept.
+- **`hmmsearch` took 45 s and 43 s for an empty query** in the volume, where `cat` read `binHmm` in 1.5 s, so the time is reading the text HMMs. Through the bind mount, APOE's graft took 50 s warm. The spike's 10 s doesn't reproduce; why needs team verification. The docs that blamed the bind mount say so now.
+- **The spike's answers hold:** OR1A1 SF50, MAPK1 SF584, H3.1 SF242, GroEL SF3, actin SF575, calmodulin PTHR23048:SF0, and no hit for the SARS-CoV-2 spike.
+- **The survey doc** gathers the spike's Notes, design.md's thread timings, 3.4 and this run.
+
 ### Blockers
 
 - **EBI's merge of 0.1.** It doesn't block: the pin on 0.1's head commit works meanwhile (0.2). Open and unreviewed on 2026-11-24.
-- **The spike's 33 queries,** for 7.6 and 7.7.
-- **EBI's published image,** for 7.4: which one, and permission to pull it.
 
 ### The final check, so far (8.1)
 

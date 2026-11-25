@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR28286:SF2	173.2	2.8e-47	172.9	3.5e-47	38	289	9	249	4	254	AN54	-	-

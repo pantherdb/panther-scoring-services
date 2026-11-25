@@ -155,7 +155,7 @@ annotations    2026-08-28
 - **No hit** prints `No hit`: no family reported, or the best one's full-sequence E-value over 1e-8.
 - **A family that can't be placed,** one of the ten whose tree has a leaf its alignment lacks, prints the family alone, with `-` for the node, graft point, GO terms and protein class, as EBI's code does, and logs a warning.
 - **`--timeout S`** limits the whole graft to S seconds: `hmmsearch` gets it, then EPA-ng what's left. Past it, the command prints "The graft took longer than this service allows. Try a shorter sequence." and exits with status 1. With no `--timeout`, the graft isn't limited.
-- **`--usage`** prints, to standard error, the wall time and the largest peak memory of the tools it ran. APOE took about 50 s on an M1 Pro on 2026-11-24, with `.data/` mounted from macOS, almost all of it `hmmsearch` reading the 3.4 GB `binHmm` through Docker Desktop's file sharing. The spike, with the library inside Docker's VM, measured 10 s.
+- **`--usage`** prints, to standard error, the wall time and the largest peak memory of the tools it ran. APOE took about 50 s on an M1 Pro on 2026-11-24, almost all of it `hmmsearch`, which took about 44 s for any query, even an empty one, with the library in a Docker volume as through the bind mount: it's reading the 15,683 text HMMs, not the file, which `cat` read in 1.5 s. The spike measured 10 s on the same machine; why needs team verification ([the survey](../parity/treegrafter-library-survey.md#timings)).
 - **`--json`** prints the result as `score()` returns it. **`--data-dir`** overrides `PANTHER_DATA_DIR`.
 - **Exit status 1** for input it can't graft, missing data, or a tool or EBI's code failing, with the reason on standard error.
 

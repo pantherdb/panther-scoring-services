@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR46532:SF13	4700.5	0.0	4700.2	0	10	4641	23	4645	17	4646	AN38	-	-

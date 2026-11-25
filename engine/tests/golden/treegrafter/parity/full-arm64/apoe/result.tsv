@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR18976:SF2	172.6	5.7e-47	172.4	6.8e-47	11	359	1	306	1	311	AN163	GO:0005543,GO:0008203,GO:0033344,GO:0033700,GO:0034361,GO:0034362,GO:0034364,GO:0042627,GO:0055090,GO:0060228,GO:0120020,GO:1903561	PC00052

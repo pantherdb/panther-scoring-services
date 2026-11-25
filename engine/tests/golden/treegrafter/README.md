@@ -33,7 +33,24 @@ Each service's tests read their own copy, so a change to one service's example n
 
 What EBI's command line answered, for `tests/test_treegrafter_parity.py` and `panther-engine treegrafter parity check`. The reference is EBI's `treegrafter` at the commit `engine/pyproject.toml` pins, in the engine image, with HMMER 3.4 and EPA-ng 0.3.8: `hmmsearch` with `treegrafter.sh`'s flags, then `treegrafter run -e 0.00000001 --print-go` ([golden-setup.md](../../../../docs/parity/golden-setup.md#treegrafter)). Each case's `result.tsv` is that command's output, the header and a row, or the header alone for no hit.
 
-- **`parity/fixture/`:** made on the committed fixture, `../../fixtures/treegrafter/`, with release 2026-08-28, on `linux/amd64`, on 2026-11-24, by `panther-engine treegrafter parity reference`. The engine matched every case on both `linux/amd64` and `linux/arm64`, so there's no `fixture-arm64/` copy.
+- **`parity/fixture/`:** made on the committed fixture, `../../fixtures/treegrafter/`, with release 2026-08-28, on `linux/amd64`, on 2026-11-24, by `panther-engine treegrafter parity reference`. The engine matched every case on both `linux/amd64` and `linux/arm64`, so there's no `fixture-arm64/` copy. The same EBI code in InterPro's `interpro/panther:1.0`, with HMMER 3.3 and Biopython 1.83, gave every `result.tsv` byte for byte ([golden-setup.md](../../../../docs/parity/golden-setup.md#the-cross-check-in-interpros-published-image)).
+
+| Case | `result.tsv`'s sha256 |
+| ---- | --------------------- |
+| `apoe` | `ce64b1ec82ed9ad421f09ccfb6d319befed18311e8d5893d4d50d6d48eda8b42` |
+| `hbb` | `a875a77c496cd4e9bde569353704db5b5954ba38a5fde4bdc54eee5af3d07618` |
+| `hba` | `38281d7cf3cf3c404611612eb67a7aafefdbe55e51a5771ff78543d814420f83` |
+| `pthr11034` | `7d862469559556f226b0dced6c4cdd978e7597eb8c49a2ca1d40e27afc2ad894` |
+| `apoe-hbb` | `7d5f701800d123f33ef36f4070033f238a4a251f13e4288100020514f8d917a8` |
+| `apoe-peptide60` | `e51dec7a593a60b31c0fea9c2f82bf97e3739e1e4c67b6f909839c251a62986e` |
+| `random300` | `e51dec7a593a60b31c0fea9c2f82bf97e3739e1e4c67b6f909839c251a62986e` |
+| `apoe-stop` | `dfa768bb5c6eb802139a79192ac6a37ba8a110941752fe9568b41f9f5377b552` |
+| `apoe-dot` | `3173b726b4ed9e7a932dbd051dbe3a7948294f4ef94534fd8b0c987c710fcdc9` |
+| `apoe-underscore` | `3173b726b4ed9e7a932dbd051dbe3a7948294f4ef94534fd8b0c987c710fcdc9` |
+| `apoe-star` | `3173b726b4ed9e7a932dbd051dbe3a7948294f4ef94534fd8b0c987c710fcdc9` |
+| `apoe-uncommon` | `eaa924d8d198c4e4b5a6f198524920e7f4340f5405cf75656577dee13e286f5b` |
+
+- **`parity/full-arm64/`:** the same cases on the full library, with release 2026-08-28, on `linux/arm64`, on 2026-11-24, by `parity reference --goldens full`, with the engine matching all twelve. Each gives the fixture's row, as `-Z 65000000` makes the E-values the library's. There's no amd64 run yet, which writes `parity/full/`. It's for checks by hand: CI doesn't run it. The full-library set of 30 more proteins is in [`library/`](library/README.md).
 
 | Case | `result.tsv`'s sha256 |
 | ---- | --------------------- |

@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR24223:SF19	1027.8	2.7e-305	1027.4	3.5e-305	2	1121	7	1441	6	1459	AN168	GO:0005260,GO:0005829,GO:0005886,GO:0006833,GO:0015701,GO:0016323,GO:0016324,GO:0055085,GO:0140359,GO:1902476	PC00003

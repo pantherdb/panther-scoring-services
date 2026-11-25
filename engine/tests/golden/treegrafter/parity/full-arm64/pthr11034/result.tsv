@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR11034	494.1	4.6e-145	493.7	5.7e-145	6	326	12	358	5	371	-	-	-

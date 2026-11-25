@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR45900:SF1	535.1	3.2e-157	534.8	4.1e-157	25	357	5	337	2	345	AN355	GO:0000150,GO:0000725,GO:0003697,GO:0004520,GO:0009355	PC00016

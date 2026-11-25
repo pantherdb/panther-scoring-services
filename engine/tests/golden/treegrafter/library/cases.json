@@ -1,0 +1,124 @@
+{
+  "cases": [
+    {
+      "name": "cftr",
+      "why": "Human CFTR, 1,480 residues: a slow graft in the spike, its graft node high in a big tree (UniProt P13569)"
+    },
+    {
+      "name": "dync1h1",
+      "why": "Human DYNC1H1, 4,646 residues: a long hmmsearch (UniProt Q14204)"
+    },
+    {
+      "name": "titin-10000",
+      "why": "Titin's first 10,000 residues, the API's residue limit: the longest hmmsearch (UniProt Q8WZ42)"
+    },
+    {
+      "name": "or1a1",
+      "why": "Human OR1A1: an olfactory receptor, in a large family (UniProt Q9P1Q5)"
+    },
+    {
+      "name": "mapk1",
+      "why": "Human MAPK1: a kinase, in a large family (UniProt P28482)"
+    },
+    {
+      "name": "h3-1",
+      "why": "Human histone H3.1: a short, conserved protein (UniProt P68431)"
+    },
+    {
+      "name": "actb",
+      "why": "Human ACTB: actin, a near-tie between placements in the spike (UniProt P60709)"
+    },
+    {
+      "name": "calm1",
+      "why": "Human CALM1: calmodulin, whose family the spike found differs from PANTHER's tree (UniProt P0DP23)"
+    },
+    {
+      "name": "tp53",
+      "why": "Human TP53 (UniProt P04637)"
+    },
+    {
+      "name": "brca1",
+      "why": "Human BRCA1, 1,863 residues: mostly disordered (UniProt P38398)"
+    },
+    {
+      "name": "egfr",
+      "why": "Human EGFR, 1,210 residues: a receptor kinase (UniProt P00533)"
+    },
+    {
+      "name": "ins",
+      "why": "Human insulin, 110 residues: a short precursor (UniProt P01308)"
+    },
+    {
+      "name": "gapdh",
+      "why": "Human GAPDH: an enzyme found in all kingdoms (UniProt P04406)"
+    },
+    {
+      "name": "rho",
+      "why": "Human rhodopsin: a GPCR (UniProt P08100)"
+    },
+    {
+      "name": "ubb",
+      "why": "Human polyubiquitin-B: three repeats of one domain (UniProt P0CG47)"
+    },
+    {
+      "name": "kras",
+      "why": "Human KRAS: a small GTPase, in a large family (UniProt P01116)"
+    },
+    {
+      "name": "lyz",
+      "why": "Human lysozyme C (UniProt P61626)"
+    },
+    {
+      "name": "groel",
+      "why": "E. coli GroEL: a bacterial chaperonin (UniProt P0A6F5)"
+    },
+    {
+      "name": "reca",
+      "why": "E. coli RecA: a bacterial protein found in all kingdoms (UniProt P0A7G6)"
+    },
+    {
+      "name": "sars2-spike",
+      "why": "The SARS-CoV-2 spike: a viral protein the spike found in no family (UniProt P0DTC2)"
+    },
+    {
+      "name": "cdc28",
+      "why": "Yeast CDC28: a fungal kinase (UniProt P00546)"
+    },
+    {
+      "name": "rbcl",
+      "why": "Spinach RbcL: a plastid-encoded plant protein (UniProt P00875)"
+    },
+    {
+      "name": "notch",
+      "why": "Drosophila Notch, 2,703 residues: many EGF repeats (UniProt P07207)"
+    },
+    {
+      "name": "bacteriorhodopsin",
+      "why": "Halobacterium bacteriorhodopsin: an archaeal protein (UniProt P02945)"
+    },
+    {
+      "name": "flc",
+      "why": "Arabidopsis FLC: a plant MADS-box protein (UniProt Q9S7Q7)"
+    },
+    {
+      "name": "laci",
+      "why": "E. coli LacI: a bacterial repressor (UniProt P03023)"
+    },
+    {
+      "name": "slc15a5",
+      "why": "Human SLC15A5, of PTHR11654, the library's largest tree (3,226 leaves): EPA-ng's largest placement (UniProt A6NIM6)"
+    },
+    {
+      "name": "ap3b1",
+      "why": "Human AP3B1, of PTHR11134, one of the ten families that can't be placed (UniProt O00203)"
+    },
+    {
+      "name": "cox6b1",
+      "why": "Human COX6B1, of PTHR11387, another that can't be placed (UniProt P14854)"
+    },
+    {
+      "name": "mocs2",
+      "why": "Human MOCS2, of PTHR23404, another that can't be placed (UniProt O96007)"
+    }
+  ]
+}

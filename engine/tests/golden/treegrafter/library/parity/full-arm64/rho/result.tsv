@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR24240:SF15	299.1	1.5e-85	298.8	1.9e-85	15	311	35	323	13	329	AN702	GO:0001750,GO:0005886,GO:0007186,GO:0007602,GO:0008020,GO:0016038,GO:0071482	PC00021

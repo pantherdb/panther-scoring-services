@@ -368,11 +368,15 @@ docker run --rm --platform linux/amd64 -v "$PWD/engine:/work/engine" \
   It prints each case's time, every difference, field by field, and how many cases match, and exits with status 1 if any differs or has no output. EBI's row has no graft point, so the engine's is left out of the comparison. CI runs the same comparison in `tests/test_treegrafter_parity.py`, on both `engine-image` legs.
 - **Update the sha256s** in the golden folder's README, and commit `parity/fixture/` with them.
 
-### The Cross-Check in EBI's Published Image
+### The Cross-Check in InterPro's Published Image
 
-The goldens use HMMER 3.4 and EPA-ng 0.3.8, where EBI's Dockerfile builds 3.3.1 and 0.3.7. So the cases run once, on amd64, in EBI's published image, pinned by digest, with the fixture, through its own `treegrafter.sh search`, and its rows are compared with the goldens. If they're equal, this section says so, with the digest; if not, the differences are listed, and a divergence row is proposed.
+The goldens use HMMER 3.4 and EPA-ng 0.3.8, where EBI's Dockerfile builds 3.3.1 and 0.3.7. So the cases ran once, on amd64, with the tools of the image InterPro publishes for PANTHER, and the pinned EBI code.
 
-Not yet run. The image the change names, `interpro/treegrafter`, isn't on Docker Hub; InterPro publishes `interpro/panther:1.0`, amd64 only, updated 2026-04-20, which may hold it. Which image is EBI's TreeGrafter, and at which commit, needs team verification.
+- **The image:** `interpro/panther:1.0`, digest `sha256:a486b8bcbbc26979d379b1909b793d83aeb7c044c722674546009ad7ef673127`, amd64 only. It holds HMMER 3.3, EPA-ng 0.3.8, Python 3.12.3 and Biopython 1.83, and no TreeGrafter code. `interpro/treegrafter` isn't published.
+- **What InterProScan 6 runs in it isn't EBI's `treegrafter`:** `ebi-pf-team/interproscan6`'s PANTHER module searches with `hmmsearch -Z 65000000 -E 0.001`, without the domain thresholds, picks the best family in Groovy, and places with its own `bin/treegrafter.py`. So the cross-check runs the pinned code in the image instead: `treegrafter.py` and `treegrafter.sh` from the archive `engine/uv.lock` pins, mounted read-only.
+- **How:** in the image, `treegrafter.sh prepare` on the fixture's annotation lines, then, for each case, `treegrafter.sh search`, which runs `hmmsearch` and `treegrafter.py run -e 0.00000001` without `--print-go`. Then again with `hmmsearch` as above and `treegrafter.py run -e 0.00000001 --print-go`, for the GO terms and protein class.
+- **The result, on 2026-11-24:** all twelve cases' rows equal the goldens. The 13 columns of `treegrafter.sh search` match, and with `--print-go`, every `result.tsv` is byte-identical. So HMMER 3.3 and Biopython 1.83 give what 3.4 and 1.88 give, and no divergence row is needed.
+- **Not covered:** EPA-ng 0.3.7, the version EBI's Dockerfile builds. The image has 0.3.8, as the engine does.
 
 ### The treegrafter Full-Library Run
 
@@ -385,5 +389,7 @@ docker compose run --rm -T engine sh -c '
 ```
 
 - **EBI's code and the engine read the same data folder:** the full library and the active release.
-- **Each graft reads the whole `binHmm`,** 3.4 GB. With `.data/` mounted from macOS through Docker Desktop, that took about 50 s for APOE on an M1 Pro; inside Docker's VM, or on Linux, about 10 s.
-- **Record the machine, the date and the times** in [inputs.md](inputs.md#the-treegrafter-full-library-run), and commit `parity/full/` with its sha256s in the golden folder's README.
+- **Each graft reads the whole `binHmm`,** 3.4 GB of text HMMs: about 45 s a protein on an M1 Pro, for EBI's command line and the engine alike. The run on 2026-11-24 took about 2 hours for both sets.
+- **The second set,** 30 proteins in `engine/tests/golden/treegrafter/library/`, runs the same way, with `--golden tests/golden/treegrafter/library`.
+- **On arm64,** `parity reference` writes `parity/full-arm64/`, as for the fixture; on amd64, `parity/full/`.
+- **Record the machine, the date and the times** in [inputs.md](inputs.md#the-treegrafter-full-library-run), and commit the results with their sha256s in each golden folder's README.

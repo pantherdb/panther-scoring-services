@@ -267,4 +267,15 @@ Each case is one protein, grafted by EBI's command line at the pinned commit, an
 
 ### The treegrafter Full-Library Run
 
-Not yet run ([golden-setup.md](golden-setup.md#the-treegrafter-full-library-run)). The machine, the date and the times go here.
+On 2026-11-24, `parity reference --goldens full` and `parity check --goldens full` ran on PANTHER 19's full TreeGrafter library, with release 2026-08-28 active ([golden-setup.md](golden-setup.md#the-treegrafter-full-library-run)). The machine was an M1 Pro, in the engine image on `linux/arm64`, under Docker Desktop with 10 CPUs and 12.5 GB, with the data in a Docker volume. The engine was at `de141db`, with this run's sets.
+
+- **The data:** `data verify` found nothing missing or differing.
+- **The goldens' 12 cases:** written to `parity/full-arm64/`, and all 12 match, each byte-identical to its fixture golden.
+- **A second set, 30 proteins,** in `engine/tests/golden/treegrafter/library/`, chosen for this run: the spike's own list wasn't kept. The engine matched all 30. It holds:
+  - the proteins the spike's Notes name: CFTR, DYNC1H1, titin's first 10,000 residues, OR1A1, MAPK1, H3.1, actin, calmodulin, GroEL and the SARS-CoV-2 spike;
+  - more of human, bacterial, plant, yeast and archaeal proteins, from 86 to 4,646 residues;
+  - SLC15A5, of PTHR11654, the largest tree;
+  - AP3B1, COX6B1 and MOCS2, of three of the ten families that can't be placed, each the family alone.
+
+  Each protein's hit is in that folder's README.
+- **Time:** the engine took 43 to 103 s a protein, a median of 50 s: 734 s for the 12 cases, and 1,708 s for the 30. EBI's command line took about as long. Two cases' times, `random300`'s 146 s and `apoe-stop`'s 98 s, are outliers on a laptop that may have slept: the log has a gap of about an hour after them.

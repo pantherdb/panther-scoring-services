@@ -1,0 +1,2 @@
+query_id	panther_id	score	evalue	dom_score	dom_evalue	hmm_start	hmm_end	ali_start	ali_end	env_start	env_end	node_id	go_terms	protein_class
+query	PTHR10836:SF111	662.1	5e-196	661.9	5.7e-196	2	333	3	333	2	335	AN71	GO:0004365,GO:0005829,GO:0006096	PC00092

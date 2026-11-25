@@ -26,6 +26,17 @@ def test_every_input_holds_only_what_the_engine_takes(case: str) -> None:
     check_sequence(parity.sequence_of(GOLDEN, case))
 
 
+def test_the_full_library_set_lists_its_inputs_and_the_engine_takes_each() -> None:
+    library = GOLDEN / "library"
+    cases = parity.read_cases(library)
+
+    assert {case.name for case in cases} == {
+        path.stem for path in (library / "inputs").glob("*.txt")
+    }
+    for case in cases:
+        check_sequence(parity.sequence_of(library, case.name))
+
+
 def test_every_case_has_a_golden_made_on_the_fixture() -> None:
     for case in parity.read_cases(GOLDEN):
         assert (GOLDEN / "parity" / "fixture" / case.name / "result.tsv").is_file(), case.name

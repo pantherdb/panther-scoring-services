@@ -66,7 +66,7 @@ Groups 1, 3.1 and 3.2 don't need EBI's code, so they can start while group 0 wai
   - neither image has `git`;
   - in both, `python -c "import treegrafter, Bio; print(Bio.__version__)"` prints `1.88`;
   - each image's size before and after is in Notes. About 100 MB more is expected.
-- [ ] 2.3 Open this change's pull request early enough to see CI's `dependency-review` on the new packages. If it rejects Biopython or NumPy for a licence it misreads, add them to `allow-dependencies-licenses` in `.github/workflows/ci.yml`, each with a comment like the two already there:
+- [x] 2.3 Open this change's pull request early enough to see CI's `dependency-review` on the new packages. If it rejects Biopython or NumPy for a licence it misreads, add them to `allow-dependencies-licenses` in `.github/workflows/ci.yml`, each with a comment like the two already there:
   - Biopython's licence is its own, the Biopython License Agreement, with no SPDX ID (some of its files are also BSD-3-Clause, not the package);
   - NumPy's wheels bundle code under further licences.
 
@@ -169,7 +169,7 @@ Groups 1, 3.1 and 3.2 don't need EBI's code, so they can start while group 0 wai
 
 - [x] 7.1 Write `engine/tests/golden/treegrafter/cases.json` and `inputs/` (design.md, decision 10), with each input's source and sha256 in the goldens' README. `apoe-hbb` is APOE followed by HBB, and `random300` comes from a recorded seed. Verify that `cases.json` lists every input file, and that every input holds only what the engine takes.
 - [x] 7.2 Add `panther-engine treegrafter parity reference` (spec: Reference run). For each case, it runs `hmmsearch` with `treegrafter.sh`'s flags, then EBI's console script, `run -e 0.00000001 --print-go`, one case at a time into a temporary folder, then moves the output into place. Unit-test the arguments without the tools. Run it on the fixture in the image, on amd64, and commit `parity/fixture/`. Verify the APOE row names `PTHR18976:SF2` and `AN163`, and the PTHR11034 row has `-` for its node.
-- [ ] 7.3 Add `panther-engine treegrafter parity check` and `engine/tests/test_treegrafter_parity.py` (spec: Parity with the reference, Parity run):
+- [x] 7.3 Add `panther-engine treegrafter parity check` and `engine/tests/test_treegrafter_parity.py` (spec: Parity with the reference, Parity run):
   - every fixture case equals its golden;
   - a hand-changed graft node fails, naming the case;
   - a case with no output is named.
@@ -209,7 +209,7 @@ Groups 1, 3.1 and 3.2 don't need EBI's code, so they can start while group 0 wai
 
 Everything that runs on one machine is done. What's left needs a person:
 
-1. **The engine developer commits and pushes `adopt-treegrafter`, and opens its pull request** (Claude doesn't commit: the developer's own rule). Then 2.3 (`dependency-review` on Biopython and NumPy), 7.3 (both `engine-image` legs) and 8.1's CI check.
+1. **Done: the pull request, [#90](https://github.com/pantherdb/panther-scoring-services/pull/90),** with CI green on `7855fa3`. 8.1's CI check is to run again once the rest is in.
 2. **7.6 needs the spike's 33 queries.** The spike's scratch folder is gone, and these Notes name only some of them: the 24 proteins compared with InterPro, and the timing queries. Their list, or a decision to choose a new set, is the engine developer's. The full library and release 2026-08-28 are fetched and verified in `.data/` on the M1 Pro, so the run can go there. 7.7 waits on 7.6's numbers.
 3. **7.4 needs the image identified, and permission to pull it.** `interpro/treegrafter` isn't on Docker Hub; InterPro's `interpro/panther:1.0` (amd64, 2026-04-20) may hold TreeGrafter. Pulling and running it was refused by the session's permission check, so the engine developer runs it, or allows it.
 4. **0.2, before the final check:** if EBI hasn't merged #9, the engine developer agrees here that the pin stays on `d633328`.
@@ -308,7 +308,6 @@ On the M1 Pro, natively, with the library fetched from a local copy downloaded w
 ### Blockers
 
 - **EBI's merge of 0.1.** It doesn't block: the pin on 0.1's head commit works meanwhile (0.2). Open and unreviewed on 2026-11-24.
-- **A pushed branch,** for 2.3, 7.3's and 8.1's CI.
 - **The spike's 33 queries,** for 7.6 and 7.7.
 - **EBI's published image,** for 7.4: which one, and permission to pull it.
 
@@ -320,7 +319,7 @@ On 2026-11-24, on the M1 Pro:
 - **amd64, emulated:** the treegrafter parity and real-tool tests, 26 passed.
 - **The API, natively, with its refreshed lock:** `ruff`, `basedpyright` clean, and 554 passed, 12 skipped.
 - **From the root:** `npx markdownlint-cli2` clean; `openspec validate adopt-treegrafter --strict` valid; `openspec validate --all` 14 passed, with two warnings on long requirements in other specs.
-- **Not yet:** CI on the pull request.
+- **CI on #90:** on `e05f082`, every job passed but `dependency-review`, which refused Biopython's and NumPy's licences (2.3). On `7855fa3`, with both accepted by name, every job passed, both `engine-image` legs included, and `ci-passed`.
 
 ### Failed approaches
 
@@ -328,6 +327,8 @@ On 2026-11-24, on the M1 Pro:
 - **`hmmsearch --tblout /dev/stdout`** with the report on standard output mixes the two: write the table to a file.
 
 ### Lessons learned
+
+- **Biopython isn't dual-licensed as a whole:** its `LICENSE.rst` puts the package under the Biopython License Agreement, and only some files are also BSD-3-Clause. GitHub's scanner reports Biopython's and NumPy's licences correctly; `ci.yml` accepts them by name, apart from the packages it misreads.
 
 - **From the spike:** for a one-sequence search, `hmmsearch --cpu 4` is slower than `--cpu 0`, `binHmm.h3m` is no faster than the text file, and EPA-ng's threads don't help.
 - **EBI's code hides two EPA-ng aborts as a family-only row:** a tree leaf missing from its alignment, and a `~` in a match column of the query alignment.
